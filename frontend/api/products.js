@@ -1,24 +1,41 @@
-export default async function handler(req, res) {
+export const config = {
+  runtime: "edge",
+};
+
+export default async function handler() {
   try {
-    const url = `${process.env.SUPABASE_URL}/rest/v1/products?is_active=eq.true`;
+    const url =
+      `${process.env.SUPABASE_URL}/rest/v1/products` +
+      `?is_active=eq.true&select=id,name,description,price,brand`;
 
     const response = await fetch(url, {
-      method: "GET",
       headers: {
         apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
         Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
       },
     });
 
     if (!response.ok) {
       const text = await response.text();
-      return res.status(500).json({ error: text });
+      return new Response(
+        JSON.stringify({ error: text }),
+        { status: 500 }
+      );
     }
 
     const data = await response.json();
-    return res.status(200).json(data);
+
+    return new Response(
+      JSON.stringify(data),
+      {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   } catch (err) {
-    return res.status(500).json({ error: err.message });
+    return new Response(
+      JSON.stringify({ error: err.message }),
+      { status: 500 }
+    );
   }
 }
