@@ -9,7 +9,14 @@ import categoryRoutes from "./routes/categories.js";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "https://blinkiefash.in"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  credentials: true
+}));
 app.use(express.json());
 
 app.use("/api/products", productRoutes);
