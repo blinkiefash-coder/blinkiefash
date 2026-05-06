@@ -19,7 +19,7 @@ export default function VendorAuth() {
 
     try {
       const res = await fetch(
-        "https://blinkiefash-backend.onrender.com/api/vendor/verify",
+        "https://blinkiefash.onrender.com/api/vendor/verify",
         {
           method: "POST",
           headers: {
@@ -36,7 +36,7 @@ export default function VendorAuth() {
         // ✅ Store vendor_id
         localStorage.setItem("vendor_id", data.vendor_id);
 
-        navigate("/add-product");
+        navigate("/vendor/add-product");
 
       } else {
         setError(data.message);

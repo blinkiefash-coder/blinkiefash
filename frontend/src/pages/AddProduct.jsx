@@ -45,12 +45,12 @@ export default function AddProduct() {
     }
 
     /* ✅ FETCH BRANDS */
-    fetch("https://blinkiefash-backend.onrender.com/api/brands")
+    fetch("https://blinkiefash.onrender.com/api/brands")
       .then(res => res.json())
       .then(data => setBrands(data));
 
     /* ✅ FETCH CATEGORIES */
-    fetch("https://blinkiefash-backend.onrender.com/api/categories")
+    fetch("https://blinkiefash.onrender.com/api/categories")
       .then(res => res.json())
       .then(data => {
         setCategories(data);
@@ -65,7 +65,7 @@ export default function AddProduct() {
   const updateForm = (key, value) => {
     setForm(prev => ({
       ...prev,
-      [key]: value     // ✅ FIXED
+      value     // ✅ FIXED
     }));
   };
 
@@ -100,7 +100,7 @@ export default function AddProduct() {
 
     try {
       const res = await fetch(
-        "https://blinkiefash-backend.onrender.com/api/products/create",
+        "https://blinkiefash.onrender.com/api/products/create",
         {
           method: "POST",
           headers: {

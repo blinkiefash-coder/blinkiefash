@@ -175,6 +175,7 @@ function Home() {
     <div className="footer-col">
       <h3>POLICIES</h3>
       <ul>
+        <li onClick={() => navigate("/vendor")}>Become a Seller</li>
         <li>Terms & Conditions</li>
         <li>Privacy Policy</li>
         <li>Refund Policy</li>
