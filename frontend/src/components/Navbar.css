@@ -1,0 +1,195 @@
+/* ================= NAVBAR ================= */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+}
+
+/* LEFT */
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.logo-img {
+  height: 55px;
+}
+
+/* Brand */
+.brand {
+  display: flex;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: -0.4px;
+}
+
+.brand-black {
+  color: #111;
+}
+
+.brand-green {
+  color: #22c55e;
+}
+
+/* Address */
+.address-box {
+  display: flex;
+  flex-direction: column;
+  background: #e8f2ec;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  position: relative;
+  min-width: 140px;
+}
+
+.address-top {
+  font-size: 9px;
+  color: #6b7280;
+  line-height: 1.1;
+}
+
+.address-bottom {
+  font-size: 12px;
+  font-weight: 700;
+  color: #065f46;
+}
+
+/* Address dropdown */
+.address-dropdown {
+  position: absolute;
+  top: 120%;
+  left: 0;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 10px;
+  width: 180px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  z-index: 10;
+}
+
+.address-dropdown div {
+  padding: 6px;
+  cursor: pointer;
+}
+
+.address-dropdown div:hover {
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+/* Categories */
+.nav-links {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 1px;
+}
+
+.nav-item {
+  cursor: pointer;
+  padding-bottom: 4px;
+}
+
+.nav-item.active {
+  border-bottom: 2px solid #065f46;
+}
+
+/* RIGHT */
+.nav-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Search */
+.search-box {
+  background: #e8f2ec;
+  border-radius: 999px;
+  border: none;
+  padding: 8px 18px;
+  width: 320px;
+  font-size: 14px;
+  outline: none;
+}
+
+/* Cart */
+.cart-icon svg {
+  width: 18px;
+  height: 18px;
+  stroke: #065f46;
+  fill: none;
+  stroke-width: 2;
+  cursor: pointer;
+}
+
+/* Profile */
+.profile-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #e8f2ec;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  position: relative;
+}
+
+.avatar {
+  width: 28px;
+  height: 28px;
+  background: #065f46;
+  color: white;
+  border-radius: 50%;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profile-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-text span {
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.profile-text strong {
+  font-size: 12px;
+  font-weight: 800;
+}
+
+/* Dropdown */
+.profile-dropdown {
+  position: absolute;
+  top: 120%;
+  right: 0;
+  background: white;
+  border-radius: 12px;
+  width: 160px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+  padding: 8px;
+  z-index: 10;
+}
+
+.profile-dropdown div {
+  padding: 8px;
+  font-size: 13px;
+}
+
+.profile-dropdown div:hover {
+  background: #f3f4f6;
+  border-radius: 6px;
+}
+
+.divider {
+  height: 1px;
+  background: #e5e7eb;
+  margin: 6px 0;
+}

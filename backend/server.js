@@ -1,17 +1,24 @@
-const express = require('express')
-const cors = require('cors')
-const app = express()
-app.use(cors())
-app.use(express.json())
-// Login API
-app.post('/login', (req, res) => {
- const { email, password } = req.body
- if (email === "test@gmail.com" && password === "1234") {
-   res.json({ success: true })
- } else {
-   res.json({ success: false })
- }
-})
-app.listen(5000, () => {
- console.log('Server running on port 5000')
-})
+import express from "express";
+import cors from "cors";
+import "dotenv/config";
+
+import vendorRoutes from "./routes/vendor.js";
+import productRoutes from "./routes/products.js";
+import brandRoutes from "./routes/brands.js";
+import categoryRoutes from "./routes/categories.js";
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+app.use("/api/products", productRoutes);
+app.use("/api/vendor", vendorRoutes);
+app.use("/api/brands", brandRoutes);
+app.use("/api/categories", categoryRoutes);
+
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`✅ Backend running on port ${PORT}`);
+});

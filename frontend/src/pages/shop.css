@@ -1,0 +1,238 @@
+/* =====================
+   NAVBAR (SHOP MODE)
+===================== */
+.shop-navbar-wrapper .navbar {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+.shop-navbar-wrapper .logo-img {
+  height: 46px;
+}
+.shop-navbar-wrapper .address-box {
+  padding: 4px 10px;
+}
+.shop-navbar-wrapper .search-box {
+  height: 34px;
+  padding: 6px 14px;
+}
+
+/* =====================
+   PAGE
+===================== */
+.shop-page {
+  background: linear-gradient(180deg, #f0fdf4 0%, #fafafa 40%);
+  padding: 24px;
+}
+.shop-layout {
+  display: flex;
+  align-items: flex-start;
+}
+
+/* =====================
+   FILTERS (STICKY)
+===================== */
+.shop-filters {
+  width: 240px;
+  padding-right: 24px;
+  border-right: 1px solid #d1fae5;
+}
+.shop-filters-inner {
+  position: sticky;
+  top: 86px;
+  background: #f0fdf4;
+  padding: 14px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1fae5;
+}
+.shop-filter-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #065f46;
+  margin-bottom: 16px;
+}
+.shop-filter-group {
+  margin-bottom: 22px;
+}
+.shop-filter-group h5 {
+  font-size: 13px;
+  font-weight: 600;
+  color: #047857;
+  margin-bottom: 8px;
+}
+
+/* CATEGORY FILTER */
+.filter-option {
+  font-size: 13px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-bottom: 6px;
+  transition: all 0.15s ease;
+}
+.filter-option:hover {
+  background: #ecfdf5;
+}
+.filter-option.active {
+  background: #22c55e;
+  color: #ffffff;
+}
+
+/* PRICE */
+.price-slider {
+  width: 100%;
+  margin: 10px 0;
+  accent-color: #22c55e;
+}
+.price-range-text {
+  font-size: 13px;
+  color: #065f46;
+}
+
+/* =====================
+   COLOR FILTER — FIXED UX
+===================== */
+.color-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+.color-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  padding: 6px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.color-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  position: relative;
+  border: 1px solid #d1d5db;
+}
+/* ✅ Active state: border + check */
+.color-option.active .color-dot {
+  border: 2px solid #111;
+}
+.color-option.active .color-dot::after {
+  content: "✓";
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  background: #111;
+  color: #ffffff;
+  font-size: 10px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.color-option.active span {
+  font-weight: 600;
+}
+
+/* =====================
+   PRODUCTS
+===================== */
+.shop-products {
+  flex: 1;
+  padding-left: 24px;
+}
+.shop-products-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 24px;
+}
+.shop-title {
+  font-size: 22px;
+  font-weight: 800;
+}
+.shop-title::after {
+  content: "";
+  width: 42px;
+  height: 3px;
+  background: #22c55e;
+  display: block;
+  margin-top: 4px;
+  border-radius: 2px;
+}
+.shop-count {
+  font-size: 13px;
+  color: #6b7280;
+}
+.shop-sort {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #bbf7d0;
+}
+
+/* GRID */
+.shop-products-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
+}
+.shop-product-card {
+  background: #ffffff;
+  border: 1px solid #d1fae5;
+  padding: 14px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+.shop-product-card:hover {
+  border-color: #22c55e;
+  box-shadow: 0 6px 18px rgba(34, 197, 94, 0.15);
+  transform: translateY(-3px);
+}
+.shop-product-image {
+  height: 200px;
+  background: #ecfdf5;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+.shop-product-brand {
+  font-size: 13px;
+  color: #6b7280;
+}
+.shop-product-price {
+  display: block;
+  margin-top: 6px;
+  font-weight: 700;
+  color: #065f46;
+}
+/* =====================
+   SHOP BOTTOM BAR
+===================== */
+
+.shop-bottom-bar {
+  margin-top: 40px;
+  padding: 24px 16px 16px;
+  background: linear-gradient(
+    180deg,
+    #ffffff 0%,
+    #f0fdf4 100%
+  );
+  border-top: 1px solid #d1fae5;
+}
+
+.shop-bottom-content {
+  display: flex;
+  justify-content: center;
+  gap: 32px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #047857;
+  flex-wrap: wrap;
+}
+
+.shop-bottom-copy {
+  margin-top: 12px;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+}

@@ -1,0 +1,100 @@
+/* PAGE */
+.add-product-page {
+  min-height: 100vh;
+  background: #f6f8f7;
+  display: flex;
+  justify-content: center;
+  padding: 40px 20px;
+}
+
+/* CARD */
+.add-product-card {
+  width: 900px;
+  background: white;
+  border-radius: 16px;
+  padding: 30px;
+  border: 1px solid #e5e7eb;
+}
+
+/* HEADINGS */
+.add-product-card h2 {
+  margin-bottom: 20px;
+}
+
+.add-product-card h4 {
+  margin-top: 30px;
+  margin-bottom: 12px;
+  font-size: 15px;
+  color: #065f46;
+}
+
+/* GRID */
+.input-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+/* FULL WIDTH */
+.full-width {
+  grid-column: span 2;
+}
+
+/* INPUTS */
+.add-product-card input,
+.add-product-card textarea,
+.add-product-card select {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  font-size: 14px;
+  width: 100%;
+}
+
+/* TEXTAREA */
+.add-product-card textarea {
+  height: 80px;
+  resize: none;
+}
+
+/* VARIANTS */
+.variant-box {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr) 40px;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: center;
+}
+
+/* ADD VARIANT BUTTON */
+.add-variant-btn {
+  margin-top: 10px;
+  background: #e6f7ee;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+/* REMOVE BTN */
+.remove-btn {
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  height: 34px;
+  cursor: pointer;
+}
+
+/* SUBMIT */
+.submit-btn {
+  margin-top: 30px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  border: none;
+  background: #22c55e;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+}
