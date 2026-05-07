@@ -152,8 +152,9 @@ router.get("/", async (req, res) => {
 
         pm.url AS image,
 
-        MIN(v.price) AS price
-
+        MIN(v.price) AS price,
+        MIN(v.discount_price) AS discount_price
+        
       FROM products p
 
       LEFT JOIN brands b 
