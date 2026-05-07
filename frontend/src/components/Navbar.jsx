@@ -18,7 +18,10 @@ export default function Navbar() {
       <div className="nav-left">
         <img src={logo} alt="Blinkiefash" className="logo-img" />
 
-        <span className="brand">
+        <span className="brand" 
+            onClick={() => navigate("/")}
+              style={{ cursor: "pointer" }}
+            >
           <span className="brand-black">BLINKIE</span>
           <span className="brand-green">FASH</span>
         </span>
