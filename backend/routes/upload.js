@@ -7,24 +7,31 @@ const router = express.Router();
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
-router.post("/", upload.single("image"), async (req, res) => {
+// ✅ MULTIPLE IMAGE SUPPORT
+router.post("/", upload.array("image", 5), async (req, res) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: "No file uploaded" });
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: "No files uploaded" });
     }
 
-    const result = await cloudinary.uploader.upload(
-      `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
-    );
+    let imageUrls = [];
 
-    return res.json({
+    for (let file of req.files) {
+      const result = await cloudinary.uploader.upload(
+        `data:${file.mimetype};base64,${file.buffer.toString("base64")}`
+      );
+
+      imageUrls.push(result.secure_url);
+    }
+
+    res.json({
       success: true,
-      image_url: result.secure_url
+      image_urls: imageUrls
     });
 
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
-    return res.status(500).json({ error: "Upload failed" });
+    res.status(500).json({ error: "Upload failed" });
   }
 });
 
