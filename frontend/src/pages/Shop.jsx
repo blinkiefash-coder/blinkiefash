@@ -140,9 +140,14 @@ export default function Shop() {
                 <div key={p.id} className="shop-product-card">
 
                   {/* ✅ IMAGE */}
-                  <div className="shop-product-image">
-                    {p.image}
-                  </div>
+                  
+              <div className="shop-product-image">
+                <img
+                  src={p.image}
+                  alt={p.name}
+                />
+              </div>
+
 
                   {/* ✅ NAME */}
                   <h4>{p.name}</h4>
