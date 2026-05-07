@@ -3,7 +3,7 @@ import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
 
 export default function AddProduct() {
-
+const [loading, setLoading] = useState(false);
   /* ================= VENDOR ================= */
   const [vendorId, setVendorId] = useState("");
 
@@ -124,53 +124,90 @@ export default function AddProduct() {
 
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    let finalImages = imageUrls;
+  setLoading(true);   // ✅ START LOADING
 
-    if (images.length > 0 && imageUrls.length === 0) {
-      finalImages = await uploadImages();
-    }
+  let finalImages = imageUrls;
 
-    const payload = {
-      ...form,
-      images: finalImages,
-      variants,
-      vendor_id: vendorId
-    };
+  if (images.length > 0 && imageUrls.length === 0) {
+    finalImages = await uploadImages();
+  }
 
-    console.log("✅ FINAL PAYLOAD:", payload);
-
-    try {
-      const res = await fetch(
-        "https://blinkiefash.onrender.com/api/products/create",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify(payload)
-        }
-      );
-
-      const data = await res.json();
-
-      if (data.success) {
-        alert("✅ Product Added Successfully");
-      } else {
-        alert("❌ Failed: " + data.message);
-      }
-
-    } catch (err) {
-      console.log(err);
-      alert("❌ Server Error");
-    }
+  const payload = {
+    ...form,
+    images: finalImages,
+    variants,
+    vendor_id: vendorId
   };
+
+  try {
+    const res = await fetch(
+      "https://blinkiefash.onrender.com/api/products/create",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+
+      alert("✅ Product Added Successfully");
+
+      // ✅ RESET FORM COMPLETELY
+      setForm({
+        name: "",
+        description: "",
+        gender: "Women",
+        material: "",
+        brand_id: "",
+        category_id: ""
+      });
+
+      setVariants([
+        { size: "", color: "", price: "", discount_price: "", stock: "" }
+      ]);
+
+      setImages([]);
+      setImageUrls([]);
+
+      setSelectedParent("");
+      setSelectedChild("");
+
+    } else {
+      alert("❌ Failed: " + data.message);
+    }
+
+  } catch (err) {
+    console.log(err);
+    alert("❌ Server Error");
+  }
+
+  setLoading(false);  // ✅ STOP LOADING
+};
+
 
   /* ================= UI ================= */
 
+
   return (
     <>
+
+{/* ✅ GLOBAL LOADER (FULL SCREEN) */}
+    {loading && (
+      <div className="loader-overlay">
+        <div className="loader-box">
+          <p>Uploading & Saving...</p>
+          <div className="spinner"></div>
+        </div>
+      </div>
+    )}
+
       <Navbar />
 
       <div className="add-product-page">
@@ -185,12 +222,17 @@ export default function AddProduct() {
 
             <div className="input-grid">
               <input placeholder="Product Name"
-                onChange={(e)=>updateForm("name", e.target.value)} />
+                value={form.name} 
+                onChange={(e)=>updateForm("name", e.target.value)}
+                />
 
               <input placeholder="Material"
+              value={form.material}
                 onChange={(e)=>updateForm("material", e.target.value)} />
 
-              <select onChange={(e)=>updateForm("gender", e.target.value)}>
+              <select 
+              value={form.gender}
+              onChange={(e)=>updateForm("gender", e.target.value)}>
                 <option>Women</option>
                 <option>Men</option>
                 <option>Kids</option>
@@ -199,13 +241,16 @@ export default function AddProduct() {
 
               <textarea
                 placeholder="Description"
+                value={form.description}
                 onChange={(e)=>updateForm("description", e.target.value)}
               />
             </div>
 
             {/* BRAND */}
             <h4>Brand</h4>
-            <select onChange={(e)=>updateForm("brand_id", e.target.value)}>
+            <select 
+            value={form.brand_id}
+            onChange={(e)=>updateForm("brand_id", e.target.value)}>
               <option>Select Brand</option>
               {brands.map(b=>(
                 <option key={b.id} value={b.id}>{b.name}</option>
@@ -265,18 +310,23 @@ export default function AddProduct() {
               <div key={i} className="variant-box">
 
                 <input placeholder="Size"
+                value={form.size}
                   onChange={e=>updateVariant(i,"size",e.target.value)} />
 
                 <input placeholder="Color"
+                value={form.color}
                   onChange={e=>updateVariant(i,"color",e.target.value)} />
 
                 <input type="number" placeholder="Price"
+                value={form.price}
                   onChange={e=>updateVariant(i,"price",e.target.value)} />
 
                 <input type="number" placeholder="Discount"
+                value={form.discount_price}
                   onChange={e=>updateVariant(i,"discount_price",e.target.value)} />
 
                 <input type="number" placeholder="Stock"
+                value={form.stock}
                   onChange={e=>updateVariant(i,"stock",e.target.value)} />
 
                 {variants.length>1 && (
@@ -312,10 +362,14 @@ export default function AddProduct() {
 </div>
 
 
-            {/* SUBMIT */}
-            <button className="submit-btn">
-              Submit Product ✅
-            </button>
+{/* SUBMIT */}
+<button
+  className="submit-btn"
+  disabled={loading}
+>
+  {loading ? "Adding Product..." : "Submit Product ✅"}
+</button>
+
 
           </form>
 
