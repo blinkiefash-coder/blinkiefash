@@ -16,15 +16,21 @@ export default function ProductDetail() {
 
   /* ✅ FETCH DATA */
   useEffect(() => {
-    fetch(`https://blinkiefash.onrender.com/api/products/${id}`)
-      .then(res => res.json())
-      .then(data => {
-        setProduct(data.product);
-        setImages(data.images || []);
-        setActiveImage(data.images?.[0] || "");
-      })
-      .catch(err => console.error(err));
-  }, [id]);
+  fetch(`https://blinkiefash.onrender.com/api/products/${id}`)
+    .then(res => {
+      if (!res.ok) throw new Error("API failed");
+      return res.json();
+    })
+    .then(data => {
+      setProduct(data.product);
+      setImages(data.images || []);
+      setActiveImage(data.images?.[0] || "");
+    })
+    .catch(err => {
+      console.error("Fetch error:", err);
+    });
+}, [id]);
+
 
   if (!product) return <p>Loading...</p>;
 
