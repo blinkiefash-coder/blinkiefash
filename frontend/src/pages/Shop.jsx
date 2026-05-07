@@ -1,18 +1,6 @@
 import Navbar from "../components/Navbar";
 import "./shop.css";
-import { useState } from "react";
-
-const PRODUCTS = [
-  { id: 1, name: "Printed Shirt", brand: "Roadster", price: 799 },
-  { id: 2, name: "Casual T-Shirt", brand: "H&M", price: 499 },
-  { id: 3, name: "Floral Dress", brand: "Zara", price: 1599 },
-  { id: 4, name: "Printed Shirt", brand: "Roadster", price: 799 },
-  { id: 5, name: "Casual T-Shirt", brand: "H&M", price: 499 },
-  { id: 6, name: "Floral Dress", brand: "Zara", price: 1599 },
-  { id: 7, name: "Printed Shirt", brand: "Roadster", price: 799 },
-  { id: 8, name: "Casual T-Shirt", brand: "H&M", price: 499 },
-  { id: 9, name: "Floral Dress", brand: "Zara", price: 1599 },
-];
+import { useState, useEffect } from "react";
 
 const CATEGORIES = [
   "Women",
@@ -38,12 +26,24 @@ const COLORS = [
 ];
 
 export default function Shop() {
+
+  const [products, setProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeColor, setActiveColor] = useState(null);
 
+  /* ✅ FETCH REAL PRODUCTS */
+  useEffect(() => {
+    fetch("https://blinkiefash.onrender.com/api/products")
+      .then(res => res.json())
+      .then(data => {
+        console.log("Products:", data);
+        setProducts(data);
+      })
+      .catch(err => console.error(err));
+  }, []);
+
   return (
     <>
-      {/* Same navbar as Home (slightly compact for shop) */}
       <div className="shop-navbar-wrapper">
         <Navbar />
       </div>
@@ -51,13 +51,12 @@ export default function Shop() {
       <div className="shop-page">
         <div className="shop-layout">
 
-          {/* FILTERS */}
+          {/* ✅ FILTERS (UI ONLY FOR NOW) */}
           <aside className="shop-filters">
             <div className="shop-filters-inner">
 
               <h4 className="shop-filter-title">FILTERS</h4>
 
-              {/* CATEGORIES */}
               <div className="shop-filter-group">
                 <h5>Categories</h5>
                 {CATEGORIES.map((cat) => (
@@ -75,7 +74,6 @@ export default function Shop() {
                 ))}
               </div>
 
-              {/* PRICE */}
               <div className="shop-filter-group">
                 <h5>Price Range</h5>
                 <input
@@ -91,7 +89,6 @@ export default function Shop() {
                 </div>
               </div>
 
-              {/* COLORS */}
               <div className="shop-filter-group">
                 <h5>Color</h5>
                 <div className="color-grid">
@@ -118,13 +115,14 @@ export default function Shop() {
             </div>
           </aside>
 
-          {/* PRODUCTS */}
+          {/* ✅ PRODUCTS */}
           <section className="shop-products">
+
             <div className="shop-products-header">
               <div>
                 <h2 className="shop-title">All Products</h2>
                 <p className="shop-count">
-                  Showing 1 – {PRODUCTS.length} products
+                  Showing {products.length} products
                 </p>
               </div>
 
@@ -135,38 +133,53 @@ export default function Shop() {
               </select>
             </div>
 
+            {/* ✅ PRODUCT GRID */}
             <div className="shop-products-grid">
-              {PRODUCTS.map((p) => (
+
+              {products.map((p) => (
                 <div key={p.id} className="shop-product-card">
-                  <div className="shop-product-image">Image</div>
+
+                  {/* ✅ IMAGE */}
+                  <div className="shop-product-image">
+                    {p.image}
+                  </div>
+
+                  {/* ✅ NAME */}
                   <h4>{p.name}</h4>
-                  <span className="shop-product-brand">{p.brand}</span>
+
+                  {/* ✅ BRAND (fallback) */}
+                  <span className="shop-product-brand">
+                    {p.brand || "Blinkiefash"}
+                  </span>
+
+                  {/* ✅ PRICE */}
                   <span className="shop-product-price">
                     ₹{p.price}
                   </span>
+
                 </div>
               ))}
+
             </div>
+
           </section>
 
         </div>
       </div>
-      {/* SHOP BOTTOM BAR */}
-<footer className="shop-bottom-bar">
-  <div className="shop-bottom-content">
-    <span>✅ Try & Buy</span>
-    <span>⚡ 60‑min Delivery</span>
-    <span>🔒 Secure Payments</span>
-    <span>↩ Easy Returns</span>
-  </div>
 
-  <div className="shop-bottom-copy">
-    © 2026 BlinkieFash · Fashion delivered in a Blink
-  </div>
-</footer>
+      {/* ✅ FOOTER */}
+      <footer className="shop-bottom-bar">
+        <div className="shop-bottom-content">
+          <span>✅ Try & Buy</span>
+          <span>⚡ 60‑min Delivery</span>
+          <span>🔒 Secure Payments</span>
+          <span>↩ Easy Returns</span>
+        </div>
+
+        <div className="shop-bottom-copy">
+          © 2026 BlinkieFash · Fashion delivered in a Blink
+        </div>
+      </footer>
     </>
-    
   );
 }
-
-
