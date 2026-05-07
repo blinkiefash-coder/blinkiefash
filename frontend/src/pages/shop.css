@@ -242,5 +242,32 @@
   max-height: 100%;
   object-fit: contain;
 }
+.price-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.price-final {
+  font-weight: 700;
+  color: #065f46;
+  font-size: 16px;
+}
+
+.price-original {
+  text-decoration: line-through;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.price-off {
+  color: #ec4899;
+  background: #fce7f3;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+}
 
 

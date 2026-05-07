@@ -136,34 +136,62 @@ export default function Shop() {
             {/* ✅ PRODUCT GRID */}
             <div className="shop-products-grid">
 
-              {products.map((p) => (
-                <div key={p.id} className="shop-product-card">
+                        {products.map((p) => {
+            const originalPrice = Number(p.price);
+            const discountPrice = Number(p.discount_price);
 
-                  {/* ✅ IMAGE */}
-                  
-              <div className="shop-product-image">
-                <img
-                  src={p.image}
-                  alt={p.name}
-                />
-              </div>
+            const hasDiscount =
+              discountPrice && discountPrice < originalPrice;
 
+            const offPercent = hasDiscount
+              ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
+              : 0;
 
-                  {/* ✅ NAME */}
-                  <h4>{p.name}</h4>
+            return (
+              <div key={p.id} className="shop-product-card">
 
-                  {/* ✅ BRAND (fallback) */}
-                  <span className="shop-product-brand">
-                    {p.brand || "Blinkiefash"}
-                  </span>
-
-                  {/* ✅ PRICE */}
-                  <span className="shop-product-price">
-                    ₹{p.price}
-                  </span>
-
+                {/* IMAGE */}
+                <div className="shop-product-image">
+                  {p.image}
                 </div>
-              ))}
+
+                {/* NAME */}
+                <h4>{p.name}</h4>
+
+                {/* BRAND */}
+                <span className="shop-product-brand">
+                  {p.brand || "Blinkiefash"}
+                </span>
+
+                {/* ✅ PRICE UI */}
+                <div className="price-section">
+
+                  {hasDiscount ? (
+                    <>
+                      <span className="price-final">
+                        ₹{discountPrice}
+                      </span>
+
+                      <span className="price-original">
+                        ₹{originalPrice}
+                      </span>
+
+                      <span className="price-off">
+                        {offPercent}% OFF
+                      </span>
+                    </>
+                ) : (
+          <span className="price-final">
+            ₹{originalPrice}
+          </span>
+              )}
+
+            </div>
+
+            </div>
+              );
+            })}
+
 
             </div>
 
