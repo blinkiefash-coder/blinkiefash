@@ -6,6 +6,7 @@ import vendorRoutes from "./routes/vendor.js";
 import productRoutes from "./routes/products.js";
 import brandRoutes from "./routes/brands.js";
 import categoryRoutes from "./routes/categories.js";
+import uploadRoutes from "./routes/upload.js";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use("/api/products", productRoutes);
 app.use("/api/vendor", vendorRoutes);
 app.use("/api/brands", brandRoutes);
 app.use("/api/categories", categoryRoutes);
+app.use("/api/upload", uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
