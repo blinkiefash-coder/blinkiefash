@@ -3,6 +3,8 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
+
+// ✅ ✅ ✅ CREATE PRODUCT (YOUR EXISTING CODE)
 router.post("/create", async (req, res) => {
 
   const client = await pool.connect();
@@ -20,7 +22,6 @@ router.post("/create", async (req, res) => {
       images
     } = req.body;
 
-    /* ✅ BASIC VALIDATION */
     if (!vendor_id || !name || !category_id) {
       return res.json({
         success: false,
@@ -30,7 +31,6 @@ router.post("/create", async (req, res) => {
 
     await client.query("BEGIN");
 
-    /* ✅ INSERT PRODUCT */
     const productRes = await client.query(
       `INSERT INTO products (
         vendor_id,
@@ -56,7 +56,7 @@ router.post("/create", async (req, res) => {
 
     const productId = productRes.rows[0].id;
 
-    /* ✅ INSERT VARIANTS */
+    // ✅ VARIANTS
     for (const v of variants || []) {
 
       const sku = `${name}-${v.color}-${v.size}`
@@ -86,7 +86,7 @@ router.post("/create", async (req, res) => {
 
       const variantId = variantRes.rows[0].id;
 
-      /* ✅ INSERT INVENTORY */
+      // inventory
       await client.query(
         `INSERT INTO inventory (variant_id, stock)
          VALUES ($1,$2)`,
@@ -94,11 +94,9 @@ router.post("/create", async (req, res) => {
       );
     }
 
-    /* ✅ INSERT MULTIPLE IMAGES */
+    // ✅ IMAGES
     if (images && images.length > 0) {
-
       for (let i = 0; i < images.length; i++) {
-
         await client.query(
           `INSERT INTO product_media (
             product_id,
@@ -110,7 +108,7 @@ router.post("/create", async (req, res) => {
           [
             productId,
             images[i],
-            i === 0   // ✅ first image is primary
+            i === 0
           ]
         );
       }
@@ -138,4 +136,47 @@ router.post("/create", async (req, res) => {
   }
 });
 
+
+// ✅ ✅ ✅ GET PRODUCTS (🔥 THIS IS WHAT YOU WERE MISSING)
+router.get("/", async (req, res) => {
+  try {
+
+    const result = await pool.query(`
+      SELECT 
+        p.id,
+        p.name,
+        p.description,
+        p.gender,
+
+        b.name AS brand,
+
+        pm.url AS image,
+
+        MIN(v.price) AS price
+
+      FROM products p
+
+      LEFT JOIN brands b 
+        ON b.id = p.brand_id
+
+      LEFT JOIN product_media pm 
+        ON pm.product_id = p.id AND pm.is_primary = true
+
+      LEFT JOIN product_variants v 
+        ON v.product_id = p.id
+
+      GROUP BY p.id, pm.url, b.name
+      ORDER BY p.id DESC
+    `);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("❌ GET PRODUCTS ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+
+// ✅ IMPORTANT EXPORT
 export default router;
