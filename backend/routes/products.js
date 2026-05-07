@@ -135,49 +135,116 @@ router.post("/create", async (req, res) => {
     client.release();
   }
 });
-
-
-// ✅ ✅ ✅ GET PRODUCTS (🔥 THIS IS WHAT YOU WERE MISSING)
-router.get("/", async (req, res) => {
+router.get("/:id", async (req, res) => {
   try {
+    const { id } = req.params;
 
-    const result = await pool.query(`
-      SELECT 
-        p.id,
-        p.name,
-        p.description,
-        p.gender,
+    // ✅ PRODUCT
+    const productRes = await pool.query(
+      `SELECT p.*, b.name AS brand
+       FROM products p
+       LEFT JOIN brands b ON b.id = p.brand_id
+       WHERE p.id = $1`,
+      [id]
+    );
 
-        b.name AS brand,
+    // ✅ IMAGES
+    const imageRes = await pool.query(
+      `SELECT url FROM product_media
+       WHERE product_id = $1`,
+      [id]
+    );
 
-        pm.url AS image,
+    // ✅ VARIANTS
+    const variantRes = await pool.query(
+      `SELECT size, color, price, discount_price
+       FROM product_variants
+       WHERE product_id = $1`,
+      [id]
+    );
 
-        MIN(v.price) AS price,
-        MIN(v.discount_price) AS discount_price
-        
-      FROM products p
-
-      LEFT JOIN brands b 
-        ON b.id = p.brand_id
-
-      LEFT JOIN product_media pm 
-        ON pm.product_id = p.id AND pm.is_primary = true
-
-      LEFT JOIN product_variants v 
-        ON v.product_id = p.id
-
-      GROUP BY p.id, pm.url, b.name
-      ORDER BY p.id DESC
-    `);
-
-    res.json(result.rows);
+    res.json({
+      product: productRes.rows[0],
+      images: imageRes.rows.map(i => i.url),
+      variants: variantRes.rows
+    });
 
   } catch (err) {
-    console.error("❌ GET PRODUCTS ERROR:", err);
+    console.error("PRODUCT DETAIL ERROR:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
 
 
+// GET PRODUCTS (🔥 THIS IS WHAT YOU WERE MISSING)
+router.get("/", async (req, res) => {
+  try {
+    const {
+      brand_id,
+      category_id,
+      min_price,
+      max_price,
+      color
+    } = req.query;
+
+    let query = `
+      SELECT 
+        p.id,
+        p.name,
+        b.name AS brand,
+        pm.url AS image,
+        MIN(v.price) AS price,
+        MIN(v.discount_price) AS discount_price
+      FROM products p
+      LEFT JOIN brands b ON b.id = p.brand_id
+      LEFT JOIN product_media pm 
+        ON pm.product_id = p.id AND pm.is_primary = true
+      LEFT JOIN product_variants v 
+        ON v.product_id = p.id
+      WHERE 1=1
+    `;
+
+    const values = [];
+    let index = 1;
+
+    if (brand_id) {
+      query += ` AND p.brand_id = $${index++}`;
+      values.push(brand_id);
+    }
+
+    if (category_id) {
+      query += ` AND p.category_id = $${index++}`;
+      values.push(category_id);
+    }
+
+    if (min_price) {
+      query += ` AND v.price >= $${index++}`;
+      values.push(min_price);
+    }
+
+    if (max_price) {
+      query += ` AND v.price <= $${index++}`;
+      values.push(max_price);
+    }
+
+    if (color) {
+      query += ` AND v.color = $${index++}`;
+      values.push(color);
+    }
+
+    query += `
+      GROUP BY p.id, pm.url, b.name
+      ORDER BY p.id DESC
+    `;
+
+    const result = await pool.query(query, values);
+
+    res.json(result.rows);
+
+  } catch (err) {
+    console.error("FILTER ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
 // ✅ IMPORTANT EXPORT
 export default router;

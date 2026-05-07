@@ -4,6 +4,7 @@ import Shop from "./pages/Shop";
 import Women from "./pages/Women";
 import VendorAuth from "./pages/VendorAuth";
 import AddProduct from "./pages/AddProduct";
+import ProductDetail from "./pages/ProductDetail";
 function App() {
   return (
     <BrowserRouter>
@@ -14,7 +15,7 @@ function App() {
         <Route path="/women" element={<Women />}/>
         <Route path="/vendor" element={<VendorAuth />} />
         <Route path="/vendor/add-product" element={<AddProduct />} />
-
+        <Route path="/product/:id" element={<ProductDetail />} />
       </Routes>
     </BrowserRouter>
   );

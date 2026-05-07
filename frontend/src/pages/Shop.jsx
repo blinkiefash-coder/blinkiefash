@@ -1,6 +1,7 @@
 import Navbar from "../components/Navbar";
 import "./shop.css";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 
 const CATEGORIES = [
   "Women",
@@ -26,11 +27,11 @@ const COLORS = [
 ];
 
 export default function Shop() {
-
+  const navigate = useNavigate();
   const [products, setProducts] = useState([]);
   const [activeCategory, setActiveCategory] = useState(null);
   const [activeColor, setActiveColor] = useState(null);
-
+  
   /* ✅ FETCH REAL PRODUCTS */
   useEffect(() => {
     fetch("https://blinkiefash.onrender.com/api/products")
@@ -137,64 +138,55 @@ export default function Shop() {
             <div className="shop-products-grid">
 
                         {products.map((p) => {
-            const originalPrice = Number(p.price);
-            const discountPrice = Number(p.discount_price);
 
-            const hasDiscount =
-              discountPrice && discountPrice < originalPrice;
+  const originalPrice = Number(p.price);
+  const discountPrice = Number(p.discount_price);
 
-            const offPercent = hasDiscount
-              ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
-              : 0;
+  const hasDiscount =
+    discountPrice && discountPrice < originalPrice;
 
-            return (
-              <div key={p.id} className="shop-product-card">
+  const offPercent = hasDiscount
+    ? Math.round(((originalPrice - discountPrice) / originalPrice) * 100)
+    : 0;
 
-                {/* IMAGE */}
-              <div className="shop-product-image">
-                {p.image ? (
-                  <img src={p.image} alt={p.name} />
-                ) : (
-                  <div className="no-image">No Image</div>
-                )}
-              </div>
+  return (
+    
+<div
+  key={p.id}
+  className="shop-product-card"
+  onClick={() => navigate(`/product/${p.id}`)}
+  style={{ cursor: "pointer" }}
+>
 
-                {/* NAME */}
-                <h4>{p.name}</h4>
 
-                {/* BRAND */}
-                <span className="shop-product-brand">
-                  {p.brand || "Blinkiefash"}
-                </span>
+      {/* ✅ IMAGE */}
+      <div className="shop-product-image">
+        {p.image ? (
+          <img src={p.image} alt={p.name} />
+        ) : (
+          <div className="no-image">No Image</div>
+        )}
+      </div>
 
-                {/* ✅ PRICE UI */}
-                <div className="price-section">
+      <h4>{p.name}</h4>
+      <span>{p.brand}</span>
 
-                  {hasDiscount ? (
-                    <>
-                      <span className="price-final">
-                        ₹{discountPrice}
-                      </span>
+      {/* ✅ PRICE */}
+      <div className="price-section">
+        {hasDiscount ? (
+          <>
+            <span className="price-final">₹{discountPrice}</span>
+            <span className="price-original">₹{originalPrice}</span>
+            <span className="price-off">{offPercent}% OFF</span>
+          </>
+        ) : (
+          <span className="price-final">₹{originalPrice}</span>
+        )}
+      </div>
 
-                      <span className="price-original">
-                        ₹{originalPrice}
-                      </span>
-
-                      <span className="price-off">
-                        {offPercent}% OFF
-                      </span>
-                    </>
-                ) : (
-          <span className="price-final">
-            ₹{originalPrice}
-          </span>
-              )}
-
-            </div>
-
-            </div>
-              );
-            })}
+    </div>
+  );
+})}
 
 
             </div>
