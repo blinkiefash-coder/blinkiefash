@@ -7,7 +7,11 @@ export default function AddProduct() {
   /* ================= VENDOR ================= */
   const [vendorId, setVendorId] = useState("");
 
-  /* ================= DROPDOWN DATA ================= */
+  /* ================= IMAGES ================= */
+  const [images, setImages] = useState([]);
+  const [imageUrls, setImageUrls] = useState([]);
+
+  /* ================= DROPDOWN ================= */
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
 
@@ -25,8 +29,7 @@ export default function AddProduct() {
     gender: "Women",
     material: "",
     brand_id: "",
-    category_id: "",
-    image_url: ""
+    category_id: ""
   });
 
   /* ================= VARIANTS ================= */
@@ -44,31 +47,28 @@ export default function AddProduct() {
       setVendorId(id);
     }
 
-    /* ✅ FETCH BRANDS */
     fetch("https://blinkiefash.onrender.com/api/brands")
       .then(res => res.json())
       .then(data => setBrands(data));
 
-    /* ✅ FETCH CATEGORIES */
     fetch("https://blinkiefash.onrender.com/api/categories")
       .then(res => res.json())
       .then(data => {
         setCategories(data);
-
         const parents = data.filter(c => c.parent_id === null);
         setParentCategories(parents);
       });
-
   }, []);
 
-  /* ================= UPDATE FUNCTIONS ================= */
+  /* ================= UPDATE FORM ================= */
   const updateForm = (key, value) => {
     setForm(prev => ({
       ...prev,
-      value     // ✅ FIXED
+      [key]: value
     }));
   };
 
+  /* ================= VARIANTS ================= */
   const updateVariant = (index, key, value) => {
     const updated = [...variants];
     updated[index][key] = value;
@@ -86,17 +86,60 @@ export default function AddProduct() {
     setVariants(variants.filter((_, i) => i !== index));
   };
 
+  /* ================= IMAGE UPLOAD ================= */
+  const uploadImages = async () => {
+    if (images.length === 0) return [];
+
+    const formData = new FormData();
+
+    images.forEach((file) => {
+      formData.append("image", file);
+    });
+
+    try {
+      const res = await fetch(
+        "https://blinkiefash.onrender.com/api/upload",
+        {
+          method: "POST",
+          body: formData
+        }
+      );
+
+      const data = await res.json();
+
+      if (data.success) {
+        setImageUrls(data.image_urls);
+        return data.image_urls;
+      } else {
+        alert("Upload failed");
+        return [];
+      }
+
+    } catch (err) {
+      console.log(err);
+      alert("Upload error");
+      return [];
+    }
+  };
+
   /* ================= SUBMIT ================= */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    let finalImages = imageUrls;
+
+    if (images.length > 0 && imageUrls.length === 0) {
+      finalImages = await uploadImages();
+    }
+
     const payload = {
       ...form,
+      images: finalImages,
       variants,
       vendor_id: vendorId
     };
 
-    console.log("✅ FINAL PAYLOAD →", payload);
+    console.log("✅ FINAL PAYLOAD:", payload);
 
     try {
       const res = await fetch(
@@ -125,6 +168,7 @@ export default function AddProduct() {
   };
 
   /* ================= UI ================= */
+
   return (
     <>
       <Navbar />
@@ -136,24 +180,17 @@ export default function AddProduct() {
 
           <form onSubmit={handleSubmit}>
 
-            {/* ================= PRODUCT ================= */}
+            {/* PRODUCT */}
             <h4>Product Info</h4>
 
             <div className="input-grid">
+              <input placeholder="Product Name"
+                onChange={(e)=>updateForm("name", e.target.value)} />
 
-              <input
-                placeholder="Product Name"
-                onChange={(e) => updateForm("name", e.target.value)}
-              />
+              <input placeholder="Material"
+                onChange={(e)=>updateForm("material", e.target.value)} />
 
-              <input
-                placeholder="Material"
-                onChange={(e) => updateForm("material", e.target.value)}
-              />
-
-              <select
-                onChange={(e) => updateForm("gender", e.target.value)}
-              >
+              <select onChange={(e)=>updateForm("gender", e.target.value)}>
                 <option>Women</option>
                 <option>Men</option>
                 <option>Kids</option>
@@ -161,185 +198,122 @@ export default function AddProduct() {
               </select>
 
               <textarea
-                className="full-width"
                 placeholder="Description"
-                onChange={(e) => updateForm("description", e.target.value)}
+                onChange={(e)=>updateForm("description", e.target.value)}
               />
-
             </div>
 
-            {/* ================= BRAND ================= */}
+            {/* BRAND */}
             <h4>Brand</h4>
-
-            <select
-              onChange={(e) => updateForm("brand_id", e.target.value)}
-            >
-              <option value="">Select Brand</option>
-
-              {brands.map(b => (
-                <option key={b.id} value={b.id}>
-                  {b.name}
-                </option>
+            <select onChange={(e)=>updateForm("brand_id", e.target.value)}>
+              <option>Select Brand</option>
+              {brands.map(b=>(
+                <option key={b.id} value={b.id}>{b.name}</option>
               ))}
-
             </select>
 
-            {/* ================= CATEGORY ================= */}
+            {/* CATEGORY */}
             <h4>Category</h4>
 
             <div className="input-grid">
 
-              {/* ✅ MAIN CATEGORY */}
-              <select
-                value={selectedParent}
-                onChange={(e) => {
-                  const parentId = e.target.value;
-
-                  setSelectedParent(parentId);
+              <select value={selectedParent}
+                onChange={(e)=>{
+                  const id=e.target.value;
+                  setSelectedParent(id);
                   setSelectedChild("");
 
-                  const children = categories.filter(
-                    c => c.parent_id === parentId
-                  );
-
+                  const children=categories.filter(c=>c.parent_id===id);
                   setChildCategories(children);
                   setSubChildCategories([]);
-                }}
-              >
-                <option value="">Select Main Category</option>
-
-                {parentCategories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                }}>
+                <option>Select Main Category</option>
+                {parentCategories.map(c=>(
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-
               </select>
 
-              {/* ✅ SUB CATEGORY */}
-              <select
-                value={selectedChild}
-                onChange={(e) => {
-                  const subId = e.target.value;
+              <select value={selectedChild}
+                onChange={(e)=>{
+                  const id=e.target.value;
+                  setSelectedChild(id);
 
-                  setSelectedChild(subId);
-
-                  const subChild = categories.filter(
-                    c => c.parent_id === subId
-                  );
-
-                  setSubChildCategories(subChild);
-                }}
-              >
-                <option value="">Select Sub Category</option>
-
-                {childCategories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                  const sub=categories.filter(c=>c.parent_id===id);
+                  setSubChildCategories(sub);
+                }}>
+                <option>Select Sub Category</option>
+                {childCategories.map(c=>(
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-
               </select>
 
-              {/* ✅ SUB-SUB CATEGORY */}
               <select
-                onChange={(e) =>
-                  updateForm("category_id", e.target.value)
-                }
+                onChange={(e)=>updateForm("category_id", e.target.value)}
               >
-                <option value="">Select Final Category</option>
-
-                {subChildCategories.map(c => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
+                <option>Select Final Category</option>
+                {subChildCategories.map(c=>(
+                  <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
-
               </select>
 
             </div>
 
-            {/* ================= VARIANTS ================= */}
+            {/* VARIANTS */}
             <h4>Variants</h4>
 
-            {variants.map((v, index) => (
-              <div key={index} className="variant-box">
+            {variants.map((v,i)=>(
+              <div key={i} className="variant-box">
 
-                <input
-                  placeholder="Size"
-                  value={v.size}
-                  onChange={(e) =>
-                    updateVariant(index, "size", e.target.value)
-                  }
-                />
+                <input placeholder="Size"
+                  onChange={e=>updateVariant(i,"size",e.target.value)} />
 
-                <input
-                  placeholder="Color"
-                  value={v.color}
-                  onChange={(e) =>
-                    updateVariant(index, "color", e.target.value)
-                  }
-                />
+                <input placeholder="Color"
+                  onChange={e=>updateVariant(i,"color",e.target.value)} />
 
-                <input
-                  type="number"
-                  placeholder="Price"
-                  value={v.price}
-                  onChange={(e) =>
-                    updateVariant(index, "price", e.target.value)
-                  }
-                />
+                <input type="number" placeholder="Price"
+                  onChange={e=>updateVariant(i,"price",e.target.value)} />
 
-                <input
-                  type="number"
-                  placeholder="Discount"
-                  value={v.discount_price}
-                  onChange={(e) =>
-                    updateVariant(index, "discount_price", e.target.value)
-                  }
-                />
+                <input type="number" placeholder="Discount"
+                  onChange={e=>updateVariant(i,"discount_price",e.target.value)} />
 
-                <input
-                  type="number"
-                  placeholder="Stock"
-                  value={v.stock}
-                  onChange={(e) =>
-                    updateVariant(index, "stock", e.target.value)
-                  }
-                />
+                <input type="number" placeholder="Stock"
+                  onChange={e=>updateVariant(i,"stock",e.target.value)} />
 
-                {variants.length > 1 && (
-                  <button
-                    type="button"
-                    className="remove-btn"
-                    onClick={() => removeVariant(index)}
-                  >
-                    ✕
-                  </button>
+                {variants.length>1 && (
+                  <button type="button"
+                    onClick={()=>removeVariant(i)}>✕</button>
                 )}
 
               </div>
             ))}
 
-            <button
-              type="button"
-              className="add-variant-btn"
-              onClick={addVariant}
-            >
+            <button type="button" onClick={addVariant}>
               + Add Variant
             </button>
 
-            {/* ================= IMAGE ================= */}
-            <h4>Image</h4>
+            {/* IMAGE */}
+            <h4>Upload Images</h4>
 
             <input
-              className="full-width"
-              placeholder="Image URL"
-              onChange={(e) => updateForm("image_url", e.target.value)}
+              type="file"
+              multiple
+              onChange={(e)=>setImages([...e.target.files])}
             />
 
-            {/* ================= SUBMIT ================= */}
-            <button className="submit-btn" type="submit">
+           <div style={{ display:"flex", gap:"10px", marginTop:"10px" }}>
+  {images.map((img, i) => (
+    <img
+      key={i}
+      src={URL.createObjectURL(img)}
+      height="80"
+      alt="preview"
+    />
+  ))}
+</div>
+
+
+            {/* SUBMIT */}
+            <button className="submit-btn">
               Submit Product ✅
             </button>
 
