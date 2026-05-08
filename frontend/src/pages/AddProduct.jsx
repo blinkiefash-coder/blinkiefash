@@ -14,6 +14,7 @@ const [loading, setLoading] = useState(false);
   /* ================= DROPDOWN ================= */
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [childrenByParent, setChildrenByParent] = useState({});
 
   const [parentCategories, setParentCategories] = useState([]);
   const [childCategories, setChildCategories] = useState([]);
@@ -21,6 +22,28 @@ const [loading, setLoading] = useState(false);
 
   const [selectedParent, setSelectedParent] = useState("");
   const [selectedChild, setSelectedChild] = useState("");
+
+  const getChildren = (parentId) => childrenByParent[parentId] || [];
+
+  const buildChildrenMap = (data) => {
+    const map = {};
+
+    data.forEach((category) => {
+      const parentKey = category.parent_id || "ROOT";
+
+      if (!map[parentKey]) {
+        map[parentKey] = [];
+      }
+
+      map[parentKey].push(category);
+    });
+
+    Object.keys(map).forEach((key) => {
+      map[key].sort((a, b) => a.name.localeCompare(b.name));
+    });
+
+    return map;
+  };
 
   /* ================= FORM ================= */
   const [form, setForm] = useState({
@@ -55,7 +78,10 @@ const [loading, setLoading] = useState(false);
       .then(res => res.json())
       .then(data => {
         setCategories(data);
-        const parents = data.filter(c => c.parent_id === null);
+        const map = buildChildrenMap(data);
+        setChildrenByParent(map);
+
+        const parents = map.ROOT || [];
         setParentCategories(parents);
       });
   }, []);
@@ -179,6 +205,9 @@ const [loading, setLoading] = useState(false);
       setSelectedParent("");
       setSelectedChild("");
 
+      setChildCategories([]);
+      setSubChildCategories([]);
+
     } else {
       alert("❌ Failed: " + data.message);
     }
@@ -268,9 +297,13 @@ const [loading, setLoading] = useState(false);
                   setSelectedParent(id);
                   setSelectedChild("");
 
-                  const children=categories.filter(c=>c.parent_id===id);
+                  const children = getChildren(id);
                   setChildCategories(children);
+
+                  const hasChildren = children.length > 0;
                   setSubChildCategories([]);
+
+                  updateForm("category_id", hasChildren ? "" : id);
                 }}>
                 <option>Select Main Category</option>
                 {parentCategories.map(c=>(
@@ -283,8 +316,11 @@ const [loading, setLoading] = useState(false);
                   const id=e.target.value;
                   setSelectedChild(id);
 
-                  const sub=categories.filter(c=>c.parent_id===id);
+                  const sub = getChildren(id);
                   setSubChildCategories(sub);
+
+                  const hasSubCategories = sub.length > 0;
+                  updateForm("category_id", hasSubCategories ? "" : id);
                 }}>
                 <option>Select Sub Category</option>
                 {childCategories.map(c=>(
@@ -293,9 +329,15 @@ const [loading, setLoading] = useState(false);
               </select>
 
               <select
+                value={form.category_id}
                 onChange={(e)=>updateForm("category_id", e.target.value)}
+                disabled={subChildCategories.length === 0}
               >
-                <option>Select Final Category</option>
+                <option>
+                  {subChildCategories.length > 0
+                    ? "Select Final Category"
+                    : "No deeper category available"}
+                </option>
                 {subChildCategories.map(c=>(
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -310,23 +352,23 @@ const [loading, setLoading] = useState(false);
               <div key={i} className="variant-box">
 
                 <input placeholder="Size"
-                value={form.size}
+                value={v.size}
                   onChange={e=>updateVariant(i,"size",e.target.value)} />
 
                 <input placeholder="Color"
-                value={form.color}
+                value={v.color}
                   onChange={e=>updateVariant(i,"color",e.target.value)} />
 
                 <input type="number" placeholder="Price"
-                value={form.price}
+                value={v.price}
                   onChange={e=>updateVariant(i,"price",e.target.value)} />
 
                 <input type="number" placeholder="Discount"
-                value={form.discount_price}
+                value={v.discount_price}
                   onChange={e=>updateVariant(i,"discount_price",e.target.value)} />
 
                 <input type="number" placeholder="Stock"
-                value={form.stock}
+                value={v.stock}
                   onChange={e=>updateVariant(i,"stock",e.target.value)} />
 
                 {variants.length>1 && (
