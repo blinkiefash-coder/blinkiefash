@@ -15,6 +15,15 @@ const COLORS = [
   ["Grey", "#9ca3af"],
 ];
 
+const FEATURED_DEPARTMENTS = [
+  "Women",
+  "Men",
+  "Kids",
+  "Beauty",
+  "Home & Living",
+  "Bags & Accessories",
+];
+
 const API_BASE = "https://blinkiefash.onrender.com/api";
 
 const buildChildrenMap = (data) => {
@@ -44,9 +53,13 @@ export default function Shop() {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [activeBrand, setActiveBrand] = useState(null);
   const [activeColor, setActiveColor] = useState(null);
+  const [brandSearch, setBrandSearch] = useState("");
+  const [sortBy, setSortBy] = useState("popularity");
+  const [visibleCount, setVisibleCount] = useState(20);
+  const [loading, setLoading] = useState(true);
   const [expandedSections, setExpandedSections] = useState({
-    categories: false,
-    brands: false,
+    categories: true,
+    brands: true,
   });
 
   const getChildren = (parentId) => childrenByParent[parentId] || [];
@@ -100,12 +113,14 @@ export default function Shop() {
   };
 
   useEffect(() => {
+    setLoading(true);
     fetch(`${API_BASE}/products`)
       .then((res) => res.json())
       .then((data) => {
         setProducts(Array.isArray(data) ? data : []);
       })
-      .catch((err) => console.error(err));
+      .catch((err) => console.error(err))
+      .finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -195,8 +210,38 @@ export default function Shop() {
       }
     }
 
+    if (activeColor) {
+      const productColor = typeof product.color === "string" ? product.color : "";
+      if (productColor && productColor.trim().toLowerCase() !== activeColor.toLowerCase()) {
+        return false;
+      }
+    }
+
     return true;
   });
+
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    const priceA = Number(a.discount_price) > 0 ? Number(a.discount_price) : Number(a.price);
+    const priceB = Number(b.discount_price) > 0 ? Number(b.discount_price) : Number(b.price);
+
+    if (sortBy === "price-low") return priceA - priceB;
+    if (sortBy === "price-high") return priceB - priceA;
+    if (sortBy === "discount") {
+      const offA = Number(a.discount_price) > 0 && Number(a.price) > Number(a.discount_price)
+        ? ((Number(a.price) - Number(a.discount_price)) / Number(a.price)) * 100
+        : 0;
+      const offB = Number(b.discount_price) > 0 && Number(b.price) > Number(b.discount_price)
+        ? ((Number(b.price) - Number(b.discount_price)) / Number(b.price)) * 100
+        : 0;
+      return offB - offA;
+    }
+    return 0;
+  });
+
+  const visibleProducts = sortedProducts.slice(0, visibleCount);
+  const visibleBrands = brands.filter((brand) =>
+    brand.name.toLowerCase().includes(brandSearch.toLowerCase())
+  );
 
   const renderCategoryTree = (parentId = "ROOT", depth = 0) => {
     const categoryList = getChildren(parentId);
@@ -247,6 +292,24 @@ export default function Shop() {
       </div>
 
       <div className="shop-page">
+        <div className="shop-featured-row">
+          {FEATURED_DEPARTMENTS.map((department, index) => (
+            <div key={department} className="shop-featured-tile">
+              <div className="shop-featured-image-wrap">
+                {products[index]?.image ? (
+                  <img src={products[index].image} alt={department} className="shop-featured-image" />
+                ) : (
+                  <div className="shop-featured-fallback">{department.charAt(0)}</div>
+                )}
+              </div>
+              <div>
+                <h4>{department}</h4>
+                <p>Explore</p>
+              </div>
+            </div>
+          ))}
+        </div>
+
         <div className="shop-layout">
           <aside className="shop-filters">
             <div className="shop-filters-inner">
@@ -279,7 +342,16 @@ export default function Shop() {
                   </button>
                   <h5>Brand</h5>
                 </div>
-                {expandedSections.brands && brands.map((brand) => {
+                {expandedSections.brands && (
+                  <>
+                    <input
+                      type="text"
+                      className="brand-search"
+                      placeholder="Search brand"
+                      value={brandSearch}
+                      onChange={(e) => setBrandSearch(e.target.value)}
+                    />
+                    {visibleBrands.map((brand) => {
                   const isActive = activeBrand === brand.name;
                   return (
                     <div
@@ -292,7 +364,9 @@ export default function Shop() {
                       <span>{brand.name}</span>
                     </div>
                   );
-                })}
+                    })}
+                  </>
+                )}
               </div>
 
               <div className="shop-filter-group">
@@ -306,6 +380,12 @@ export default function Shop() {
                   className="price-slider"
                 />
                 <div className="price-range-text">₹100 - ₹10,100+</div>
+                <div className="price-pill-grid">
+                  <span className="price-pill">₹199 - ₹999</span>
+                  <span className="price-pill">₹999 - ₹2999</span>
+                  <span className="price-pill">₹2999 - ₹4999</span>
+                  <span className="price-pill">₹4999+</span>
+                </div>
               </div>
 
               <div className="shop-filter-group">
@@ -328,6 +408,18 @@ export default function Shop() {
                   ))}
                 </div>
               </div>
+
+              <div className="shop-filter-group">
+                <h5>Discount</h5>
+                <div className="discount-list">
+                  {["10% and above", "20% and above", "30% and above", "40% and above", "50% and above"].map((item) => (
+                    <label key={item} className="discount-option">
+                      <input type="checkbox" />
+                      <span>{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
           </aside>
 
@@ -337,20 +429,39 @@ export default function Shop() {
                 <h2 className="shop-title">All Products</h2>
                 <p className="shop-count">
                   {activeCategory
-                    ? `Selected: ${activeCategory.name} - Showing ${filteredProducts.length} products`
-                    : `Showing ${filteredProducts.length} products`}
+                    ? `Selected: ${activeCategory.name} - Showing 1-${visibleProducts.length} of ${sortedProducts.length} products`
+                    : `Showing 1-${visibleProducts.length} of ${sortedProducts.length} products`}
                 </p>
               </div>
 
-              <select className="shop-sort">
-                <option>Sort by: Popularity</option>
-                <option>Price: Low to High</option>
-                <option>Price: High to Low</option>
+              <select className="shop-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="popularity">Sort by: Popularity</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="discount">Discount</option>
               </select>
             </div>
 
+            <div className="shop-chip-row">
+              <button type="button" className={`shop-chip ${sortBy === "popularity" ? "active" : ""}`} onClick={() => setSortBy("popularity")}>Popular</button>
+              <button type="button" className="shop-chip">New Arrivals</button>
+              <button type="button" className={`shop-chip ${sortBy === "price-low" ? "active" : ""}`} onClick={() => setSortBy("price-low")}>Price: Low to High</button>
+              <button type="button" className={`shop-chip ${sortBy === "price-high" ? "active" : ""}`} onClick={() => setSortBy("price-high")}>Price: High to Low</button>
+              <button type="button" className={`shop-chip ${sortBy === "discount" ? "active" : ""}`} onClick={() => setSortBy("discount")}>Discount</button>
+              <button type="button" className="shop-chip">Customer Rating</button>
+            </div>
+
             <div className="shop-products-grid">
-              {filteredProducts.map((p) => {
+              {loading
+                ? Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="shop-product-skeleton">
+                      <div className="skeleton-image" />
+                      <div className="skeleton-line skeleton-name" />
+                      <div className="skeleton-line skeleton-brand" />
+                      <div className="skeleton-line skeleton-price" />
+                    </div>
+                  ))
+                : visibleProducts.map((p) => {
                 const originalPrice = Number(p.price);
                 const discountPrice = Number(p.discount_price);
 
@@ -362,6 +473,8 @@ export default function Shop() {
                       ((originalPrice - discountPrice) / originalPrice) * 100
                     )
                   : 0;
+                const rating = (4 + ((p.name?.length || 0) % 10) / 10).toFixed(1);
+                const reviews = (p.name?.length || 10) * 110;
 
                 return (
                   <div
@@ -371,45 +484,106 @@ export default function Shop() {
                     style={{ cursor: "pointer" }}
                   >
                     <div className="shop-product-image">
+                      <button type="button" className="wishlist-btn" onClick={(e) => e.stopPropagation()}>♡</button>
                       {p.image ? (
                         <img src={p.image} alt={p.name} />
                       ) : (
                         <div className="no-image">No Image</div>
                       )}
+                      {hasDiscount && (
+                        <span className="card-badge">{offPercent}% OFF</span>
+                      )}
                     </div>
 
-                    <h4>{p.name}</h4>
-                    <span>{p.brand}</span>
+                    <div className="card-meta">
+                      <span className="card-brand">{p.brand}</span>
+                      <h4 className="card-name">{p.name}</h4>
 
-                    <div className="price-section">
-                      {hasDiscount ? (
-                        <>
-                          <span className="price-final">₹{discountPrice}</span>
-                          <span className="price-original">₹{originalPrice}</span>
-                          <span className="price-off">{offPercent}% OFF</span>
-                        </>
-                      ) : (
-                        <span className="price-final">₹{originalPrice}</span>
-                      )}
+                      <div className="price-section">
+                        {hasDiscount ? (
+                          <>
+                            <span className="price-final">₹{discountPrice.toLocaleString('en-IN')}</span>
+                            <span className="price-original">₹{originalPrice.toLocaleString('en-IN')}</span>
+                          </>
+                        ) : (
+                          <span className="price-final">₹{originalPrice.toLocaleString('en-IN')}</span>
+                        )}
+                      </div>
+
+                      <div className="rating-row">
+                        <span className="rating-star">★</span>
+                        <span>{rating}</span>
+                        <span className="rating-count">({(reviews / 1000).toFixed(1)}k)</span>
+                      </div>
                     </div>
                   </div>
                 );
               })}
             </div>
+
+            {!loading && visibleCount < sortedProducts.length && (
+              <button
+                type="button"
+                className="view-more-btn"
+                onClick={() => setVisibleCount((prev) => prev + 20)}
+              >
+                View More Products
+              </button>
+            )}
           </section>
         </div>
       </div>
 
+      <section className="shop-trust-strip">
+        <div className="trust-item"><strong>60 MINUTE DELIVERY</strong><span>On all orders</span></div>
+        <div className="trust-item"><strong>TRY BEFORE YOU BUY</strong><span>Only pay for what you keep</span></div>
+        <div className="trust-item"><strong>100% SECURE PAYMENTS</strong><span>Safe and trusted</span></div>
+        <div className="trust-item"><strong>EASY RETURNS & REFUNDS</strong><span>Hassle free returns</span></div>
+        <div className="trust-item"><strong>NEED HELP?</strong><span>Chat with us</span></div>
+      </section>
+
       <footer className="shop-bottom-bar">
         <div className="shop-bottom-content">
-          <span>Try & Buy</span>
-          <span>60-min Delivery</span>
-          <span>Secure Payments</span>
-          <span>Easy Returns</span>
+          <div className="footer-brand-col">
+            <h3>BLINKIEFASH</h3>
+            <p>Fashion at your doorstep, FAST.</p>
+          </div>
+
+          <div className="footer-col">
+            <h4>Company</h4>
+            <span>About Us</span>
+            <span>Careers</span>
+            <span>Blog</span>
+            <span>Press</span>
+          </div>
+
+          <div className="footer-col">
+            <h4>Customer Service</h4>
+            <span>Contact Us</span>
+            <span>FAQs</span>
+            <span>Shipping & Delivery</span>
+            <span>Returns & Refunds</span>
+          </div>
+
+          <div className="footer-col">
+            <h4>Policies</h4>
+            <span>Terms & Conditions</span>
+            <span>Privacy Policy</span>
+            <span>Cancellation Policy</span>
+            <span>E-Waste Policy</span>
+          </div>
+
+          <div className="footer-col">
+            <h4>Follow Us</h4>
+            <span>Instagram</span>
+            <span>Facebook</span>
+            <span>YouTube</span>
+            <span>WhatsApp</span>
+          </div>
         </div>
 
         <div className="shop-bottom-copy">
-          © 2026 BlinkieFash · Fashion delivered in a Blink
+          © 2026 BlinkieFash. All rights reserved.
         </div>
       </footer>
     </>
