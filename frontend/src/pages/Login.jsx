@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
 import { auth } from '../firebase'
+import { API_BASE_URL } from '../apiBase'
 import leftPanelImage from '../assets/hero2.png'
 import './Login.css'
 
@@ -49,7 +50,7 @@ function Login() {
     setLoading(true)
 
     try {
-      const roleRes = await fetch('http://localhost:5000/login/start', {
+      const roleRes = await fetch(`${API_BASE_URL}/login/start`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: formattedPhone, expectedRole })
@@ -109,7 +110,7 @@ function Login() {
       const credential = await confirmationResult.confirm(otp)
       const firebaseIdToken = await credential.user.getIdToken()
 
-      const verifyRes = await fetch('http://localhost:5000/login/verify', {
+      const verifyRes = await fetch(`${API_BASE_URL}/login/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken: firebaseIdToken, expectedRole })

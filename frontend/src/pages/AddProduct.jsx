@@ -1,6 +1,7 @@
 import "./addproduct.css";
 import Navbar from "../components/Navbar";
 import { useState, useEffect } from "react";
+import { API_API_BASE_URL } from "../apiBase";
 
 export default function AddProduct() {
 const [loading, setLoading] = useState(false);
@@ -70,11 +71,11 @@ const [loading, setLoading] = useState(false);
       setVendorId(id);
     }
 
-    fetch("https://blinkiefash.onrender.com/api/brands")
+    fetch(`${API_API_BASE_URL}/brands`)
       .then(res => res.json())
       .then(data => setBrands(data));
 
-    fetch("https://blinkiefash.onrender.com/api/categories")
+    fetch(`${API_API_BASE_URL}/categories`)
       .then(res => res.json())
       .then(data => {
         setCategories(data);
@@ -124,7 +125,7 @@ const [loading, setLoading] = useState(false);
 
     try {
       const res = await fetch(
-        "https://blinkiefash.onrender.com/api/upload",
+        `${API_API_BASE_URL}/upload`,
         {
           method: "POST",
           body: formData
@@ -169,7 +170,7 @@ const [loading, setLoading] = useState(false);
 
   try {
     const res = await fetch(
-      "https://blinkiefash.onrender.com/api/products/create",
+      `${API_API_BASE_URL}/products/create`,
       {
         method: "POST",
         headers: {

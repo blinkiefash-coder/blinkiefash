@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import "./product.css";
+import { API_API_BASE_URL } from "../apiBase";
 
 const REVIEW_SUMMARY = [
   { label: "5", count: 412 },
@@ -63,7 +64,7 @@ export default function ProductDetail() {
 
   /* ✅ FETCH DATA */
   useEffect(() => {
-  fetch(`https://blinkiefash.onrender.com/api/products/${id}`)
+  fetch(`${API_API_BASE_URL}/products/${id}`)
     .then(res => {
       if (!res.ok) throw new Error("API failed");
       return res.json();
@@ -86,7 +87,7 @@ export default function ProductDetail() {
 }, [id]);
 
   useEffect(() => {
-    fetch("https://blinkiefash.onrender.com/api/products")
+    fetch(`${API_API_BASE_URL}/products`)
       .then((res) => {
         if (!res.ok) {
           throw new Error("Products API failed");

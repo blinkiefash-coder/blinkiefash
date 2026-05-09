@@ -2,6 +2,7 @@ import "./vendor.css";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { useNavigate } from "react-router-dom";
+import { API_API_BASE_URL } from "../apiBase";
 
 export default function VendorAuth() {
 
@@ -19,7 +20,7 @@ export default function VendorAuth() {
 
     try {
       const res = await fetch(
-        "https://blinkiefash.onrender.com/api/vendor/verify",
+        `${API_API_BASE_URL}/vendor/verify`,
         {
           method: "POST",
           headers: {

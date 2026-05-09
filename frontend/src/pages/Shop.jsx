@@ -2,6 +2,7 @@ import Navbar from "../components/Navbar";
 import "./shop.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_API_BASE_URL } from "../apiBase";
 
 const COLORS = [
   ["Pink", "#ec4899"],
@@ -24,7 +25,7 @@ const FEATURED_DEPARTMENTS = [
   "Bags & Accessories",
 ];
 
-const API_BASE = "https://blinkiefash.onrender.com/api";
+const API_BASE = API_API_BASE_URL;
 
 const buildChildrenMap = (data) => {
   const map = {};
