@@ -11,15 +11,28 @@ import uploadRoutes from "./routes/upload.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.FRONTEND_URLS || "http://localhost:5173")
+const allowedOrigins = (process.env.FRONTEND_URLS || "")
   .split(",")
   .map((origin) => origin.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .map((origin) => origin.replace(/\/$/, ""));
 
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
+        callback(null, true);
+        return;
+      }
+
+      if (allowedOrigins.length === 0) {
+        callback(null, true);
+        return;
+      }
+
+      const normalizedOrigin = origin.replace(/\/$/, "");
+
+      if (allowedOrigins.includes(normalizedOrigin)) {
         callback(null, true);
         return;
       }
