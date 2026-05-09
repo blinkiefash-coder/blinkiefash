@@ -26,6 +26,11 @@ function Login() {
   }
 
   const setupRecaptcha = () => {
+    if (!auth) {
+      setError('Login service is temporarily unavailable. Please try again shortly.')
+      return null
+    }
+
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         size: 'invisible',
@@ -63,6 +68,7 @@ function Login() {
       }
 
       const appVerifier = setupRecaptcha()
+      if (!appVerifier) return
       const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier)
       setConfirmationResult(result)
       setOtpSent(true)

@@ -10,6 +10,19 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 }
 
-const app = initializeApp(firebaseConfig)
+const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean)
 
-export const auth = getAuth(app)
+let auth = null
+
+if (hasFirebaseConfig) {
+  try {
+    const app = initializeApp(firebaseConfig)
+    auth = getAuth(app)
+  } catch (error) {
+    console.error('Firebase initialization failed:', error)
+  }
+} else {
+  console.error('Firebase config is missing. Check VITE_FIREBASE_* environment variables.')
+}
+
+export { auth }
