@@ -2,12 +2,13 @@ import "./ExploreShops.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import logo from "../assets/logo.png";
 
 function ExploreShops() {
   const navigate = useNavigate();
   const [selectedCity, setSelectedCity] = useState("Detecting your location...");
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All Stores");
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
   const [categories, setCategories] = useState([]);
   const [childrenByParent, setChildrenByParent] = useState({});
   const [expandedCategories, setExpandedCategories] = useState({});
@@ -21,6 +22,10 @@ function ExploreShops() {
   const [expandedBrands, setExpandedBrands] = useState(false);
   const [stores, setStores] = useState([]);
   const [storesLoading, setStoresLoading] = useState(true);
+  const [userCoords, setUserCoords] = useState(null);
+  const [selectedDistanceRange, setSelectedDistanceRange] = useState("all");
+  const [selectedSort, setSelectedSort] = useState("nearest");
+  const [visibleCount, setVisibleCount] = useState(6);
 
   // Fetch categories from backend
   useEffect(() => {
@@ -120,6 +125,7 @@ function ExploreShops() {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
+          setUserCoords({ lat: latitude, lng: longitude });
           // In a real app, use reverse geocoding service to get address
           // For now, we'll use a placeholder
           fetchAddressFromCoordinates(latitude, longitude);
@@ -171,6 +177,24 @@ function ExploreShops() {
 
   const getChildren = (parentId) => childrenByParent[parentId] || [];
 
+  const getDescendantCategoryIds = (categoryId) => {
+    if (!categoryId) return [];
+
+    const ids = [categoryId];
+    const queue = [categoryId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+      const children = getChildren(currentId);
+      children.forEach((child) => {
+        ids.push(child.id);
+        queue.push(child.id);
+      });
+    }
+
+    return ids;
+  };
+
   const renderCategoryItem = (category) => {
     const children = getChildren(category.id);
     const isExpanded = expandedCategories[category.id];
@@ -187,8 +211,10 @@ function ExploreShops() {
             </button>
           )}
           <button
-            className={`category-item ${selectedCategory === category.name ? "active" : ""}`}
-            onClick={() => setSelectedCategory(category.name)}
+            className={`category-item ${selectedCategoryId === category.id ? "active" : ""}`}
+            onClick={() =>
+              setSelectedCategoryId((prev) => (prev === category.id ? null : category.id))
+            }
           >
             {category.name}
           </button>
@@ -206,7 +232,29 @@ function ExploreShops() {
     brand.name.toLowerCase().includes(brandSearch.toLowerCase())
   );
 
+  const getDistanceFromUserKm = (store) => {
+    if (!userCoords || store?.lat == null || store?.lng == null) return null;
+
+    const toRad = (deg) => (deg * Math.PI) / 180;
+    const storeLat = Number(store.lat);
+    const storeLng = Number(store.lng);
+    if (Number.isNaN(storeLat) || Number.isNaN(storeLng)) return null;
+
+    const earthRadiusKm = 6371;
+    const dLat = toRad(storeLat - userCoords.lat);
+    const dLng = toRad(storeLng - userCoords.lng);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(userCoords.lat)) * Math.cos(toRad(storeLat)) *
+      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return earthRadiusKm * c;
+  };
+
   const distances = [
+    { label: "Any distance", value: "all" },
     { label: "Nearby (0 - 1 km)", value: "0-1" },
     { label: "1 - 3 km", value: "1-3" },
     { label: "3 - 5 km", value: "3-5" },
@@ -222,6 +270,94 @@ function ExploreShops() {
     "Men Clothing",
     "Luxury"
   ];
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedCategoryId(null);
+    setSelectedBrand(null);
+    setBrandSearch("");
+    setSelectedDistanceRange("all");
+    setSelectedSort("nearest");
+    setVisibleCount(6);
+  };
+
+  const selectedCategoryTreeIds = selectedCategoryId
+    ? getDescendantCategoryIds(selectedCategoryId)
+    : [];
+
+  const selectedCategoryNameSet = new Set(
+    categories
+      .filter((cat) => selectedCategoryTreeIds.includes(cat.id))
+      .map((cat) => cat.name?.toLowerCase())
+      .filter(Boolean)
+  );
+
+  const matchesDistanceFilter = (store) => {
+    if (selectedDistanceRange === "all") return true;
+    const distance = getDistanceFromUserKm(store);
+    if (distance === null) return false;
+
+    if (selectedDistanceRange === "0-1") return distance <= 1;
+    if (selectedDistanceRange === "1-3") return distance > 1 && distance <= 3;
+    if (selectedDistanceRange === "3-5") return distance > 3 && distance <= 5;
+    if (selectedDistanceRange === "5+") return distance > 5;
+    return true;
+  };
+
+  const filteredStores = stores
+    .filter((store) => {
+      const search = searchTerm.trim().toLowerCase();
+      const searchMatch =
+        search.length === 0 ||
+        store.store_name?.toLowerCase().includes(search) ||
+        store.description?.toLowerCase().includes(search) ||
+        store.city?.toLowerCase().includes(search) ||
+        store.address?.toLowerCase().includes(search) ||
+        (store.products || []).some((p) =>
+          p.name?.toLowerCase().includes(search) ||
+          p.brand_name?.toLowerCase().includes(search) ||
+          p.category_name?.toLowerCase().includes(search)
+        );
+
+      const categoryMatch =
+        !selectedCategoryId ||
+        (store.products || []).some((p) => {
+          const productCategoryId = p.category_id;
+          const productCategoryName = p.category_name?.toLowerCase();
+
+          return (
+            (productCategoryId && selectedCategoryTreeIds.includes(productCategoryId)) ||
+            (productCategoryName && selectedCategoryNameSet.has(productCategoryName))
+          );
+        });
+
+      const brandMatch =
+        !selectedBrand ||
+        (store.products || []).some(
+          (p) => p.brand_name?.toLowerCase() === selectedBrand.toLowerCase()
+        );
+
+      return searchMatch && categoryMatch && brandMatch && matchesDistanceFilter(store);
+    })
+    .sort((a, b) => {
+      if (selectedSort === "newest") {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+
+      if (selectedSort === "rating") {
+        return Number(b.is_verified) - Number(a.is_verified);
+      }
+
+      // nearest (default)
+      const aDist = getDistanceFromUserKm(a);
+      const bDist = getDistanceFromUserKm(b);
+      if (aDist === null && bDist === null) return 0;
+      if (aDist === null) return 1;
+      if (bDist === null) return -1;
+      return aDist - bDist;
+    });
+
+  const visibleStores = filteredStores.slice(0, visibleCount);
 
   return (
     <div className="explore-shops">
@@ -291,14 +427,20 @@ function ExploreShops() {
             <div className="distance-list">
               {distances.map((dist) => (
                 <label key={dist.value} className="distance-item">
-                  <input type="radio" name="distance" value={dist.value} />
+                  <input
+                    type="radio"
+                    name="distance"
+                    value={dist.value}
+                    checked={selectedDistanceRange === dist.value}
+                    onChange={(e) => setSelectedDistanceRange(e.target.value)}
+                  />
                   <span>{dist.label}</span>
                 </label>
               ))}
             </div>
           </div>
 
-          <button className="clear-filters">Clear All Filters</button>
+          <button className="clear-filters" onClick={clearAllFilters}>Clear All Filters</button>
         </aside>
 
         {sidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
@@ -312,13 +454,19 @@ function ExploreShops() {
               <button className="location-selector" onClick={() => setShowLocationModal(true)}>
                 📍 {selectedCity}
               </button>
-              <select className="sort-selector">
-                <option>Sort by: Nearest</option>
-                <option>Sort by: Rating</option>
-                <option>Sort by: Newest</option>
+              <select
+                className="sort-selector"
+                value={selectedSort}
+                onChange={(e) => setSelectedSort(e.target.value)}
+              >
+                <option value="nearest">Sort by: Nearest</option>
+                <option value="rating">Sort by: Rating</option>
+                <option value="newest">Sort by: Newest</option>
               </select>
             </div>
-            <p className="store-count">{storesLoading ? "Loading stores..." : `${stores.length} stores found`}</p>
+            <p className="store-count">
+              {storesLoading ? "Loading stores..." : `${filteredStores.length} stores found`}
+            </p>
           </div>
 
           {/* SEARCH */}
@@ -337,7 +485,11 @@ function ExploreShops() {
             <span className="label">Popular searches:</span>
             <div className="search-tags">
               {popularSearches.map((search) => (
-                <button key={search} className="search-tag">
+                <button
+                  key={search}
+                  className={`search-tag ${searchTerm.toLowerCase() === search.toLowerCase() ? "active" : ""}`}
+                  onClick={() => setSearchTerm(search)}
+                >
                   {search}
                 </button>
               ))}
@@ -348,10 +500,13 @@ function ExploreShops() {
           <div className="stores-grid">
             {storesLoading ? (
               <p style={{ color: "#999", padding: "24px 0" }}>Loading stores...</p>
-            ) : stores.length === 0 ? (
+            ) : filteredStores.length === 0 ? (
               <p style={{ color: "#999", padding: "24px 0" }}>No stores found in your area.</p>
             ) : (
-              stores.map((store) => (
+              visibleStores.map((store) => {
+                const deviceDistanceKm = getDistanceFromUserKm(store);
+
+                return (
                 <div key={store.id} className="store-card">
 
                   {/* Store Photo */}
@@ -420,37 +575,141 @@ function ExploreShops() {
 
                   {/* Actions Column */}
                   <div className="store-actions-col">
-                    {store.address && (
-                      <div className="store-distance">
-                        <span className="distance-icon">📍</span>
-                        <span>{store.address}</span>
-                      </div>
-                    )}
-                    {store.service_radius_km && (
-                      <div className="pickup-badge">
-                        <span className="pickup-dot">🟢</span>
-                        <span>Delivers within {store.service_radius_km} km</span>
+                    <div className="store-distance">
+                      <span className="distance-icon">📍</span>
+                      <span>{store.address || store.city || "Location unavailable"}</span>
+                    </div>
+                    {deviceDistanceKm !== null && (
+                      <div className="device-distance-badge">
+                        <span>🧭</span>
+                        <span>{deviceDistanceKm.toFixed(1)} km from your location</span>
                       </div>
                     )}
                     <button
                       className="visit-store-btn"
                       onClick={() => navigate(`/vendor/${store.slug || store.id}`)}
                     >
-                      Visit Store →
+                      Explore Store
                     </button>
                   </div>
 
                 </div>
-              ))
+              );
+              })
             )}
           </div>
 
           {/* LOAD MORE */}
-          <div className="load-more-container">
-            <button className="load-more-btn">Load More Stores ▼</button>
-          </div>
+          {visibleStores.length < filteredStores.length && (
+            <div className="load-more-container">
+              <button className="load-more-btn" onClick={() => setVisibleCount((prev) => prev + 6)}>
+                Load More Stores ▼
+              </button>
+            </div>
+          )}
         </main>
       </div>
+
+      <footer className="explore-footer">
+        <div className="explore-footer-main">
+          <div className="explore-footer-brand-col">
+            <div className="explore-footer-brand">
+              <img src={logo} alt="Blinkiefash Logo" className="explore-footer-logo-img" />
+              <h1 className="explore-footer-logo-text">
+                BLINKIE<span>FASH</span>
+              </h1>
+            </div>
+            <p className="explore-footer-copyright">© 2024 BlinkieFash. All rights reserved.</p>
+          </div>
+
+          <div className="explore-footer-col">
+            <h3>CUSTOMER SERVICE</h3>
+            <ul>
+              <li>Contact Us</li>
+              <li>FAQs</li>
+              <li>Shipping &amp; Delivery</li>
+              <li>Returns &amp; Refunds</li>
+            </ul>
+          </div>
+
+          <div className="explore-footer-col">
+            <h3>COMPANY</h3>
+            <ul>
+              <li>About Us</li>
+              <li>Careers</li>
+              <li>Blinkie Blog</li>
+              <li>Press &amp; Media</li>
+            </ul>
+          </div>
+
+          <div className="explore-footer-col">
+            <h3>POLICIES</h3>
+            <ul>
+              <li>Privacy Policy</li>
+              <li>Terms of Service</li>
+              <li>Cancellation Policy</li>
+              <li>EPR Compliance</li>
+              <li className="explore-footer-seller-link" onClick={() => navigate("/vendor")}>Become a Seller</li>
+            </ul>
+          </div>
+
+          <div className="explore-footer-col explore-footer-app-col">
+            <h3>GET THE APP</h3>
+            <div className="explore-app-buttons">
+              <button className="explore-store-badge" type="button">
+                <span className="explore-store-badge-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16.84 12.94c-.02-2.32 1.9-3.43 1.98-3.48-1.08-1.58-2.76-1.8-3.36-1.82-1.43-.14-2.8.84-3.52.84-.73 0-1.85-.82-3.04-.8-1.56.02-3 .91-3.8 2.31-1.62 2.81-.41 6.98 1.16 9.25.77 1.11 1.69 2.35 2.89 2.31 1.16-.05 1.6-.75 3-.75 1.41 0 1.8.75 3.03.72 1.25-.02 2.03-1.12 2.79-2.24.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.41-.92-2.43-3.74Zm-1.79-6.42c.63-.77 1.06-1.84.94-2.91-.91.04-2.01.61-2.66 1.38-.58.67-1.08 1.75-.95 2.79 1.01.08 2.04-.51 2.67-1.26Z" />
+                  </svg>
+                </span>
+                <span className="explore-store-badge-text">
+                  <small>Download on the</small>
+                  <strong>App Store</strong>
+                </span>
+              </button>
+              <button className="explore-store-badge" type="button">
+                <span className="explore-store-badge-icon" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M3.61 2.23 13.8 12 3.61 21.77c-.29-.19-.48-.52-.48-.9V3.13c0-.38.19-.71.48-.9Zm11.58 11.1 2.6 2.49-10.5 5.92 7.9-8.41Zm3.56-2.01 2.48 1.4c.84.47.84 1.68 0 2.15l-2.48 1.4L15.7 12l3.05-1.68ZM7.29 2.26l10.5 5.92-2.6 2.49-7.9-8.41Z" />
+                  </svg>
+                </span>
+                <span className="explore-store-badge-text">
+                  <small>GET IT ON</small>
+                  <strong>Google Play</strong>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="explore-footer-col explore-footer-social-col">
+            <h3>FOLLOW US</h3>
+            <div className="explore-footer-socials">
+              <button className="explore-social-icon" type="button" aria-label="Facebook">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M13.5 21v-7.26h2.44l.37-2.83H13.5V9.11c0-.82.23-1.38 1.4-1.38h1.5V5.19c-.26-.03-1.16-.11-2.21-.11-2.19 0-3.69 1.34-3.69 3.79v2.04H8v2.83h2.5V21h3Z" />
+                </svg>
+              </button>
+              <button className="explore-social-icon" type="button" aria-label="Instagram">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" stroke="currentColor" strokeWidth="1.8" />
+                  <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
+                  <circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" />
+                </svg>
+              </button>
+              <button className="explore-social-icon" type="button" aria-label="Twitter">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M18.9 7.14c.01.16.01.32.01.48 0 4.91-3.74 10.57-10.57 10.57-2.1 0-4.06-.62-5.7-1.67.29.03.58.04.88.04 1.74 0 3.35-.59 4.62-1.59-1.63-.03-3-1.11-3.47-2.59.23.04.46.07.7.07.33 0 .65-.04.95-.13-1.7-.34-2.98-1.84-2.98-3.64v-.05c.5.28 1.08.45 1.69.47-1-.67-1.65-1.8-1.65-3.08 0-.68.18-1.31.5-1.85 1.83 2.25 4.57 3.73 7.66 3.88-.06-.27-.1-.55-.1-.84 0-2.03 1.65-3.68 3.69-3.68 1.06 0 2.02.45 2.69 1.17.84-.16 1.63-.47 2.34-.89-.28.86-.86 1.57-1.63 2.02.75-.09 1.47-.29 2.13-.59-.5.75-1.12 1.41-1.84 1.94Z" />
+                </svg>
+              </button>
+              <button className="explore-social-icon" type="button" aria-label="YouTube">
+                <svg viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M21.58 7.19a2.98 2.98 0 0 0-2.1-2.11C17.63 4.5 12 4.5 12 4.5s-5.63 0-7.48.58a2.98 2.98 0 0 0-2.1 2.11A31.2 31.2 0 0 0 2 12a31.2 31.2 0 0 0 .42 4.81 2.98 2.98 0 0 0 2.1 2.11C6.37 19.5 12 19.5 12 19.5s5.63 0 7.48-.58a2.98 2.98 0 0 0 2.1-2.11c.28-1.58.42-3.18.42-4.81s-.14-3.23-.42-4.81ZM10 15.5v-7l6 3.5-6 3.5Z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
 
       {/* LOCATION MODAL */}
       {showLocationModal && (
