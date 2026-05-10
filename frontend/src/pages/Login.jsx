@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
+import { auth } from '../firebase'
 import { API_BASE_URL } from '../apiBase'
 import leftPanelImage from '../assets/hero2.png'
 import './Login.css'
@@ -9,16 +11,21 @@ function Login() {
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [otpSent, setOtpSent] = useState(false)
+  const [confirmationResult, setConfirmationResult] = useState(null)
+  const [serverOtpMode, setServerOtpMode] = useState(false)
+  const [useVisibleCaptcha, setUseVisibleCaptcha] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [showRegister, setShowRegister] = useState(false)
-  const [registerForm, setRegisterForm] = useState({
-    name: '',
-    email: '',
-    role: 'customer',
-  })
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
+  const resetRecaptcha = () => {
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear()
+      window.recaptchaVerifier = null
+    }
+  }
 
   const normalizeToIndianPhone = (value) => {
     const digits = value.replace(/\D/g, '')
@@ -28,22 +35,46 @@ function Login() {
     return ''
   }
 
-  useEffect(() => {
-    const existingToken = localStorage.getItem('token')
-    const existingRole = localStorage.getItem('userRole')
+  const toInputPhone = (value) => {
+    const digits = String(value || '').replace(/\D/g, '')
+    if (digits.length === 10) return digits
+    if (digits.length >= 12 && digits.startsWith('91')) return digits.slice(2, 12)
+    if (digits.length > 10) return digits.slice(-10)
+    return digits
+  }
 
-    if (existingToken && existingRole) {
-      navigate(existingRole === 'vendor' ? '/vendor' : '/home', { replace: true })
+  const setupRecaptcha = () => {
+    if (!auth) {
+      setError('Login service is temporarily unavailable. Please try again shortly.')
+      return null
     }
-  }, [navigate])
+
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: useVisibleCaptcha ? 'normal' : 'invisible',
+      })
+
+      if (typeof window.recaptchaVerifier.render === 'function') {
+        window.recaptchaVerifier.render().catch(() => {})
+      }
+    }
+    return window.recaptchaVerifier
+  }
 
   useEffect(() => {
-    setRegisterForm((prev) => ({
-      ...prev,
-      role: activeTab === 'vendor' ? 'vendor' : 'customer',
-    }))
-    setShowRegister(false)
-  }, [activeTab])
+    const queryPhone = searchParams.get('phone')
+    if (queryPhone) {
+      setPhone(toInputPhone(queryPhone))
+    }
+  }, [searchParams])
+
+  const resetOtpState = () => {
+    setOtpSent(false)
+    setOtp('')
+    setConfirmationResult(null)
+    setUseVisibleCaptcha(false)
+    resetRecaptcha()
+  }
 
   const handleSendOtp = async (e) => {
     e.preventDefault()
@@ -59,6 +90,7 @@ function Login() {
     const expectedRole = activeTab === 'vendor' ? 'vendor' : 'customer'
 
     setLoading(true)
+    let roleData = null
 
     try {
       const roleRes = await fetch(`${API_BASE_URL}/login/start`, {
@@ -67,88 +99,96 @@ function Login() {
         body: JSON.stringify({ phone: formattedPhone, expectedRole })
       })
 
-      const roleData = await roleRes.json()
+      roleData = await roleRes.json()
       if (!roleData.success) {
-        setError(roleData.message || 'This number is not allowed for selected login')
-        if ((roleData.message || '').toLowerCase().includes('not found')) {
-          setShowRegister(true)
-          setRegisterForm((prev) => ({
-            ...prev,
-            role: expectedRole,
-          }))
+        const message = roleData.message || 'This number is not allowed for selected login'
+        const isNotFound = message.toLowerCase().includes('not found')
+
+        if (isNotFound && expectedRole === 'customer') {
+          navigate(`/signup?phone=${encodeURIComponent(formattedPhone)}`)
+          return
         }
+
+        setError(roleData.message || 'This number is not allowed for selected login')
         return
       }
 
-      setShowRegister(false)
-
-      setOtpSent(true)
-      setSuccess(`OTP sent to ${formattedPhone}`)
-      if (roleData.debugOtp) {
-        setSuccess(`OTP sent to ${formattedPhone}. Dev OTP: ${roleData.debugOtp}`)
+      // In local development, prefer backup OTP path to avoid Firebase captcha/app-credential issues.
+      if (import.meta.env.DEV && roleData?.fallbackOtpMode && roleData?.debugOtp) {
+        setServerOtpMode(true)
+        setOtpSent(true)
+        setUseVisibleCaptcha(false)
+        setConfirmationResult(null)
+        setSuccess(`Use temporary PIN: ${roleData.debugOtp}`)
+        return
       }
+
+      resetRecaptcha()
+      setServerOtpMode(false)
+      const appVerifier = setupRecaptcha()
+      if (!appVerifier) return
+
+      // Ensure captcha token is freshly generated before sending OTP
+      await appVerifier.verify()
+
+      const result = await signInWithPhoneNumber(auth, formattedPhone, appVerifier)
+      setConfirmationResult(result)
+      setOtpSent(true)
+      setUseVisibleCaptcha(false)
+      setSuccess(`OTP sent to ${formattedPhone}`)
     } catch (err) {
       console.error('OTP Send Error:', err)
-      setError('Unable to send OTP. Please check your connection and try again.')
+      const errorCode = err?.code || ''
+      if (errorCode === 'auth/billing-not-enabled') {
+        setError('Authentication service is being set up. Please try again in a moment.')
+      } else if (errorCode === 'auth/invalid-phone-number') {
+        setError('Invalid phone number. Please check and try again.')
+      } else if (errorCode === 'auth/invalid-app-credential') {
+        if (roleData?.fallbackOtpMode) {
+          setServerOtpMode(true)
+          setOtpSent(true)
+          setUseVisibleCaptcha(false)
+          setConfirmationResult(null)
+          const fallbackMessage = roleData?.debugOtp
+            ? `Firebase verification failed. Use backup OTP: ${roleData.debugOtp}`
+            : 'Firebase verification failed. Using backup OTP mode.'
+          setSuccess(fallbackMessage)
+          setError('')
+        } else {
+          setUseVisibleCaptcha(true)
+          setError('Verification failed. Please complete captcha below and retry Send OTP.')
+          resetRecaptcha()
+          setupRecaptcha()
+        }
+      } else {
+        setError('Unable to send OTP. Please check your connection and try again.')
+        resetRecaptcha()
+      }
     } finally {
       setLoading(false)
     }
   }
 
-  const handleRegister = async (e) => {
-    e.preventDefault()
+  const handleRetryWithCaptcha = () => {
     setError('')
     setSuccess('')
-
-    const formattedPhone = normalizeToIndianPhone(phone)
-    if (!formattedPhone) {
-      setError('Enter a valid 10 digit mobile number for registration')
-      return
-    }
-
-    if (!registerForm.name.trim()) {
-      setError('Please enter your name')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const response = await fetch(`${API_BASE_URL}/login/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: registerForm.name.trim(),
-          email: registerForm.email.trim() || null,
-          role: registerForm.role,
-          phone: formattedPhone,
-        }),
-      })
-
-      const data = await response.json()
-      if (!data.success) {
-        setError(data.message || 'Registration failed')
-        return
-      }
-
-      if (data.vendorPending) {
-        setSuccess('Vendor request submitted. We will activate your account soon.')
-      } else {
-        setSuccess('Registration successful. Please click Send OTP to continue.')
-      }
-
-      setShowRegister(false)
-    } catch (err) {
-      console.error('Register Error:', err)
-      setError('Unable to register right now. Please try again.')
-    } finally {
-      setLoading(false)
-    }
+    setOtp('')
+    setOtpSent(false)
+    setConfirmationResult(null)
+    setServerOtpMode(false)
+    setUseVisibleCaptcha(true)
+    resetRecaptcha()
   }
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault()
     setError('')
     setSuccess('')
+
+    if (!serverOtpMode && !confirmationResult) {
+      setError('Please request OTP first')
+      return
+    }
 
     if (!/^\d{6}$/.test(otp)) {
       setError('Enter valid 6 digit OTP')
@@ -159,12 +199,21 @@ function Login() {
 
     setLoading(true)
     try {
-      const formattedPhone = normalizeToIndianPhone(phone)
+      let verifyBody
+
+      if (serverOtpMode) {
+        const formattedPhone = normalizeToIndianPhone(phone)
+        verifyBody = { phone: formattedPhone, otp, expectedRole }
+      } else {
+        const credential = await confirmationResult.confirm(otp)
+        const firebaseIdToken = await credential.user.getIdToken()
+        verifyBody = { idToken: firebaseIdToken, expectedRole }
+      }
 
       const verifyRes = await fetch(`${API_BASE_URL}/login/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formattedPhone, otp, expectedRole })
+        body: JSON.stringify(verifyBody)
       })
 
       const data = await verifyRes.json()
@@ -175,6 +224,7 @@ function Login() {
         localStorage.setItem('userUuid', data.user.id)
         localStorage.setItem('userRole', data.user.role)
         localStorage.setItem('userPhone', data.user.phone)
+        localStorage.setItem('userName', data.user.name)
         setTimeout(() => {
           if (data.user.role === 'vendor') navigate('/vendor')
           else navigate('/home')
@@ -219,14 +269,24 @@ function Login() {
             <div className="lr-tabs">
               <button
                 className={`lr-tab ${activeTab === 'customer' ? 'active' : ''}`}
-                onClick={() => setActiveTab('customer')}
+                onClick={() => {
+                  setActiveTab('customer')
+                  setError('')
+                  setSuccess('')
+                  resetOtpState()
+                }}
                 type="button"
               >
                 👤 Customer Login
               </button>
               <button
                 className={`lr-tab ${activeTab === 'vendor' ? 'active' : ''}`}
-                onClick={() => setActiveTab('vendor')}
+                onClick={() => {
+                  setActiveTab('vendor')
+                  setError('')
+                  setSuccess('')
+                  resetOtpState()
+                }}
                 type="button"
               >
                 🏪 Vendor Login
@@ -245,7 +305,13 @@ function Login() {
                     type="tel"
                     placeholder="Enter 10 digit mobile number"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(e) => {
+                      setPhone(e.target.value)
+                      if (!otpSent) {
+                        setError('')
+                        setSuccess('')
+                      }
+                    }}
                     disabled={loading || otpSent}
                     maxLength={10}
                   />
@@ -284,8 +350,7 @@ function Login() {
                     type="button"
                     className="continue-btn"
                     onClick={() => {
-                      setOtpSent(false)
-                      setOtp('')
+                      resetOtpState()
                       setSuccess('')
                     }}
                     disabled={loading}
@@ -296,70 +361,26 @@ function Login() {
               )}
             </form>
 
+            <div id="recaptcha-container" />
+
+            {useVisibleCaptcha && !otpSent && !serverOtpMode && (
+              <div className="captcha-note-wrap">
+                <div className="captcha-note">Complete the captcha challenge, then click Send OTP again.</div>
+                <button
+                  type="button"
+                  className="captcha-retry-btn"
+                  onClick={handleRetryWithCaptcha}
+                  disabled={loading}
+                >
+                  Retry with Captcha
+                </button>
+              </div>
+            )}
+
             {!otpSent && (
               <div className="otp-hint">
                 We'll send a 6-digit verification code to your phone instantly.
               </div>
-            )}
-
-            {showRegister && !otpSent && (
-              <form className="register-box" onSubmit={handleRegister}>
-                <h4>Create New Account</h4>
-
-                <div className="register-grid">
-                  <input
-                    type="text"
-                    placeholder="Full name"
-                    value={registerForm.name}
-                    onChange={(e) =>
-                      setRegisterForm((prev) => ({ ...prev, name: e.target.value }))
-                    }
-                    disabled={loading}
-                  />
-                  <input
-                    type="email"
-                    placeholder="Email (optional)"
-                    value={registerForm.email}
-                    onChange={(e) =>
-                      setRegisterForm((prev) => ({ ...prev, email: e.target.value }))
-                    }
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="register-role-row">
-                  <label>
-                    <input
-                      type="radio"
-                      name="register-role"
-                      value="customer"
-                      checked={registerForm.role === 'customer'}
-                      onChange={(e) =>
-                        setRegisterForm((prev) => ({ ...prev, role: e.target.value }))
-                      }
-                      disabled={loading}
-                    />
-                    Customer
-                  </label>
-                  <label>
-                    <input
-                      type="radio"
-                      name="register-role"
-                      value="vendor"
-                      checked={registerForm.role === 'vendor'}
-                      onChange={(e) =>
-                        setRegisterForm((prev) => ({ ...prev, role: e.target.value }))
-                      }
-                      disabled={loading}
-                    />
-                    Vendor (Admin approval required)
-                  </label>
-                </div>
-
-                <button type="submit" className="register-btn" disabled={loading}>
-                  {loading ? 'Creating...' : 'Create Account'}
-                </button>
-              </form>
             )}
 
             <div className="divider"><span>secure login</span></div>
@@ -367,9 +388,9 @@ function Login() {
             <div className="signup-box">
               <div>
                 <strong>New here?</strong>
-                <p>If this number is new, fill details above to create your account.</p>
+                <p>Enter your mobile and click Send OTP. If not found, we will take you to signup.</p>
               </div>
-              <a href="/home" className="signup-btn">Go Home</a>
+              <a href={`/signup?phone=${encodeURIComponent(normalizeToIndianPhone(phone) || '')}`} className="signup-btn">Create Account</a>
             </div>
 
             <div className="trust-badges">

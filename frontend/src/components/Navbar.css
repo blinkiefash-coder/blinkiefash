@@ -80,6 +80,11 @@
   border-radius: 6px;
 }
 
+.location-action {
+  font-weight: 700;
+  color: #065f46;
+}
+
 /* Categories */
 .nav-links {
   display: flex;
@@ -116,14 +121,62 @@
   outline: none;
 }
 
-/* Cart */
-.cart-icon svg {
-  width: 18px;
-  height: 18px;
-  stroke: #065f46;
+.nav-action-btn {
+  border: none;
+  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav-action-icon {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-action-icon svg {
+  width: 20px;
+  height: 20px;
+  stroke: #111827;
   fill: none;
   stroke-width: 2;
-  cursor: pointer;
+}
+
+.nav-action-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.05;
+}
+
+.nav-action-copy strong {
+  font-size: 11px;
+  font-weight: 700;
+  color: #161616;
+}
+
+.nav-count-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
 }
 
 /* Profile */
@@ -192,4 +245,29 @@
   height: 1px;
   background: #e5e7eb;
   margin: 6px 0;
+}
+
+.nav-action-btn:hover .nav-action-icon svg {
+  stroke: #16a34a;
+}
+
+.nav-action-btn:hover .wishlist-icon svg {
+  fill: #dcfce7;
+}
+
+/* Login Button */
+.login-btn {
+  background: #065f46;
+  color: white;
+  border: none;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-btn:hover {
+  background: #059669;
 }

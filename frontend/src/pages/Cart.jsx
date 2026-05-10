@@ -1,16 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./Cart.css";
-
-const sampleCart = [
-  { id: 1, name: "CIDER Dress", brand: "CIDER", price: 1499, originalPrice: 1999, discount: 25, size: "M", color: "Purple", inStock: true, image: "/images/dresses.png", qty: 1 },
-  { id: 2, name: "Traditional Necklace Set", brand: "Jewels", price: 599, originalPrice: 1999, discount: 70, size: "One Size", color: "Green", inStock: true, image: "/images/J.png", qty: 1 },
-  { id: 3, name: "Nike Low Vision Shoes", brand: "Nike", price: 5499, originalPrice: 6499, discount: 15, size: "8", color: "Brown", inStock: true, image: "/images/shoes.png", qty: 1 },
-  { id: 4, name: "Black Shirt", brand: "FOREVER 21", price: 1299, originalPrice: 1499, discount: 13, size: "L", color: "Black", inStock: true, image: "/images/Menstopwear.png", qty: 1 },
-  { id: 5, name: "Beige Shoulder Bag", brand: "Mochi", price: 1299, originalPrice: 2999, discount: 57, size: "One Size", color: "Beige", inStock: true, image: "/images/handbag.png", qty: 1 },
-  { id: 6, name: "Floral Maxi Dress", brand: "W for Woman", price: 1899, originalPrice: 2599, discount: 27, size: "M", color: "White", inStock: true, image: "/images/womentopwear.png", qty: 1 },
-];
+import { API_API_BASE_URL } from "../apiBase";
 
 const OFFERS = [
   { code: "BLINK10", desc: "Get 10% instant discount on all orders" },
@@ -19,30 +11,95 @@ const OFFERS = [
 
 export default function Cart() {
   const navigate = useNavigate();
-  const [items, setItems] = useState(sampleCart);
-  const [checked, setChecked] = useState(sampleCart.map((i) => i.id));
+  const userId = localStorage.getItem("userUuid");
+  const [items, setItems] = useState([]);
+  const [checked, setChecked] = useState([]);
   const [coupon, setCoupon] = useState("");
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [priceOpen, setPriceOpen] = useState(true);
 
+  const loadCart = async () => {
+    if (!userId) {
+      setItems([]);
+      setChecked([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_API_BASE_URL}/cart/${userId}`);
+      const data = await response.json();
+      const nextItems = data.success ? data.items || [] : [];
+
+      setItems(nextItems);
+      setChecked((prev) => {
+        if (prev.length > 0) {
+          return prev.filter((variantId) =>
+            nextItems.some((entry) => String(entry.variant_id) === String(variantId))
+          );
+        }
+        return nextItems.map((entry) => entry.variant_id);
+      });
+    } catch {
+      setItems([]);
+    }
+  };
+
+  useEffect(() => {
+    loadCart();
+  }, [userId]);
+
   const toggleCheck = (id) =>
     setChecked((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
 
-  const changeQty = (id, delta) =>
-    setItems((prev) =>
-      prev.map((item) =>
-        item.id === id ? { ...item, qty: Math.max(1, item.qty + delta) } : item
-      )
+  const changeQty = (variantId, delta) => {
+    const currentItem = items.find(
+      (item) => String(item.variant_id) === String(variantId)
     );
+    if (!currentItem) return;
 
-  const removeItem = (id) => {
-    setItems((prev) => prev.filter((i) => i.id !== id));
-    setChecked((prev) => prev.filter((x) => x !== id));
+    const nextQty = Math.max(1, Number(currentItem.quantity || 1) + delta);
+
+    fetch(`${API_API_BASE_URL}/cart/quantity`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, variantId, quantity: nextQty }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          throw new Error(data.message || "Unable to update quantity");
+        }
+        window.dispatchEvent(new Event("cart:updated"));
+        loadCart();
+      })
+      .catch(() => {
+        alert("Unable to update quantity right now");
+      });
   };
 
-  const selectedItems = items.filter((i) => checked.includes(i.id));
-  const totalMRP = selectedItems.reduce((s, i) => s + i.originalPrice * i.qty, 0);
-  const totalPrice = selectedItems.reduce((s, i) => s + i.price * i.qty, 0);
+  const removeItem = (variantId) => {
+    fetch(`${API_API_BASE_URL}/cart/remove`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, variantId }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          throw new Error(data.message || "Unable to remove item");
+        }
+        setChecked((prev) => prev.filter((x) => String(x) !== String(variantId)));
+        window.dispatchEvent(new Event("cart:updated"));
+        loadCart();
+      })
+      .catch(() => {
+        alert("Unable to remove item right now");
+      });
+  };
+
+  const selectedItems = items.filter((i) => checked.includes(i.variant_id));
+  const totalMRP = selectedItems.reduce((s, i) => s + Number(i.price || 0) * Number(i.quantity || 1), 0);
+  const totalPrice = selectedItems.reduce((s, i) => s + Number(i.discount_price || i.price || 0) * Number(i.quantity || 1), 0);
   const discount = totalMRP - totalPrice;
   const freeDeliveryThreshold = 999;
   const deliveryProgress = Math.min((totalPrice / freeDeliveryThreshold) * 100, 100);
@@ -79,12 +136,12 @@ export default function Cart() {
               </div>
             ) : (
               items.map((item) => (
-                <div className="cart-item" key={item.id}>
+                <div className="cart-item" key={item.variant_id}>
                   <input
                     type="checkbox"
                     className="cart-checkbox"
-                    checked={checked.includes(item.id)}
-                    onChange={() => toggleCheck(item.id)}
+                    checked={checked.includes(item.variant_id)}
+                    onChange={() => toggleCheck(item.variant_id)}
                   />
 
                   <div className="cart-item-img">
@@ -107,19 +164,23 @@ export default function Cart() {
 
                   <div className="cart-item-right">
                     <div className="ci-price-row">
-                      <span className="ci-price">₹{item.price.toLocaleString()}</span>
-                      <span className="ci-original">₹{item.originalPrice.toLocaleString()}</span>
-                      <span className="ci-discount">{item.discount}% OFF</span>
+                      <span className="ci-price">₹{Number(item.discount_price || item.price || 0).toLocaleString('en-IN')}</span>
+                      <span className="ci-original">₹{Number(item.price || 0).toLocaleString('en-IN')}</span>
+                      {Number(item.discount_price || 0) > 0 && Number(item.price || 0) > Number(item.discount_price || 0) ? (
+                        <span className="ci-discount">
+                          {Math.round(((Number(item.price) - Number(item.discount_price)) / Number(item.price)) * 100)}% OFF
+                        </span>
+                      ) : null}
                     </div>
 
                     <div className="ci-qty">
-                      <button onClick={() => changeQty(item.id, -1)}>−</button>
-                      <span>{item.qty}</span>
-                      <button onClick={() => changeQty(item.id, 1)}>+</button>
+                      <button onClick={() => changeQty(item.variant_id, -1)}>−</button>
+                      <span>{item.quantity}</span>
+                      <button onClick={() => changeQty(item.variant_id, 1)}>+</button>
                     </div>
                   </div>
 
-                  <button className="ci-delete" onClick={() => removeItem(item.id)} title="Remove">
+                  <button className="ci-delete" onClick={() => removeItem(item.variant_id)} title="Remove">
                     🗑️
                   </button>
                 </div>
@@ -249,6 +310,29 @@ export default function Cart() {
             </button>
             <button className="continue-btn" onClick={() => navigate("/shop")}>
               Continue Shopping
+            </button>
+
+            <button
+              className="continue-btn"
+              onClick={() => {
+                fetch(`${API_API_BASE_URL}/cart/clear/${userId}`, {
+                  method: "DELETE",
+                })
+                  .then((res) => res.json())
+                  .then((data) => {
+                    if (!data.success) {
+                      throw new Error(data.message || "Unable to clear cart");
+                    }
+                    setChecked([]);
+                    window.dispatchEvent(new Event("cart:updated"));
+                    loadCart();
+                  })
+                  .catch(() => {
+                    alert("Unable to clear cart right now");
+                  });
+              }}
+            >
+              Clear Cart
             </button>
 
             {/* TRY & BUY */}

@@ -1,10 +1,7 @@
 const envApiBase = (import.meta.env.VITE_API_BASE_URL || "").trim();
 
-const isLocalHost =
-	typeof window !== "undefined" &&
-	["localhost", "127.0.0.1"].includes(window.location.hostname);
-
-const fallbackApiBase = isLocalHost
+const useLocalApi = String(import.meta.env.VITE_USE_LOCAL_API || "false").toLowerCase() === "true";
+const fallbackApiBase = useLocalApi
 	? "http://localhost:5000"
 	: "https://blinkiefash.onrender.com";
 

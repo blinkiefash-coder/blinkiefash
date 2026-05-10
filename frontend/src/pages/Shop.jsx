@@ -17,12 +17,12 @@ const COLORS = [
 ];
 
 const FEATURED_DEPARTMENTS = [
-  "Women",
-  "Men",
-  "Kids",
-  "Beauty",
-  "Home & Living",
-  "Bags & Accessories",
+  { label: "Women", image: "/images/Women-section.png" },
+  { label: "Men", image: "/images/Men-section.png" },
+  { label: "Kids", image: "/images/kids-section.png" },
+  { label: "Beauty", image: "/images/beauty-section.png" },
+  { label: "Home & Living", image: "/images/home-section.png" },
+  { label: "Bags & Accessories", image: "/images/backpack-section.png" },
 ];
 
 const API_BASE = API_API_BASE_URL;
@@ -45,6 +45,7 @@ const buildChildrenMap = (data) => {
 
 export default function Shop() {
   const navigate = useNavigate();
+  const userId = localStorage.getItem("userUuid");
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -62,6 +63,15 @@ export default function Shop() {
     categories: true,
     brands: true,
   });
+
+  useEffect(() => {
+    const previousBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, []);
 
   const getChildren = (parentId) => childrenByParent[parentId] || [];
 
@@ -286,6 +296,89 @@ export default function Shop() {
     });
   };
 
+  const resolveAvailableVariantId = async (product) => {
+    if (product?.variant_id) return product.variant_id;
+
+    const response = await fetch(`${API_BASE}/products/${product.id}`);
+    if (!response.ok) return "";
+
+    const detail = await response.json();
+    const availableVariant = (detail?.variants || []).find(
+      (variant) =>
+        Number(variant.available_stock || 0) > 0 || variant.available_stock === undefined
+    );
+
+    return availableVariant?.id || availableVariant?.variant_id || "";
+  };
+
+  const handleAddToWishlist = async (event, product) => {
+    event.stopPropagation();
+
+    if (!userId) {
+      alert("Please login to add items to wishlist");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const variantId = await resolveAvailableVariantId(product);
+      if (!variantId) {
+        alert("No available variant for this product");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/wishlist/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, variantId }),
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Unable to add to wishlist");
+      }
+
+      window.dispatchEvent(new Event("wishlist:updated"));
+      alert("Added to wishlist");
+    } catch {
+      alert("Unable to add to wishlist right now");
+    }
+  };
+
+  const handleAddToCart = async (event, product) => {
+    event.stopPropagation();
+
+    if (!userId) {
+      alert("Please login to add items to cart");
+      navigate("/login");
+      return;
+    }
+
+    try {
+      const variantId = await resolveAvailableVariantId(product);
+      if (!variantId) {
+        alert("No available variant for this product");
+        return;
+      }
+
+      const response = await fetch(`${API_BASE}/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, variantId, quantity: 1 }),
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Unable to add to cart");
+      }
+
+      window.dispatchEvent(new Event("cart:updated"));
+      alert("Added to cart");
+    } catch {
+      alert("Unable to add to cart right now");
+    }
+  };
+
   return (
     <>
       <div className="shop-navbar-wrapper">
@@ -294,18 +387,14 @@ export default function Shop() {
 
       <div className="shop-page">
         <div className="shop-featured-row">
-          {FEATURED_DEPARTMENTS.map((department, index) => (
-            <div key={department} className="shop-featured-tile">
+          {FEATURED_DEPARTMENTS.map((department) => (
+            <div key={department.label} className="shop-featured-tile">
               <div className="shop-featured-image-wrap">
-                {products[index]?.image ? (
-                  <img src={products[index].image} alt={department} className="shop-featured-image" />
-                ) : (
-                  <div className="shop-featured-fallback">{department.charAt(0)}</div>
-                )}
+                <img src={department.image} alt={department.label} className="shop-featured-image" />
               </div>
               <div>
-                <h4>{department}</h4>
-                <p>Explore</p>
+                <h4>{department.label}</h4>
+                <p>Explore →</p>
               </div>
             </div>
           ))}
@@ -355,15 +444,16 @@ export default function Shop() {
                     {visibleBrands.map((brand) => {
                   const isActive = activeBrand === brand.name;
                   return (
-                    <div
+                    <label
                       key={brand.id}
-                      className={`filter-option ${isActive ? "active" : ""}`}
+                      className={`brand-check-option ${isActive ? "active" : ""}`}
                       onClick={() =>
                         setActiveBrand(isActive ? null : brand.name)
                       }
                     >
+                      <input type="checkbox" checked={isActive} readOnly />
                       <span>{brand.name}</span>
-                    </div>
+                    </label>
                   );
                     })}
                   </>
@@ -485,7 +575,13 @@ export default function Shop() {
                     style={{ cursor: "pointer" }}
                   >
                     <div className="shop-product-image">
-                      <button type="button" className="wishlist-btn" onClick={(e) => e.stopPropagation()}>♡</button>
+                      <button
+                        type="button"
+                        className="wishlist-btn"
+                        onClick={(e) => handleAddToWishlist(e, p)}
+                      >
+                        ♡
+                      </button>
                       {p.image ? (
                         <img src={p.image} alt={p.name} />
                       ) : (
@@ -500,14 +596,14 @@ export default function Shop() {
                       <span className="card-brand">{p.brand}</span>
                       <h4 className="card-name">{p.name}</h4>
 
-                      <div className="price-section">
+                      <div className="shop-price-row">
                         {hasDiscount ? (
                           <>
-                            <span className="price-final">₹{discountPrice.toLocaleString('en-IN')}</span>
-                            <span className="price-original">₹{originalPrice.toLocaleString('en-IN')}</span>
+                            <span className="shop-price-final">₹{discountPrice.toLocaleString('en-IN')}</span>
+                            <span className="shop-price-original">₹{originalPrice.toLocaleString('en-IN')}</span>
                           </>
                         ) : (
-                          <span className="price-final">₹{originalPrice.toLocaleString('en-IN')}</span>
+                          <span className="shop-price-final">₹{originalPrice.toLocaleString('en-IN')}</span>
                         )}
                       </div>
 
@@ -515,6 +611,16 @@ export default function Shop() {
                         <span className="rating-star">★</span>
                         <span>{rating}</span>
                         <span className="rating-count">({(reviews / 1000).toFixed(1)}k)</span>
+                      </div>
+
+                      <div className="shop-card-actions">
+                        <button
+                          type="button"
+                          className="shop-card-cart-btn"
+                          onClick={(e) => handleAddToCart(e, p)}
+                        >
+                          Add to Cart
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -531,62 +637,62 @@ export default function Shop() {
                 View More Products
               </button>
             )}
+
+            <section className="shop-trust-strip">
+              <div className="trust-item"><strong>60 MINUTE DELIVERY</strong><span>On all orders</span></div>
+              <div className="trust-item"><strong>TRY BEFORE YOU BUY</strong><span>Only pay for what you keep</span></div>
+              <div className="trust-item"><strong>100% SECURE PAYMENTS</strong><span>Safe and trusted</span></div>
+              <div className="trust-item"><strong>EASY RETURNS & REFUNDS</strong><span>Hassle free returns</span></div>
+              <div className="trust-item"><strong>NEED HELP?</strong><span>Chat with us</span></div>
+            </section>
+
+            <footer className="shop-bottom-bar">
+              <div className="shop-bottom-content">
+                <div className="footer-brand-col">
+                  <h3>BLINKIEFASH</h3>
+                  <p>Fashion at your doorstep, FAST.</p>
+                </div>
+
+                <div className="footer-col">
+                  <h4>Company</h4>
+                  <span>About Us</span>
+                  <span>Careers</span>
+                  <span>Blog</span>
+                  <span>Press</span>
+                </div>
+
+                <div className="footer-col">
+                  <h4>Customer Service</h4>
+                  <span>Contact Us</span>
+                  <span>FAQs</span>
+                  <span>Shipping & Delivery</span>
+                  <span>Returns & Refunds</span>
+                </div>
+
+                <div className="footer-col">
+                  <h4>Policies</h4>
+                  <span>Terms & Conditions</span>
+                  <span>Privacy Policy</span>
+                  <span>Cancellation Policy</span>
+                  <span>E-Waste Policy</span>
+                </div>
+
+                <div className="footer-col">
+                  <h4>Follow Us</h4>
+                  <span>Instagram</span>
+                  <span>Facebook</span>
+                  <span>YouTube</span>
+                  <span>WhatsApp</span>
+                </div>
+              </div>
+
+              <div className="shop-bottom-copy">
+                © 2026 BlinkieFash. All rights reserved.
+              </div>
+            </footer>
           </section>
         </div>
       </div>
-
-      <section className="shop-trust-strip">
-        <div className="trust-item"><strong>60 MINUTE DELIVERY</strong><span>On all orders</span></div>
-        <div className="trust-item"><strong>TRY BEFORE YOU BUY</strong><span>Only pay for what you keep</span></div>
-        <div className="trust-item"><strong>100% SECURE PAYMENTS</strong><span>Safe and trusted</span></div>
-        <div className="trust-item"><strong>EASY RETURNS & REFUNDS</strong><span>Hassle free returns</span></div>
-        <div className="trust-item"><strong>NEED HELP?</strong><span>Chat with us</span></div>
-      </section>
-
-      <footer className="shop-bottom-bar">
-        <div className="shop-bottom-content">
-          <div className="footer-brand-col">
-            <h3>BLINKIEFASH</h3>
-            <p>Fashion at your doorstep, FAST.</p>
-          </div>
-
-          <div className="footer-col">
-            <h4>Company</h4>
-            <span>About Us</span>
-            <span>Careers</span>
-            <span>Blog</span>
-            <span>Press</span>
-          </div>
-
-          <div className="footer-col">
-            <h4>Customer Service</h4>
-            <span>Contact Us</span>
-            <span>FAQs</span>
-            <span>Shipping & Delivery</span>
-            <span>Returns & Refunds</span>
-          </div>
-
-          <div className="footer-col">
-            <h4>Policies</h4>
-            <span>Terms & Conditions</span>
-            <span>Privacy Policy</span>
-            <span>Cancellation Policy</span>
-            <span>E-Waste Policy</span>
-          </div>
-
-          <div className="footer-col">
-            <h4>Follow Us</h4>
-            <span>Instagram</span>
-            <span>Facebook</span>
-            <span>YouTube</span>
-            <span>WhatsApp</span>
-          </div>
-        </div>
-
-        <div className="shop-bottom-copy">
-          © 2026 BlinkieFash. All rights reserved.
-        </div>
-      </footer>
     </>
   );
 }

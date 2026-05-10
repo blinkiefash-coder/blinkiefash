@@ -41,6 +41,10 @@ function getInitialSelection(values) {
   return values[0] || "";
 }
 
+function getVariantId(variant) {
+  return variant?.id || variant?.variant_id || "";
+}
+
 function formatCurrency(value) {
   return new Intl.NumberFormat("en-IN", {
     style: "currency",
@@ -61,6 +65,7 @@ export default function ProductDetail() {
 
   const [selectedSize, setSelectedSize] = useState("");
   const [selectedColor, setSelectedColor] = useState("");
+  const userId = localStorage.getItem("userUuid");
 
   /* ✅ FETCH DATA */
   useEffect(() => {
@@ -75,8 +80,9 @@ export default function ProductDetail() {
       setActiveImage(data.images?.[0] || "");
       setVariants(data.variants || []);
 
-      const sizes = [...new Set((data.variants || []).map((item) => item.size).filter(Boolean))];
-      const colors = [...new Set((data.variants || []).map((item) => item.color).filter(Boolean))];
+      const inStockVariants = (data.variants || []).filter((item) => Number(item.available_stock || 0) > 0 || item.available_stock === undefined);
+      const sizes = [...new Set(inStockVariants.map((item) => item.size).filter(Boolean))];
+      const colors = [...new Set(inStockVariants.map((item) => item.color).filter(Boolean))];
 
       setSelectedSize((current) => current || getInitialSelection(sizes));
       setSelectedColor((current) => current || getInitialSelection(colors));
@@ -106,14 +112,23 @@ export default function ProductDetail() {
   if (!product) return <p>Loading...</p>;
 
   const sizeOptions = [...new Set(variants.map((item) => item.size).filter(Boolean))];
-  const colorOptions = [...new Set(variants.map((item) => item.color).filter(Boolean))];
+  const colorOptions = [...new Set(
+    variants
+      .filter((item) => !selectedSize || item.size === selectedSize)
+      .map((item) => item.color)
+      .filter(Boolean)
+  )];
 
   const selectedVariant =
     variants.find(
       (item) =>
         (!selectedSize || item.size === selectedSize) &&
         (!selectedColor || item.color === selectedColor)
-    ) || variants[0] || product;
+    ) || variants.find((item) => !selectedSize || item.size === selectedSize) || variants[0] || null;
+
+  const selectedVariantId = getVariantId(selectedVariant);
+  const selectedVariantStock = Number(selectedVariant?.available_stock || 0);
+  const hasStock = selectedVariant ? (selectedVariant?.available_stock === undefined || selectedVariantStock > 0) : false;
 
   const original = Number(selectedVariant?.price || 0);
   const discount = Number(selectedVariant?.discount_price || 0);
@@ -136,6 +151,65 @@ export default function ProductDetail() {
   const description =
     product.description ||
     `${product.name} crafted for everyday wear with a flattering silhouette and comfortable finish.`;
+
+  const handleAddToCart = () => {
+    if (!userId) {
+      alert("Please login to add items to cart");
+      return;
+    }
+
+    if (!selectedVariantId || !hasStock) {
+      alert("Please choose an available variant");
+      return;
+    }
+
+    fetch(`${API_API_BASE_URL}/cart/add`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, variantId: selectedVariantId, quantity: 1 }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (!data.success) {
+          throw new Error(data.message || "Unable to add to cart");
+        }
+        window.dispatchEvent(new Event("cart:updated"));
+        alert("Added to cart");
+      })
+      .catch(() => {
+        alert("Unable to add to cart right now");
+      });
+  };
+
+  const handleAddToWishlist = async () => {
+    if (!userId) {
+      alert("Please login to add items to wishlist");
+      return;
+    }
+
+    if (!selectedVariantId || !hasStock) {
+      alert("Please choose an available variant");
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_API_BASE_URL}/wishlist/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, variantId: selectedVariantId }),
+      });
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Unable to add to wishlist");
+      }
+
+      window.dispatchEvent(new Event("wishlist:updated"));
+      alert("Added to wishlist");
+    } catch {
+      alert("Unable to add to wishlist right now");
+    }
+  };
 
   return (
     <>
@@ -240,16 +314,17 @@ export default function ProductDetail() {
                   <span>Fast delivery available</span>
                 </div>
                 <div>
-                  <strong>In stock</strong>
-                  <span>Selected variant ready</span>
+                  <strong>{hasStock ? "In stock" : "Out of stock"}</strong>
+                  <span>{hasStock ? `Only ${selectedVariantStock || "few"} left` : "Selected variant unavailable"}</span>
                 </div>
               </div>
 
               <div className="pdp-actions">
                 <button type="button" className="buy">Buy Now</button>
-                <button type="button" className="cart">Add to Bag</button>
+                <button type="button" className="cart" onClick={handleAddToCart} disabled={!hasStock}>Add to Bag</button>
               </div>
 
+              <button type="button" className="try" onClick={handleAddToWishlist} disabled={!hasStock}>Add to Wishlist</button>
               <button type="button" className="try">Try & Buy</button>
 
               <div className="pdp-try-box">

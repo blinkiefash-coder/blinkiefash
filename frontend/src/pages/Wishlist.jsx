@@ -1,94 +1,104 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import "./Wishlist.css";
-
-const sampleWishlist = [
-  {
-    id: 1,
-    name: "CIDER Dress",
-    brand: "CIDER",
-    price: 1499,
-    originalPrice: 1999,
-    discount: 25,
-    size: "M",
-    color: "Purple",
-    inStock: true,
-    image: "/images/dresses.png",
-  },
-  {
-    id: 2,
-    name: "Traditional Necklace Set",
-    brand: "Jewels",
-    price: 599,
-    originalPrice: 1999,
-    discount: 70,
-    size: "One Size",
-    color: "Green",
-    inStock: true,
-    image: "/images/J.png",
-  },
-  {
-    id: 3,
-    name: "Nike Low Vision Shoes",
-    brand: "Nike",
-    price: 5499,
-    originalPrice: 6499,
-    discount: 15,
-    size: "8",
-    color: "Brown",
-    inStock: true,
-    image: "/images/shoes.png",
-  },
-  {
-    id: 4,
-    name: "Black Shirt",
-    brand: "FOREVER 21",
-    price: 1299,
-    originalPrice: 1499,
-    discount: 13,
-    size: "L",
-    color: "Black",
-    inStock: true,
-    image: "/images/Menstopwear.png",
-  },
-  {
-    id: 5,
-    name: "Beige Shoulder Bag",
-    brand: "Mochi",
-    price: 1299,
-    originalPrice: 2999,
-    discount: 57,
-    size: "One Size",
-    color: "Beige",
-    inStock: true,
-    image: "/images/handbag.png",
-  },
-  {
-    id: 6,
-    name: "Floral Maxi Dress",
-    brand: "W for Woman",
-    price: 1899,
-    originalPrice: 2599,
-    discount: 27,
-    size: "M",
-    color: "White",
-    inStock: true,
-    image: "/images/womentopwear.png",
-  },
-];
+import { API_API_BASE_URL } from "../apiBase";
 
 export default function Wishlist() {
   const navigate = useNavigate();
-  const [items, setItems] = useState(sampleWishlist);
+  const userId = localStorage.getItem("userUuid");
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const removeItem = (id) => {
-    setItems((prev) => prev.filter((item) => item.id !== id));
+  const fetchWishlist = async () => {
+    if (!userId) {
+      setItems([]);
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_API_BASE_URL}/wishlist/${userId}`);
+      const data = await response.json();
+      setItems(data.success ? data.items || [] : []);
+    } catch {
+      setItems([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const clearWishlist = () => {
+  useEffect(() => {
+    fetchWishlist();
+  }, [userId]);
+
+  const removeItem = async (variantId) => {
+    if (!userId) return;
+
+    try {
+      await fetch(`${API_API_BASE_URL}/wishlist/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, variantId }),
+      });
+      window.dispatchEvent(new Event("wishlist:updated"));
+      fetchWishlist();
+    } catch {
+      alert("Unable to remove item right now");
+    }
+  };
+
+  const clearWishlist = async () => {
+    if (!userId) return;
+
     if (window.confirm("Clear all items from your wishlist?")) {
-      setItems([]);
+      try {
+        await fetch(`${API_API_BASE_URL}/wishlist/clear/${userId}`, {
+          method: "DELETE",
+        });
+        window.dispatchEvent(new Event("wishlist:updated"));
+        setItems([]);
+      } catch {
+        alert("Unable to clear wishlist right now");
+      }
+    }
+  };
+
+  const moveToCart = async (item) => {
+    if (!userId) {
+      alert("Please login first");
+      return;
+    }
+
+    try {
+      const addRes = await fetch(`${API_API_BASE_URL}/cart/add`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          variantId: item.variant_id,
+          quantity: 1,
+        }),
+      });
+      const addData = await addRes.json();
+
+      if (!addData.success) {
+        throw new Error(addData.message || "Unable to move item to cart");
+      }
+
+      await fetch(`${API_API_BASE_URL}/wishlist/remove`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, variantId: item.variant_id }),
+      });
+
+      window.dispatchEvent(new Event("cart:updated"));
+      window.dispatchEvent(new Event("wishlist:updated"));
+      fetchWishlist();
+      alert("Moved to cart");
+    } catch {
+      alert("Unable to move to cart right now");
     }
   };
 
@@ -111,13 +121,6 @@ export default function Wishlist() {
             </div>
           </div>
           <div className="wl-header-actions">
-            <button className="wl-btn-outline" onClick={() => alert("Share link copied!")}>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
-                <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
-              </svg>
-              Share Wishlist
-            </button>
             <button className="wl-btn-outline wl-btn-danger" onClick={clearWishlist}>
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16">
                 <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" />
@@ -128,7 +131,11 @@ export default function Wishlist() {
         </div>
 
         {/* ── GRID ── */}
-        {items.length === 0 ? (
+        {loading ? (
+          <div className="wl-empty">
+            <h3>Loading wishlist...</h3>
+          </div>
+        ) : items.length === 0 ? (
           <div className="wl-empty">
             <svg viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="1.5" width="64" height="64">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -142,7 +149,7 @@ export default function Wishlist() {
             {items.map((item) => (
               <div className="wl-card" key={item.id}>
                 {/* Remove button */}
-                <button className="wl-remove" onClick={() => removeItem(item.id)}>✕</button>
+                <button className="wl-remove" onClick={() => removeItem(item.variant_id)}>✕</button>
 
                 {/* Image */}
                 <div className="wl-card-img">
@@ -155,9 +162,13 @@ export default function Wishlist() {
                   <p className="wl-brand">{item.brand}</p>
 
                   <div className="wl-price-row">
-                    <span className="wl-price">₹{item.price.toLocaleString()}</span>
-                    <span className="wl-original-price">₹{item.originalPrice.toLocaleString()}</span>
-                    <span className="wl-discount">{item.discount}% OFF</span>
+                    <span className="wl-price">₹{Number(item.discount_price || item.price || 0).toLocaleString("en-IN")}</span>
+                    <span className="wl-original-price">₹{Number(item.price || 0).toLocaleString("en-IN")}</span>
+                    {Number(item.discount_price || 0) > 0 && Number(item.price || 0) > Number(item.discount_price || 0) ? (
+                      <span className="wl-discount">
+                        {Math.round(((Number(item.price) - Number(item.discount_price)) / Number(item.price)) * 100)}% OFF
+                      </span>
+                    ) : null}
                   </div>
 
                   <div className="wl-meta">
@@ -166,15 +177,15 @@ export default function Wishlist() {
                     <span>Color: {item.color}</span>
                   </div>
 
-                  {item.inStock && <span className="wl-stock">In Stock</span>}
+                  {Number(item.available_stock || 0) > 0 && <span className="wl-stock">In Stock</span>}
 
                   <div className="wl-card-actions">
-                    <button className="wl-heart-btn" title="Remove from wishlist" onClick={() => removeItem(item.id)}>
+                    <button className="wl-heart-btn" title="Remove from wishlist" onClick={() => removeItem(item.variant_id)}>
                       <svg viewBox="0 0 24 24" fill="#22c55e" stroke="#22c55e" strokeWidth="2" width="18" height="18">
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
                       </svg>
                     </button>
-                    <button className="wl-cart-btn">Add to Cart</button>
+                    <button className="wl-cart-btn" onClick={() => moveToCart(item)}>Add to Cart</button>
                   </div>
                 </div>
               </div>
