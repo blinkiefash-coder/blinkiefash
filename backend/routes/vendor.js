@@ -21,6 +21,33 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET a single vendor by id or slug
+router.get("/:identifier", async (req, res) => {
+  try {
+    const { identifier } = req.params;
+    const numericId = Number(identifier);
+
+    const result = await pool.query(
+      `SELECT id, store_name, slug, description, address, city, pincode,
+              lat, lng, service_radius_km, is_verified, is_active,
+              vendor_img_url, created_at
+       FROM vendors
+       WHERE id = $1 OR slug = $2
+       LIMIT 1`,
+      [Number.isNaN(numericId) ? null : numericId, identifier]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: "Vendor not found" });
+    }
+
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 // GET single vendor with their products
 router.get("/:id/products", async (req, res) => {
   try {
