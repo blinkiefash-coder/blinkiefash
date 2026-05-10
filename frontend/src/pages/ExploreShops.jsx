@@ -26,6 +26,10 @@ function ExploreShops() {
   const [selectedDistanceRange, setSelectedDistanceRange] = useState("all");
   const [selectedSort, setSelectedSort] = useState("nearest");
   const [visibleCount, setVisibleCount] = useState(6);
+  const [locationReady, setLocationReady] = useState(false);
+  const [locationSearchLoading, setLocationSearchLoading] = useState(false);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const MAX_STORE_DISTANCE_KM = 1000;
 
   // Fetch categories from backend
   useEffect(() => {
@@ -121,23 +125,35 @@ function ExploreShops() {
 
   // Get user's current location
   useEffect(() => {
+    const locationReadyTimeout = setTimeout(() => {
+      setLocationReady(true);
+    }, 5000);
+
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const { latitude, longitude } = position.coords;
           setUserCoords({ lat: latitude, lng: longitude });
-          // In a real app, use reverse geocoding service to get address
-          // For now, we'll use a placeholder
+          setSelectedCity("Current location");
+          setLocationReady(true);
+          clearTimeout(locationReadyTimeout);
+          // Reverse geocoding updates the label in the background without blocking the UI.
           fetchAddressFromCoordinates(latitude, longitude);
         },
         (error) => {
           console.error("Location error:", error);
+          clearTimeout(locationReadyTimeout);
           setSelectedCity("Bhubaneswar, Odisha");
+          setLocationReady(true);
         }
       );
     } else {
+      clearTimeout(locationReadyTimeout);
       setSelectedCity("Bhubaneswar, Odisha");
+      setLocationReady(true);
     }
+
+    return () => clearTimeout(locationReadyTimeout);
   }, []);
 
   // Helper function to fetch address from coordinates
@@ -160,8 +176,28 @@ function ExploreShops() {
     if (locationInput.trim()) {
       setSelectedCity(locationInput);
       setLocationInput("");
+      setLocationSuggestions([]);
       setShowLocationModal(false);
     }
+  };
+
+  const handleSuggestionSelect = (suggestion) => {
+    const displayName = suggestion.display_name || suggestion.name || "Selected location";
+    const shortName = displayName.split(",").slice(0, 2).join(", ");
+
+    setLocationInput(displayName);
+    setSelectedCity(shortName);
+    setUserCoords({ lat: Number(suggestion.lat), lng: Number(suggestion.lon) });
+    setLocationSuggestions([]);
+    setShowLocationModal(false);
+    setLocationReady(true);
+  };
+
+  const useCurrentLocation = () => {
+    setLocationInput("");
+    setLocationSuggestions([]);
+    setSelectedCity("Current location");
+    setShowLocationModal(false);
   };
 
   const toggleSidebar = () => {
@@ -293,9 +329,11 @@ function ExploreShops() {
   );
 
   const matchesDistanceFilter = (store) => {
-    if (selectedDistanceRange === "all") return true;
     const distance = getDistanceFromUserKm(store);
     if (distance === null) return false;
+    if (distance > MAX_STORE_DISTANCE_KM) return false;
+
+    if (selectedDistanceRange === "all") return true;
 
     if (selectedDistanceRange === "0-1") return distance <= 1;
     if (selectedDistanceRange === "1-3") return distance > 1 && distance <= 3;
@@ -359,9 +397,52 @@ function ExploreShops() {
 
   const visibleStores = filteredStores.slice(0, visibleCount);
 
+  useEffect(() => {
+    if (!showLocationModal) {
+      setLocationSuggestions([]);
+      setLocationSearchLoading(false);
+      return;
+    }
+
+    const query = locationInput.trim();
+    if (query.length < 3) {
+      setLocationSuggestions([]);
+      setLocationSearchLoading(false);
+      return;
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setLocationSearchLoading(true);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(query)}&limit=6&addressdetails=1&countrycodes=in`
+        );
+        const data = await response.json();
+        setLocationSuggestions(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Error fetching location suggestions:", err);
+        setLocationSuggestions([]);
+      } finally {
+        setLocationSearchLoading(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timeoutId);
+  }, [locationInput, showLocationModal]);
+
   return (
     <div className="explore-shops">
       <Navbar />
+
+      {!locationReady && (
+        <div className="explore-loading-overlay">
+          <div className="explore-loading-card">
+            <div className="explore-loading-spinner" />
+            <h2>Finding your location</h2>
+            <p>Fetching nearby stores and the best distance match.</p>
+          </div>
+        </div>
+      )}
 
       <div className="explore-container">
         {/* HAMBURGER TOGGLE */}
@@ -722,11 +803,51 @@ function ExploreShops() {
             <div className="modal-body">
               <input
                 type="text"
-                placeholder="Enter city or location..."
+                placeholder="Search city, landmark or area..."
                 value={locationInput}
                 onChange={(e) => setLocationInput(e.target.value)}
                 onKeyPress={(e) => e.key === "Enter" && handleLocationChange()}
               />
+              <div className="location-helper-card">
+                <div className="location-helper-visual">
+                  <span className="location-helper-pin">📍</span>
+                </div>
+                <div className="location-helper-text">
+                  <strong>Update location</strong>
+                  <span>Search a place or use your current position.</span>
+                </div>
+              </div>
+
+              <button className="location-current-btn" onClick={useCurrentLocation} type="button">
+                Use Current Location
+              </button>
+
+              <div className="location-suggestions-shell">
+                <div className="location-suggestions-header">
+                  <span>Suggestions</span>
+                  {locationSearchLoading && <span className="location-suggestions-loading">Loading...</span>}
+                </div>
+                <div className="location-suggestions-list">
+                  {locationSuggestions.length > 0 ? (
+                    locationSuggestions.map((suggestion) => (
+                      <button
+                        key={`${suggestion.place_id}-${suggestion.lat}-${suggestion.lon}`}
+                        type="button"
+                        className="location-suggestion-item"
+                        onClick={() => handleSuggestionSelect(suggestion)}
+                      >
+                        <span className="location-suggestion-icon">📌</span>
+                        <span className="location-suggestion-text">{suggestion.display_name}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p className="location-suggestions-empty">
+                      Type at least 3 characters to see suggestions.
+                    </p>
+                  )}
+                </div>
+              </div>
+
               <button className="location-submit-btn" onClick={handleLocationChange}>
                 Update Location
               </button>

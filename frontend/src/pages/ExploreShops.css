@@ -1492,6 +1492,214 @@
   opacity: 0.9;
 }
 
+/* ================= LOCATION LOADING OVERLAY ================= */
+
+.explore-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 250, 247, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.explore-loading-card {
+  width: min(92vw, 360px);
+  padding: 28px 26px;
+  border-radius: 24px;
+  text-align: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbf9 100%);
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.12);
+}
+
+.explore-loading-spinner {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  border: 4px solid rgba(34, 197, 94, 0.18);
+  border-top-color: #22c55e;
+  animation: exploreSpin 0.9s linear infinite;
+}
+
+.explore-loading-card h2 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: #111827;
+}
+
+.explore-loading-card p {
+  margin: 0;
+  color: #6b7280;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+@keyframes exploreSpin {
+  to { transform: rotate(360deg); }
+}
+
+/* ================= LOCATION MODAL ENHANCEMENTS ================= */
+
+.location-modal {
+  padding: 22px;
+}
+
+.location-modal .modal-body {
+  gap: 14px;
+}
+
+.location-modal input {
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14px;
+  background: #f8fafb;
+}
+
+.location-helper-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(59, 130, 246, 0.06));
+  border: 1px solid rgba(17, 24, 39, 0.08);
+}
+
+.location-helper-visual {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: #111827;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.location-helper-pin {
+  font-size: 24px;
+}
+
+.location-helper-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.location-helper-text strong {
+  font-size: 14px;
+  color: #111827;
+}
+
+.location-helper-text span {
+  font-size: 13px;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.location-current-btn {
+  width: 100%;
+  border: 1px solid #22c55e;
+  background: #ffffff;
+  color: #16a34a;
+  font-weight: 800;
+  border-radius: 14px;
+  padding: 12px 16px;
+  cursor: pointer;
+}
+
+.location-current-btn:hover {
+  background: #f0fdf4;
+}
+
+.location-suggestions-shell {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  border-radius: 16px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.location-suggestions-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #f8fafb;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+  font-size: 13px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.location-suggestions-loading {
+  color: #22c55e;
+}
+
+.location-suggestions-list {
+  max-height: 220px;
+  overflow: auto;
+}
+
+.location-suggestion-item {
+  width: 100%;
+  border: none;
+  background: #ffffff;
+  padding: 12px 14px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  cursor: pointer;
+  text-align: left;
+  border-bottom: 1px solid rgba(17, 24, 39, 0.06);
+}
+
+.location-suggestion-item:hover {
+  background: rgba(34, 197, 94, 0.06);
+}
+
+.location-suggestion-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.location-suggestion-text {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.4;
+}
+
+.location-suggestions-empty {
+  margin: 0;
+  padding: 14px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+/* right panel button refinement */
+.visit-store-btn {
+  background: #ffffff;
+  border: 1.6px solid #22c55e;
+  border-radius: 12px;
+  padding: 10px 20px;
+  min-width: 170px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #16a34a;
+  letter-spacing: 0.2px;
+  box-shadow: 0 6px 16px rgba(34, 197, 94, 0.12);
+}
+
+.visit-store-btn:hover {
+  background: #22c55e;
+  color: #ffffff;
+  box-shadow: 0 10px 20px rgba(34, 197, 94, 0.28);
+}
+
 /* ================= RIGHT PANEL ENHANCEMENTS ================= */
 
 .store-actions-col {

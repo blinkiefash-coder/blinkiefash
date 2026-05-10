@@ -10,6 +10,7 @@ import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
 import Signup from "./pages/Signup";
 import ExploreShops from "./pages/ExploreShops";
+import VendorStore from "./pages/VendorStore";
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/explore-shops" element={<ExploreShops />} />
+        <Route path="/vendor/:identifier" element={<VendorStore />} />
         <Route path="/women" element={<Women />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
