@@ -3,6 +3,7 @@ import { pool } from "../db.js";
 import { getFirebaseAdminAuth } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
+const otpStore = new Map();
 
 const normalizePhone = (value = "") => {
   const digits = String(value).replace(/\D/g, "");
@@ -22,17 +23,21 @@ const roleMatchesExpected = (actualRole = "", expectedRole = "") => {
   const expected = String(expectedRole).toLowerCase();
 
   if (expected === "vendor") return role === "vendor";
-  if (expected === "customer") return role === "customer";
+  if (expected === "customer") return role !== "vendor";
 
   return role === expected;
 };
 
+const createOtp = () => String(Math.floor(100000 + Math.random() * 900000));
+const canUseServerOtp =
+  process.env.NODE_ENV !== "production" ||
+  String(process.env.ALLOW_SERVER_OTP || "false").toLowerCase() === "true";
+
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, email, role } = req.body;
-    const safeRole = String(role || "customer").toLowerCase();
+    const { name, phone, email } = req.body;
     const normalizedPhone = normalizePhone(phone);
-    const phoneForStorage = formatPhoneForStorage(phone);
+    const formattedPhone = formatPhoneForStorage(phone);
     const trimmedName = String(name || "").trim();
     const trimmedEmail = String(email || "").trim().toLowerCase();
 
@@ -43,65 +48,50 @@ router.post("/register", async (req, res) => {
       });
     }
 
-    if (!["customer", "vendor"].includes(safeRole)) {
-      return res.json({
-        success: false,
-        message: "Only customer or vendor registration is allowed"
-      });
-    }
-
-    const existingByPhone = await pool.query(
+    const existingPhone = await pool.query(
       `SELECT id
        FROM users
-       WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
        LIMIT 1`,
       [normalizedPhone]
     );
 
-    if (existingByPhone.rows.length > 0) {
+    if (existingPhone.rows.length > 0) {
       return res.json({
         success: false,
-        message: "Mobile number is already registered"
+        message: "Mobile number already exists"
       });
     }
 
     if (trimmedEmail) {
-      const existingByEmail = await pool.query(
+      const existingEmail = await pool.query(
         `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
         [trimmedEmail]
       );
 
-      if (existingByEmail.rows.length > 0) {
+      if (existingEmail.rows.length > 0) {
         return res.json({
           success: false,
-          message: "Email is already registered"
+          message: "Email already exists"
         });
       }
     }
 
-    const isActive = safeRole === "customer";
-
     const insertResult = await pool.query(
-      `INSERT INTO users (name, phone, email, role, is_active)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
+       VALUES ($1, $2, $3, 'customer', true, NOW(), NOW())
        RETURNING id, name, phone, email, role, is_active`,
-      [trimmedName, phoneForStorage, trimmedEmail || null, safeRole, isActive]
+      [trimmedName, formattedPhone, trimmedEmail || null]
     );
-
-    const user = insertResult.rows[0];
-    const vendorPending = user.role === "vendor" && !user.is_active;
 
     return res.json({
       success: true,
-      message: vendorPending
-        ? "Vendor request submitted. Your account will be activated by admin."
-        : "Registration completed. You can continue with OTP login.",
-      user,
-      vendorPending
+      message: "Account created successfully",
+      user: insertResult.rows[0]
     });
   } catch (err) {
     console.error("Register error:", err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       error: "Server error"
     });
@@ -121,9 +111,9 @@ router.post("/start", async (req, res) => {
     }
 
     const userResult = await pool.query(
-      `SELECT id, name, phone, role, is_active
+      `SELECT id, name, phone, role
        FROM users
-       WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
        LIMIT 1`,
       [normalizedPhone]
     );
@@ -143,16 +133,19 @@ router.post("/start", async (req, res) => {
       });
     }
 
-    if (!user.is_active) {
-      return res.json({
-        success: false,
-        message: "Your account is pending admin approval"
-      });
-    }
+    const otp = createOtp();
+    otpStore.set(normalizedPhone, {
+      otp,
+      expectedRole: String(expectedRole).toLowerCase(),
+      expiresAt: Date.now() + 5 * 60 * 1000,
+      attempts: 0,
+    });
 
     res.json({
       success: true,
       message: "Role verified. Send OTP.",
+      fallbackOtpMode: canUseServerOtp,
+      debugOtp: canUseServerOtp ? otp : undefined,
       user: {
         id: user.id,
         name: user.name,
@@ -171,17 +164,69 @@ router.post("/start", async (req, res) => {
 
 router.post("/verify", async (req, res) => {
   try {
-    const { idToken, expectedRole } = req.body;
-    if (!idToken || !expectedRole) {
+    const { idToken, expectedRole, phone, otp } = req.body;
+    if (!expectedRole) {
       return res.json({
         success: false,
-        message: "idToken and role are required"
+        message: "role is required"
       });
     }
 
-    const firebaseAuth = getFirebaseAdminAuth();
-    const decoded = await firebaseAuth.verifyIdToken(idToken);
-    const normalizedPhone = normalizePhone(decoded.phone_number || "");
+    let normalizedPhone = "";
+
+    if (idToken) {
+      const firebaseAuth = getFirebaseAdminAuth();
+      const decoded = await firebaseAuth.verifyIdToken(idToken);
+      normalizedPhone = normalizePhone(decoded.phone_number || "");
+    } else if (canUseServerOtp && phone && otp) {
+      normalizedPhone = normalizePhone(phone);
+      const session = otpStore.get(normalizedPhone);
+
+      if (!session) {
+        return res.json({
+          success: false,
+          message: "OTP expired. Please request OTP again"
+        });
+      }
+
+      if (Date.now() > session.expiresAt) {
+        otpStore.delete(normalizedPhone);
+        return res.json({
+          success: false,
+          message: "OTP expired. Please request OTP again"
+        });
+      }
+
+      session.attempts += 1;
+      if (session.attempts > 5) {
+        otpStore.delete(normalizedPhone);
+        return res.json({
+          success: false,
+          message: "Too many attempts. Request OTP again"
+        });
+      }
+
+      if (String(session.expectedRole) !== String(expectedRole).toLowerCase()) {
+        return res.json({
+          success: false,
+          message: "Role mismatch for OTP session"
+        });
+      }
+
+      if (String(session.otp) !== String(otp)) {
+        return res.json({
+          success: false,
+          message: "Invalid OTP"
+        });
+      }
+
+      otpStore.delete(normalizedPhone);
+    } else {
+      return res.json({
+        success: false,
+        message: "idToken is required"
+      });
+    }
 
     if (!normalizedPhone) {
       return res.json({
@@ -191,9 +236,9 @@ router.post("/verify", async (req, res) => {
     }
 
     const userResult = await pool.query(
-      `SELECT id, name, phone, role, is_active
+      `SELECT id, name, phone, role
        FROM users
-       WHERE regexp_replace(phone, '[^0-9]', '', 'g') = $1
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
        LIMIT 1`,
       [normalizedPhone]
     );
@@ -212,18 +257,6 @@ router.post("/verify", async (req, res) => {
         message: `This number is registered as ${user.role}, not ${expectedRole}`
       });
     }
-
-    if (!user.is_active) {
-      return res.json({
-        success: false,
-        message: "Your account is pending admin approval"
-      });
-    }
-
-    await pool.query(
-      `UPDATE users SET last_login = NOW(), updated_at = NOW() WHERE id = $1`,
-      [user.id]
-    );
 
     res.json({
       success: true,

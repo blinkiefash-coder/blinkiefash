@@ -157,9 +157,19 @@ router.get("/:id", async (req, res) => {
 
     // ✅ VARIANTS
     const variantRes = await pool.query(
-      `SELECT size, color, price, discount_price
-       FROM product_variants
-       WHERE product_id = $1`,
+      `SELECT
+         v.id,
+         v.size,
+         v.color,
+         v.price,
+         v.discount_price,
+         GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock
+       FROM product_variants v
+       LEFT JOIN inventory inv ON inv.variant_id = v.id
+       WHERE v.product_id = $1
+         AND v.is_active = true
+         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+       ORDER BY COALESCE(v.discount_price, v.price) ASC, v.id ASC`,
       [id]
     );
 
@@ -188,20 +198,36 @@ router.get("/", async (req, res) => {
     } = req.query;
 
     let query = `
-      SELECT 
+      SELECT
         p.id,
         p.name,
         b.name AS brand,
         pm.url AS image,
-        MIN(v.price) AS price,
-        MIN(v.discount_price) AS discount_price
+        pv.variant_id,
+        pv.price,
+        pv.discount_price
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
-      LEFT JOIN product_media pm 
+      LEFT JOIN product_media pm
         ON pm.product_id = p.id AND pm.is_primary = true
-      LEFT JOIN product_variants v 
-        ON v.product_id = p.id
+      LEFT JOIN LATERAL (
+        SELECT
+          v.id AS variant_id,
+          v.size,
+          v.color,
+          v.price,
+          v.discount_price,
+          GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock
+        FROM product_variants v
+        LEFT JOIN inventory inv ON inv.variant_id = v.id
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+        ORDER BY COALESCE(v.discount_price, v.price) ASC, v.id ASC
+        LIMIT 1
+      ) pv ON true
       WHERE 1=1
+        AND pv.variant_id IS NOT NULL
     `;
 
     const values = [];
@@ -218,24 +244,45 @@ router.get("/", async (req, res) => {
     }
 
     if (min_price) {
-      query += ` AND v.price >= $${index++}`;
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM product_variants v
+        LEFT JOIN inventory inv ON inv.variant_id = v.id
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+          AND v.price >= $${index++}
+      )`;
       values.push(min_price);
     }
 
     if (max_price) {
-      query += ` AND v.price <= $${index++}`;
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM product_variants v
+        LEFT JOIN inventory inv ON inv.variant_id = v.id
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+          AND v.price <= $${index++}
+      )`;
       values.push(max_price);
     }
 
     if (color) {
-      query += ` AND v.color = $${index++}`;
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM product_variants v
+        LEFT JOIN inventory inv ON inv.variant_id = v.id
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+          AND lower(v.color) = lower($${index++})
+      )`;
       values.push(color);
     }
 
-    query += `
-      GROUP BY p.id, pm.url, b.name
-      ORDER BY p.id DESC
-    `;
+    query += ` ORDER BY p.id DESC`;
 
     const result = await pool.query(query, values);
 
