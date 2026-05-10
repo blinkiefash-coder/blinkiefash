@@ -159,7 +159,7 @@ function Home() {
 
     <button
       className="store-banner-btn"
-      onClick={() => navigate("/shop")}
+      onClick={() => navigate("/explore-shops")}
     >
       Explore Stores
     </button>

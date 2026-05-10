@@ -9,6 +9,7 @@ import VendorAuth from "./pages/VendorAuth";
 import AddProduct from "./pages/AddProduct";
 import ProductDetail from "./pages/ProductDetail";
 import Signup from "./pages/Signup";
+import ExploreShops from "./pages/ExploreShops";
 
 function App() {
   return (
@@ -19,6 +20,7 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/home" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
+        <Route path="/explore-shops" element={<ExploreShops />} />
         <Route path="/women" element={<Women />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/cart" element={<Cart />} />
