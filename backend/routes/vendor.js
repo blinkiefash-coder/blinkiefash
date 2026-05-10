@@ -26,13 +26,18 @@ router.get("/:id/products", async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(
-      `SELECT p.id, p.name,
+            `SELECT p.id, p.name,
+              p.category_id,
+              b.name AS brand_name,
+              c.name AS category_name,
               COALESCE(
                 (SELECT url FROM product_media WHERE product_id = p.id AND is_primary = true LIMIT 1),
                 (SELECT url FROM product_media WHERE product_id = p.id LIMIT 1)
               ) AS image_url,
               pv.price, pv.discount_price
        FROM products p
+       LEFT JOIN brands b ON b.id = p.brand_id
+       LEFT JOIN categories c ON c.id = p.category_id
        LEFT JOIN LATERAL (
          SELECT v.price, v.discount_price
          FROM product_variants v
