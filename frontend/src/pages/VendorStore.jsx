@@ -35,6 +35,7 @@ export default function VendorStore() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [brandSearchTerm, setBrandSearchTerm] = useState("");
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [activeBrand, setActiveBrand] = useState(null);
   const [sortBy, setSortBy] = useState("popularity");
@@ -220,6 +221,7 @@ export default function VendorStore() {
 
   const clearFilters = () => {
     setSearchTerm("");
+    setBrandSearchTerm("");
     setActiveCategoryId(null);
     setActiveBrand(null);
     setSelectedPriceBand("all");
@@ -288,17 +290,28 @@ export default function VendorStore() {
 
           <div className="vendor-sidebar-group">
             <div className="vendor-sidebar-title">BRANDS</div>
+            <input
+              type="text"
+              className="vendor-brand-search"
+              placeholder="Search brands..."
+              value={brandSearchTerm}
+              onChange={(e) => setBrandSearchTerm(e.target.value)}
+            />
             <div className="vendor-sidebar-list">
-              {brands.slice(0, 8).map((brand) => (
-                <label key={brand.id} className={`vendor-sidebar-option ${activeBrand === brand.name ? "active" : ""}`}>
-                  <input
-                    type="checkbox"
-                    checked={activeBrand === brand.name}
-                    onChange={() => setActiveBrand((prev) => (prev === brand.name ? null : brand.name))}
-                  />
-                  <span>{brand.name}</span>
-                </label>
-              ))}
+              {brands
+                .filter((brand) =>
+                  brand.name.toLowerCase().includes(brandSearchTerm.toLowerCase())
+                )
+                .map((brand) => (
+                  <label key={brand.id} className={`vendor-sidebar-option ${activeBrand === brand.name ? "active" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={activeBrand === brand.name}
+                      onChange={() => setActiveBrand((prev) => (prev === brand.name ? null : brand.name))}
+                    />
+                    <span>{brand.name}</span>
+                  </label>
+                ))}
             </div>
           </div>
 
@@ -408,7 +421,12 @@ export default function VendorStore() {
                   </div>
                   <div className="vendor-product-grid">
                     {group.items.map((product) => (
-                      <article key={product.id} className="vendor-product-card">
+                      <article
+                        key={product.id}
+                        className="vendor-product-card"
+                        onClick={() => navigate(`/product/${product.id}`)}
+                        style={{ cursor: "pointer" }}
+                      >
                         <div className="vendor-product-image">
                           {product.image_url ? (
                             <img src={product.image_url} alt={product.name} />

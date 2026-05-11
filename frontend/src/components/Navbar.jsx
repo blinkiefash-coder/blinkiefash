@@ -1,11 +1,11 @@
 import "./Navbar.css";
 import logo from "../assets/logo.png";
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 
-export default function Navbar() {
-  const [activeTab, setActiveTab] = useState("ALL");
+export default function Navbar({ active }) {
+  const [activeTab, setActiveTab] = useState(active || "ALL");
   const [selectedCity, setSelectedCity] = useState("Bhubaneswar");
   const [addressOpen, setAddressOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -16,6 +16,55 @@ export default function Navbar() {
   const [cartCount, setCartCount] = useState(0);
 
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const resolveActiveTabFromPath = () => {
+    const path = location.pathname.toLowerCase();
+    const params = new URLSearchParams(location.search);
+    const department = (params.get("department") || "").toLowerCase();
+
+    if (path === "/women") return "WOMEN";
+    if (department === "women") return "WOMEN";
+    if (department === "men") return "MEN";
+    if (department === "kids") return "KIDS";
+    if (department === "beauty") return "BEAUTY";
+    if (department === "home-living") return "HOMELIVING";
+    return "ALL";
+  };
+
+  const handleTabNavigation = (tab) => {
+    if (tab === "WOMEN") {
+      navigate("/women");
+      return;
+    }
+
+    if (tab === "ALL") {
+      navigate("/shop");
+      return;
+    }
+
+    if (tab === "MEN") {
+      navigate("/catalog?department=men");
+      return;
+    }
+
+    if (tab === "KIDS") {
+      navigate("/catalog?department=kids");
+      return;
+    }
+
+    if (tab === "BEAUTY") {
+      navigate("/catalog?department=beauty");
+      return;
+    }
+
+    if (tab === "HOMELIVING") {
+      navigate("/catalog?department=home-living");
+      return;
+    }
+
+    navigate("/shop");
+  };
 
   const loadActionCounts = async () => {
     const userId = localStorage.getItem("userUuid");
@@ -82,6 +131,10 @@ export default function Navbar() {
       window.removeEventListener("storage", handleStorage);
     };
   }, []);
+
+  useEffect(() => {
+    setActiveTab(active || resolveActiveTabFromPath());
+  }, [active, location.pathname, location.search]);
 
   const handleUseCurrentLocation = async () => {
     if (!navigator.geolocation) {
@@ -184,7 +237,7 @@ export default function Navbar() {
               }`}
               onClick={() => {
                 setActiveTab(tab);
-                navigate("/shop");
+                handleTabNavigation(tab);
               }}
             >
               {tab}

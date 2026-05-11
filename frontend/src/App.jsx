@@ -11,6 +11,10 @@ import ProductDetail from "./pages/ProductDetail";
 import Signup from "./pages/Signup";
 import ExploreShops from "./pages/ExploreShops";
 import VendorStore from "./pages/VendorStore";
+import InsideCatalog from "./pages/InsideCatalog";
+import CustomerService from "./pages/CustomerService";
+import Company from "./pages/Company";
+import Policies from "./pages/Policies";
 
 function App() {
   return (
@@ -29,6 +33,10 @@ function App() {
         <Route path="/vendor" element={<VendorAuth />} />
         <Route path="/vendor/add-product" element={<AddProduct />} />
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/catalog" element={<InsideCatalog />} />
+        <Route path="/customer-service" element={<CustomerService />} />
+        <Route path="/company" element={<Company />} />
+        <Route path="/policies" element={<Policies />} />
       </Routes>
     </BrowserRouter>
   );

@@ -112,6 +112,21 @@
   color: #166534;
 }
 
+.vendor-brand-search {
+  width: 100%;
+  border: 1px solid rgba(17, 24, 39, 0.12);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: #ffffff;
+  color: #111827;
+  font-size: 13px;
+}
+
+.vendor-brand-search::placeholder {
+  color: #9ca3af;
+}
+
 .vendor-sidebar-group select,
 .vendor-toolbar select {
   width: 100%;

@@ -126,6 +126,7 @@ function ExploreShops() {
   // Get user's current location
   useEffect(() => {
     const locationReadyTimeout = setTimeout(() => {
+      setSelectedCity("Bhubaneswar, Odisha");
       setLocationReady(true);
     }, 5000);
 
@@ -141,11 +142,13 @@ function ExploreShops() {
           fetchAddressFromCoordinates(latitude, longitude);
         },
         (error) => {
-          console.error("Location error:", error);
+          // Geolocation failures (e.g. macOS kCLErrorLocationUnknown) are handled gracefully.
+          console.warn("Location unavailable, defaulting to Bhubaneswar:", error.message);
           clearTimeout(locationReadyTimeout);
           setSelectedCity("Bhubaneswar, Odisha");
           setLocationReady(true);
-        }
+        },
+        { timeout: 8000, maximumAge: 60000, enableHighAccuracy: false }
       );
     } else {
       clearTimeout(locationReadyTimeout);
@@ -330,7 +333,9 @@ function ExploreShops() {
 
   const matchesDistanceFilter = (store) => {
     const distance = getDistanceFromUserKm(store);
-    if (distance === null) return false;
+
+    // No user coords or store coords — only exclude when a specific distance range is active.
+    if (distance === null) return selectedDistanceRange === "all";
     if (distance > MAX_STORE_DISTANCE_KM) return false;
 
     if (selectedDistanceRange === "all") return true;
@@ -586,12 +591,25 @@ function ExploreShops() {
             ) : (
               visibleStores.map((store) => {
                 const deviceDistanceKm = getDistanceFromUserKm(store);
+                const categoryPreview = [
+                  ...new Set(
+                    store.products
+                      .map((product) => product.category_name)
+                      .filter(Boolean)
+                  ),
+                ]
+                  .slice(0, 4)
+                  .join(" · ");
+                const reviewCount = Math.max(28, store.products.length * 7);
+                const happyCustomers = `${Math.max(450, store.products.length * 110)}+`;
+                const offerCount = Math.max(4, Math.min(24, store.products.length + 6));
 
                 return (
                 <div key={store.id} className="store-card">
 
                   {/* Store Photo */}
                   <div className="store-image-container">
+                    {store.is_verified ? <span className="store-featured-tag">FEATURED STORE</span> : null}
                     {store.vendor_img_url ? (
                       <img src={store.vendor_img_url} alt={store.store_name} className="store-image" />
                     ) : (
@@ -604,24 +622,155 @@ function ExploreShops() {
                   {/* Store Info */}
                   <div className="store-identity">
                     <div className="store-details">
-                      <div className="store-name-badge">
-                        <span>{store.store_name?.toUpperCase()}</span>
+                      <div className="store-details-top">
+                        <h3>{store.store_name}{store.is_verified ? <span className="verified-badge" aria-label="Verified" title="Verified">✓</span> : ""}</h3>
+                        <span className="store-category">{categoryPreview || store.description || "Men · Women · Kids · Beauty"}</span>
+                        <div className="store-stat-row">
+                          <span className="store-rating-value">★ 4.6</span>
+                          <span className="store-stat-muted">({reviewCount})</span>
+                          <span className="store-stat-divider">|</span>
+                          <span className="store-stat-muted">{happyCustomers} Happy Customers</span>
+                        </div>
+                        <div className="store-status">
+                          {store.is_active ? (
+                            <><span className="open-status">Open</span><span className="close-time"> · Closes 10:00 PM</span></>
+                          ) : (
+                            <span className="closed-status">Closed</span>
+                          )}
+                        </div>
                       </div>
-                      <h3>{store.store_name}{store.is_verified ? <span className="verified-badge" aria-label="Verified" title="Verified">✓</span> : ""}</h3>
-                      <span className="store-category">{store.description || "Fashion Store"}</span>
-                      <div className="store-status">
-                        {store.is_active ? (
-                          <><span className="open-status">Open</span><span className="close-time"> · Closes 10:00 PM</span></>
-                        ) : (
-                          <span className="closed-status">Closed</span>
-                        )}
+                      <div className="store-details-centered">
+                        <div className="store-feature-row">
+                          <div className="store-feature-item">
+                            <strong>
+                              <span className="store-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="1" y="6" width="13" height="10" rx="1.5" />
+                                  <path d="M14 9h4l4 4v3h-8z" />
+                                  <circle cx="6" cy="18" r="2" />
+                                  <circle cx="18" cy="18" r="2" />
+                                </svg>
+                              </span>
+                              60 Min Delivery
+                            </strong>
+                            <span>In your location</span>
+                          </div>
+                          <div className="store-feature-item">
+                            <strong>
+                              <span className="store-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M3 7h8a6 6 0 1 1 0 12H6" />
+                                  <path d="M6 4 2 8l4 4" />
+                                </svg>
+                              </span>
+                              Easy Returns
+                            </strong>
+                            <span>Hassle-free</span>
+                          </div>
+                          <div className="store-feature-item">
+                            <strong>
+                              <span className="store-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <rect x="4" y="10" width="16" height="10" rx="2" />
+                                  <path d="M8 10V8a4 4 0 1 1 8 0v2" />
+                                </svg>
+                              </span>
+                              Secure Payments
+                            </strong>
+                            <span>100% Secure</span>
+                          </div>
+                          <div className="store-feature-item">
+                            <strong>
+                              <span className="store-feature-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M6 8h12l-1 11H7L6 8z" />
+                                  <path d="M9 8a3 3 0 0 1 6 0" />
+                                </svg>
+                              </span>
+                              Store Pickup
+                            </strong>
+                            <span>Free & Fast</span>
+                          </div>
+                        </div>
+
+                        <div className="store-bottom-meta-row">
+                          <div className="store-bottom-meta-item">
+                            <strong className="store-bottom-meta-line">
+                              <span className="store-bottom-meta-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M12 21s-6-5.4-6-10a6 6 0 1 1 12 0c0 4.6-6 10-6 10z" />
+                                  <circle cx="12" cy="11" r="2" />
+                                </svg>
+                              </span>
+                              {store.address || store.city || "Location unavailable"}
+                            </strong>
+                            {deviceDistanceKm !== null ? (
+                              <span className="store-bottom-meta-line">
+                                <span className="store-bottom-meta-icon" aria-hidden="true">
+                                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="m12 8 2.5 3.5L12 16l-2.5-4.5z" />
+                                  </svg>
+                                </span>
+                                {deviceDistanceKm.toFixed(1)} km from your location
+                              </span>
+                            ) : (
+                              <span className="store-bottom-meta-line">
+                                <span className="store-bottom-meta-icon" aria-hidden="true">•</span>
+                                Distance unavailable
+                              </span>
+                            )}
+                          </div>
+                          <div className="store-bottom-meta-item">
+                            <strong className="store-bottom-meta-line">
+                              <span className="store-bottom-meta-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="9" />
+                                  <path d="M12 7v5l3 2" />
+                                </svg>
+                              </span>
+                              09:00 AM - 10:00 PM
+                            </strong>
+                            <span className="store-bottom-meta-line">
+                              <span className="store-bottom-meta-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M16 3v4" />
+                                  <path d="M8 3v4" />
+                                  <rect x="4" y="5" width="16" height="15" rx="2" />
+                                  <path d="M4 10h16" />
+                                </svg>
+                              </span>
+                              All Days Open
+                            </span>
+                          </div>
+                          <div className="store-bottom-meta-item">
+                            <strong className="store-bottom-meta-line">
+                              <span className="store-bottom-meta-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M20 12 12 20H5a2 2 0 0 1-2-2v-7l8-8 9 9z" />
+                                  <circle cx="7.5" cy="7.5" r="1.2" />
+                                </svg>
+                              </span>
+                              {offerCount}+ Offers
+                            </strong>
+                            <span className="store-bottom-meta-line">
+                              <span className="store-bottom-meta-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                  <path d="M5 12h14" />
+                                  <path d="m13 6 6 6-6 6" />
+                                </svg>
+                              </span>
+                              View Offers
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
 
                   {/* Products Row */}
                   <div className="store-products">
-                    {store.products.length > 0 ? store.products.map((product, idx) => (
+                    {store.products.length > 0 ? store.products.slice(0, 4).map((product, idx) => (
                       <div key={idx} className="product-preview">
                         <div className="product-image">
                           {product.image_url ? (
@@ -656,22 +805,18 @@ function ExploreShops() {
 
                   {/* Actions Column */}
                   <div className="store-actions-col">
-                    <div className="store-distance">
-                      <span className="distance-icon">📍</span>
-                      <span>{store.address || store.city || "Location unavailable"}</span>
-                    </div>
-                    {deviceDistanceKm !== null && (
-                      <div className="device-distance-badge">
-                        <span>🧭</span>
-                        <span>{deviceDistanceKm.toFixed(1)} km from your location</span>
-                      </div>
-                    )}
                     <button
                       className="visit-store-btn"
                       onClick={() => navigate(`/vendor/${store.slug || store.id}`)}
                     >
                       Explore Store
                     </button>
+                    {deviceDistanceKm !== null && (
+                      <div className="device-distance-badge">
+                        <span>📍</span>
+                        <span>{deviceDistanceKm.toFixed(1)} km from your location</span>
+                      </div>
+                    )}
                   </div>
 
                 </div>

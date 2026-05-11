@@ -1750,6 +1750,349 @@
   box-shadow: 0 10px 20px rgba(34, 197, 94, 0.28);
 }
 
+/* ================= REFERENCE CARD REWORK ================= */
+
+.store-card {
+  display: grid;
+  grid-template-columns: 280px minmax(520px, 1fr) 320px;
+  grid-template-rows: auto auto;
+  min-height: 0;
+}
+
+.store-image-container {
+  width: auto;
+  height: 250px;
+  grid-column: 1;
+  grid-row: 1 / span 2;
+}
+
+.store-featured-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  background: linear-gradient(90deg, #15803d 0%, #16a34a 100%);
+  color: #ffffff;
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.store-name-badge {
+  display: none;
+}
+
+.store-identity {
+  display: flex;
+  align-items: center;
+  width: auto;
+  border-right: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 18px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+}
+
+.store-details {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  width: 100%;
+  gap: 5px;
+}
+
+.store-details-top {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.store-details-centered {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  margin-bottom: auto;
+}
+
+.store-details h3 {
+  font-size: clamp(24px, 2.1vw, 36px);
+  line-height: 1.1;
+  letter-spacing: -0.01em;
+}
+
+.store-category {
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.store-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.store-rating-value {
+  color: #111827;
+  font-weight: 800;
+}
+
+.store-stat-muted {
+  color: #4b5563;
+  font-weight: 600;
+}
+
+.store-stat-divider {
+  color: #9ca3af;
+}
+
+.explore-shops .store-feature-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+  padding: 3px 0 2px;
+  align-items: start;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.explore-shops .store-feature-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  justify-content: flex-start;
+  min-height: 0;
+}
+
+.explore-shops .store-feature-item strong {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  line-height: 1.05;
+  color: #111827;
+  margin: 0;
+}
+
+.explore-shops .store-feature-item span {
+  display: none;
+}
+
+.explore-shops .store-feature-icon {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  min-width: 16px;
+  flex: 0 0 16px;
+  line-height: 1;
+  color: #111111 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.explore-shops .store-feature-icon svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  stroke: #111111 !important;
+  fill: none !important;
+}
+
+.store-bottom-meta-row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.8fr;
+  gap: 10px;
+  margin-top: 0;
+}
+
+.store-bottom-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.store-bottom-meta-item strong {
+  font-size: 10px;
+  color: #374151;
+}
+
+.store-bottom-meta-item span {
+  font-size: 9px;
+  color: #6b7280;
+}
+
+.store-bottom-meta-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  line-height: 1.15;
+}
+
+.store-bottom-meta-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 12px;
+  height: 12px;
+  min-width: 12px;
+  color: #111111;
+}
+
+.store-bottom-meta-icon svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+  stroke: #111111;
+  fill: none;
+}
+
+.store-products {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px 12px 8px;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  grid-column: 3;
+  grid-row: 1;
+  align-content: start;
+}
+
+.product-preview {
+  gap: 8px;
+}
+
+.product-image {
+  height: 84px;
+  border-radius: 18px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.product-price {
+  font-size: 13px;
+  line-height: 1.2;
+  font-weight: 800;
+}
+
+.store-actions-col {
+  width: auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  padding: 8px 12px 10px;
+  margin-top: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
+  grid-column: 3;
+  grid-row: 2;
+}
+
+.device-distance-badge {
+  font-size: 11px;
+  padding: 8px 12px;
+}
+
+@media (max-width: 1400px) {
+  .store-card {
+    grid-template-columns: 240px minmax(420px, 1fr) 280px;
+  }
+
+  .store-image-container {
+    height: 220px;
+  }
+
+  .store-details h3 {
+    font-size: clamp(22px, 2.2vw, 30px);
+  }
+
+  .store-category,
+  .store-stat-row,
+  .explore-shops .store-feature-item strong,
+  .store-bottom-meta-item strong {
+    font-size: 12px;
+  }
+
+  .explore-shops .store-feature-item span,
+  .store-bottom-meta-item span {
+    font-size: 10px;
+  }
+
+  .product-image {
+    height: 76px;
+  }
+
+  .product-price {
+    font-size: 12px;
+  }
+
+  .explore-shops .store-feature-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .store-bottom-meta-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1040px) {
+  .store-card {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+  }
+
+  .store-image-container {
+    height: 220px;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .store-identity {
+    grid-column: auto;
+    grid-row: auto;
+    align-items: flex-start;
+  }
+
+  .store-products {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-left: none;
+    grid-column: auto;
+    grid-row: auto;
+  }
+
+  .store-actions-col {
+    align-items: flex-start;
+    width: auto;
+    border-left: none;
+    grid-column: auto;
+    grid-row: auto;
+    padding-top: 0;
+  }
+
+  .store-details h3 {
+    font-size: clamp(21px, 7vw, 30px);
+  }
+
+  .store-details {
+    justify-content: flex-start;
+  }
+
+  .store-details-centered {
+    margin-top: 6px;
+    margin-bottom: 0;
+  }
+
+  .store-category,
+  .store-stat-row,
+  .explore-shops .store-feature-item strong,
+  .store-bottom-meta-item strong {
+    font-size: 12px;
+  }
+}
+
 /* ================= EXPLORE FOOTER ================= */
 
 .explore-footer {
