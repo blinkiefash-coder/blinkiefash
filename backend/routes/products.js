@@ -201,13 +201,17 @@ router.get("/", async (req, res) => {
       SELECT
         p.id,
         p.name,
+        p.gender,
+        p.category_id,
         b.name AS brand,
+        c.name AS category_name,
         pm.url AS image,
         pv.variant_id,
         pv.price,
         pv.discount_price
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
+      LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN product_media pm
         ON pm.product_id = p.id AND pm.is_primary = true
       LEFT JOIN LATERAL (
