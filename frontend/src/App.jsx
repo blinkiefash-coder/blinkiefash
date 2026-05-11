@@ -1,4 +1,5 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { useState } from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Shop from "./pages/Shop";
@@ -15,29 +16,48 @@ import InsideCatalog from "./pages/InsideCatalog";
 import CustomerService from "./pages/CustomerService";
 import Company from "./pages/Company";
 import Policies from "./pages/Policies";
+import AdminPinGate from "./pages/AdminPinGate";
 
 function App() {
+  const [isPinVerified, setIsPinVerified] = useState(
+    localStorage.getItem("adminPinVerified") === "true"
+  );
+
+  const handlePinSuccess = () => {
+    localStorage.setItem("adminPinVerified", "true");
+    setIsPinVerified(true);
+  };
+
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Login />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/home" element={<Home />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/explore-shops" element={<ExploreShops />} />
-        <Route path="/vendor/:identifier" element={<VendorStore />} />
-        <Route path="/women" element={<Women />} />
-        <Route path="/wishlist" element={<Wishlist />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/vendor" element={<VendorAuth />} />
-        <Route path="/vendor/add-product" element={<AddProduct />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/catalog" element={<InsideCatalog />} />
-        <Route path="/customer-service" element={<CustomerService />} />
-        <Route path="/company" element={<Company />} />
-        <Route path="/policies" element={<Policies />} />
-      </Routes>
+      {!isPinVerified ? (
+        <Routes>
+          <Route path="/admin-access" element={<AdminPinGate onSuccess={handlePinSuccess} />} />
+          <Route path="*" element={<Navigate to="/admin-access" replace />} />
+        </Routes>
+      ) : (
+        <Routes>
+          <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/home" element={<Home />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/explore-shops" element={<ExploreShops />} />
+          <Route path="/vendor/:identifier" element={<VendorStore />} />
+          <Route path="/women" element={<Women />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/vendor" element={<VendorAuth />} />
+          <Route path="/vendor/add-product" element={<AddProduct />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/catalog" element={<InsideCatalog />} />
+          <Route path="/customer-service" element={<CustomerService />} />
+          <Route path="/company" element={<Company />} />
+          <Route path="/policies" element={<Policies />} />
+          <Route path="/admin-access" element={<Navigate to="/home" replace />} />
+          <Route path="*" element={<Navigate to="/home" replace />} />
+        </Routes>
+      )}
     </BrowserRouter>
   );
 }

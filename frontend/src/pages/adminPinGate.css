@@ -1,0 +1,178 @@
+.admin-gate-shell {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(1200px 600px at 10% 0%, rgba(29, 161, 74, 0.12), transparent 60%),
+    radial-gradient(900px 500px at 100% 100%, rgba(17, 24, 39, 0.08), transparent 65%),
+    linear-gradient(180deg, #f5f8f6 0%, #eef2ef 100%);
+}
+
+.admin-gate-card {
+  width: min(480px, 100%);
+  border: 1px solid #dde5de;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 20px 45px rgba(12, 22, 16, 0.12);
+  padding: 28px;
+}
+
+.admin-gate-logo {
+  width: 68px;
+  height: 68px;
+  object-fit: contain;
+  margin-bottom: 8px;
+}
+
+.admin-gate-brand-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.admin-gate-brand-line {
+  color: #1a7f3b;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.admin-gate-card h1 {
+  margin: 8px 0 10px;
+  font-size: 32px;
+  line-height: 1.05;
+  color: #0f1720;
+  letter-spacing: -0.5px;
+}
+
+.admin-gate-card p {
+  margin: 0 0 20px;
+  color: #4f5c67;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.admin-gate-quotes {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid #e5ece6;
+  border-radius: 12px;
+  background: #f8fbf9;
+}
+
+.admin-gate-quotes p {
+  margin: 0;
+  color: #2f3f4a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-gate-quotes p + p {
+  margin-top: 6px;
+}
+
+.admin-gate-purpose {
+  margin: 0 0 18px;
+  color: #33414a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-gate-concept {
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid #e5ece6;
+  border-radius: 12px;
+  background: #f8fbf9;
+}
+
+.admin-gate-concept h2 {
+  margin: 0 0 8px;
+  color: #12212b;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.admin-gate-concept ul {
+  margin: 0;
+  padding-left: 18px;
+  color: #2f3f4a;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.admin-gate-concept li + li {
+  margin-top: 2px;
+}
+
+.admin-gate-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.admin-gate-form label {
+  color: #1c2a34;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.admin-gate-form input {
+  border: 1px solid #dbe4dc;
+  border-radius: 10px;
+  height: 44px;
+  padding: 0 12px;
+  font-size: 14px;
+  color: #1f2937;
+  outline: none;
+}
+
+.admin-gate-form input:focus {
+  border-color: #22a447;
+  box-shadow: 0 0 0 3px rgba(34, 164, 71, 0.16);
+}
+
+.admin-gate-error {
+  color: #b91c1c;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.admin-gate-form button {
+  margin-top: 6px;
+  border: 0;
+  border-radius: 10px;
+  height: 44px;
+  background: linear-gradient(135deg, #0f8f38 0%, #1db954 100%);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.admin-gate-form button:hover {
+  filter: brightness(0.98);
+}
+
+@media (max-width: 540px) {
+  .admin-gate-card {
+    padding: 22px;
+    border-radius: 14px;
+  }
+
+  .admin-gate-card h1 {
+    font-size: 27px;
+  }
+
+  .admin-gate-brand-row {
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .admin-gate-brand-line {
+    font-size: 11px;
+  }
+}
