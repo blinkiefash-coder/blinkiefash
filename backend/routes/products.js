@@ -3,6 +3,71 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
+router.post("/create-full", async (req, res) => {
+  try {
+    const payload = req.body;
+    const product = payload?.product || {};
+
+    if (!product.vendor_id || !product.category_id || !product.name) {
+      return res.status(400).json({
+        success: false,
+        message: "vendor_id, category_id, and name are required",
+      });
+    }
+
+    const result = await pool.query(
+      `SELECT insert_full_product($1::jsonb) AS product_id`,
+      [JSON.stringify(payload)]
+    );
+
+    res.json({
+      success: true,
+      product_id: result.rows[0]?.product_id,
+      message: "Product created successfully",
+    });
+  } catch (err) {
+    console.error("CREATE FULL PRODUCT ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.put("/full/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const payload = req.body;
+
+    await pool.query(`SELECT update_full_product($1::uuid, $2::jsonb)`, [
+      id,
+      JSON.stringify(payload),
+    ]);
+
+    res.json({ success: true, message: "Product updated successfully" });
+  } catch (err) {
+    console.error("UPDATE FULL PRODUCT ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.get("/full/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query(
+      `SELECT get_product_full($1::uuid) AS data`,
+      [id]
+    );
+
+    const data = result.rows[0]?.data;
+    if (!data) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    res.json({ success: true, ...data });
+  } catch (err) {
+    console.error("GET FULL PRODUCT ERROR:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 
 // ✅ ✅ ✅ CREATE PRODUCT (YOUR EXISTING CODE)
 router.post("/create", async (req, res) => {
