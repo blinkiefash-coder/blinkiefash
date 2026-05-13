@@ -17,6 +17,7 @@ import CustomerService from "./pages/CustomerService";
 import Company from "./pages/Company";
 import Policies from "./pages/Policies";
 import AdminPinGate from "./pages/AdminPinGate";
+import SellerRegistration from "./pages/SellerRegistration";
 
 function App() {
   const [isPinVerified, setIsPinVerified] = useState(
@@ -48,6 +49,7 @@ function App() {
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/cart" element={<Cart />} />
           <Route path="/vendor" element={<VendorAuth />} />
+          <Route path="/vendor/register" element={<SellerRegistration />} />
           <Route path="/vendor/add-product" element={<AddProduct />} />
           <Route path="/product/:id" element={<ProductDetail />} />
           <Route path="/catalog" element={<InsideCatalog />} />

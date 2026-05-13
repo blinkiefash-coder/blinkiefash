@@ -1,7 +1,7 @@
 import "./vendor.css";
 import { useState } from "react";
 import Navbar from "../components/Navbar";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 
 export default function VendorAuth() {
@@ -74,6 +74,10 @@ export default function VendorAuth() {
             <button type="submit">
               Verify & Continue
             </button>
+
+            <p className="vendor-register-link">
+              New seller? <Link to="/vendor/register">Create your seller account</Link>
+            </p>
 
           </form>
 

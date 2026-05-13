@@ -69,6 +69,23 @@
   background: #16a34a;
 }
 
+.vendor-register-link {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #4b5563;
+  text-align: center;
+}
+
+.vendor-register-link a {
+  color: #15803d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.vendor-register-link a:hover {
+  text-decoration: underline;
+}
+
 /* Success state */
 .vendor-success {
   text-align: center;
