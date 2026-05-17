@@ -70,7 +70,6 @@ export default function AddProduct() {
       mrp: "",
       price: "",
       discount_price: "",
-      stock: "",
       low_stock_alert: "10",
       images: [],
       imageFiles: [],
@@ -125,7 +124,6 @@ export default function AddProduct() {
         mrp: "",
         price: "",
         discount_price: "",
-        stock: "",
         low_stock_alert: "10",
         images: [],
         imageFiles: [],
@@ -202,7 +200,6 @@ export default function AddProduct() {
             mrp: Number(variant.mrp || 0),
             price: Number(variant.price || 0),
             discount_price: Number(variant.discount_price || 0),
-            stock: Number(variant.stock || 0),
             low_stock_alert: Number(variant.low_stock_alert || 10),
             images: uploadedImages,
           };
@@ -279,7 +276,6 @@ export default function AddProduct() {
           mrp: "",
           price: "",
           discount_price: "",
-          stock: "",
           low_stock_alert: "10",
           images: [],
           imageFiles: [],
@@ -499,7 +495,6 @@ export default function AddProduct() {
                       <input type="number" placeholder="MRP" value={v.mrp} onChange={(e) => updateVariant(i, "mrp", e.target.value)} />
                       <input type="number" placeholder="Selling Price" value={v.price} onChange={(e) => updateVariant(i, "price", e.target.value)} />
                       <input type="number" placeholder="Discount Price" value={v.discount_price} onChange={(e) => updateVariant(i, "discount_price", e.target.value)} />
-                      <input type="number" placeholder="Stock" value={v.stock} onChange={(e) => updateVariant(i, "stock", e.target.value)} />
                       <input type="number" placeholder="Low Stock Alert" value={v.low_stock_alert} onChange={(e) => updateVariant(i, "low_stock_alert", e.target.value)} />
                       {variants.length > 1 ? (
                         <button type="button" className="remove-btn" onClick={() => removeVariant(i)}>✕</button>
