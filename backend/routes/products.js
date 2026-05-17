@@ -4,30 +4,111 @@ import { pool } from "../db.js";
 const router = express.Router();
 
 router.post("/create-full", async (req, res) => {
+  const client = await pool.connect();
   try {
+    await client.query("BEGIN");
+
     const payload = req.body;
     const product = payload?.product || {};
+    const variants = payload?.variants || [];
+
+    console.log("[CREATE-FULL] Received payload:", JSON.stringify(payload, null, 2));
 
     if (!product.vendor_id || !product.category_id || !product.name) {
+      await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: "vendor_id, category_id, and name are required",
       });
     }
 
-    const result = await pool.query(
-      `SELECT insert_full_product($1::jsonb) AS product_id`,
-      [JSON.stringify(payload)]
+    // Insert product
+    const productResult = await client.query(
+      `INSERT INTO products (vendor_id, category_id, name, description, short_description, full_description, main_category, sub_category, brand, fabric, fit, pattern, sleeve_type, neck_type, occasion, season, age_group, tags, is_delivery_available, is_store_available, is_try_enabled, is_active)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, true)
+       RETURNING id`,
+      [
+        product.vendor_id,
+        product.category_id,
+        product.name,
+        product.short_description,
+        product.short_description,
+        product.full_description,
+        product.main_category,
+        product.sub_category,
+        product.brand,
+        product.fabric,
+        product.fit,
+        product.pattern,
+        product.sleeve_type,
+        product.neck_type,
+        product.occasion,
+        product.season,
+        product.age_group || null,
+        product.tags && Array.isArray(product.tags) ? product.tags : [],
+        product.is_delivery_available,
+        product.is_store_available,
+        product.is_try_enabled,
+      ]
     );
+
+    const productId = productResult.rows[0].id;
+    console.log("[CREATE-FULL] Product created with ID:", productId);
+
+    // Insert variants and images
+    for (let i = 0; i < variants.length; i++) {
+      const variant = variants[i];
+
+      const variantResult = await client.query(
+        `INSERT INTO product_variants (product_id, size, color, color_code, mrp, price, discount_price, low_stock_alert, is_active)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
+         RETURNING id`,
+        [
+          productId,
+          variant.size,
+          variant.color,
+          variant.color_code,
+          variant.mrp,
+          variant.price,
+          variant.discount_price,
+          variant.low_stock_alert,
+        ]
+      );
+
+      const variantId = variantResult.rows[0].id;
+      console.log("[CREATE-FULL] Variant created with ID:", variantId);
+
+      // Insert images for this variant
+      const images = variant.images || [];
+      for (let j = 0; j < images.length; j++) {
+        await client.query(
+          `INSERT INTO product_media (product_id, variant_id, url, media_type, is_primary, sort_order)
+           VALUES ($1, $2, $3, 'image', $4, $5)`,
+          [
+            productId,
+            variantId,
+            images[j],
+            j === 0 ? true : false,
+            j,
+          ]
+        );
+      }
+      console.log("[CREATE-FULL] Inserted", images.length, "images for variant", variantId);
+    }
+
+    await client.query("COMMIT");
 
     res.json({
       success: true,
-      product_id: result.rows[0]?.product_id,
-      message: "Product created successfully",
+      product_id: productId,
+      message: "Product created successfully with images",
     });
   } catch (err) {
+    await client.query("ROLLBACK");
     console.error("CREATE FULL PRODUCT ERROR:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ success: false, message: err.message || "Server error" });
+  } finally {
+    client.release();
   }
 });
 
