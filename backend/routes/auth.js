@@ -1,9 +1,19 @@
 import express from "express";
+import crypto from "crypto";
 import { pool } from "../db.js";
 import { getFirebaseAdminAuth } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 const otpStore = new Map();
+
+const hashPassword = (password, salt) =>
+  crypto.scryptSync(password, salt, 64).toString("hex");
+
+const verifyPassword = (password, salt, storedHash) =>
+  crypto.timingSafeEqual(
+    Buffer.from(hashPassword(password, salt), "hex"),
+    Buffer.from(storedHash, "hex")
+  );
 
 const normalizePhone = (value = "") => {
   const digits = String(value).replace(/\D/g, "");
@@ -275,6 +285,105 @@ router.post("/verify", async (req, res) => {
       success: false,
       error: "Server error"
     });
+  }
+});
+
+// POST /auth/set-password  — create or update password for a user
+router.post("/set-password", async (req, res) => {
+  try {
+    const { phone, password } = req.body;
+    if (!phone || !password || String(password).length < 6) {
+      return res.json({
+        success: false,
+        message: "Phone and a password of at least 6 characters are required"
+      });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return res.json({ success: false, message: "Invalid phone number" });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id FROM users
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1 LIMIT 1`,
+      [normalizedPhone]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.json({ success: false, message: "Phone number not found. Please register first." });
+    }
+
+    const salt = crypto.randomBytes(16).toString("hex");
+    const hash = hashPassword(String(password), salt);
+
+    await pool.query(
+      `UPDATE users SET password_hash = $1, password_salt = $2, updated_at = NOW()
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $3`,
+      [hash, salt, normalizedPhone]
+    );
+
+    return res.json({ success: true, message: "Password set successfully" });
+  } catch (err) {
+    console.error("Set password error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+// POST /auth/login-password  — login with phone + password
+router.post("/login-password", async (req, res) => {
+  try {
+    const { phone, password, expectedRole = "customer" } = req.body;
+    if (!phone || !password) {
+      return res.json({ success: false, message: "Phone and password are required" });
+    }
+
+    const normalizedPhone = normalizePhone(phone);
+    if (!normalizedPhone) {
+      return res.json({ success: false, message: "Invalid phone number" });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id, name, phone, role, password_hash, password_salt
+       FROM users
+       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1 LIMIT 1`,
+      [normalizedPhone]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.json({ success: false, message: "Phone number not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    if (!user.password_hash || !user.password_salt) {
+      return res.json({
+        success: false,
+        message: "No password set for this account. Please set a password first."
+      });
+    }
+
+    if (!roleMatchesExpected(user.role, expectedRole)) {
+      return res.json({
+        success: false,
+        message: `This number is registered as ${user.role}, not ${expectedRole}`
+      });
+    }
+
+    const isValid = verifyPassword(String(password), user.password_salt, user.password_hash);
+    if (!isValid) {
+      return res.json({ success: false, message: "Incorrect password" });
+    }
+
+    return res.json({
+      success: true,
+      token: `session_${user.id}_${Date.now()}`,
+      user: { id: user.id, name: user.name, phone: user.phone, role: user.role },
+      message: "Login successful"
+    });
+  } catch (err) {
+    console.error("Password login error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 });
 

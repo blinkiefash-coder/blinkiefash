@@ -157,7 +157,7 @@ export default function AddProduct() {
 
       const data = await res.json();
       if (data.success) return data.image_urls || [];
-      alert("Upload failed");
+      alert(data.error || data.message || "Upload failed");
       return [];
     } catch (err) {
       console.log(err);
@@ -232,7 +232,7 @@ export default function AddProduct() {
         variants: preparedVariants,
       };
 
-      const res = await fetch(`${API_API_BASE_URL}/products/create-full`, {
+      const res = await fetch(`${API_API_BASE_URL}/products/create`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

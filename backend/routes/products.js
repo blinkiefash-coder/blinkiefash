@@ -3,97 +3,210 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
-router.post("/create-full", async (req, res) => {
+const toNumber = (value, fallback = 0) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+};
+
+const getProductMediaShape = async (client) => {
+  const result = await client.query(
+    `SELECT column_name
+     FROM information_schema.columns
+     WHERE table_schema = 'public'
+       AND table_name = 'product_media'`
+  );
+
+  const columnNames = new Set(result.rows.map((row) => row.column_name));
+  return {
+    hasVariantId: columnNames.has("variant_id"),
+    hasSortOrder: columnNames.has("sort_order"),
+  };
+};
+
+const insertProductMediaRows = async ({
+  client,
+  productId,
+  variantId,
+  imageUrls,
+  startOrder,
+  mediaShape,
+  primaryAssignedRef,
+}) => {
+  let nextOrder = startOrder;
+
+  for (const rawUrl of imageUrls) {
+    const url = String(rawUrl || "").trim();
+    if (!url) continue;
+
+    const columns = ["product_id", "media_type", "url", "is_primary"];
+    const values = [productId, "image", url, !primaryAssignedRef.value];
+
+    if (mediaShape.hasVariantId) {
+      columns.push("variant_id");
+      values.push(variantId || null);
+    }
+
+    if (mediaShape.hasSortOrder) {
+      columns.push("sort_order");
+      values.push(nextOrder);
+    }
+
+    const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
+    await client.query(
+      `INSERT INTO product_media (${columns.join(",")}) VALUES (${placeholders})`,
+      values
+    );
+
+    if (!primaryAssignedRef.value) {
+      primaryAssignedRef.value = true;
+    }
+
+    nextOrder += 1;
+  }
+
+  return nextOrder;
+};
+
+const prepareCreatePayload = (body = {}) => {
+  const nestedProduct = body.product || {};
+  const nestedVariants = Array.isArray(body.variants) ? body.variants : [];
+
+  const vendor_id = nestedProduct.vendor_id || body.vendor_id;
+  const category_id = nestedProduct.category_id || body.category_id;
+  const name = (nestedProduct.name || body.name || "").trim();
+  const description =
+    (nestedProduct.full_description || nestedProduct.short_description || body.description || "").trim();
+  const gender = nestedProduct.main_category || body.gender || null;
+  const material = nestedProduct.fabric || body.material || null;
+  const brand_id = body.brand_id || null;
+
+  const variants = nestedVariants.map((variant) => ({
+    size: (variant.size || "").trim() || "M",
+    color: (variant.color || "").trim() || "Black",
+    price: toNumber(variant.price, 0),
+    discount_price:
+      variant.discount_price === "" || variant.discount_price === null || typeof variant.discount_price === "undefined"
+        ? null
+        : toNumber(variant.discount_price, 0),
+    stock: toNumber(variant.stock, toNumber(variant.low_stock_alert, 0)),
+    images: Array.isArray(variant.images) ? variant.images.filter(Boolean) : [],
+  }));
+
+  const topLevelImages = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
+
+  return {
+    vendor_id,
+    category_id,
+    name,
+    description,
+    gender,
+    material,
+    brand_id,
+    variants,
+    topLevelImages,
+  };
+};
+
+const createProductSimple = async (req, res) => {
   const client = await pool.connect();
+
   try {
-    await client.query("BEGIN");
+    const payload = prepareCreatePayload(req.body);
+    const { vendor_id, category_id, name, description, gender, material, brand_id, variants, topLevelImages } = payload;
 
-    const payload = req.body;
-    const product = payload?.product || {};
-    const variants = payload?.variants || [];
-
-    console.log("[CREATE-FULL] Received payload:", JSON.stringify(payload, null, 2));
-
-    if (!product.vendor_id || !product.category_id || !product.name) {
-      await client.query("ROLLBACK");
+    if (!vendor_id || !name || !category_id) {
       return res.status(400).json({
         success: false,
-        message: "vendor_id, category_id, and name are required",
+        message: "vendor_id, category_id and name are required",
       });
     }
 
-    // Insert product
-    const productResult = await client.query(
-      `INSERT INTO products (vendor_id, category_id, name, description, short_description, full_description, main_category, sub_category, brand, fabric, fit, pattern, sleeve_type, neck_type, occasion, season, age_group, tags, is_delivery_available, is_store_available, is_try_enabled, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21, true)
-       RETURNING id`,
-      [
-        product.vendor_id,
-        product.category_id,
-        product.name,
-        product.short_description,
-        product.short_description,
-        product.full_description,
-        product.main_category,
-        product.sub_category,
-        product.brand,
-        product.fabric,
-        product.fit,
-        product.pattern,
-        product.sleeve_type,
-        product.neck_type,
-        product.occasion,
-        product.season,
-        product.age_group || null,
-        product.tags && Array.isArray(product.tags) ? product.tags : [],
-        product.is_delivery_available,
-        product.is_store_available,
-        product.is_try_enabled,
-      ]
+    if (!variants.length) {
+      return res.status(400).json({
+        success: false,
+        message: "At least one variant is required",
+      });
+    }
+
+    await client.query("BEGIN");
+    const mediaShape = await getProductMediaShape(client);
+
+    const productRes = await client.query(
+      `INSERT INTO products (
+        vendor_id,
+        brand_id,
+        category_id,
+        name,
+        description,
+        gender,
+        material
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      RETURNING id`,
+      [vendor_id, brand_id, category_id, name, description || null, gender, material]
     );
 
-    const productId = productResult.rows[0].id;
-    console.log("[CREATE-FULL] Product created with ID:", productId);
+    const productId = productRes.rows[0].id;
 
-    // Insert variants and images
-    for (let i = 0; i < variants.length; i++) {
-      const variant = variants[i];
+    const primaryAssignedRef = { value: false };
+    let imageOrder = 0;
+    let insertedImageCount = 0;
 
-      const variantResult = await client.query(
-        `INSERT INTO product_variants (product_id, size, color, color_code, mrp, price, discount_price, low_stock_alert, is_active)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, true)
-         RETURNING id`,
+    for (const variant of variants) {
+      const sku = `${name}-${variant.color}-${variant.size}`
+        .replace(/\s+/g, "-")
+        .toUpperCase();
+
+      const variantRes = await client.query(
+        `INSERT INTO product_variants (
+          product_id,
+          sku,
+          size,
+          color,
+          price,
+          discount_price
+        )
+        VALUES ($1,$2,$3,$4,$5,$6)
+        RETURNING id`,
         [
           productId,
+          sku,
           variant.size,
           variant.color,
-          variant.color_code,
-          variant.mrp,
-          variant.price,
+          toNumber(variant.price, 0),
           variant.discount_price,
-          variant.low_stock_alert,
         ]
       );
 
-      const variantId = variantResult.rows[0].id;
-      console.log("[CREATE-FULL] Variant created with ID:", variantId);
+      await client.query(
+        `INSERT INTO inventory (variant_id, stock)
+         VALUES ($1,$2)`,
+        [variantRes.rows[0].id, toNumber(variant.stock, 0)]
+      );
 
-      // Insert images for this variant
-      const images = variant.images || [];
-      for (let j = 0; j < images.length; j++) {
-        await client.query(
-          `INSERT INTO product_media (product_id, variant_id, url, media_type, is_primary, sort_order)
-           VALUES ($1, $2, $3, 'image', $4, $5)`,
-          [
-            productId,
-            variantId,
-            images[j],
-            j === 0 ? true : false,
-            j,
-          ]
-        );
-      }
-      console.log("[CREATE-FULL] Inserted", images.length, "images for variant", variantId);
+      const variantImageUrls = Array.isArray(variant.images) ? variant.images : [];
+      insertedImageCount += variantImageUrls.length;
+      imageOrder = await insertProductMediaRows({
+        client,
+        productId,
+        variantId: variantRes.rows[0].id,
+        imageUrls: variantImageUrls,
+        startOrder: imageOrder,
+        mediaShape,
+        primaryAssignedRef,
+      });
+    }
+
+    if (insertedImageCount === 0 && topLevelImages.length > 0) {
+      await insertProductMediaRows({
+        client,
+        productId,
+        variantId: null,
+        imageUrls: topLevelImages,
+        startOrder: imageOrder,
+        mediaShape,
+        primaryAssignedRef,
+      });
     }
 
     await client.query("COMMIT");
@@ -101,16 +214,18 @@ router.post("/create-full", async (req, res) => {
     res.json({
       success: true,
       product_id: productId,
-      message: "Product created successfully with images",
+      message: "Product created successfully",
     });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("CREATE FULL PRODUCT ERROR:", err);
+    console.error("CREATE PRODUCT ERROR:", err);
     res.status(500).json({ success: false, message: err.message || "Server error" });
   } finally {
     client.release();
   }
-});
+};
+
+router.post("/create-full", createProductSimple);
 
 router.put("/full/:id", async (req, res) => {
   try {
@@ -148,139 +263,7 @@ router.get("/full/:id", async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
-
-// ✅ ✅ ✅ CREATE PRODUCT (YOUR EXISTING CODE)
-router.post("/create", async (req, res) => {
-
-  const client = await pool.connect();
-
-  try {
-    const {
-      vendor_id,
-      brand_id,
-      category_id,
-      name,
-      description,
-      gender,
-      material,
-      variants,
-      images
-    } = req.body;
-
-    if (!vendor_id || !name || !category_id) {
-      return res.json({
-        success: false,
-        message: "Missing required fields"
-      });
-    }
-
-    await client.query("BEGIN");
-
-    const productRes = await client.query(
-      `INSERT INTO products (
-        vendor_id,
-        brand_id,
-        category_id,
-        name,
-        description,
-        gender,
-        material
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      RETURNING id`,
-      [
-        vendor_id,
-        brand_id || null,
-        category_id,
-        name,
-        description,
-        gender,
-        material
-      ]
-    );
-
-    const productId = productRes.rows[0].id;
-
-    // ✅ VARIANTS
-    for (const v of variants || []) {
-
-      const sku = `${name}-${v.color}-${v.size}`
-        .replace(/\s+/g, "-")
-        .toUpperCase();
-
-      const variantRes = await client.query(
-        `INSERT INTO product_variants (
-          product_id,
-          sku,
-          size,
-          color,
-          price,
-          discount_price
-        )
-        VALUES ($1,$2,$3,$4,$5,$6)
-        RETURNING id`,
-        [
-          productId,
-          sku,
-          v.size,
-          v.color,
-          v.price,
-          v.discount_price || null
-        ]
-      );
-
-      const variantId = variantRes.rows[0].id;
-
-      // inventory
-      await client.query(
-        `INSERT INTO inventory (variant_id, stock)
-         VALUES ($1,$2)`,
-        [variantId, v.stock]
-      );
-    }
-
-    // ✅ IMAGES
-    if (images && images.length > 0) {
-      for (let i = 0; i < images.length; i++) {
-        await client.query(
-          `INSERT INTO product_media (
-            product_id,
-            media_type,
-            url,
-            is_primary
-          )
-          VALUES ($1,'image',$2,$3)`,
-          [
-            productId,
-            images[i],
-            i === 0
-          ]
-        );
-      }
-    }
-
-    await client.query("COMMIT");
-
-    res.json({
-      success: true,
-      message: "✅ Product created successfully"
-    });
-
-  } catch (err) {
-
-    await client.query("ROLLBACK");
-    console.error("❌ PRODUCT ERROR:", err);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
-
-  } finally {
-    client.release();
-  }
-});
+router.post("/create", createProductSimple);
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -296,8 +279,9 @@ router.get("/:id", async (req, res) => {
 
     // ✅ IMAGES
     const imageRes = await pool.query(
-      `SELECT url FROM product_media
-       WHERE product_id = $1`,
+      `SELECT DISTINCT pm.url FROM product_media pm
+       JOIN product_variants v ON v.id = pm.variant_id
+       WHERE v.product_id = $1`,
       [id]
     );
 
@@ -307,15 +291,15 @@ router.get("/:id", async (req, res) => {
          v.id,
          v.size,
          v.color,
-         v.price,
-         v.discount_price,
+         v.mrp        AS price,
+         v.price      AS discount_price,
          GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock
        FROM product_variants v
        LEFT JOIN inventory inv ON inv.variant_id = v.id
        WHERE v.product_id = $1
          AND v.is_active = true
          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
-       ORDER BY COALESCE(v.discount_price, v.price) ASC, v.id ASC`,
+       ORDER BY v.price ASC, v.id ASC`,
       [id]
     );
 
@@ -347,33 +331,31 @@ router.get("/", async (req, res) => {
       SELECT
         p.id,
         p.name,
-        p.gender,
         p.category_id,
         b.name AS brand,
         c.name AS category_name,
-        pm.url AS image,
+        pv.image,
         pv.variant_id,
-        pv.price,
-        pv.discount_price
+        pv.mrp        AS price,
+        pv.sell_price AS discount_price
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN categories c ON c.id = p.category_id
-      LEFT JOIN product_media pm
-        ON pm.product_id = p.id AND pm.is_primary = true
       LEFT JOIN LATERAL (
         SELECT
           v.id AS variant_id,
           v.size,
           v.color,
-          v.price,
-          v.discount_price,
-          GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock
+          v.mrp,
+          v.price AS sell_price,
+          GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
+          (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
-        ORDER BY COALESCE(v.discount_price, v.price) ASC, v.id ASC
+        ORDER BY v.price ASC, v.id ASC
         LIMIT 1
       ) pv ON true
       WHERE 1=1

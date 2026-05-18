@@ -85,4 +85,11 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_cart_items_variant ON cart_items(variant_id);
   `);
+
+  // Add password columns to users if not already present
+  await pool.query(`
+    ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS password_hash TEXT,
+      ADD COLUMN IF NOT EXISTS password_salt TEXT;
+  `);
 };

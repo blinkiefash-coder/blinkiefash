@@ -5,10 +5,16 @@ import cloudinary from "../utils/cloudinary.js";
 const router = express.Router();
 
 const storage = multer.memoryStorage();
-const upload = multer({ storage });
+const upload = multer({
+  storage,
+  limits: {
+    files: 20,
+    fileSize: 10 * 1024 * 1024,
+  },
+});
 
 // ✅ MULTIPLE IMAGE SUPPORT
-router.post("/", upload.array("image", 5), async (req, res) => {
+router.post("/", upload.array("image", 20), async (req, res) => {
   console.log("[UPLOAD ROUTE] /api/upload hit");
   try {
     // Debug: Log environment variables
@@ -56,6 +62,12 @@ router.post("/", upload.array("image", 5), async (req, res) => {
 
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
+    if (err instanceof multer.MulterError) {
+      if (err.code === "LIMIT_FILE_SIZE") {
+        return res.status(400).json({ error: "Each file must be 10MB or smaller" });
+      }
+      return res.status(400).json({ error: err.message || "Upload validation failed" });
+    }
     res.status(500).json({ error: err.message || "Upload failed" });
   }
 });
