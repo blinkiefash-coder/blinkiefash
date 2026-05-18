@@ -18,6 +18,7 @@ import Company from "./pages/Company";
 import Policies from "./pages/Policies";
 import AdminPinGate from "./pages/AdminPinGate";
 import SellerRegistration from "./pages/SellerRegistration";
+import DarkStore from "./pages/DarkStore";
 
 function App() {
   const [isPinVerified, setIsPinVerified] = useState(
@@ -56,6 +57,7 @@ function App() {
           <Route path="/customer-service" element={<CustomerService />} />
           <Route path="/company" element={<Company />} />
           <Route path="/policies" element={<Policies />} />
+          <Route path="/darkstore" element={<DarkStore />} />
           <Route path="/admin-access" element={<Navigate to="/home" replace />} />
           <Route path="*" element={<Navigate to="/home" replace />} />
         </Routes>
