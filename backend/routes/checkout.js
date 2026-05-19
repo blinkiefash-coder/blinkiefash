@@ -1,7 +1,33 @@
 import express from "express";
 import { pool } from "../db.js";
+import { notifyAvailableRiders } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
+
+// ── Haversine helper (km) ────────────────────────────────────────────────────
+function haversineKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+// ── Delivery fee rules ────────────────────────────────────────────────────────
+// - subtotal > 1499 → 0
+// - distance ≤ 20 km → 0
+// - 20 km < distance ≤ 30 km → 59
+// - distance > 30 km → null (out of range)
+function calcDeliveryFee(subtotal, distanceKm) {
+  if (subtotal > 1499) return 0;
+  if (distanceKm <= 20) return 0;
+  if (distanceKm <= 30) return 59;
+  return null; // out of range
+}
 
 // ── GET /api/checkout/addresses?userId=xxx ──────────────────────────────────
 router.get("/addresses", async (req, res) => {
@@ -9,7 +35,7 @@ router.get("/addresses", async (req, res) => {
   if (!userId) return res.status(400).json({ success: false, message: "userId required" });
   try {
     const { rows } = await pool.query(
-      `SELECT id, address_line, city, pincode, is_default
+      `SELECT id, address_line, city, pincode, is_default, lat, lng
        FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, id DESC`,
       [userId]
     );
@@ -17,6 +43,60 @@ router.get("/addresses", async (req, res) => {
   } catch (err) {
     console.error("GET addresses error:", err);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── GET /api/checkout/delivery-fee?addressId=xxx&subtotal=nnn ────────────────
+router.get("/delivery-fee", async (req, res) => {
+  const { addressId, subtotal } = req.query;
+  if (!addressId) return res.status(400).json({ success: false, message: "addressId required" });
+  try {
+    const { rows: addrRows } = await pool.query(
+      `SELECT city, lat, lng FROM addresses WHERE id = $1`, [addressId]
+    );
+    if (!addrRows.length) return res.status(404).json({ success: false, message: "Address not found" });
+
+    const { city, lat: addrLat, lng: addrLng } = addrRows[0];
+    const sub = parseFloat(subtotal) || 0;
+    let fee = 0;
+    let distance = null;
+    let withinRange = true;
+
+    if (addrLat != null && addrLng != null) {
+      // Find nearest active dark store by actual distance
+      const { rows: storeRows } = await pool.query(
+        `SELECT id, name, lat, lng FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL`,
+        []
+      );
+      if (storeRows.length) {
+        let nearest = storeRows[0];
+        let minDist = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(nearest.lat), parseFloat(nearest.lng));
+        for (const s of storeRows.slice(1)) {
+          const d = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(s.lat), parseFloat(s.lng));
+          if (d < minDist) { minDist = d; nearest = s; }
+        }
+        distance = Math.round(minDist * 10) / 10;
+        const calcFee = calcDeliveryFee(sub, distance);
+        if (calcFee === null) {
+          withinRange = false;
+          fee = null;
+        } else {
+          fee = calcFee;
+        }
+      }
+    } else {
+      // No coordinates — city-based fallback, assume in range
+      const { rows: storeRows } = await pool.query(
+        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
+      );
+      if (!storeRows.length) withinRange = false;
+      fee = sub > 1499 ? 0 : 49; // default ₹49 when no coordinates
+    }
+
+    res.json({ success: true, fee, distance, withinRange });
+  } catch (err) {
+    console.error("delivery-fee error:", err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
@@ -58,9 +138,9 @@ router.post("/orders", async (req, res) => {
   try {
     await client.query("BEGIN");
 
-    // Find the address city and match to nearest dark store
+    // Find the address with city and coordinates
     const { rows: addrRows } = await client.query(
-      `SELECT city FROM addresses WHERE id = $1 AND user_id = $2`, [addressId, userId]
+      `SELECT city, lat, lng FROM addresses WHERE id = $1 AND user_id = $2`, [addressId, userId]
     );
     if (!addrRows.length) {
       await client.query("ROLLBACK");
@@ -68,23 +148,56 @@ router.post("/orders", async (req, res) => {
     }
     const city = addrRows[0].city;
 
-    // Find a matching active dark store in the same city (case-insensitive)
+    // Get address lat/lng for fee calculation
+    const addrLat = addrRows[0]?.lat;
+    const addrLng = addrRows[0]?.lng;
+
+    // Find nearest active dark store
     const { rows: storeRows } = await client.query(
-      `SELECT id FROM dark_stores
-       WHERE is_active = true AND lower(city) = lower($1)
-       LIMIT 1`,
-      [city]
+      `SELECT id, lat, lng FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL`
     );
-    const darkStoreId = storeRows.length ? storeRows[0].id : null;
+    let darkStoreId = null;
+    let distanceKm = null;
+    if (storeRows.length && addrLat != null && addrLng != null) {
+      let nearest = storeRows[0];
+      let minDist = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(nearest.lat), parseFloat(nearest.lng));
+      for (const s of storeRows.slice(1)) {
+        const d = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(s.lat), parseFloat(s.lng));
+        if (d < minDist) { minDist = d; nearest = s; }
+      }
+      darkStoreId = nearest.id;
+      distanceKm = Math.round(minDist * 10) / 10;
+    } else {
+      // Fallback: city match
+      const { rows: cityStore } = await client.query(
+        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
+      );
+      darkStoreId = cityStore.length ? cityStore[0].id : null;
+    }
+
+    // Calculate delivery fee
+    const itemsSubtotal = totalAmount; // client now sends subtotal (items only)
+    let deliveryFee = 0;
+    if (distanceKm !== null) {
+      const calcFee = calcDeliveryFee(itemsSubtotal, distanceKm);
+      if (calcFee === null) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 30 km from our nearest store." });
+      }
+      deliveryFee = calcFee;
+    } else {
+      deliveryFee = itemsSubtotal > 1499 ? 0 : 49;
+    }
+    const finalAmount = itemsSubtotal + deliveryFee;
 
     // Create order
     const { rows: orderRows } = await client.query(
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
           payment_method, dark_store_id)
-       VALUES ($1, $2, 'placed', $3, $3, 'cod', $4)
-       RETURNING id, status, total_amount, created_at`,
-      [userId, addressId, totalAmount, darkStoreId]
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5)
+       RETURNING id, status, total_amount, final_amount, created_at`,
+      [userId, addressId, itemsSubtotal, finalAmount, darkStoreId]
     );
     const order = orderRows[0];
 
@@ -103,6 +216,9 @@ router.post("/orders", async (req, res) => {
       orderId: order.id,
       status: order.status,
       totalAmount: order.total_amount,
+      deliveryFee: deliveryFee,
+      finalAmount: order.final_amount,
+      distanceKm: distanceKm,
       createdAt: order.created_at,
       darkStoreAssigned: !!darkStoreId,
     });
@@ -285,6 +401,10 @@ router.patch("/orders/:orderId/status", async (req, res) => {
       [status, orderId]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
+    // Notify available riders when order becomes confirmed
+    if (status === 'confirmed') {
+      notifyAvailableRiders(pool, rows[0].id).catch(() => {});
+    }
     res.json({ success: true, order: rows[0] });
   } catch (err) {
     console.error("PATCH order status error:", err);
@@ -299,7 +419,7 @@ router.get("/darkstores", async (req, res) => {
       `SELECT id, name, city, address FROM dark_stores WHERE is_active = true ORDER BY name`
     );
     res.json({ success: true, stores: rows });
-  } catch (err) {
+  } catch {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

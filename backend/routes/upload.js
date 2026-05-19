@@ -49,8 +49,9 @@ router.post("/", upload.array("image", 20), async (req, res) => {
           console.error("[UPLOAD ROUTE] No secure_url in Cloudinary response:", result);
         }
       } catch (uploadErr) {
+        const errMsg = uploadErr?.message || uploadErr?.error?.message || uploadErr?.error?.code || JSON.stringify(uploadErr);
         console.error("Cloudinary upload error for file", file.originalname, uploadErr);
-        return res.status(500).json({ error: `Cloudinary upload failed for ${file.originalname}: ${uploadErr.message}` });
+        return res.status(500).json({ error: `Cloudinary upload failed for ${file.originalname}: ${errMsg}` });
       }
     }
 

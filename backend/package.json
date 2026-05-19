@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev": "nodemon server.js",
+    "dev": "NODE_TLS_REJECT_UNAUTHORIZED=0 nodemon server.js",
     "start": "node server.js"
   },
   "dependencies": {

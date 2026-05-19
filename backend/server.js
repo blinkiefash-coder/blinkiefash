@@ -1,11 +1,8 @@
-// Bypass SSL certificate verification for local development
-// Remove this in production
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-
 import express from "express";
 import cors from "cors";
 import "dotenv/config";
-import { ensureDatabaseTables } from "./db.js";
+import { pool, ensureDatabaseTables } from "./db.js";
+import { notifyAvailableRiders } from "./utils/firebaseAdmin.js";
 
 import authRoutes from "./routes/auth.js";
 import vendorRoutes from "./routes/vendor.js";
@@ -64,12 +61,18 @@ const DEFAULT_PORT = Number(process.env.PORT || 5000);
 
 const listenOnAvailablePort = (startPort) => {
   return new Promise((resolve, reject) => {
-    const server = app.listen(startPort, () => {
-      resolve({ server, port: startPort });
-    });
-    server.on("error", (err) => {
-      reject(err);
-    });
+    const tryPort = (port) => {
+      const server = app.listen(port, () => resolve({ server, port }));
+      server.on("error", (err) => {
+        if (err.code === "EADDRINUSE") {
+          console.warn(`Port ${port} in use, trying ${port + 1}…`);
+          tryPort(port + 1);
+        } else {
+          reject(err);
+        }
+      });
+    };
+    tryPort(startPort);
   });
 };
 
@@ -77,6 +80,39 @@ const startServer = async () => {
   await ensureDatabaseTables();
   const { port } = await listenOnAvailablePort(DEFAULT_PORT);
   console.log(`✅ Backend running on port ${port}`);
+
+  // ── Re-notify unassigned confirmed orders every 2 minutes ──────────────
+  const lastNotifiedAt = new Map(); // orderId → timestamp
+  setInterval(async () => {
+    try {
+      const { rows } = await pool.query(`
+        SELECT o.id
+        FROM orders o
+        WHERE o.status = 'confirmed'
+          AND NOT EXISTS (
+            SELECT 1 FROM deliveries d
+            WHERE d.order_id = o.id AND d.is_active = TRUE
+          )
+          AND o.created_at < NOW() - INTERVAL '2 minutes'
+      `);
+      const now = Date.now();
+      for (const row of rows) {
+        const lastTime = lastNotifiedAt.get(row.id) || 0;
+        if (now - lastTime >= 2 * 60 * 1000) {
+          lastNotifiedAt.set(row.id, now);
+          notifyAvailableRiders(pool, row.id).catch(() => {});
+          console.log(`[scheduler] Re-notified riders for order ${row.id}`);
+        }
+      }
+      // Clean up stale entries (orders no longer unassigned)
+      const activeIds = new Set(rows.map((r) => r.id));
+      for (const id of lastNotifiedAt.keys()) {
+        if (!activeIds.has(id)) lastNotifiedAt.delete(id);
+      }
+    } catch (err) {
+      console.error('[scheduler] re-notify error:', err.message);
+    }
+  }, 2 * 60 * 1000);
 };
 
 startServer().catch((err) => {

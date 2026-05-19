@@ -10,16 +10,15 @@ const toNumber = (value, fallback = 0) => {
 
 const getProductMediaShape = async (client) => {
   const result = await client.query(
-    `SELECT column_name
-     FROM information_schema.columns
-     WHERE table_schema = 'public'
-       AND table_name = 'product_media'`
+    `SELECT column_name FROM information_schema.columns
+     WHERE table_schema = 'public' AND table_name = 'product_media'`
   );
-
-  const columnNames = new Set(result.rows.map((row) => row.column_name));
+  const cols = new Set(result.rows.map((row) => row.column_name));
   return {
-    hasVariantId: columnNames.has("variant_id"),
-    hasSortOrder: columnNames.has("sort_order"),
+    hasProductId: cols.has("product_id"),
+    hasMediaType: cols.has("media_type"),
+    hasVariantId: cols.has("variant_id"),
+    hasSortOrder: cols.has("sort_order"),
   };
 };
 
@@ -38,18 +37,13 @@ const insertProductMediaRows = async ({
     const url = String(rawUrl || "").trim();
     if (!url) continue;
 
-    const columns = ["product_id", "media_type", "url", "is_primary"];
-    const values = [productId, "image", url, !primaryAssignedRef.value];
+    const columns = ["url", "is_primary"];
+    const values = [url, !primaryAssignedRef.value];
 
-    if (mediaShape.hasVariantId) {
-      columns.push("variant_id");
-      values.push(variantId || null);
-    }
-
-    if (mediaShape.hasSortOrder) {
-      columns.push("sort_order");
-      values.push(nextOrder);
-    }
+    if (mediaShape.hasProductId) { columns.push("product_id"); values.push(productId); }
+    if (mediaShape.hasMediaType) { columns.push("media_type"); values.push("image"); }
+    if (mediaShape.hasVariantId) { columns.push("variant_id"); values.push(variantId || null); }
+    if (mediaShape.hasSortOrder) { columns.push("sort_order"); values.push(nextOrder); }
 
     const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
     await client.query(
@@ -74,36 +68,30 @@ const prepareCreatePayload = (body = {}) => {
   const vendor_id = nestedProduct.vendor_id || body.vendor_id;
   const category_id = nestedProduct.category_id || body.category_id;
   const name = (nestedProduct.name || body.name || "").trim();
-  const description =
-    (nestedProduct.full_description || nestedProduct.short_description || body.description || "").trim();
-  const gender = nestedProduct.main_category || body.gender || null;
-  const material = nestedProduct.fabric || body.material || null;
-  const brand_id = body.brand_id || null;
+  const description = (nestedProduct.full_description || body.description || "").trim();
+  const short_description = (nestedProduct.short_description || "").trim();
+  const brand_name = (nestedProduct.brand || body.brand || "").trim();
+  const brand_id = nestedProduct.brand_id || body.brand_id || null;
+  const is_try_enabled = nestedProduct.is_try_enabled !== false;
+  const store_id = nestedProduct.store_id || body.store_id || null;
 
   const variants = nestedVariants.map((variant) => ({
     size: (variant.size || "").trim() || "M",
     color: (variant.color || "").trim() || "Black",
+    mrp: toNumber(variant.mrp, 0),
     price: toNumber(variant.price, 0),
-    discount_price:
-      variant.discount_price === "" || variant.discount_price === null || typeof variant.discount_price === "undefined"
-        ? null
-        : toNumber(variant.discount_price, 0),
-    stock: toNumber(variant.stock, toNumber(variant.low_stock_alert, 0)),
+    stock: toNumber(variant.quantity ?? variant.stock, 0),
     images: Array.isArray(variant.images) ? variant.images.filter(Boolean) : [],
   }));
 
   const topLevelImages = Array.isArray(body.images) ? body.images.filter(Boolean) : [];
 
   return {
-    vendor_id,
-    category_id,
-    name,
-    description,
-    gender,
-    material,
-    brand_id,
-    variants,
-    topLevelImages,
+    vendor_id, category_id,
+    name, description, short_description,
+    brand_name, brand_id,
+    is_try_enabled, store_id,
+    variants, topLevelImages,
   };
 };
 
@@ -112,7 +100,13 @@ const createProductSimple = async (req, res) => {
 
   try {
     const payload = prepareCreatePayload(req.body);
-    const { vendor_id, category_id, name, description, gender, material, brand_id, variants, topLevelImages } = payload;
+    const {
+      vendor_id, category_id,
+      name, description, short_description,
+      brand_name, brand_id: explicitBrandId,
+      is_try_enabled, store_id,
+      variants, topLevelImages,
+    } = payload;
 
     if (!vendor_id || !name || !category_id) {
       return res.status(400).json({
@@ -129,23 +123,36 @@ const createProductSimple = async (req, res) => {
     }
 
     await client.query("BEGIN");
+
+    // store_id is provided by the vendor from the dropdown (null = no store selected)
+    const inventoryStoreId = store_id || null;
+
+    // ── Resolve brand_id from name if not provided ──────────────────────────
+    let brand_id = explicitBrandId || null;
+    if (!brand_id && brand_name) {
+      const existing = await client.query(
+        `SELECT id FROM brands WHERE lower(name) = lower($1) LIMIT 1`,
+        [brand_name]
+      );
+      if (existing.rows.length) {
+        brand_id = existing.rows[0].id;
+      } else {
+        const newBrand = await client.query(
+          `INSERT INTO brands (name) VALUES ($1) RETURNING id`,
+          [brand_name]
+        );
+        brand_id = newBrand.rows[0].id;
+      }
+    }
+
     const mediaShape = await getProductMediaShape(client);
 
+    // ── Insert product ───────────────────────────────────────────────────────
     const productRes = await client.query(
-      `INSERT INTO products (
-        vendor_id,
-        brand_id,
-        category_id,
-        name,
-        description,
-        gender,
-        material
-      )
-      VALUES ($1,$2,$3,$4,$5,$6,$7)
-      RETURNING id`,
-      [vendor_id, brand_id, category_id, name, description || null, gender, material]
+      `INSERT INTO products (vendor_id, brand_id, category_id, name, description, short_description, is_try_enabled)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [vendor_id, brand_id, category_id, name, description || null, short_description || null, is_try_enabled]
     );
-
     const productId = productRes.rows[0].id;
 
     const primaryAssignedRef = { value: false };
@@ -158,64 +165,39 @@ const createProductSimple = async (req, res) => {
         .toUpperCase();
 
       const variantRes = await client.query(
-        `INSERT INTO product_variants (
-          product_id,
-          sku,
-          size,
-          color,
-          price,
-          discount_price
-        )
-        VALUES ($1,$2,$3,$4,$5,$6)
-        RETURNING id`,
-        [
-          productId,
-          sku,
-          variant.size,
-          variant.color,
-          toNumber(variant.price, 0),
-          variant.discount_price,
-        ]
+        `INSERT INTO product_variants (product_id, sku, size, color, price, mrp)
+         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
+        [productId, sku, variant.size, variant.color, variant.price, variant.mrp]
       );
 
       await client.query(
-        `INSERT INTO inventory (variant_id, stock)
-         VALUES ($1,$2)`,
-        [variantRes.rows[0].id, toNumber(variant.stock, 0)]
+        `INSERT INTO inventory (variant_id, stock, store_id) VALUES ($1, $2, $3)`,
+        [variantRes.rows[0].id, variant.stock, inventoryStoreId]
       );
 
       const variantImageUrls = Array.isArray(variant.images) ? variant.images : [];
       insertedImageCount += variantImageUrls.length;
       imageOrder = await insertProductMediaRows({
-        client,
-        productId,
+        client, productId,
         variantId: variantRes.rows[0].id,
         imageUrls: variantImageUrls,
         startOrder: imageOrder,
-        mediaShape,
-        primaryAssignedRef,
+        mediaShape, primaryAssignedRef,
       });
     }
 
     if (insertedImageCount === 0 && topLevelImages.length > 0) {
       await insertProductMediaRows({
-        client,
-        productId,
-        variantId: null,
+        client, productId, variantId: null,
         imageUrls: topLevelImages,
         startOrder: imageOrder,
-        mediaShape,
-        primaryAssignedRef,
+        mediaShape, primaryAssignedRef,
       });
     }
 
     await client.query("COMMIT");
 
-    res.json({
-      success: true,
-      product_id: productId,
-      message: "Product created successfully",
-    });
+    res.json({ success: true, product_id: productId, message: "Product created successfully" });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("CREATE PRODUCT ERROR:", err);
@@ -324,8 +306,30 @@ router.get("/", async (req, res) => {
       category_id,
       min_price,
       max_price,
-      color
+      color,
+      lat,
+      lng,
     } = req.query;
+
+    // Find nearest dark store when coordinates are provided
+    let nearestStoreName = null;
+    let nearestStoreCity = null;
+    if (lat && lng) {
+      const { rows: storeRows } = await pool.query(
+        `SELECT name, city,
+           6371 * acos(
+             cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) +
+             sin(radians($1)) * sin(radians(lat))
+           ) AS dist
+         FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL
+         ORDER BY dist ASC LIMIT 1`,
+        [parseFloat(lat), parseFloat(lng)]
+      );
+      if (storeRows.length) {
+        nearestStoreName = storeRows[0].name;
+        nearestStoreCity = storeRows[0].city;
+      }
+    }
 
     let query = `
       SELECT
@@ -418,7 +422,12 @@ router.get("/", async (req, res) => {
 
     const result = await pool.query(query, values);
 
-    res.json(result.rows);
+    res.json({
+      products: result.rows,
+      nearestStore: nearestStoreName
+        ? { name: nearestStoreName, city: nearestStoreCity }
+        : null,
+    });
 
   } catch (err) {
     console.error("FILTER ERROR:", err);

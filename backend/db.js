@@ -3,9 +3,7 @@ const { Pool } = pkg;
 
 const normalizeDatabaseUrl = (rawUrl = "") => {
   if (!rawUrl) return rawUrl;
-
-  // pg warns for prefer/require/verify-ca unless explicitly opting into compatibility.
-  // Keep current behavior explicit by forcing sslmode=verify-full.
+  // pg ≥8 treats prefer/require/verify-ca as verify-full; be explicit to silence the warning.
   return rawUrl.replace(/sslmode=(prefer|require|verify-ca)/gi, "sslmode=verify-full");
 };
 
