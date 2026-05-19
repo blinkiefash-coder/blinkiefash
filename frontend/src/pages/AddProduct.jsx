@@ -5,11 +5,12 @@ import VendorLayout from "../components/VendorLayout";
 
 export default function AddProduct() {
   const [loading, setLoading] = useState(false);
-  const [vendorId, setVendorId] = useState("");
+  const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [childrenByParent, setChildrenByParent] = useState({});
+  const [darkStores, setDarkStores] = useState([]);
 
   const [parentCategories, setParentCategories] = useState([]);
   const [childCategories, setChildCategories] = useState([]);
@@ -22,91 +23,44 @@ export default function AddProduct() {
 
   const buildChildrenMap = (data) => {
     const map = {};
-
     data.forEach((category) => {
       const parentKey = category.parent_id || "ROOT";
-
-      if (!map[parentKey]) {
-        map[parentKey] = [];
-      }
-
+      if (!map[parentKey]) map[parentKey] = [];
       map[parentKey].push(category);
     });
-
     Object.keys(map).forEach((key) => {
       map[key].sort((a, b) => a.name.localeCompare(b.name));
     });
-
     return map;
   };
 
   const [form, setForm] = useState({
-    main_category: "Men",
-    sub_category: "",
     brand: "",
     name: "",
     short_description: "",
     full_description: "",
     category_id: "",
-    fabric: "",
-    fit: "",
-    pattern: "",
-    sleeve_type: "",
-    neck_type: "",
-    occasion: "",
-    season: "",
-    age_group: "",
-    tags: "",
-    is_delivery_available: true,
-    is_store_available: true,
+    store_id: "",
     is_try_enabled: true,
   });
 
   const [variants, setVariants] = useState([
-    {
-      size: "M",
-      color: "Black",
-      color_code: "#000000",
-      mrp: "",
-      price: "",
-      discount_price: "",
-      low_stock_alert: "10",
-      images: [],
-      imageFiles: [],
-    },
+    { size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] },
   ]);
 
   useEffect(() => {
-    const id = localStorage.getItem("vendor_id");
+    if (!vendorId) { window.location.href = "/vendor"; return; }
+    fetch(`${API_API_BASE_URL}/brands`).then(r => r.json()).then(d => setBrands(d));
+    fetch(`${API_API_BASE_URL}/checkout/darkstores`).then(r => r.json()).then(d => setDarkStores(d.stores || []));
+    fetch(`${API_API_BASE_URL}/categories`).then(r => r.json()).then(d => {
+      setCategories(d);
+      const map = buildChildrenMap(d);
+      setChildrenByParent(map);
+      setParentCategories(map.ROOT || []);
+    });
+  }, [vendorId]);
 
-    if (!id) {
-      window.location.href = "/vendor";
-    } else {
-      setVendorId(id);
-    }
-
-    fetch(`${API_API_BASE_URL}/brands`)
-      .then(res => res.json())
-      .then(data => setBrands(data));
-
-    fetch(`${API_API_BASE_URL}/categories`)
-      .then(res => res.json())
-      .then(data => {
-        setCategories(data);
-        const map = buildChildrenMap(data);
-        setChildrenByParent(map);
-
-        const parents = map.ROOT || [];
-        setParentCategories(parents);
-      });
-  }, []);
-
-  const updateForm = (key, value) => {
-    setForm((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
+  const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
   const updateVariant = (index, key, value) => {
     const updated = [...variants];
@@ -114,196 +68,76 @@ export default function AddProduct() {
     setVariants(updated);
   };
 
-  const addVariant = () => {
-    setVariants([
-      ...variants,
-      {
-        size: "",
-        color: "",
-        color_code: "",
-        mrp: "",
-        price: "",
-        discount_price: "",
-        low_stock_alert: "10",
-        images: [],
-        imageFiles: [],
-      },
-    ]);
-  };
+  const addVariant = () => setVariants([...variants,
+    { size: "", color: "", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
 
-  const removeVariant = (index) => {
-    setVariants(variants.filter((_, i) => i !== index));
-  };
+  const removeVariant = (index) => setVariants(variants.filter((_, i) => i !== index));
 
   const setVariantImageFiles = (index, files) => {
     const updated = [...variants];
-    updated[index].imageFiles = files;
+    updated[index].imageFiles = [...(updated[index].imageFiles || []), ...files];
+    setVariants(updated);
+  };
+
+  const removeImageFile = (variantIndex, imgIndex) => {
+    const updated = [...variants];
+    updated[variantIndex].imageFiles = updated[variantIndex].imageFiles.filter((_, i) => i !== imgIndex);
     setVariants(updated);
   };
 
   const uploadImages = async (files = []) => {
     if (!files.length) return [];
-
     const formData = new FormData();
-    files.forEach((file) => {
-      formData.append("image", file);
-    });
-
+    files.forEach((f) => formData.append("image", f));
     try {
-      const res = await fetch(`${API_API_BASE_URL}/upload`, {
-        method: "POST",
-        body: formData,
-      });
-
+      const res = await fetch(`${API_API_BASE_URL}/upload`, { method: "POST", body: formData });
       const data = await res.json();
       if (data.success) return data.image_urls || [];
       alert(data.error || data.message || "Upload failed");
       return [];
-    } catch (err) {
-      console.log(err);
-      alert("Upload error");
-      return [];
-    }
+    } catch (err) { console.error(err); alert("Upload error"); return []; }
   };
-
-  const normalizeMainCategory = (value) => {
-    if (!value) return "Men";
-    const v = String(value).trim().toLowerCase();
-    if (v === "home-living") return "Home";
-    return v.charAt(0).toUpperCase() + v.slice(1);
-  };
-
-  const tagsArray = (value) =>
-    String(value || "")
-      .split(",")
-      .map((tag) => tag.trim())
-      .filter(Boolean);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!form.category_id) {
-      alert("Please select a final category");
-      return;
-    }
-
+    if (!form.category_id) { alert("Please select a final category"); return; }
     setLoading(true);
-
     try {
       const preparedVariants = await Promise.all(
-        variants.map(async (variant) => {
-          const uploadedImages = await uploadImages(variant.imageFiles || []);
-          return {
-            size: variant.size,
-            color: variant.color,
-            color_code: variant.color_code,
-            mrp: Number(variant.mrp || 0),
-            price: Number(variant.price || 0),
-            discount_price: Number(variant.discount_price || 0),
-            low_stock_alert: Number(variant.low_stock_alert || 10),
-            images: uploadedImages,
-          };
+        variants.map(async (v) => {
+          const uploadedImages = await uploadImages(v.imageFiles || []);
+          return { size: v.size, color: v.color, mrp: Number(v.mrp || 0),
+            price: Number(v.price || 0), quantity: Number(v.quantity || 0), images: uploadedImages };
         })
       );
-
       const payload = {
-        product: {
-          vendor_id: vendorId,
-          category_id: form.category_id,
-          main_category: normalizeMainCategory(form.main_category),
-          sub_category: form.sub_category,
-          brand: form.brand,
-          name: form.name,
-          short_description: form.short_description,
-          full_description: form.full_description,
-          fabric: form.fabric,
-          fit: form.fit,
-          pattern: form.pattern,
-          sleeve_type: form.sleeve_type,
-          neck_type: form.neck_type,
-          occasion: form.occasion,
-          season: form.season,
-          age_group: form.age_group || null,
-          tags: tagsArray(form.tags),
-          is_delivery_available: form.is_delivery_available,
-          is_store_available: form.is_store_available,
-          is_try_enabled: form.is_try_enabled,
-        },
+        product: { vendor_id: vendorId, category_id: form.category_id, brand: form.brand,
+          name: form.name, short_description: form.short_description,
+          full_description: form.full_description, is_try_enabled: form.is_try_enabled,
+          store_id: form.store_id || null },
         variants: preparedVariants,
       };
-
       const res = await fetch(`${API_API_BASE_URL}/products/create`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
-
       const data = await res.json();
-
-      if (!data.success) {
-        alert(`Failed: ${data.message || "Unable to create product"}`);
-        return;
-      }
-
-      alert("Product added successfully");
-
-      setForm({
-        main_category: "Men",
-        sub_category: "",
-        brand: "",
-        name: "",
-        short_description: "",
-        full_description: "",
-        category_id: "",
-        fabric: "",
-        fit: "",
-        pattern: "",
-        sleeve_type: "",
-        neck_type: "",
-        occasion: "",
-        season: "",
-        age_group: "",
-        tags: "",
-        is_delivery_available: true,
-        is_store_available: true,
-        is_try_enabled: true,
-      });
-      setVariants([
-        {
-          size: "M",
-          color: "Black",
-          color_code: "#000000",
-          mrp: "",
-          price: "",
-          discount_price: "",
-          low_stock_alert: "10",
-          images: [],
-          imageFiles: [],
-        },
-      ]);
-      setSelectedParent("");
-      setSelectedChild("");
-      setChildCategories([]);
-      setSubChildCategories([]);
-    } catch (err) {
-      console.log(err);
-      alert("Server error while creating product");
-    } finally {
-      setLoading(false);
-    }
+      if (!data.success) { alert(`Failed: ${data.message || "Unable to create product"}`); return; }
+      alert("Product added successfully!");
+      setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", store_id: "", is_try_enabled: true });
+      setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+      setSelectedParent(""); setSelectedChild("");
+      setChildCategories([]); setSubChildCategories([]);
+    } catch (err) { console.error(err); alert("Server error while creating product");
+    } finally { setLoading(false); }
   };
 
   const finalCategoryName = categories.find((c) => c.id === form.category_id)?.name || "";
-
 
   return (
     <>
       {loading && (
         <div className="loader-overlay">
-          <div className="loader-box">
-            <p>Uploading and saving...</p>
-            <div className="spinner"></div>
-          </div>
+          <div className="loader-box"><p>Uploading and saving...</p><div className="spinner"></div></div>
         </div>
       )}
 
@@ -311,231 +145,132 @@ export default function AddProduct() {
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
-              <div>
-                <h2>Add New Product</h2>
-                <p>Fill the details to list your product</p>
-              </div>
-              <button type="button" className="draft-btn">Save as Draft</button>
-            </div>
-
-            <div className="add-product-steps">
-              <div className="step-item active"><span>1</span>Product Info</div>
-              <div className="step-item"><span>2</span>Variants & Inventory</div>
-              <div className="step-item"><span>3</span>Delivery & Review</div>
+              <div><h2>Add New Product</h2><p>Fill the details to list your product</p></div>
             </div>
 
             <form onSubmit={handleSubmit}>
+              {/* ── 1. Basic Details ──────────────────────────────────── */}
               <section className="form-section">
                 <h4>1. Basic Product Details</h4>
-
                 <div className="input-grid">
-                  <select
-                    value={form.main_category}
-                    onChange={(e) => updateForm("main_category", e.target.value)}
-                  >
-                    <option>Men</option>
-                    <option>Women</option>
-                    <option>Kids</option>
-                    <option>Home</option>
-                    <option>Beauty</option>
+                  <select value={selectedParent} onChange={(e) => {
+                    const id = e.target.value; setSelectedParent(id); setSelectedChild("");
+                    const children = getChildren(id);
+                    setChildCategories(children); setSubChildCategories([]);
+                    updateForm("category_id", children.length ? "" : id);
+                  }}>
+                    <option value="">Select Main Category</option>
+                    {parentCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
 
-                  <input
-                    placeholder="Subcategory (e.g. Casual Wear)"
-                    value={form.sub_category}
-                    onChange={(e) => updateForm("sub_category", e.target.value)}
-                  />
-
-                  <select
-                    value={selectedParent}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedParent(id);
-                      setSelectedChild("");
-
-                      const children = getChildren(id);
-                      setChildCategories(children);
-
-                      const hasChildren = children.length > 0;
-                      setSubChildCategories([]);
-
-                      updateForm("category_id", hasChildren ? "" : id);
-                    }}>
-                    <option>Select Main Category</option>
-                    {parentCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
+                  <select value={selectedChild} onChange={(e) => {
+                    const id = e.target.value; setSelectedChild(id);
+                    const sub = getChildren(id); setSubChildCategories(sub);
+                    updateForm("category_id", sub.length ? "" : id);
+                  }}>
+                    <option value="">Select Sub Category</option>
+                    {childCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
 
-                  <select
-                    value={selectedChild}
-                    onChange={(e) => {
-                      const id = e.target.value;
-                      setSelectedChild(id);
+                  {subChildCategories.length > 0 && (
+                    <select value={form.category_id} onChange={(e) => updateForm("category_id", e.target.value)}>
+                      <option value="">Select Final Category</option>
+                      {subChildCategories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  )}
 
-                      const sub = getChildren(id);
-                      setSubChildCategories(sub);
+                  <input placeholder="Product Name *" required value={form.name}
+                    onChange={(e) => updateForm("name", e.target.value)} />
 
-                      const hasSubCategories = sub.length > 0;
-                      updateForm("category_id", hasSubCategories ? "" : id);
-                    }}>
-                    <option>Select Sub Category</option>
-                    {childCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-
-                  <select
-                    value={form.category_id}
-                    onChange={(e)=>updateForm("category_id", e.target.value)}
-                    disabled={subChildCategories.length === 0}
-                  >
-                    <option>
-                      {subChildCategories.length > 0
-                        ? "Select Final Category"
-                        : "No deeper category available"}
-                    </option>
-                    {subChildCategories.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-
-                  <input
-                    placeholder="Product Name"
-                    value={form.name}
-                    onChange={(e) => updateForm("name", e.target.value)}
-                  />
-
-                  <input
-                    list="brand-options"
-                    placeholder="Brand"
-                    value={form.brand}
-                    onChange={(e) => updateForm("brand", e.target.value)}
-                  />
+                  <input list="brand-options" placeholder="Brand" value={form.brand}
+                    onChange={(e) => updateForm("brand", e.target.value)} />
                   <datalist id="brand-options">
-                    {brands.map((b) => (
-                      <option key={b.id} value={b.name} />
-                    ))}
+                    {brands.map((b) => <option key={b.id} value={b.name} />)}
                   </datalist>
 
-                  <input
-                    placeholder="Short Description"
-                    value={form.short_description}
-                    onChange={(e) => updateForm("short_description", e.target.value)}
-                  />
+                  <input placeholder="Short Description" value={form.short_description}
+                    onChange={(e) => updateForm("short_description", e.target.value)} />
 
-                  <textarea
-                    className="full-width"
-                    placeholder="Full Description"
-                    value={form.full_description}
-                    onChange={(e) => updateForm("full_description", e.target.value)}
-                  />
+                  <textarea className="full-width" rows={3} placeholder="Full Description"
+                    value={form.full_description} onChange={(e) => updateForm("full_description", e.target.value)} />
                 </div>
               </section>
 
+              {/* ── 2. Dark Store & Availability ───────────────────────────── */}
               <section className="form-section">
-                <h4>2. Product Attributes</h4>
+                <h4>2. Dark Store &amp; Availability</h4>
                 <div className="input-grid">
-                  <input placeholder="Fabric" value={form.fabric} onChange={(e) => updateForm("fabric", e.target.value)} />
-                  <input placeholder="Fit" value={form.fit} onChange={(e) => updateForm("fit", e.target.value)} />
-                  <input placeholder="Pattern" value={form.pattern} onChange={(e) => updateForm("pattern", e.target.value)} />
-                  <input placeholder="Sleeve Type" value={form.sleeve_type} onChange={(e) => updateForm("sleeve_type", e.target.value)} />
-                  <input placeholder="Neck Type" value={form.neck_type} onChange={(e) => updateForm("neck_type", e.target.value)} />
-                  <input placeholder="Occasion" value={form.occasion} onChange={(e) => updateForm("occasion", e.target.value)} />
-                  <input placeholder="Season" value={form.season} onChange={(e) => updateForm("season", e.target.value)} />
-                  <input placeholder="Age Group (optional)" value={form.age_group} onChange={(e) => updateForm("age_group", e.target.value)} />
-                  <input
-                    className="full-width"
-                    placeholder="Tags (comma separated, e.g. casual,summer,new)"
-                    value={form.tags}
-                    onChange={(e) => updateForm("tags", e.target.value)}
-                  />
+                  <select value={form.store_id} onChange={(e) => updateForm("store_id", e.target.value)}>
+                    <option value="">Select Dark Store (optional)</option>
+                    {darkStores.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name} — {s.city}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </section>
-
-              <section className="form-section">
-                <h4>3. Store Availability</h4>
                 <div className="toggle-row">
                   <label>
-                    <input
-                      type="checkbox"
-                      checked={form.is_delivery_available}
-                      onChange={(e) => updateForm("is_delivery_available", e.target.checked)}
-                    />
-                    Available for Delivery
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={form.is_store_available}
-                      onChange={(e) => updateForm("is_store_available", e.target.checked)}
-                    />
-                    Available in Store
-                  </label>
-                  <label>
-                    <input
-                      type="checkbox"
-                      checked={form.is_try_enabled}
-                      onChange={(e) => updateForm("is_try_enabled", e.target.checked)}
-                    />
+                    <input type="checkbox" checked={form.is_try_enabled}
+                      onChange={(e) => updateForm("is_try_enabled", e.target.checked)} />
                     Try and Buy Eligible
                   </label>
                 </div>
               </section>
 
+              {/* ── 3. Variants ──────────────────────────────────────── */}
               <section className="form-section">
-                <h4>4. Variants, Pricing and Inventory</h4>
-
+                <h4>3. Variants, Pricing &amp; Inventory</h4>
                 {variants.map((v, i) => (
                   <div key={i} className="variant-block">
-                    <div className="variant-box variant-box-extended">
-                      <input placeholder="Size" value={v.size} onChange={(e) => updateVariant(i, "size", e.target.value)} />
-                      <input placeholder="Color" value={v.color} onChange={(e) => updateVariant(i, "color", e.target.value)} />
-                      <input placeholder="Color Code (#000000)" value={v.color_code} onChange={(e) => updateVariant(i, "color_code", e.target.value)} />
-                      <input type="number" placeholder="MRP" value={v.mrp} onChange={(e) => updateVariant(i, "mrp", e.target.value)} />
-                      <input type="number" placeholder="Selling Price" value={v.price} onChange={(e) => updateVariant(i, "price", e.target.value)} />
-                      <input type="number" placeholder="Discount Price" value={v.discount_price} onChange={(e) => updateVariant(i, "discount_price", e.target.value)} />
-                      <input type="number" placeholder="Low Stock Alert" value={v.low_stock_alert} onChange={(e) => updateVariant(i, "low_stock_alert", e.target.value)} />
-                      {variants.length > 1 ? (
-                        <button type="button" className="remove-btn" onClick={() => removeVariant(i)}>✕</button>
-                      ) : (
-                        <span />
+                    <div className="variant-block-header">
+                      <strong>Variant {i + 1}</strong>
+                      {variants.length > 1 && (
+                        <button type="button" className="remove-btn" onClick={() => removeVariant(i)}>✕ Remove</button>
                       )}
                     </div>
-
-                    <div className="variant-image-row">
-                      <input
-                        type="file"
-                        multiple
-                        onChange={(e) => setVariantImageFiles(i, [...(e.target.files || [])])}
-                      />
-                      <small>Upload variant images (first image becomes primary)</small>
+                    <div className="variant-box variant-box-extended">
+                      <input placeholder="Size *" value={v.size} onChange={(e) => updateVariant(i, "size", e.target.value)} />
+                      <input placeholder="Color *" value={v.color} onChange={(e) => updateVariant(i, "color", e.target.value)} />
+                      <input type="number" min="0" placeholder="MRP (original price)" value={v.mrp}
+                        onChange={(e) => updateVariant(i, "mrp", e.target.value)} />
+                      <input type="number" min="0" placeholder="Selling Price *" value={v.price}
+                        onChange={(e) => updateVariant(i, "price", e.target.value)} />
+                      <input type="number" min="0" placeholder="Stock Quantity" value={v.quantity}
+                        onChange={(e) => updateVariant(i, "quantity", e.target.value)} />
                     </div>
-
-                    {v.imageFiles?.length ? (
+                    <div className="variant-image-row">
+                      <label className="image-upload-label">
+                        <input type="file" multiple accept="image/*"
+                          onChange={(e) => setVariantImageFiles(i, [...(e.target.files || [])])} />
+                        + Add Images
+                      </label>
+                      <small>First image = primary.</small>
+                    </div>
+                    {v.imageFiles?.length > 0 && (
                       <div className="variant-preview-row">
                         {v.imageFiles.map((img, idx) => (
-                          <img key={`${i}-${idx}`} src={URL.createObjectURL(img)} height="70" alt="variant preview" />
+                          <div key={`${i}-${idx}`} className="preview-thumb">
+                            <img src={URL.createObjectURL(img)} height="70" alt="preview" />
+                            <button type="button" className="remove-img-btn" onClick={() => removeImageFile(i, idx)}>✕</button>
+                            {idx === 0 && <span className="primary-badge">Primary</span>}
+                          </div>
                         ))}
                       </div>
-                    ) : null}
+                    )}
                   </div>
                 ))}
-
-                <button type="button" className="add-variant-btn" onClick={addVariant}>
-                  + Add Variant
-                </button>
+                <button type="button" className="add-variant-btn" onClick={addVariant}>+ Add Another Variant</button>
               </section>
 
               <div className="summary-line">
                 <strong>Final Category:</strong> {finalCategoryName || "Not selected"}
               </div>
 
-              <button className="submit-btn" disabled={loading}>
-                {loading ? "Saving Product..." : "Submit Product"}
+              <button className="submit-btn" type="submit" disabled={loading}>
+                {loading ? "Uploading & Saving..." : "Submit Product"}
               </button>
             </form>
-
           </div>
         </main>
       </VendorLayout>

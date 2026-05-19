@@ -26,57 +26,6 @@
   font-size: 13px;
 }
 
-.draft-btn {
-  border: 1px solid #dbe2dd;
-  background: #fff;
-  border-radius: 8px;
-  padding: 8px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #374151;
-  cursor: pointer;
-}
-
-.add-product-steps {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
-  margin-bottom: 20px;
-}
-
-.step-item {
-  border-bottom: 2px solid #e6ece8;
-  padding: 8px 0 10px;
-  color: #6b7280;
-  font-size: 13px;
-  font-weight: 700;
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.step-item span {
-  width: 20px;
-  height: 20px;
-  border-radius: 999px;
-  background: #f2f4f3;
-  color: #6b7280;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-}
-
-.step-item.active {
-  border-bottom-color: #16a34a;
-  color: #15803d;
-}
-
-.step-item.active span {
-  background: #16a34a;
-  color: #fff;
-}
-
 .form-section {
   border: 1px solid #e7ece8;
   border-radius: 10px;
@@ -269,10 +218,6 @@
     padding: 14px;
   }
 
-  .add-product-steps {
-    grid-template-columns: 1fr;
-  }
-
   .input-grid,
   .variant-box-extended {
     grid-template-columns: 1fr;
@@ -285,4 +230,74 @@
   .submit-btn {
     width: 100%;
   }
+}
+
+/* ── New variant/image styles ─────────────────────────────────────── */
+.variant-block-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.color-code-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-upload-label {
+  display: inline-block;
+  padding: 8px 16px;
+  background: #f0fdf4;
+  border: 1.5px dashed #16a34a;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: #16a34a;
+  font-weight: 600;
+}
+
+.image-upload-label input[type="file"] {
+  display: none;
+}
+
+.preview-thumb {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.preview-thumb img {
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  object-fit: cover;
+}
+
+.remove-img-btn {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #ef4444;
+  color: white;
+  border: none;
+  cursor: pointer;
+  font-size: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.primary-badge {
+  font-size: 9px;
+  background: #16a34a;
+  color: white;
+  border-radius: 4px;
+  padding: 1px 5px;
 }
