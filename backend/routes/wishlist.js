@@ -28,7 +28,7 @@ router.get("/:userId", async (req, res) => {
         pv.size,
         pv.color,
         pv.price,
-        pv.discount_price,
+        NULL AS discount_price,
         COALESCE(pm.url, '') AS image,
         COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0) AS available_stock
       FROM wishlists w
@@ -38,8 +38,8 @@ router.get("/:userId", async (req, res) => {
       LEFT JOIN LATERAL (
         SELECT url
         FROM product_media
-        WHERE product_id = p.id
-        ORDER BY is_primary DESC, sort_order ASC, id ASC
+        WHERE variant_id = w.variant_id
+        ORDER BY is_primary DESC, id ASC
         LIMIT 1
       ) pm ON true
       LEFT JOIN inventory inv ON inv.variant_id = pv.id

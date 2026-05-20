@@ -127,9 +127,9 @@ router.post("/addresses", async (req, res) => {
 });
 
 // ── POST /api/checkout/orders ─────────────────────────────────────────────────
-// Body: { userId, addressId, items: [{variantId, quantity, price}], totalAmount }
+// Body: { userId, addressId, items: [{variantId, quantity, price}], totalAmount, isTryOrder? }
 router.post("/orders", async (req, res) => {
-  const { userId, addressId, items, totalAmount } = req.body;
+  const { userId, addressId, items, totalAmount, isTryOrder } = req.body;
   if (!userId || !addressId || !items?.length || !totalAmount) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
@@ -194,10 +194,10 @@ router.post("/orders", async (req, res) => {
     const { rows: orderRows } = await client.query(
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
-          payment_method, dark_store_id)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5)
+          payment_method, dark_store_id, is_try_order)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6)
        RETURNING id, status, total_amount, final_amount, created_at`,
-      [userId, addressId, itemsSubtotal, finalAmount, darkStoreId]
+      [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true]
     );
     const order = orderRows[0];
 
@@ -288,6 +288,7 @@ router.get("/orders/:orderId", async (req, res) => {
          o.payment_method,
          o.is_try_order,
          o.created_at,
+         o.confirmed_at,
          u.name   AS customer_name,
          u.phone  AS customer_phone,
          a.address_line,
@@ -352,6 +353,8 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
           'name', ru.name, 'phone', ru.phone,
           'vehicle_type', r.vehicle_type, 'vehicle_number', r.vehicle_number
         ) END AS rider,
+        d.store_pickup_otp,
+        d.store_pickup_verified_at,
         json_agg(json_build_object(
           'variant_id', oi.variant_id,
           'quantity',   oi.quantity,
@@ -368,7 +371,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
       JOIN product_variants v ON v.id = oi.variant_id
       JOIN products p ON p.id = v.product_id
       LEFT JOIN deliveries d  ON d.order_id = o.id AND d.is_active = TRUE
-      LEFT JOIN riders r      ON r.id = d.rider_id
+      LEFT JOIN "Riders" r     ON r.id = d.rider_id
       LEFT JOIN users ru      ON ru.id = r.user_id
       WHERE o.dark_store_id = $1
     `;
@@ -377,7 +380,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
       query += ` AND o.status = $2`;
       values.push(status);
     }
-    query += ` GROUP BY o.id, u.name, u.phone, a.address_line, a.city, a.pincode, d.id, ru.name, ru.phone, r.vehicle_type, r.vehicle_number ORDER BY o.created_at DESC`;
+    query += ` GROUP BY o.id, u.name, u.phone, a.address_line, a.city, a.pincode, d.id, d.store_pickup_otp, d.store_pickup_verified_at, ru.name, ru.phone, r.vehicle_type, r.vehicle_number ORDER BY o.created_at DESC`;
 
     const { rows } = await pool.query(query, values);
     res.json({ success: true, orders: rows });
@@ -396,8 +399,11 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid status" });
   }
   try {
+    // Auto-create confirmed_at column if it doesn't exist
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
+    const confirmClause = status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : '';
     const { rows } = await pool.query(
-      `UPDATE orders SET status = $1 WHERE id = $2 RETURNING id, status`,
+      `UPDATE orders SET status = $1${confirmClause} WHERE id = $2 RETURNING id, status`,
       [status, orderId]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
@@ -439,7 +445,7 @@ router.get("/orders/:orderId/rider", async (req, res) => {
          d.id          AS delivery_id,
          d.status      AS delivery_status
        FROM deliveries d
-       JOIN riders r ON r.id = d.rider_id
+       JOIN "Riders" r ON r.id = d.rider_id
        JOIN users  u ON u.id = r.user_id
        WHERE d.order_id = $1 AND d.is_active = TRUE
        LIMIT 1`,
@@ -470,6 +476,34 @@ router.get("/orders/:orderId/location", async (req, res) => {
     res.json({ success: true, location: rows[0] });
   } catch (err) {
     console.error("GET location error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── GET /api/checkout/orders/:orderId/delivery-status ────────────────────────
+// Customer polls this to get OTP + try-buy status
+router.get("/orders/:orderId/delivery-status", async (req, res) => {
+  const { orderId } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `SELECT o.delivery_otp,
+              o.otp_verified_at,
+              o.is_try_order,
+              o.try_buy_mode,
+              o.try_buy_started_at,
+              o.try_buy_deadline,
+              o.try_buy_decision,
+              o.status AS order_status,
+              d.status AS delivery_status
+       FROM orders o
+       LEFT JOIN deliveries d ON d.order_id = o.id AND d.is_active = TRUE
+       WHERE o.id = $1`,
+      [orderId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
+    res.json({ success: true, data: rows[0] });
+  } catch (err) {
+    console.error("GET delivery-status error:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 });

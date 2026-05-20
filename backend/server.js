@@ -13,6 +13,7 @@ import uploadRoutes from "./routes/upload.js";
 import wishlistRoutes from "./routes/wishlist.js";
 import cartRoutes from "./routes/cart.js";
 import checkoutRoutes from "./routes/checkout.js";
+import usersRoutes from "./routes/users.js";
 
 const app = express();
 
@@ -56,6 +57,7 @@ app.use("/api/upload", uploadRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
+app.use("/api/users", usersRoutes);
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
 

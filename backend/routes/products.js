@@ -246,6 +246,41 @@ router.get("/full/:id", async (req, res) => {
   }
 });
 router.post("/create", createProductSimple);
+
+// ── GET /bestsellers ────────────────────────────────────────────────────────
+router.get("/bestsellers", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+    const result = await pool.query(
+      `SELECT
+         p.id, p.name,
+         COALESCE(b.name, '') AS brand,
+         COALESCE(c.name, '') AS category_name,
+         MIN(v.price)                         AS price,
+         MIN(COALESCE(v.mrp, v.price))        AS original_price,
+         (
+           SELECT pm.url FROM product_media pm
+           JOIN product_variants pv ON pv.id = pm.variant_id
+           WHERE pv.product_id = p.id AND pm.is_primary = true
+           LIMIT 1
+         )                                    AS image
+       FROM products p
+       LEFT JOIN brands b       ON b.id = p.brand_id
+       LEFT JOIN categories c   ON c.id = p.category_id
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+       WHERE p.bestseller = true
+       GROUP BY p.id, b.name, c.name
+       ORDER BY p.id
+       LIMIT $1`,
+      [limit]
+    );
+    res.json({ bestsellers: result.rows });
+  } catch (err) {
+    console.error("BESTSELLERS ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;
@@ -307,6 +342,10 @@ router.get("/", async (req, res) => {
       min_price,
       max_price,
       color,
+      search,
+      sort,
+      limit,
+      offset,
       lat,
       lng,
     } = req.query;
@@ -375,8 +414,18 @@ router.get("/", async (req, res) => {
     }
 
     if (category_id) {
-      query += ` AND p.category_id = $${index++}`;
+      // match the category itself + children + grandchildren (3 levels)
+      query += ` AND p.category_id IN (
+        SELECT id FROM categories WHERE id = $${index}
+        UNION
+        SELECT id FROM categories WHERE parent_id = $${index}
+        UNION
+        SELECT c2.id FROM categories c2
+          JOIN categories c1 ON c2.parent_id = c1.id
+          WHERE c1.parent_id = $${index}
+      )`;
       values.push(category_id);
+      index++;
     }
 
     if (min_price) {
@@ -418,12 +467,30 @@ router.get("/", async (req, res) => {
       values.push(color);
     }
 
-    query += ` ORDER BY p.id DESC`;
+    if (search) {
+      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}))`;
+      const term = `%${search}%`;
+      values.push(term, term);
+    }
+
+    const sortMap = {
+      price_asc: 'pv.sell_price ASC NULLS LAST',
+      price_desc: 'pv.sell_price DESC NULLS LAST',
+      newest: 'p.id DESC',
+      name_asc: 'p.name ASC',
+    };
+    query += ` ORDER BY ${sortMap[sort] || 'p.id DESC'}`;
+
+    const pageLimit = Math.min(parseInt(limit) || 40, 100);
+    const pageOffset = parseInt(offset) || 0;
+    query += ` LIMIT $${index++} OFFSET $${index++}`;
+    values.push(pageLimit, pageOffset);
 
     const result = await pool.query(query, values);
 
     res.json({
       products: result.rows,
+      total: result.rowCount,
       nearestStore: nearestStoreName
         ? { name: nearestStoreName, city: nearestStoreCity }
         : null,
@@ -434,5 +501,7 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
 // ✅ IMPORTANT EXPORT
 export default router;
+

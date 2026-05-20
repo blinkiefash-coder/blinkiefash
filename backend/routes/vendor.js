@@ -81,19 +81,19 @@ router.get("/:id/products", async (req, res) => {
               p.category_id,
               b.name AS brand_name,
               c.name AS category_name,
-              COALESCE(
-                (SELECT url FROM product_media WHERE product_id = p.id AND is_primary = true LIMIT 1),
-                (SELECT url FROM product_media WHERE product_id = p.id LIMIT 1)
-              ) AS image_url,
-              pv.price, pv.discount_price
+              (SELECT pm.url FROM product_media pm
+               JOIN product_variants pv2 ON pv2.id = pm.variant_id
+               WHERE pv2.product_id = p.id
+               ORDER BY pm.is_primary DESC, pm.id ASC LIMIT 1) AS image_url,
+              pv.price, NULL AS discount_price
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
        LEFT JOIN LATERAL (
-         SELECT v.price, v.discount_price
+         SELECT v.price
          FROM product_variants v
          WHERE v.product_id = p.id AND v.is_active = true
-         ORDER BY COALESCE(v.discount_price, v.price) ASC
+         ORDER BY v.price ASC
          LIMIT 1
        ) pv ON true
        WHERE p.vendor_id = $1 AND p.is_active = true

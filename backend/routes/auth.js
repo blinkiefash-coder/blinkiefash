@@ -387,4 +387,61 @@ router.post("/login-password", async (req, res) => {
   }
 });
 
+// POST /login/google — sign in / auto-register via Firebase Google auth
+router.post("/google", async (req, res) => {
+  try {
+    const { idToken } = req.body;
+    if (!idToken) return res.json({ success: false, message: "Firebase ID token required" });
+
+    const firebaseAuth = getFirebaseAdminAuth();
+    const decoded = await firebaseAuth.verifyIdToken(idToken);
+    const googleUid = decoded.uid;
+    const email = (decoded.email || "").trim().toLowerCase();
+    const name = (decoded.name || decoded.display_name || "User").trim();
+
+    // Find by google_uid first, then fall back to email
+    let userResult = await pool.query(
+      `SELECT id, name, phone, email, role FROM users WHERE google_uid = $1 LIMIT 1`,
+      [googleUid]
+    );
+
+    if (userResult.rows.length === 0 && email) {
+      userResult = await pool.query(
+        `SELECT id, name, phone, email, role FROM users WHERE lower(email) = $1 LIMIT 1`,
+        [email]
+      );
+      if (userResult.rows.length > 0) {
+        await pool.query(
+          `UPDATE users SET google_uid = $1, updated_at = NOW() WHERE id = $2`,
+          [googleUid, userResult.rows[0].id]
+        ).catch(() => {});
+      }
+    }
+
+    let user;
+    if (userResult.rows.length > 0) {
+      user = userResult.rows[0];
+    } else {
+      const result = await pool.query(
+        `INSERT INTO users (name, email, google_uid, role, is_active, created_at, updated_at)
+         VALUES ($1, $2, $3, 'customer', true, NOW(), NOW())
+         RETURNING id, name, phone, email, role`,
+        [name || "User", email || null, googleUid]
+      );
+      user = result.rows[0];
+    }
+
+    return res.json({
+      success: true,
+      token: `session_${user.id}_${Date.now()}`,
+      user: { id: user.id, name: user.name, phone: user.phone, email: user.email, role: user.role },
+      isNewUser: !user.phone,
+      message: "Google sign-in successful",
+    });
+  } catch (err) {
+    console.error("Google auth error:", err);
+    return res.status(500).json({ success: false, error: err.message || "Server error" });
+  }
+});
+
 export default router;

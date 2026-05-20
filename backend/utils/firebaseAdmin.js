@@ -59,9 +59,9 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
  */
 export async function notifyAvailableRiders(pool, orderId) {
   try {
+    // "Riders" is the Sequelize-created table (uppercase); 'riders' lowercase is empty migration table
     const { rows } = await pool.query(
-      `SELECT r.fcm_token FROM riders r
-       JOIN users u ON u.id = r.user_id
+      `SELECT r.fcm_token FROM "Riders" r
        WHERE r.is_available = TRUE AND r.fcm_token IS NOT NULL AND r.fcm_token != ''`
     );
     await Promise.all(rows.map(r => sendPush(r.fcm_token, {
