@@ -28,6 +28,7 @@ const TERMINAL_STATUSES = ["delivered", "completed", "cancelled"];
 const FLOW_ORDER = ["placed", "confirmed", "packed", "picked", "out_for_delivery", "delivered"];
 
 function getAvailableActions(currentStatus) {
+  if (TERMINAL_STATUSES.includes(currentStatus)) return [];
   const curIdx = FLOW_ORDER.indexOf(currentStatus);
   return STATUS_FLOW.filter(s => {
     if (s.val === "cancelled") return !TERMINAL_STATUSES.includes(currentStatus);
@@ -261,6 +262,13 @@ export default function DarkStore() {
 function OrderCard({ order, onStatusChange }) {
   const meta = STATUS_META[order.status] || STATUS_META.placed;
   const rider = order.rider;
+  const [cancelConfirm, setCancelConfirm] = useState(false);
+
+  const forwardActions = getAvailableActions(order.status).filter(s => s.val !== "cancelled");
+  const canCancel = !TERMINAL_STATUSES.includes(order.status);
+
+  // Store pickup OTP — show when rider has requested pickup and it's not yet verified
+  const showPickupOtp = order.store_pickup_otp && !order.store_pickup_verified_at;
 
   return (
     <div className="ds-order-card" style={{ borderLeftColor: meta.color }}>
@@ -282,6 +290,30 @@ function OrderCard({ order, onStatusChange }) {
           <div className="ds-payment">{(order.payment_method || "cod").toUpperCase()}</div>
         </div>
       </div>
+
+      {/* ── Store Pickup OTP — shown when rider arrives at store ── */}
+      {showPickupOtp && (
+        <div className="ds-pickup-otp-box">
+          <div className="ds-pickup-otp-title">
+            🛵 Rider is at your store — give this PIN
+          </div>
+          <div className="ds-pickup-otp-digits">
+            {order.store_pickup_otp.split("").map((d, i) => (
+              <span key={i} className="ds-otp-digit">{d}</span>
+            ))}
+          </div>
+          <div className="ds-pickup-otp-hint">
+            Tell the rider this 4-digit PIN to confirm pickup
+          </div>
+        </div>
+      )}
+
+      {/* Verified banner */}
+      {order.store_pickup_otp && order.store_pickup_verified_at && (
+        <div className="ds-pickup-verified">
+          ✅ Pickup PIN verified — items handed over
+        </div>
+      )}
 
       {/* Address */}
       <div className="ds-address">
@@ -327,7 +359,7 @@ function OrderCard({ order, onStatusChange }) {
       <div className="ds-order-footer">
         <span className="ds-total">Total: ₹{Number(order.total_amount).toLocaleString("en-IN")}</span>
         <div className="ds-actions">
-          {getAvailableActions(order.status).map(s => (
+          {forwardActions.map(s => (
             <button
               key={s.val}
               className={`ds-action-btn ds-action-${s.val}`}
@@ -337,6 +369,33 @@ function OrderCard({ order, onStatusChange }) {
             </button>
           ))}
         </div>
+        {canCancel && !cancelConfirm && (
+          <div className="ds-cancel-row">
+            <button
+              className="ds-action-btn ds-action-cancelled ds-cancel-ghost"
+              onClick={() => setCancelConfirm(true)}
+            >
+              ✗ Cancel Order
+            </button>
+          </div>
+        )}
+        {cancelConfirm && (
+          <div className="ds-cancel-confirm">
+            <span className="ds-cancel-prompt">Cancel this order?</span>
+            <button
+              className="ds-action-btn ds-action-cancelled"
+              onClick={() => { onStatusChange(order.id, "cancelled"); setCancelConfirm(false); }}
+            >
+              Yes, Cancel
+            </button>
+            <button
+              className="ds-action-btn ds-cancel-keep"
+              onClick={() => setCancelConfirm(false)}
+            >
+              No, Keep
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
