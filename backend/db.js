@@ -100,7 +100,7 @@ export const ensureDatabaseTables = async () => {
 
   // Create riders table for storing rider-specific information
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS riders (
+    CREATE TABLE IF NOT EXISTS Riders (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       license_number VARCHAR(50),
@@ -114,6 +114,6 @@ export const ensureDatabaseTables = async () => {
   `);
 
   await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_riders_user ON riders(user_id);
+    CREATE INDEX IF NOT EXISTS idx_riders_user ON Riders(user_id);
   `);
 };

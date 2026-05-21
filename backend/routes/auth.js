@@ -101,7 +101,7 @@ router.post("/register", async (req, res) => {
     if (userRole === 'rider') {
       const { vehicleType, vehicleNumber, licenseNumber } = req.body;
       await pool.query(
-        `INSERT INTO riders (user_id, license_number, vehicle_type, vehicle_number, is_active, created_at, updated_at)
+        `INSERT INTO Riders (user_id, license_number, vehicle_type, vehicle_number, is_active, created_at, updated_at)
          VALUES ($1, $2, $3, $4, false, NOW(), NOW())
          ON CONFLICT (user_id) DO NOTHING`,
         [userId, licenseNumber || null, vehicleType || 'Bike', vehicleNumber || null]
