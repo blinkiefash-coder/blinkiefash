@@ -99,19 +99,28 @@ router.post("/register", async (req, res) => {
 
     // If rider role, create rider profile
     if (userRole === 'rider') {
+      const { vehicleType, vehicleNumber, licenseNumber } = req.body;
       try {
-        const { vehicleType, vehicleNumber, licenseNumber } = req.body;
-        const riderRes = await pool.query(
+        await pool.query(
           `INSERT INTO Riders (user_id, vehicle_type, vehicle_number, is_available, is_verified, createdAt, updatedAt)
-           VALUES ($1, $2, $3, false, false, NOW(), NOW())
-           ON CONFLICT (user_id) DO UPDATE SET updatedAt = NOW()`,
+           VALUES ($1, $2, $3, false, false, NOW(), NOW())`,
           [userId, vehicleType || 'Bike', vehicleNumber || null]
         );
         console.log("✅ Rider profile created:", { userId, vehicleType, vehicleNumber });
       } catch (riderErr) {
-        console.error("❌ Rider profile creation error:", riderErr.message);
-        console.error("Full error:", riderErr);
-        // Don't fail registration if rider table insert fails
+        console.error("❌ Rider insert failed:", riderErr.message);
+        console.error("Query error code:", riderErr.code);
+        // Try without timestamps to debug
+        try {
+          await pool.query(
+            `INSERT INTO Riders (user_id, vehicle_type, vehicle_number, is_available, is_verified)
+             VALUES ($1, $2, $3, false, false)`,
+            [userId, vehicleType || 'Bike', vehicleNumber || null]
+          );
+          console.log("✅ Rider profile created (without timestamps)");
+        } catch (err2) {
+          console.error("❌ Rider insert also failed without timestamps:", err2.message);
+        }
       }
     }
 
