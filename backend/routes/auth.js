@@ -102,10 +102,10 @@ router.post("/register", async (req, res) => {
       try {
         const { vehicleType, vehicleNumber, licenseNumber } = req.body;
         await pool.query(
-          `INSERT INTO Riders (user_id, license_number, vehicle_type, vehicle_number, is_active, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, false, NOW(), NOW())
-           ON CONFLICT (user_id) DO UPDATE SET updated_at = NOW()`,
-          [userId, licenseNumber || null, vehicleType || 'Bike', vehicleNumber || null]
+          `INSERT INTO Riders (user_id, vehicle_type, vehicle_number, is_available, is_verified, createdAt, updatedAt)
+           VALUES ($1, $2, $3, false, false, NOW(), NOW())
+           ON CONFLICT (user_id) DO UPDATE SET updatedAt = NOW()`,
+          [userId, vehicleType || 'Bike', vehicleNumber || null]
         );
       } catch (riderErr) {
         console.error("Rider profile creation error:", riderErr);
