@@ -19,6 +19,7 @@ import Policies from "./pages/Policies";
 import AdminPinGate from "./pages/AdminPinGate";
 import SellerRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
+import PasswordReset from "./pages/PasswordReset";
 
 function App() {
   const [isPinVerified, setIsPinVerified] = useState(
@@ -41,6 +42,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/password-reset" element={<PasswordReset />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/home" element={<Home />} />
           <Route path="/shop" element={<Shop />} />

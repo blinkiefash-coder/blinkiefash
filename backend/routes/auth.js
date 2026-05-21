@@ -45,11 +45,12 @@ const canUseServerOtp =
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, email } = req.body;
+    const { name, phone, email, role } = req.body;
     const normalizedPhone = normalizePhone(phone);
     const formattedPhone = formatPhoneForStorage(phone);
     const trimmedName = String(name || "").trim();
     const trimmedEmail = String(email || "").trim().toLowerCase();
+    const userRole = String(role || "customer").toLowerCase();
 
     if (!trimmedName || !normalizedPhone) {
       return res.json({
@@ -89,9 +90,9 @@ router.post("/register", async (req, res) => {
 
     const insertResult = await pool.query(
       `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
-       VALUES ($1, $2, $3, 'customer', true, NOW(), NOW())
+       VALUES ($1, $2, $3, $4, true, NOW(), NOW())
        RETURNING id, name, phone, email, role, is_active`,
-      [trimmedName, formattedPhone, trimmedEmail || null]
+      [trimmedName, formattedPhone, trimmedEmail || null, userRole]
     );
 
     return res.json({
@@ -305,7 +306,7 @@ router.post("/set-password", async (req, res) => {
     }
 
     const userResult = await pool.query(
-      `SELECT id FROM users
+      `SELECT id, name, phone, role FROM users
        WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1 LIMIT 1`,
       [normalizedPhone]
     );
@@ -314,6 +315,7 @@ router.post("/set-password", async (req, res) => {
       return res.json({ success: false, message: "Phone number not found. Please register first." });
     }
 
+    const user = userResult.rows[0];
     const salt = crypto.randomBytes(16).toString("hex");
     const hash = hashPassword(String(password), salt);
 
@@ -323,7 +325,12 @@ router.post("/set-password", async (req, res) => {
       [hash, salt, normalizedPhone]
     );
 
-    return res.json({ success: true, message: "Password set successfully" });
+    return res.json({ 
+      success: true, 
+      message: "Password set successfully",
+      token: `session_${user.id}_${Date.now()}`,
+      user: { id: user.id, name: user.name, phone: user.phone, role: user.role }
+    });
   } catch (err) {
     console.error("Set password error:", err);
     return res.status(500).json({ success: false, error: "Server error" });
