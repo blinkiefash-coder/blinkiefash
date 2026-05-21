@@ -97,4 +97,23 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS password_hash TEXT,
       ADD COLUMN IF NOT EXISTS password_salt TEXT;
   `);
+
+  // Create riders table for storing rider-specific information
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS riders (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      license_number VARCHAR(50),
+      vehicle_type VARCHAR(50) DEFAULT 'Bike',
+      vehicle_number VARCHAR(50),
+      is_active BOOLEAN DEFAULT false,
+      approval_status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_riders_user ON riders(user_id);
+  `);
 };
