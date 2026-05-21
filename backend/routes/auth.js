@@ -101,14 +101,16 @@ router.post("/register", async (req, res) => {
     if (userRole === 'rider') {
       try {
         const { vehicleType, vehicleNumber, licenseNumber } = req.body;
-        await pool.query(
+        const riderRes = await pool.query(
           `INSERT INTO Riders (user_id, vehicle_type, vehicle_number, is_available, is_verified, createdAt, updatedAt)
            VALUES ($1, $2, $3, false, false, NOW(), NOW())
            ON CONFLICT (user_id) DO UPDATE SET updatedAt = NOW()`,
           [userId, vehicleType || 'Bike', vehicleNumber || null]
         );
+        console.log("✅ Rider profile created:", { userId, vehicleType, vehicleNumber });
       } catch (riderErr) {
-        console.error("Rider profile creation error:", riderErr);
+        console.error("❌ Rider profile creation error:", riderErr.message);
+        console.error("Full error:", riderErr);
         // Don't fail registration if rider table insert fails
       }
     }
