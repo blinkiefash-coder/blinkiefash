@@ -258,11 +258,19 @@ router.get("/bestsellers", async (req, res) => {
          COALESCE(c.name, '') AS category_name,
          MIN(v.price)                         AS price,
          MIN(COALESCE(v.mrp, v.price))        AS original_price,
-         (
-           SELECT pm.url FROM product_media pm
-           JOIN product_variants pv ON pv.id = pm.variant_id
-           WHERE pv.product_id = p.id AND pm.is_primary = true
-           LIMIT 1
+         COALESCE(
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id AND pm.is_primary = true
+             LIMIT 1
+           ),
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id
+             LIMIT 1
+           )
          )                                    AS image
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
@@ -392,7 +400,10 @@ router.get("/", async (req, res) => {
           v.mrp,
           v.price AS sell_price,
           GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
-          (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1) AS image
+          COALESCE(
+            (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1),
+            (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1)
+          ) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
