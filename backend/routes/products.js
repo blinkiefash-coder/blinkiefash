@@ -402,7 +402,13 @@ router.get("/", async (req, res) => {
           GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
           COALESCE(
             (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1),
-            (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1)
+            (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1),
+            (SELECT pm.url FROM product_media pm
+             JOIN product_variants pv2 ON pv2.id = pm.variant_id
+             WHERE pv2.product_id = p.id AND pm.is_primary = true LIMIT 1),
+            (SELECT pm.url FROM product_media pm
+             JOIN product_variants pv2 ON pv2.id = pm.variant_id
+             WHERE pv2.product_id = p.id LIMIT 1)
           ) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
