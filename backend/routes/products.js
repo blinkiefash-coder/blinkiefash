@@ -251,6 +251,24 @@ router.post("/create", createProductSimple);
 router.get("/bestsellers", async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+    const store_id = req.query.store_id || null;
+
+    const values = [];
+    let index = 1;
+
+    let storeCondition = '';
+    if (store_id) {
+      values.push(store_id);
+      storeCondition = `AND EXISTS (
+        SELECT 1 FROM product_variants sv
+        JOIN inventory si ON si.variant_id = sv.id
+        WHERE sv.product_id = p.id AND sv.is_active = true
+          AND si.store_id = $${index++}
+          AND GREATEST(COALESCE(si.stock, 0) - COALESCE(si.reserved_stock, 0), 0) > 0
+      )`;
+    }
+
+    values.push(limit);
     const result = await pool.query(
       `SELECT
          p.id, p.name,
@@ -277,10 +295,11 @@ router.get("/bestsellers", async (req, res) => {
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
        WHERE p.bestseller = true
+         ${storeCondition}
        GROUP BY p.id, b.name, c.name
        ORDER BY p.id
-       LIMIT $1`,
-      [limit]
+       LIMIT $${index}`,
+      values
     );
     res.json({ bestsellers: result.rows });
   } catch (err) {
@@ -356,15 +375,17 @@ router.get("/", async (req, res) => {
       offset,
       lat,
       lng,
+      store_id,   // explicit store override from frontend
     } = req.query;
 
     // Find nearest dark store when coordinates are provided
     let nearestStoreName = null;
     let nearestStoreCity = null;
     let nearestStoreDist = null;
+    let nearestStoreId = null;
     if (lat && lng) {
       const { rows: storeRows } = await pool.query(
-        `SELECT name, city,
+        `SELECT id, name, city,
            6371 * acos(
              cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) +
              sin(radians($1)) * sin(radians(lat))
@@ -374,10 +395,25 @@ router.get("/", async (req, res) => {
         [parseFloat(lat), parseFloat(lng)]
       );
       if (storeRows.length) {
+        nearestStoreId = storeRows[0].id;
         nearestStoreName = storeRows[0].name;
         nearestStoreCity = storeRows[0].city;
         nearestStoreDist = parseFloat(storeRows[0].dist);
       }
+    }
+
+    // Effective store: explicit param first, then nearest from lat/lng
+    const effectiveStoreId = store_id || nearestStoreId || null;
+
+    // Build parameter list — store_id is ALWAYS $1 when present so LATERAL
+    // can reference it by position before other dynamic conditions are added.
+    const values = [];
+    let index = 1;
+
+    let storeInvCondition = '';
+    if (effectiveStoreId) {
+      values.push(effectiveStoreId);
+      storeInvCondition = `AND inv.store_id = $${index++}`;
     }
 
     let query = `
@@ -416,6 +452,7 @@ router.get("/", async (req, res) => {
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
+          ${storeInvCondition}
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
         ORDER BY v.price ASC, v.id ASC
         LIMIT 1
@@ -423,9 +460,6 @@ router.get("/", async (req, res) => {
       WHERE 1=1
         AND pv.variant_id IS NOT NULL
     `;
-
-    const values = [];
-    let index = 1;
 
     if (brand_id) {
       query += ` AND p.brand_id = $${index++}`;
@@ -454,6 +488,7 @@ router.get("/", async (req, res) => {
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
+          ${storeInvCondition}
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND v.price >= $${index++}
       )`;
@@ -467,6 +502,7 @@ router.get("/", async (req, res) => {
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
+          ${storeInvCondition}
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND v.price <= $${index++}
       )`;
@@ -480,6 +516,7 @@ router.get("/", async (req, res) => {
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
+          ${storeInvCondition}
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND lower(v.color) = lower($${index++})
       )`;
@@ -511,7 +548,7 @@ router.get("/", async (req, res) => {
       products: result.rows,
       total: result.rowCount,
       nearestStore: nearestStoreName
-        ? { name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
+        ? { id: nearestStoreId, name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
         : null,
       locationProvided: !!(lat && lng),
     });
