@@ -361,6 +361,7 @@ router.get("/", async (req, res) => {
     // Find nearest dark store when coordinates are provided
     let nearestStoreName = null;
     let nearestStoreCity = null;
+    let nearestStoreDist = null;
     if (lat && lng) {
       const { rows: storeRows } = await pool.query(
         `SELECT name, city,
@@ -375,6 +376,7 @@ router.get("/", async (req, res) => {
       if (storeRows.length) {
         nearestStoreName = storeRows[0].name;
         nearestStoreCity = storeRows[0].city;
+        nearestStoreDist = parseFloat(storeRows[0].dist);
       }
     }
 
@@ -509,8 +511,9 @@ router.get("/", async (req, res) => {
       products: result.rows,
       total: result.rowCount,
       nearestStore: nearestStoreName
-        ? { name: nearestStoreName, city: nearestStoreCity }
+        ? { name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
         : null,
+      locationProvided: !!(lat && lng),
     });
 
   } catch (err) {
