@@ -19,13 +19,11 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 // ── Delivery fee rules ────────────────────────────────────────────────────────
 // - subtotal > 1499 → 0
-// - distance ≤ 20 km → 0
-// - 20 km < distance ≤ 30 km → 59
-// - distance > 30 km → null (out of range)
+// - distance ≤ 15 km → 49
+// - distance > 15 km → null (out of range)
 function calcDeliveryFee(subtotal, distanceKm) {
   if (subtotal > 1499) return 0;
-  if (distanceKm <= 20) return 0;
-  if (distanceKm <= 30) return 59;
+  if (distanceKm <= 15) return 49;
   return null; // out of range
 }
 
@@ -126,6 +124,19 @@ router.post("/addresses", async (req, res) => {
   }
 });
 
+// ── DELETE /api/checkout/addresses/:id ────────────────────────────────────────
+router.delete("/addresses/:id", async (req, res) => {
+  const { id } = req.params;
+  if (!id) return res.status(400).json({ success: false, message: "Address ID required" });
+  try {
+    await pool.query(`DELETE FROM addresses WHERE id = $1`, [id]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("DELETE address error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // ── POST /api/checkout/orders ─────────────────────────────────────────────────
 // Body: { userId, addressId, items: [{variantId, quantity, price}], totalAmount, isTryOrder? }
 router.post("/orders", async (req, res) => {
@@ -182,7 +193,7 @@ router.post("/orders", async (req, res) => {
       const calcFee = calcDeliveryFee(itemsSubtotal, distanceKm);
       if (calcFee === null) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 30 km from our nearest store." });
+        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from our nearest store." });
       }
       deliveryFee = calcFee;
     } else {
