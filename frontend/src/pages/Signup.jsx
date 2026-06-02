@@ -24,6 +24,7 @@ export default function Signup() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState(initialPhone);
+  const [referralCode, setReferralCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -53,6 +54,7 @@ export default function Signup() {
           name: name.trim(),
           email: email.trim() || null,
           phone: formattedPhone,
+          referralCode: referralCode.trim().toUpperCase() || null,
         }),
       });
 
@@ -113,6 +115,18 @@ export default function Signup() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter email"
+              disabled={loading}
+            />
+          </label>
+
+          <label>
+            Referral code (optional)
+            <input
+              type="text"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+              placeholder="Have a friend's code? Enter it for ₹50 off"
+              maxLength={20}
               disabled={loading}
             />
           </label>

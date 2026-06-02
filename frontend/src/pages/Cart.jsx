@@ -304,7 +304,7 @@ export default function Cart() {
             <button
               className="checkout-btn"
               disabled={selectedItems.length === 0}
-              onClick={() => alert("Proceeding to checkout...")}
+              onClick={() => navigate("/checkout")}
             >
               Proceed to Checkout →
             </button>

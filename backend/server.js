@@ -14,6 +14,8 @@ import wishlistRoutes from "./routes/wishlist.js";
 import cartRoutes from "./routes/cart.js";
 import checkoutRoutes from "./routes/checkout.js";
 import usersRoutes from "./routes/users.js";
+import referralRoutes from "./routes/referrals.js";
+import oldClothesRoutes from "./routes/oldClothes.js";
 
 const app = express();
 
@@ -58,6 +60,8 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use("/api/checkout", checkoutRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/referrals", referralRoutes);
+app.use("/api/old-clothes", oldClothesRoutes);
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
 

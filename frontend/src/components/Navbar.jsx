@@ -14,6 +14,7 @@ export default function Navbar({ active }) {
   const [locating, setLocating] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -180,8 +181,26 @@ export default function Navbar({ active }) {
 
   const tabs = ["ALL", "WOMEN", "MEN", "KIDS", "BEAUTY", "HOMELIVING"];
 
+  const closeDrawer = () => setDrawerOpen(false);
+  const drawerNav = (path) => {
+    closeDrawer();
+    navigate(path);
+  };
+
   return (
     <header className="navbar">
+      {/* ===== Mobile-only hamburger ===== */}
+      <button
+        type="button"
+        className="nav-hamburger"
+        aria-label="Open menu"
+        onClick={() => setDrawerOpen(true)}
+      >
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#111827" strokeWidth="2.2" strokeLinecap="round">
+          <path d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+
       <div className="nav-left">
         <img src={logo} alt="Blinkiefash" className="logo-img" />
 
@@ -299,8 +318,11 @@ export default function Navbar({ active }) {
 
             {profileOpen && (
               <div className="profile-dropdown">
-                <div>My Profile</div>
-                <div>Orders</div>
+                <div onClick={() => navigate('/orders')}>My Orders</div>
+                <div onClick={() => navigate('/refer-earn')}>Refer & Earn — ₹50 each</div>
+                <div onClick={() => navigate('/donate-clothes')}>Donate Old Clothes — 1% off</div>
+                <div onClick={() => navigate('/wishlist')}>Wishlist</div>
+                <div onClick={() => navigate('/policies')}>Policies</div>
                 <div className="divider" />
                 <div 
                   className="logout"
@@ -329,6 +351,106 @@ export default function Navbar({ active }) {
           </button>
         )}
       </div>
+
+      {/* ===== Mobile drawer (visible <= 900px) ===== */}
+      {drawerOpen && (
+        <>
+          <div className="nav-drawer-scrim" onClick={closeDrawer} />
+          <aside className="nav-drawer" role="dialog" aria-modal="true">
+            <div className="nav-drawer-header">
+              {isLoggedIn ? (
+                <>
+                  <div className="nav-drawer-avatar">{userName ? userName[0].toUpperCase() : "U"}</div>
+                  <div>
+                    <div className="nav-drawer-hello">Hello,</div>
+                    <div className="nav-drawer-name">{userName || "User"}</div>
+                  </div>
+                </>
+              ) : (
+                <button
+                  className="bf-btn-primary"
+                  onClick={() => drawerNav('/login')}
+                  style={{ width: '100%' }}
+                >
+                  Login / Register
+                </button>
+              )}
+              <button
+                type="button"
+                className="nav-drawer-close"
+                aria-label="Close menu"
+                onClick={closeDrawer}
+              >
+                ×
+              </button>
+            </div>
+
+            <input
+              className="nav-drawer-search"
+              placeholder="Search for apparels, brands & trends"
+            />
+
+            <div className="nav-drawer-section-title">SHOP BY DEPARTMENT</div>
+            {tabs.map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                className={`nav-drawer-link ${activeTab === tab ? 'is-active' : ''}`}
+                onClick={() => {
+                  setActiveTab(tab);
+                  closeDrawer();
+                  handleTabNavigation(tab);
+                }}
+              >
+                {tab === "HOMELIVING" ? "HOME & LIVING" : tab}
+              </button>
+            ))}
+
+            <div className="nav-drawer-section-title">YOUR ACCOUNT</div>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/cart' : '/login')}>
+              🛒 Cart {cartCount > 0 ? <span className="nav-drawer-badge">{cartCount}</span> : null}
+            </button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/wishlist' : '/login')}>
+              ♡ Wishlist {wishlistCount > 0 ? <span className="nav-drawer-badge">{wishlistCount}</span> : null}
+            </button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/orders' : '/login')}>
+              📦 My Orders
+            </button>
+
+            <div className="nav-drawer-section-title">OFFERS</div>
+            <button type="button" className="nav-drawer-link offers" onClick={() => drawerNav(isLoggedIn ? '/refer-earn' : '/login')}>
+              🎁 Refer & Earn — ₹50 each
+            </button>
+            <button type="button" className="nav-drawer-link offers" onClick={() => drawerNav(isLoggedIn ? '/donate-clothes' : '/login')}>
+              👕 Donate Old Clothes — 1% off
+            </button>
+
+            <div className="nav-drawer-section-title">MORE</div>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/explore-shops')}>Explore Stores</button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/policies')}>Policies</button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/customer-service')}>Customer Service</button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/company')}>About BlinkieFash</button>
+
+            {isLoggedIn && (
+              <button
+                type="button"
+                className="nav-drawer-link nav-drawer-logout"
+                onClick={() => {
+                  localStorage.clear();
+                  setIsLoggedIn(false);
+                  setUserName("");
+                  setWishlistCount(0);
+                  setCartCount(0);
+                  closeDrawer();
+                  navigate('/login');
+                }}
+              >
+                ⎋ Logout
+              </button>
+            )}
+          </aside>
+        </>
+      )}
     </header>
   );
 }

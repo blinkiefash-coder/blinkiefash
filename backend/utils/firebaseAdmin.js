@@ -54,22 +54,89 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
 }
 
 /**
- * Notify ALL available riders (is_available=true) about a new order.
+ * Notify available riders (is_available=true) who are within 7 km of the
+ * order's darkstore about a new order.
  * Uses the shared Neon DB — same DB as blinkiefashride backend.
  */
 export async function notifyAvailableRiders(pool, orderId) {
   try {
     // "Riders" is the Sequelize-created table (uppercase); 'riders' lowercase is empty migration table
+    // Only notify riders whose current location is within 7 km (road-adjusted) of the darkstore
     const { rows } = await pool.query(
-      `SELECT r.fcm_token FROM "Riders" r
-       WHERE r.is_available = TRUE AND r.fcm_token IS NOT NULL AND r.fcm_token != ''`
+      `SELECT r.fcm_token
+       FROM "Riders" r
+       JOIN orders o ON o.id = $1
+       JOIN dark_stores ds ON ds.id = o.dark_store_id
+       WHERE r.is_available = TRUE
+         AND r.fcm_token IS NOT NULL
+         AND r.fcm_token != ''
+         AND r.current_lat IS NOT NULL
+         AND r.current_lng IS NOT NULL
+         AND ds.lat IS NOT NULL
+         AND ds.lng IS NOT NULL
+         AND (
+           6371 * acos(GREATEST(-1.0, LEAST(1.0,
+             cos(radians(ds.lat)) * cos(radians(r.current_lat)) *
+             cos(radians(r.current_lng) - radians(ds.lng)) +
+             sin(radians(ds.lat)) * sin(radians(r.current_lat))
+           ))) * 1.6
+         ) <= 7`,
+      [orderId]
     );
     await Promise.all(rows.map(r => sendPush(r.fcm_token, {
       title: '🛵 New Order Available!',
-      body: 'A new delivery order is waiting. Go online to accept it.',
+      body: 'A new delivery order is waiting near you. Go online to accept it.',
       data: { type: 'order_available', orderId: String(orderId) },
     })));
   } catch (err) {
     console.error('[notifyAvailableRiders] error:', err.message);
+  }
+}
+
+// ── Customer push helpers ───────────────────────────────────────────────────
+const STATUS_MESSAGES = {
+  placed:           { title: '🧾 Order placed',     body: 'Your order has been received. We\'ll start preparing it shortly.' },
+  confirmed:        { title: '✅ Order confirmed',  body: 'Your order is confirmed and a rider will be assigned soon.' },
+  packed:           { title: '📦 Packed & ready',   body: 'Your order is packed and ready for pickup.' },
+  picked:           { title: '🛍️ Picked up',         body: 'Our rider has picked up your order from the store.' },
+  out_for_delivery: { title: '🛵 Out for delivery', body: 'Your order is on the way! Track it live in the app.' },
+  trial_started:    { title: '👕 Try & Buy started', body: 'Your trial has started. Decide within the time window.' },
+  trial_completed:  { title: '✅ Trial completed',  body: 'Your try & buy decision has been recorded.' },
+  delivered:        { title: '🎉 Delivered!',       body: 'Your order has been delivered. Thanks for shopping with us!' },
+  completed:        { title: '🎉 Order completed',  body: 'Your order is complete. Thanks for shopping with us!' },
+  cancelled:        { title: '❌ Order cancelled',  body: 'Your order has been cancelled.' },
+};
+
+export async function notifyCustomerOfStatus(pool, orderId, status) {
+  if (!STATUS_MESSAGES[status]) return;
+  try {
+    const { rows } = await pool.query(
+      `SELECT u.fcm_token
+       FROM orders o JOIN users u ON u.id = o.user_id
+       WHERE o.id = $1`,
+      [orderId]
+    );
+    if (!rows.length || !rows[0].fcm_token) return;
+    const { title, body } = STATUS_MESSAGES[status];
+    await sendPush(rows[0].fcm_token, {
+      title,
+      body,
+      data: { type: 'order_status', orderId: String(orderId), status },
+    });
+  } catch (err) {
+    console.error('[notifyCustomerOfStatus] error:', err.message);
+  }
+}
+
+export async function notifyCustomer(pool, userId, payload) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT fcm_token FROM users WHERE id = $1`,
+      [userId]
+    );
+    if (!rows.length || !rows[0].fcm_token) return;
+    await sendPush(rows[0].fcm_token, payload);
+  } catch (err) {
+    console.error('[notifyCustomer] error:', err.message);
   }
 }

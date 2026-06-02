@@ -2,6 +2,7 @@ import express from "express";
 import crypto from "crypto";
 import { pool } from "../db.js";
 import { getFirebaseAdminAuth } from "../utils/firebaseAdmin.js";
+import { ensureReferralCode } from "./referrals.js";
 
 const router = express.Router();
 const otpStore = new Map();
@@ -45,12 +46,13 @@ const canUseServerOtp =
 
 router.post("/register", async (req, res) => {
   try {
-    const { name, phone, email, role } = req.body;
+    const { name, phone, email, role, referralCode } = req.body;
     const normalizedPhone = normalizePhone(phone);
     const formattedPhone = formatPhoneForStorage(phone);
     const trimmedName = String(name || "").trim();
     const trimmedEmail = String(email || "").trim().toLowerCase();
     const userRole = String(role || "customer").toLowerCase();
+    const trimmedReferralCode = String(referralCode || "").trim().toUpperCase();
 
     if (!trimmedName || !normalizedPhone) {
       return res.json({
@@ -97,27 +99,136 @@ router.post("/register", async (req, res) => {
 
     const userId = insertResult.rows[0].id;
 
-    // If rider role, create rider profile
-    if (userRole === 'rider') {
-      const { vehicleType, vehicleNumber } = req.body;
+    // Always issue a personal referral code for customers so they can refer.
+    if (userRole !== "vendor" && userRole !== "rider") {
       try {
-        // Simple insert with just the core fields
-        const result = await pool.query(
-          `INSERT INTO Riders (user_id, vehicle_type, vehicle_number, is_available, is_verified)
-           VALUES ($1, $2, $3, false, false)
-           RETURNING id, user_id, vehicle_type, vehicle_number`,
-          [userId, vehicleType || 'Bike', vehicleNumber || null]
+        await ensureReferralCode(userId);
+      } catch (codeErr) {
+        console.error("Referral code generation failed:", codeErr);
+      }
+    }
+
+    // If a referral code was used, validate it and credit ₹50 to BOTH parties.
+    if (trimmedReferralCode) {
+      try {
+        const { rows: refRows } = await pool.query(
+          `SELECT id FROM users WHERE referral_code = $1 AND id <> $2 LIMIT 1`,
+          [trimmedReferralCode, userId]
         );
-        console.log("✅ Rider profile created successfully:", result.rows[0]);
-      } catch (riderErr) {
-        console.error("❌ Failed to create rider profile:", {
-          code: riderErr.code,
-          message: riderErr.message,
-          detail: riderErr.detail,
-          userId,
+        if (refRows.length) {
+          const referrerId = refRows[0].id;
+
+          await pool.query(
+            `UPDATE users SET referred_by = $1, updated_at = NOW() WHERE id = $2`,
+            [referrerId, userId]
+          );
+
+          const { rows: referralRows } = await pool.query(
+            `INSERT INTO referrals (referrer_id, referee_id, code, status)
+             VALUES ($1, $2, $3, 'completed')
+             ON CONFLICT (referee_id) DO NOTHING
+             RETURNING id`,
+            [referrerId, userId, trimmedReferralCode]
+          );
+
+          if (referralRows.length) {
+            const referralId = referralRows[0].id;
+            // Credit ₹50 to new user (referee) and to referrer.
+            await pool.query(
+              `INSERT INTO user_rewards (user_id, type, value, status, source_referral_id)
+               VALUES ($1, 'referral_50', 50, 'available', $2),
+                      ($3, 'referral_50', 50, 'available', $2)`,
+              [userId, referralId, referrerId]
+            );
+          }
+        }
+      } catch (refErr) {
+        console.error("Referral credit error:", refErr);
+        // Non-fatal — registration still succeeds.
+      }
+    }
+
+    // If rider role, create rider profile in all expected rider tables
+    if (userRole === 'rider') {
+      try {
+        const {
           vehicleType,
-          vehicleNumber
-        });
+          vehicleNumber,
+          licenseNumber,
+          fcmToken,
+          documentType,
+          documentUrl
+        } = req.body;
+
+        const normalizedDocumentType = (() => {
+          const type = String(documentType || 'driving_license').trim().toLowerCase();
+          if (type === 'license' || type === 'driving_license' || type === 'dl') return 'driving_license';
+          if (type === 'aadhar' || type === 'pan') return type;
+          return 'driving_license';
+        })();
+
+        const riderValues = [
+          userId,
+          vehicleType || 'Bike',
+          vehicleNumber || null,
+          false,
+          false,
+          null,
+          null,
+          new Date(),
+          0,
+          fcmToken || null,
+          new Date(),
+          new Date(),
+        ];
+
+        const riderResult = await pool.query(
+          `INSERT INTO "Riders" (
+             user_id,
+             vehicle_type,
+             vehicle_number,
+             is_available,
+             is_verified,
+             current_lat,
+             current_lng,
+             last_active,
+             earnings_balance,
+             fcm_token,
+             "createdAt",
+             "updatedAt"
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+           ON CONFLICT (user_id) DO UPDATE SET
+             vehicle_type = EXCLUDED.vehicle_type,
+             vehicle_number = EXCLUDED.vehicle_number,
+             is_available = EXCLUDED.is_available,
+             is_verified = EXCLUDED.is_verified,
+             fcm_token = EXCLUDED.fcm_token,
+             "updatedAt" = NOW()
+           RETURNING id`,
+          riderValues
+        );
+
+        const riderId = riderResult.rows[0]?.id;
+
+        if (riderId && (documentUrl || licenseNumber || documentType)) {
+          await pool.query(
+            `INSERT INTO rider_documents (rider_id, doc_type, doc_number, doc_url, verification_status)
+             VALUES ($1, $2, $3, $4, $5)`,
+            [
+              riderId,
+              normalizedDocumentType,
+              licenseNumber || null,
+              documentUrl || null,
+              'pending'
+            ]
+          );
+        }
+
+        console.log("Rider profile created for user:", userId);
+      } catch (riderErr) {
+        console.error("Rider profile creation error:", riderErr);
+        // Don't fail registration if rider table insert fails
       }
     }
 

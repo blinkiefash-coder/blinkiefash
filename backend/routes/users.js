@@ -44,4 +44,23 @@ router.patch("/:userId", async (req, res) => {
   }
 });
 
+// ── POST /api/users/fcm-token ──────────────────────────────────────────────
+// Body: { userId, token }
+router.post("/fcm-token", async (req, res) => {
+  const { userId, token } = req.body;
+  if (!userId || !token) {
+    return res.status(400).json({ success: false, message: "userId and token required" });
+  }
+  try {
+    await pool.query(
+      `UPDATE users SET fcm_token = $1, updated_at = NOW() WHERE id = $2`,
+      [token, userId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("POST fcm-token error:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

@@ -20,6 +20,10 @@ import AdminPinGate from "./pages/AdminPinGate";
 import SellerRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import PasswordReset from "./pages/PasswordReset";
+import Checkout from "./pages/Checkout";
+import Orders from "./pages/Orders";
+import ReferEarn from "./pages/ReferEarn";
+import OldClothes from "./pages/OldClothes";
 
 function App() {
   const [isPinVerified, setIsPinVerified] = useState(
@@ -51,6 +55,10 @@ function App() {
           <Route path="/women" element={<Women />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/refer-earn" element={<ReferEarn />} />
+          <Route path="/donate-clothes" element={<OldClothes />} />
           <Route path="/vendor" element={<VendorAuth />} />
           <Route path="/vendor/register" element={<SellerRegistration />} />
           <Route path="/vendor/add-product" element={<AddProduct />} />

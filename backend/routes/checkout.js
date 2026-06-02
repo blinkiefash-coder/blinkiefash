@@ -1,6 +1,6 @@
 import express from "express";
 import { pool } from "../db.js";
-import { notifyAvailableRiders } from "../utils/firebaseAdmin.js";
+import { notifyAvailableRiders, notifyCustomerOfStatus } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 
@@ -137,10 +137,54 @@ router.delete("/addresses/:id", async (req, res) => {
   }
 });
 
+// ── GET /api/checkout/rewards?userId=xxx ─────────────────────────────────────
+// Returns the user's available reward credits.
+router.get("/rewards", async (req, res) => {
+  const { userId } = req.query;
+  if (!userId) {
+    return res.status(400).json({ success: false, message: "userId required" });
+  }
+  try {
+    const { rows: refRows } = await pool.query(
+      `SELECT COALESCE(SUM(value), 0)::float AS amount,
+              COUNT(*)::int AS count
+       FROM user_rewards
+       WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'`,
+      [userId]
+    );
+    const { rows: clothRows } = await pool.query(
+      `SELECT COALESCE(SUM(value), 0)::int AS items,
+              COUNT(*)::int AS count
+       FROM user_rewards
+       WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'`,
+      [userId]
+    );
+    const items = clothRows[0].items;
+    res.json({
+      success: true,
+      referralAmount: refRows[0].amount,
+      referralCount: refRows[0].count,
+      clothingItems: items,
+      clothingPercent: Math.min(items, 50),
+    });
+  } catch (err) {
+    console.error("GET rewards error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // ── POST /api/checkout/orders ─────────────────────────────────────────────────
-// Body: { userId, addressId, items: [{variantId, quantity, price}], totalAmount, isTryOrder? }
+// Body: { userId, addressId, items: [{variantId, quantity, price}], totalAmount, isTryOrder?, useReferralReward?, useClothingReward? }
 router.post("/orders", async (req, res) => {
-  const { userId, addressId, items, totalAmount, isTryOrder } = req.body;
+  const {
+    userId,
+    addressId,
+    items,
+    totalAmount,
+    isTryOrder,
+    useReferralReward,
+    useClothingReward,
+  } = req.body;
   if (!userId || !addressId || !items?.length || !totalAmount) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
   }
@@ -199,16 +243,61 @@ router.post("/orders", async (req, res) => {
     } else {
       deliveryFee = itemsSubtotal > 1499 ? 0 : 49;
     }
-    const finalAmount = itemsSubtotal + deliveryFee;
+
+    // ── Apply rewards (referral ₹50 + clothing 1%/item) ────────────────────
+    let referralRewardId = null;
+    let clothingRewardIds = [];
+    let referralDiscount = 0;
+    let clothingDiscount = 0;
+
+    if (useReferralReward) {
+      const { rows: refRewards } = await client.query(
+        `SELECT id, value FROM user_rewards
+         WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'
+         ORDER BY created_at ASC
+         LIMIT 1
+         FOR UPDATE`,
+        [userId]
+      );
+      if (refRewards.length) {
+        referralRewardId = refRewards[0].id;
+        referralDiscount = Math.min(parseFloat(refRewards[0].value) || 0, itemsSubtotal);
+      }
+    }
+
+    if (useClothingReward) {
+      const { rows: clothRewards } = await client.query(
+        `SELECT id, value FROM user_rewards
+         WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'
+         ORDER BY created_at ASC
+         FOR UPDATE`,
+        [userId]
+      );
+      if (clothRewards.length) {
+        const totalItems = clothRewards.reduce(
+          (s, r) => s + (parseFloat(r.value) || 0),
+          0
+        );
+        const percent = Math.min(totalItems, 50); // cap 50%
+        clothingDiscount = Math.round((itemsSubtotal * percent) / 100 * 100) / 100;
+        clothingRewardIds = clothRewards.map((r) => r.id);
+      }
+    }
+
+    const totalDiscount = referralDiscount + clothingDiscount;
+    const discountedSubtotal = Math.max(itemsSubtotal - totalDiscount, 0);
+    const finalAmount = discountedSubtotal + deliveryFee;
 
     // Create order
     const { rows: orderRows } = await client.query(
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
-          payment_method, dark_store_id, is_try_order)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6)
+          payment_method, dark_store_id, is_try_order,
+          referral_discount, clothing_discount)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8)
        RETURNING id, status, total_amount, final_amount, created_at`,
-      [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true]
+      [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
+       referralDiscount, clothingDiscount]
     );
     const order = orderRows[0];
 
@@ -221,13 +310,33 @@ router.post("/orders", async (req, res) => {
       );
     }
 
+    // Mark consumed reward credits as used.
+    if (referralRewardId) {
+      await client.query(
+        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1
+         WHERE id = $2`,
+        [order.id, referralRewardId]
+      );
+    }
+    if (clothingRewardIds.length) {
+      await client.query(
+        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1
+         WHERE id = ANY($2::uuid[])`,
+        [order.id, clothingRewardIds]
+      );
+    }
+
     await client.query("COMMIT");
+    // Push "order placed" to the customer (best-effort)
+    notifyCustomerOfStatus(pool, order.id, 'placed').catch(() => {});
     res.json({
       success: true,
       orderId: order.id,
       status: order.status,
       totalAmount: order.total_amount,
       deliveryFee: deliveryFee,
+      referralDiscount,
+      clothingDiscount,
       finalAmount: order.final_amount,
       distanceKm: distanceKm,
       createdAt: order.created_at,
@@ -422,6 +531,8 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     if (status === 'confirmed') {
       notifyAvailableRiders(pool, rows[0].id).catch(() => {});
     }
+    // Push the status update to the customer's device
+    notifyCustomerOfStatus(pool, rows[0].id, status).catch(() => {});
     res.json({ success: true, order: rows[0] });
   } catch (err) {
     console.error("PATCH order status error:", err);
