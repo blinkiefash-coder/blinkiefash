@@ -1,0 +1,97 @@
+/* Page background */
+.vendor-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fafafa 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+/* Card */
+.vendor-card {
+  width: 380px;
+  background: white;
+  border-radius: 14px;
+  padding: 28px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+  border: 1px solid #e5e7eb;
+}
+
+/* Heading */
+.vendor-card h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.vendor-subtext {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.vendor-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-card label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+
+/* Inputs */
+.vendor-card input {
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1fae5;
+  outline: none;
+  font-size: 14px;
+}
+
+/* Button */
+.vendor-card button {
+  margin-top: 20px;
+  padding: 10px;
+  border: none;
+  border-radius: 10px;
+  background: #22c55e;
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.vendor-card button:hover {
+  background: #16a34a;
+}
+
+.vendor-register-link {
+  margin-top: 14px;
+  font-size: 13px;
+  color: #4b5563;
+  text-align: center;
+}
+
+.vendor-register-link a {
+  color: #15803d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.vendor-register-link a:hover {
+  text-decoration: underline;
+}
+
+/* Success state */
+.vendor-success {
+  text-align: center;
+}
+
+.vendor-success h3 {
+  color: #22c55e;
+  margin-bottom: 10px;
+}
