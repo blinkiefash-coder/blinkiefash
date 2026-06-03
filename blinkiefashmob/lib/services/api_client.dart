@@ -328,6 +328,43 @@ class ApiClient {
     return const [];
   }
 
+  /// Fetch products within a specific price range
+  /// [minPrice] and [maxPrice] define the range (inclusive)
+  /// Returns list of products with id, name, price, image, etc.
+  Future<List<dynamic>> fetchProductsByPriceRange({
+    required double minPrice,
+    required double maxPrice,
+    int limit = 10,
+  }) async {
+    final storeParam = ApiClient.currentStoreId != null
+        ? '&store_id=${ApiClient.currentStoreId}'
+        : '';
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/products/price-range?min_price=$minPrice&max_price=$maxPrice&limit=$limit$storeParam',
+    );
+    final data = await _getJson(uri);
+    if (data is Map && data['products'] is List) {
+      return data['products'] as List;
+    }
+    return const [];
+  }
+
+  /// Fetch products with active bulk offers (Buy 2 at 999, Buy 3 at 999, etc.)
+  /// Returns list of products with bulk_offers field containing offer details
+  Future<List<dynamic>> fetchBulkOffers({int limit = 10}) async {
+    final storeParam = ApiClient.currentStoreId != null
+        ? '&store_id=${ApiClient.currentStoreId}'
+        : '';
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/products/bulk-offers?limit=$limit$storeParam',
+    );
+    final data = await _getJson(uri);
+    if (data is Map && data['products'] is List) {
+      return data['products'] as List;
+    }
+    return const [];
+  }
+
   Future<Map<String, dynamic>> fetchProductDetail(String productId) async {
     final uri = Uri.parse('$apiApiBaseUrl/products/$productId');
     final data = await _getJson(uri);
@@ -476,7 +513,7 @@ class ApiClient {
     final uri = Uri.parse('$apiApiBaseUrl/users/$userId/apply-referral-code');
     final body = {'referralCode': code};
     final data = await _postJson(uri, body);
-    if (data is Map<String, dynamic>) return data;
+    return data;
     return const {'success': false, 'message': 'Network error'};
   }
 

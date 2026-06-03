@@ -43,6 +43,10 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _allCategories = const []; // full tree
   List<Map<String, dynamic>> _brands = const [];
   List<Map<String, dynamic>> _bestsellers = const [];
+  List<Map<String, dynamic>> _under999 = const [];
+  List<Map<String, dynamic>> _under1999 = const [];
+  List<Map<String, dynamic>> _above1999 = const [];
+  List<Map<String, dynamic>> _bulkOffers = const [];
 
   // Categories tab: index of selected root category
   int _catSelectedIndex = 0;
@@ -52,32 +56,11 @@ class _HomeScreenState extends State<HomeScreen>
   static const Color _green = Color(0xFF16A34A);
 
   static const List<Map<String, String>> _fallbackCategories = [
-    {'name': 'WOMEN', 'image': 'assets/images/Women.png'},
-    {'name': 'MEN', 'image': 'assets/images/Men.png'},
-    {'name': 'KIDS', 'image': 'assets/images/Kids.png'},
-    {'name': 'BEAUTY', 'image': 'assets/images/Beauty.png'},
-    {'name': 'HOME LIVING', 'image': 'assets/images/Home.png'},
-  ];
-
-  static const List<Map<String, String>> _summerDeals = [
-    {
-      'title': 'Stay Cool.\nLook Stylish.',
-      'off': 'UP TO 40% OFF',
-      'image': 'assets/images/hero1.png',
-      'category': 'Accessories',
-    },
-    {
-      'title': 'Breezy Dresses\nFor Every Day',
-      'off': 'UP TO 30% OFF',
-      'image': 'assets/images/hero2.png',
-      'category': 'Footwear',
-    },
-    {
-      'title': 'Sandals & Slides\nFor Sunny Vibes',
-      'off': 'UP TO 50% OFF',
-      'image': 'assets/images/hero3.png',
-      'category': 'Men',
-    },
+    {'name': 'WOMEN'},
+    {'name': 'MEN'},
+    {'name': 'KIDS'},
+    {'name': 'BEAUTY'},
+    {'name': 'HOME LIVING'},
   ];
 
   @override
@@ -101,11 +84,23 @@ class _HomeScreenState extends State<HomeScreen>
         _api.fetchCategories(),
         _api.fetchBrands(),
         _api.fetchBestsellers(),
+        _api.fetchProductsByPriceRange(minPrice: 0, maxPrice: 999, limit: 10),
+        _api.fetchProductsByPriceRange(minPrice: 0, maxPrice: 1999, limit: 10),
+        _api.fetchProductsByPriceRange(
+          minPrice: 1999,
+          maxPrice: 999999,
+          limit: 10,
+        ),
+        _api.fetchBulkOffers(limit: 10),
       ]);
       if (!mounted) return;
       final cats = results[0];
       final brs = results[1];
       final bests = results[2];
+      final under999 = results[3];
+      final under1999 = results[4];
+      final above1999 = results[5];
+      final bulkOffers = results[6];
 
       // Check 15 km service radius
       final nearestStore = storeResult['nearestStore'] as Map?;
@@ -132,6 +127,10 @@ class _HomeScreenState extends State<HomeScreen>
         _allCategories = cats.whereType<Map<String, dynamic>>().toList();
         _brands = brs.whereType<Map<String, dynamic>>().take(8).toList();
         _bestsellers = bests.whereType<Map<String, dynamic>>().toList();
+        _under999 = under999.whereType<Map<String, dynamic>>().toList();
+        _under1999 = under1999.whereType<Map<String, dynamic>>().toList();
+        _above1999 = above1999.whereType<Map<String, dynamic>>().toList();
+        _bulkOffers = bulkOffers.whereType<Map<String, dynamic>>().toList();
         _isLoading = false;
       });
     } catch (_) {
@@ -495,13 +494,37 @@ class _HomeScreenState extends State<HomeScreen>
                 ? _bestsellerProductCards()
                 : _stockOutBanner(),
             _sectionHeader(
-              'SUMMER ESSENTIALS',
+              'UNDER ₹999',
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AllProductsScreen()),
               ),
             ),
-            _summerEssentials(),
+            _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
+            _sectionHeader(
+              'UNDER ₹1999',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+              ),
+            ),
+            _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
+            _sectionHeader(
+              'ABOVE ₹1999',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+              ),
+            ),
+            _above1999.isNotEmpty ? _above1999Cards() : _stockOutBanner(),
+            _sectionHeader(
+              'SPECIAL BULK OFFERS',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+              ),
+            ),
+            _bulkOffers.isNotEmpty ? _bulkOffersCards() : _stockOutBanner(),
             _sectionHeader(
               'TOP BRANDS',
               actionLabel: 'View All',
@@ -1567,42 +1590,138 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Summer Essentials ────────────────────────────────────────────────────
-  Widget _summerEssentials() {
+  // ── Products Under 999 ────────────────────────────────────────────────────
+  Widget _under999Cards() {
+    return _buildPriceRangeCards(_under999);
+  }
+
+  // ── Products Under 1999 ───────────────────────────────────────────────────
+  Widget _under1999Cards() {
+    return _buildPriceRangeCards(_under1999);
+  }
+
+  // ── Products Above 1999 ───────────────────────────────────────────────────
+  Widget _above1999Cards() {
+    return _buildPriceRangeCards(_above1999);
+  }
+
+  // ── Shared method for price range cards ────────────────────────────────────
+  Widget _buildPriceRangeCards(List<Map<String, dynamic>> items) {
     return SizedBox(
-      height: 185,
+      height: 300,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _summerDeals.length,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: items.length,
         itemBuilder: (_, i) {
-          final d = _summerDeals[i];
+          final item = items[i];
+          final name = item['name']?.toString() ?? 'Product';
+          final brand = item['brand']?.toString() ?? '';
+          final price = _fmt(item['price'] ?? item['discount_price']);
+          final origP = _fmt(item['original_price'] ?? item['price']);
+          final img = _imgUrl(item['image']);
+
           return GestureDetector(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => AllProductsScreen(categoryName: d['category']),
-              ),
-            ),
+            onTap: item['id'] != null ? () => _openProduct(item) : null,
             child: Container(
-              width: 300,
-              height: 185,
-              margin: const EdgeInsets.only(right: 14),
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(20),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: const [
                   BoxShadow(
-                    color: Color(0x20000000),
+                    color: Color(0x0F000000),
                     blurRadius: 12,
                     offset: Offset(0, 4),
                   ),
                 ],
               ),
-              clipBehavior: Clip.antiAlias,
-              child: Image.asset(
-                d['image']!,
-                width: 300,
-                height: 185,
-                fit: BoxFit.cover,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(18),
+                      ),
+                      child: img != null
+                          ? CachedNetworkImage(
+                              imageUrl: img,
+                              fit: BoxFit.cover,
+                              width: double.infinity,
+                              height: double.infinity,
+                              placeholder: (context, url) =>
+                                  Container(color: const Color(0xFFF1F5F9)),
+                              errorWidget: (context, url, error) => Container(
+                                color: const Color(0xFFF1F5F9),
+                                child: const Icon(
+                                  Icons.image_not_supported_outlined,
+                                  color: Color(0xFFCBD5E1),
+                                ),
+                              ),
+                            )
+                          : Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(
+                                Icons.checkroom_outlined,
+                                size: 40,
+                                color: Color(0xFFCBD5E1),
+                              ),
+                            ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            brand,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                '₹$price',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '₹$origP',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFF94A3B8),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           );
@@ -1611,7 +1730,170 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Top Brands ────────────────────────────────────────────────────────────
+  // ── Bulk Offers Cards ─────────────────────────────────────────────────────
+  Widget _bulkOffersCards() {
+    return SizedBox(
+      height: 300,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        itemCount: _bulkOffers.length,
+        itemBuilder: (_, i) {
+          final item = _bulkOffers[i];
+          final name = item['name']?.toString() ?? 'Product';
+          final brand = item['brand']?.toString() ?? '';
+          final price = _fmt(item['price'] ?? item['discount_price']);
+          final origP = _fmt(item['original_price'] ?? item['price']);
+          final img = _imgUrl(item['image']);
+          final bulkOffers = item['bulk_offers'] as List?;
+
+          // Extract first bulk offer for display
+          String offerLabel = '';
+          if (bulkOffers != null && bulkOffers.isNotEmpty) {
+            final firstOffer = bulkOffers[0] as Map?;
+            if (firstOffer != null) {
+              final quantity = firstOffer['quantity']?.toString() ?? '';
+              final offerPrice = _fmt(firstOffer['offer_price']);
+              offerLabel = 'Buy $quantity at ₹$offerPrice';
+            }
+          }
+
+          return GestureDetector(
+            onTap: item['id'] != null ? () => _openProduct(item) : null,
+            child: Container(
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: Stack(
+                      children: [
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
+                          ),
+                          child: img != null
+                              ? CachedNetworkImage(
+                                  imageUrl: img,
+                                  fit: BoxFit.cover,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  placeholder: (context, url) =>
+                                      Container(color: const Color(0xFFF1F5F9)),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
+                                )
+                              : Container(
+                                  color: const Color(0xFFF1F5F9),
+                                  child: const Icon(
+                                    Icons.checkroom_outlined,
+                                    size: 40,
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
+                        ),
+                        if (offerLabel.isNotEmpty)
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              color: const Color(0xFF7C3AED).withOpacity(0.9),
+                              padding: const EdgeInsets.all(6),
+                              child: Text(
+                                offerLabel,
+                                textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            brand,
+                            style: const TextStyle(
+                              fontSize: 9,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                '₹$price',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '₹$origP',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  color: Color(0xFF94A3B8),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ── Top Brands
   Widget _topBrands() {
     return SizedBox(
       height: 90,
