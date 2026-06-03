@@ -29,7 +29,7 @@ router.get("/:userId", async (req, res) => {
     );
 
     const items = rewardRows[0].items;
-    const percent = Math.min(items, 50); // hard cap 50%
+    const percent = Math.min(items, 5);
 
     res.json({
       success: true,
@@ -53,7 +53,28 @@ router.post("/", async (req, res) => {
       .status(400)
       .json({ success: false, message: "userId, addressId and itemCount (>=1) required" });
   }
+  if (count > 5) {
+    return res.status(400).json({
+      success: false,
+      message: "You can donate a maximum of 5 clothing pieces per pickup",
+    });
+  }
   try {
+    const { rows: orderRows } = await pool.query(
+      `SELECT id
+       FROM orders
+       WHERE user_id = $1
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+    if (!orderRows.length) {
+      return res.status(400).json({
+        success: false,
+        message: "Old clothes pickup is available only after you place at least one order with BlinkieFash",
+      });
+    }
+
     const { rows } = await pool.query(
       `INSERT INTO old_clothes_pickups (user_id, address_id, item_count, pickup_slot, notes)
        VALUES ($1, $2, $3, $4, $5)
@@ -90,7 +111,10 @@ router.patch("/:id/collect", async (req, res) => {
       return res.json({ success: true, message: "Already collected" });
     }
 
-    const finalCount = Number.isFinite(override) && override > 0 ? override : pickup.item_count;
+    const finalCount = Math.min(
+      Number.isFinite(override) && override > 0 ? override : pickup.item_count,
+      5
+    );
 
     await client.query(
       `UPDATE old_clothes_pickups

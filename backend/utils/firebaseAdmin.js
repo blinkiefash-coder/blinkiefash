@@ -31,10 +31,13 @@ export const getFirebaseAdminAuth = () => {
 
 /**
  * Send an FCM push to a single device token.
- * Silently ignores missing/expired tokens.
+ * Logs errors if sending fails.
  */
 export async function sendPush(fcmToken, { title, body, data = {} }) {
-  if (!fcmToken) return;
+  if (!fcmToken) {
+    console.warn('[sendPush] No fcmToken provided, skipping notification');
+    return;
+  }
   try {
     initializeFirebaseAdmin();
     const stringData = Object.fromEntries(
@@ -50,7 +53,9 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
       },
       apns: { payload: { aps: { alert: { title, body }, sound: 'default' } } },
     });
-  } catch (_) {}
+  } catch (err) {
+    console.error('[sendPush] Error sending notification:', err.message);
+  }
 }
 
 /**
@@ -116,8 +121,16 @@ export async function notifyCustomerOfStatus(pool, orderId, status) {
        WHERE o.id = $1`,
       [orderId]
     );
-    if (!rows.length || !rows[0].fcm_token) return;
+    if (!rows.length) {
+      console.warn(`[notifyCustomerOfStatus] No user found for orderId: ${orderId}`);
+      return;
+    }
+    if (!rows[0].fcm_token) {
+      console.warn(`[notifyCustomerOfStatus] Customer has no FCM token for orderId: ${orderId}`);
+      return;
+    }
     const { title, body } = STATUS_MESSAGES[status];
+    console.log(`[notifyCustomerOfStatus] Sending "${title}" notification for orderId: ${orderId}`);
     await sendPush(rows[0].fcm_token, {
       title,
       body,

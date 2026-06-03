@@ -18,11 +18,11 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 }
 
 // ── Delivery fee rules ────────────────────────────────────────────────────────
-// - subtotal > 1499 → 0
+// - subtotal >= 999 → 0 (free delivery)
 // - distance ≤ 15 km → 49
 // - distance > 15 km → null (out of range)
 function calcDeliveryFee(subtotal, distanceKm) {
-  if (subtotal > 1499) return 0;
+  if (subtotal >= 999) return 0;
   if (distanceKm <= 15) return 49;
   return null; // out of range
 }
@@ -88,7 +88,7 @@ router.get("/delivery-fee", async (req, res) => {
         `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
       );
       if (!storeRows.length) withinRange = false;
-      fee = sub > 1499 ? 0 : 49; // default ₹49 when no coordinates
+      fee = sub >= 999 ? 0 : 49; // free delivery on ₹999+ orders
     }
 
     res.json({ success: true, fee, distance, withinRange });
@@ -165,7 +165,7 @@ router.get("/rewards", async (req, res) => {
       referralAmount: refRows[0].amount,
       referralCount: refRows[0].count,
       clothingItems: items,
-      clothingPercent: Math.min(items, 50),
+      clothingPercent: Math.min(items, 5),
     });
   } catch (err) {
     console.error("GET rewards error:", err);
@@ -244,7 +244,7 @@ router.post("/orders", async (req, res) => {
       deliveryFee = itemsSubtotal > 1499 ? 0 : 49;
     }
 
-    // ── Apply rewards (referral ₹50 + clothing 1%/item) ────────────────────
+    // ── Apply rewards (referral ₹50 + clothing up to 5% for next order) ───
     let referralRewardId = null;
     let clothingRewardIds = [];
     let referralDiscount = 0;
@@ -278,7 +278,7 @@ router.post("/orders", async (req, res) => {
           (s, r) => s + (parseFloat(r.value) || 0),
           0
         );
-        const percent = Math.min(totalItems, 50); // cap 50%
+        const percent = Math.min(totalItems, 5);
         clothingDiscount = Math.round((itemsSubtotal * percent) / 100 * 100) / 100;
         clothingRewardIds = clothRewards.map((r) => r.id);
       }
@@ -324,6 +324,38 @@ router.post("/orders", async (req, res) => {
          WHERE id = ANY($2::uuid[])`,
         [order.id, clothingRewardIds]
       );
+    }
+
+    // ── Track referral: if this user was referred, credit the referrer ₹50 on first order ──
+    const { rows: userRows } = await client.query(
+      `SELECT referred_by FROM users WHERE id = $1`, [userId]
+    );
+    if (userRows.length && userRows[0].referred_by) {
+      // Check if this is the user's first order (excluding try orders)
+      const { rows: orderCountRows } = await client.query(
+        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1 AND is_try_order = false AND id != $2`,
+        [userId, order.id]
+      );
+      if (parseInt(orderCountRows[0].cnt) === 0) {
+        // This is the first order! Credit the referrer ₹50
+        const referrerId = userRows[0].referred_by;
+        
+        // Create a referral tracking record
+        await client.query(
+          `INSERT INTO referrals (referrer_id, referred_user_id, order_id)
+           VALUES ($1, $2, $3)
+           ON CONFLICT (referrer_id, referred_user_id) DO UPDATE
+           SET order_id = $3, created_at = NOW()`,
+          [referrerId, userId, order.id]
+        );
+        
+        // Credit ₹50 to the referrer
+        await client.query(
+          `INSERT INTO user_rewards (user_id, type, value, status, source_order_id)
+           VALUES ($1, 'referral_50', 50, 'available', $2)`,
+          [referrerId, order.id]
+        );
+      }
     }
 
     await client.query("COMMIT");

@@ -426,7 +426,9 @@ router.get("/", async (req, res) => {
         pv.image,
         pv.variant_id,
         pv.mrp        AS price,
-        pv.sell_price AS discount_price
+        pv.sell_price AS discount_price,
+        p.is_bestseller,
+        p.is_try_and_buy
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN categories c ON c.id = p.category_id

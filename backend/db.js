@@ -265,4 +265,11 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS referral_discount DECIMAL(12, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0
   `).catch(() => {});
+
+  // ── Product feature flags ─────────────────────────────────────────────────
+  await pool.query(`
+    ALTER TABLE products
+      ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false
+  `).catch(() => {});
 };
