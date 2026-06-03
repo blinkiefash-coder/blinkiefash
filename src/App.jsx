@@ -46,45 +46,43 @@ function App() {
         </Routes>
       ) : (
         <Routes>
-          {/* About Us / Home Page */}
+          {/* ONLY ALLOWED: About Us Home Page */}
           <Route path="/" element={<AboutUs />} />
-          <Route path="/home" element={<AboutUs />} />
           
-          {/* Authentication Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/password-reset" element={<PasswordReset />} />
-          <Route path="/signup" element={<Signup />} />
-
-          {/* ACTIVE: Vendor Routes */}
+          {/* ONLY ALLOWED: Vendor Pages */}
           <Route path="/vendor" element={<VendorAuth />} />
           <Route path="/vendor/register" element={<SellerRegistration />} />
           <Route path="/vendor/add-product" element={<AddProduct />} />
           <Route path="/vendor/:identifier" element={<VendorStore />} />
 
-          {/* ACTIVE: Admin Routes */}
+          {/* ONLY ALLOWED: Admin Dark Store */}
           <Route path="/darkstore" element={<DarkStore />} />
-          <Route path="/admin-access" element={<Navigate to="/" replace />} />
 
-          {/* ACTIVE: Help & Support Pages */}
+          {/* ONLY ALLOWED: Help & Support Pages */}
           <Route path="/customer-service" element={<CustomerService />} />
           <Route path="/company" element={<Company />} />
           <Route path="/policies" element={<Policies />} />
 
-          {/* BLOCKED: Customer Shopping Routes → NotAccessible */}
-          <Route path="/shop" element={<NotAccessible />} />
-          <Route path="/women" element={<NotAccessible />} />
-          <Route path="/catalog" element={<NotAccessible />} />
-          <Route path="/explore-shops" element={<NotAccessible />} />
-          <Route path="/wishlist" element={<NotAccessible />} />
-          <Route path="/cart" element={<NotAccessible />} />
-          <Route path="/checkout" element={<NotAccessible />} />
-          <Route path="/orders" element={<NotAccessible />} />
-          <Route path="/refer-earn" element={<NotAccessible />} />
-          <Route path="/donate-clothes" element={<NotAccessible />} />
-          <Route path="/product/:id" element={<NotAccessible />} />
-          <Route path="/inside-catalog" element={<NotAccessible />} />
+          {/* BLOCKED: Everything else redirects to About Us */}
+          <Route path="/home" element={<Navigate to="/" replace />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          <Route path="/signup" element={<Navigate to="/" replace />} />
+          <Route path="/password-reset" element={<Navigate to="/" replace />} />
+          <Route path="/shop" element={<Navigate to="/" replace />} />
+          <Route path="/women" element={<Navigate to="/" replace />} />
+          <Route path="/catalog" element={<Navigate to="/" replace />} />
+          <Route path="/explore-shops" element={<Navigate to="/" replace />} />
+          <Route path="/wishlist" element={<Navigate to="/" replace />} />
+          <Route path="/cart" element={<Navigate to="/" replace />} />
+          <Route path="/checkout" element={<Navigate to="/" replace />} />
+          <Route path="/orders" element={<Navigate to="/" replace />} />
+          <Route path="/refer-earn" element={<Navigate to="/" replace />} />
+          <Route path="/donate-clothes" element={<Navigate to="/" replace />} />
+          <Route path="/product/:id" element={<Navigate to="/" replace />} />
+          <Route path="/inside-catalog" element={<Navigate to="/" replace />} />
+          <Route path="/admin-access" element={<Navigate to="/" replace />} />
 
-          {/* Catch-all */}
+          {/* Catch-all: Any unknown route goes to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
