@@ -64,6 +64,7 @@ const insertProductMediaRows = async ({
 const prepareCreatePayload = (body = {}) => {
   const nestedProduct = body.product || {};
   const nestedVariants = Array.isArray(body.variants) ? body.variants : [];
+  const nestedBundleOffers = Array.isArray(body.bundleOffers) ? body.bundleOffers : [];
 
   const vendor_id = nestedProduct.vendor_id || body.vendor_id;
   const category_id = nestedProduct.category_id || body.category_id;
@@ -92,6 +93,7 @@ const prepareCreatePayload = (body = {}) => {
     brand_name, brand_id,
     is_try_enabled, store_id,
     variants, topLevelImages,
+    bundleOffers: nestedBundleOffers,
   };
 };
 
@@ -106,6 +108,7 @@ const createProductSimple = async (req, res) => {
       brand_name, brand_id: explicitBrandId,
       is_try_enabled, store_id,
       variants, topLevelImages,
+      bundleOffers,
     } = payload;
 
     if (!vendor_id || !name || !category_id) {
@@ -193,6 +196,17 @@ const createProductSimple = async (req, res) => {
         startOrder: imageOrder,
         mediaShape, primaryAssignedRef,
       });
+    }
+
+    // ── Create bundle offers ──────────────────────────────────────────────────
+    if (Array.isArray(bundleOffers) && bundleOffers.length > 0) {
+      for (const offer of bundleOffers) {
+        await client.query(
+          `INSERT INTO bundle_offers (product_id, vendor_id, quantity_min, quantity_max, discount_value, discount_type, is_active)
+           VALUES ($1, $2, $3, $4, $5, 'fixed_price', true)`,
+          [productId, vendor_id, offer.quantity_min, offer.quantity_max, offer.discount_value]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -304,6 +318,107 @@ router.get("/bestsellers", async (req, res) => {
     res.json({ bestsellers: result.rows });
   } catch (err) {
     console.error("BESTSELLERS ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /price-range ────────────────────────────────────────────────────────
+// Get products filtered by price range
+// Query params: min_price, max_price, limit
+router.get("/price-range", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 40);
+    const minPrice = parseFloat(req.query.min_price) || 0;
+    const maxPrice = parseFloat(req.query.max_price) || 99999;
+
+    const result = await pool.query(
+      `SELECT
+         p.id, p.name,
+         COALESCE(b.name, '') AS brand,
+         COALESCE(c.name, '') AS category_name,
+         MIN(v.price)                         AS price,
+         MIN(COALESCE(v.mrp, v.price))        AS original_price,
+         COALESCE(
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id AND pm.is_primary = true
+             LIMIT 1
+           ),
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id
+             LIMIT 1
+           )
+         )                                    AS image
+       FROM products p
+       LEFT JOIN brands b       ON b.id = p.brand_id
+       LEFT JOIN categories c   ON c.id = p.category_id
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+       WHERE p.id IS NOT NULL
+       GROUP BY p.id, b.name, c.name
+       HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
+       ORDER BY MIN(v.price) ASC, p.id
+       LIMIT $3`,
+      [minPrice, maxPrice, limit]
+    );
+    res.json({ products: result.rows });
+  } catch (err) {
+    console.error("PRICE-RANGE ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /bulk-offers ────────────────────────────────────────────────────────
+// Get products with active bulk offers (Buy 2, Buy 3, etc.)
+// Query params: limit
+router.get("/bulk-offers", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 40);
+
+    const result = await pool.query(
+      `SELECT
+         p.id, p.name,
+         COALESCE(b.name, '') AS brand,
+         COALESCE(c.name, '') AS category_name,
+         MIN(v.price)                         AS price,
+         MIN(COALESCE(v.mrp, v.price))        AS original_price,
+         COALESCE(
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id AND pm.is_primary = true
+             LIMIT 1
+           ),
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id
+             LIMIT 1
+           )
+         )                                    AS image,
+         (
+           SELECT json_agg(json_build_object('offer_type', bo.offer_type, 'quantity', bo.quantity, 'offer_price', bo.offer_price))
+           FROM bulk_offers bo
+           WHERE bo.product_id = p.id AND bo.is_active = true
+         )                                    AS bulk_offers
+       FROM products p
+       LEFT JOIN brands b       ON b.id = p.brand_id
+       LEFT JOIN categories c   ON c.id = p.category_id
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+       WHERE EXISTS (
+         SELECT 1 FROM bulk_offers bo
+         WHERE bo.product_id = p.id AND bo.is_active = true
+       )
+       GROUP BY p.id, b.name, c.name
+       ORDER BY p.id
+       LIMIT $1`,
+      [limit]
+    );
+    res.json({ products: result.rows });
+  } catch (err) {
+    console.error("BULK-OFFERS ERROR:", err);
     res.status(500).json({ error: "Server error" });
   }
 });

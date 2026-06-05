@@ -22,6 +22,40 @@
   .bf-feature-shell { padding: 16px 14px 100px; gap: 14px; }
 }
 
+.bf-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .bf-bottom-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 70;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    background: #ffffff;
+    border-top: 1px solid var(--bf-border, #e5e7eb);
+    box-shadow: 0 -8px 20px rgba(15, 23, 42, 0.08);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .bf-bottom-nav button {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 12px 4px;
+    cursor: pointer;
+  }
+
+  .bf-bottom-nav button.active {
+    color: #15803d;
+  }
+}
+
 /* Hero (gradient banner — used by Refer & Earn / Old Clothes / Checkout) */
 .bf-hero {
   background: var(--bf-gradient-hero);

@@ -8,8 +8,11 @@ import './Login.css'
 
 function Login() {
   const [activeTab, setActiveTab] = useState('customer')
+  const [authMethod, setAuthMethod] = useState('otp') // 'otp' | 'password'
   const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [otpSent, setOtpSent] = useState(false)
   const [confirmationResult, setConfirmationResult] = useState(null)
   const [serverOtpMode, setServerOtpMode] = useState(false)
@@ -180,6 +183,52 @@ function Login() {
     resetRecaptcha()
   }
 
+  const handleLoginPassword = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSuccess('')
+
+    const formattedPhone = normalizeToIndianPhone(phone)
+    if (!formattedPhone) {
+      setError('Enter a valid 10-digit mobile number')
+      return
+    }
+    if (!password || password.length < 6) {
+      setError('Enter your password (min 6 characters)')
+      return
+    }
+
+    const expectedRole = activeTab === 'vendor' ? 'vendor' : 'customer'
+    setLoading(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/login/login-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formattedPhone, password, expectedRole }),
+      })
+      const data = await res.json()
+      if (!data.success) {
+        setError(data.message || 'Login failed')
+        return
+      }
+      setSuccess('Login successful! Redirecting...')
+      localStorage.setItem('token', data.token || '')
+      localStorage.setItem('userUuid', data.user.id)
+      localStorage.setItem('userRole', data.user.role)
+      localStorage.setItem('userPhone', data.user.phone)
+      localStorage.setItem('userName', data.user.name)
+      setTimeout(() => {
+        if (data.user.role === 'vendor') navigate('/vendor')
+        else navigate('/home')
+      }, 800)
+    } catch (err) {
+      console.error(err)
+      setError('Connection error. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   const handleVerifyOtp = async (e) => {
     e.preventDefault()
     setError('')
@@ -296,6 +345,97 @@ function Login() {
             {error && <div className="error-message">{error}</div>}
             {success && <div className="success-message">{success}</div>}
 
+            {/* AUTH METHOD SWITCH (matches mobile app) */}
+            <div className="auth-method-switch">
+              <button
+                type="button"
+                className={`auth-method-btn ${authMethod === 'otp' ? 'active' : ''}`}
+                onClick={() => {
+                  setAuthMethod('otp')
+                  setError('')
+                  setSuccess('')
+                }}
+              >
+                OTP login
+              </button>
+              <button
+                type="button"
+                className={`auth-method-btn ${authMethod === 'password' ? 'active' : ''}`}
+                onClick={() => {
+                  setAuthMethod('password')
+                  setError('')
+                  setSuccess('')
+                  resetOtpState()
+                }}
+              >
+                Password login
+              </button>
+            </div>
+
+            {authMethod === 'password' ? (
+              <form onSubmit={handleLoginPassword}>
+                <div className="form-group">
+                  <label>Mobile Number</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">📱</span>
+                    <input
+                      type="tel"
+                      placeholder="Enter 10 digit mobile number"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value)
+                        setError('')
+                        setSuccess('')
+                      }}
+                      disabled={loading}
+                      maxLength={10}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">🔒</span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="login-button" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Login with Password'}
+                </button>
+
+                <div className="forgot-password-row">
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => navigate('/password-reset')}
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+
+                <div className="otp-hint">
+                  Prefer OTP? Switch to <strong>OTP login</strong> above.
+                </div>
+              </form>
+            ) : (
             <form onSubmit={otpSent ? handleVerifyOtp : handleSendOtp}>
               <div className="form-group">
                 <label>Mobile Number</label>
@@ -360,10 +500,11 @@ function Login() {
                 </>
               )}
             </form>
+            )}
 
             <div id="recaptcha-container" />
 
-            {useVisibleCaptcha && !otpSent && !serverOtpMode && (
+            {authMethod === 'otp' && useVisibleCaptcha && !otpSent && !serverOtpMode && (
               <div className="captcha-note-wrap">
                 <div className="captcha-note">Complete the captcha challenge, then click Send OTP again.</div>
                 <button
@@ -377,7 +518,7 @@ function Login() {
               </div>
             )}
 
-            {!otpSent && (
+            {authMethod === 'otp' && !otpSent && (
               <div className="otp-hint">
                 We'll send a 6-digit verification code to your phone instantly.
               </div>

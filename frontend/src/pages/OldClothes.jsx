@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import CustomerBottomNav from "../components/CustomerBottomNav";
 import { API_API_BASE_URL } from "../apiBase";
 import "../styles/featurePages.css";
 
@@ -77,6 +78,10 @@ export default function OldClothes() {
       setError("Item count must be at least 1");
       return;
     }
+    if (Number(itemCount) > 5) {
+      setError("You can donate a maximum of 5 clothing pieces");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch(`${API_API_BASE_URL}/old-clothes`, {
@@ -93,7 +98,7 @@ export default function OldClothes() {
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Could not schedule pickup");
       setMessage(
-        "Pickup scheduled! Discount will be added after our rider collects your clothes — use it on your next order."
+        "Pickup scheduled! Once collected, up to 5% discount will be available on your next order."
       );
       setItemCount(1);
       setPickupSlot("");
@@ -114,8 +119,7 @@ export default function OldClothes() {
           <span className="bf-hero-icon">👕</span>
           <h1>Donate old clothes</h1>
           <p>
-            Give your old clothes a second life. We'll pick them up — and every item earns you 1% off
-            your next order (capped at 50%).
+            Pickup is available only after you place at least one order with BlinkieFash. Donate up to 5 pieces and get up to 5% off on your next order after collection.
           </p>
         </section>
 
@@ -124,7 +128,7 @@ export default function OldClothes() {
             <div>
               <div className="bf-credit-amt">{Math.min(availablePercent, 50)}% off</div>
               <div className="bf-credit-label">
-                From {availableItems} donated item(s) — applied to your next order
+                From {availableItems} donated item(s) — max {Math.min(availablePercent, 5)}% on your next order
               </div>
             </div>
             <button className="bf-btn-primary" onClick={() => navigate("/cart")}>
@@ -162,7 +166,7 @@ export default function OldClothes() {
                 <input
                   type="number"
                   min={1}
-                  max={100}
+                  max={5}
                   value={itemCount}
                   onChange={(e) => setItemCount(e.target.value)}
                   required
@@ -190,7 +194,7 @@ export default function OldClothes() {
             </div>
 
             <div className="bf-notice info">
-              ℹ️ Once collected, you'll earn 1% off (capped at 50%) on your <strong>next order</strong>.
+              ℹ️ Maximum 5 pieces per pickup. Once collected, you'll receive up to 5% off on your <strong>next order</strong>.
             </div>
 
             <button
@@ -237,6 +241,7 @@ export default function OldClothes() {
           )}
         </section>
       </div>
+      <CustomerBottomNav active="categories" />
     </div>
   );
 }

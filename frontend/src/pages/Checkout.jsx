@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import CustomerBottomNav from "../components/CustomerBottomNav";
 import { API_API_BASE_URL } from "../apiBase";
 import "../styles/featurePages.css";
 
@@ -88,7 +89,7 @@ export default function Checkout() {
 
   const referralDiscount = useReferral ? Math.min(referralAmount, itemsSubtotal) : 0;
   const clothingDiscount = useClothing
-    ? Math.round(((itemsSubtotal * Math.min(clothingPercent, 50)) / 100) * 100) / 100
+    ? Math.round(((itemsSubtotal * Math.min(clothingPercent, 5)) / 100) * 100) / 100
     : 0;
   const discountedSubtotal = Math.max(itemsSubtotal - referralDiscount - clothingDiscount, 0);
   const grandTotal = discountedSubtotal + (feeWithinRange ? deliveryFee : 0);
@@ -323,9 +324,9 @@ export default function Checkout() {
                   <div className="bf-reward-row">
                     <div className="bf-reward-info">
                       <strong>Old-clothes credit</strong>
-                      <small>{clothingItems} donated item(s) — applied to this order</small>
+                      <small>{clothingItems} donated item(s) — max 5% on this order</small>
                     </div>
-                    <div className="bf-reward-info-amount">-{Math.min(clothingPercent, 50)}%</div>
+                    <div className="bf-reward-info-amount">-{Math.min(clothingPercent, 5)}%</div>
                     <div
                       className={`bf-switch ${useClothing ? "is-on" : ""}`}
                       onClick={() => setUseClothing((v) => !v)}
@@ -391,6 +392,7 @@ export default function Checkout() {
           </button>
         </div>
       </div>
+      <CustomerBottomNav active="categories" />
     </div>
   );
 }

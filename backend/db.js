@@ -263,7 +263,8 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS referral_discount DECIMAL(12, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0
+      ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS bundle_discount DECIMAL(12, 2) DEFAULT 0
   `).catch(() => {});
 
   // ── Product feature flags ─────────────────────────────────────────────────
@@ -271,5 +272,45 @@ export const ensureDatabaseTables = async () => {
     ALTER TABLE products
       ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false
+  `).catch(() => {});
+
+  // ── Bulk offer/deal support ─────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bulk_offers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      offer_type VARCHAR(100) NOT NULL,
+      quantity INT NOT NULL,
+      offer_price DECIMAL(12, 2) NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_bulk_offers_product_active
+    ON bulk_offers(product_id, is_active);
+  `).catch(() => {});
+
+  // ── Bundle pricing offers ─────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bundle_offers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      vendor_id UUID NOT NULL REFERENCES sellers(id) ON DELETE CASCADE,
+      quantity_min INT NOT NULL DEFAULT 1,
+      quantity_max INT,
+      discount_type VARCHAR(20) DEFAULT 'fixed_price',
+      discount_value DECIMAL(12, 2) NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+    );
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_bundle_offers_product
+    ON bundle_offers(product_id, is_active);
   `).catch(() => {});
 };

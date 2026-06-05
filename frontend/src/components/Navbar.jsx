@@ -205,106 +205,40 @@ export default function Navbar({ active }) {
         <img src={logo} alt="Blinkiefash" className="logo-img" />
 
         <span className="brand" 
-            onClick={() => navigate("/home")}
+            onClick={() => navigate("/")}
               style={{ cursor: "pointer" }}
             >
           <span className="brand-black">BLINKIE</span>
           <span className="brand-green">FASH</span>
         </span>
 
-        <div
-          className="address-box"
-          onClick={() => setAddressOpen(!addressOpen)}
-        >
-          <span className="address-top">DELIVER IN 60 MIN</span>
-          <span className="address-bottom">
-            {selectedCity} ▾
-          </span>
-
-          {addressOpen && (
-            <div className="address-dropdown">
-              <div onClick={() => {
-                setSelectedCity("Bhubaneswar");
-                localStorage.setItem('selectedCity', "Bhubaneswar");
-              }}>
-                Bhubaneswar
-              </div>
-              <div onClick={() => {
-                setSelectedCity("Cuttack");
-                localStorage.setItem('selectedCity', "Cuttack");
-              }}>
-                Cuttack
-              </div>
-              <div
-                className="location-action"
-                onClick={handleUseCurrentLocation}
-              >
-                {locating ? "Detecting location..." : "Use Current Location"}
-              </div>
-              <div className="divider" />
-              <div className="add-address">+ Add address</div>
-            </div>
-          )}
-        </div>
-
-        <nav className="nav-links">
-          {tabs.map((tab) => (
-            <span
-              key={tab}
-              className={`nav-item ${
-                activeTab === tab ? "active" : ""
-              }`}
-              onClick={() => {
-                setActiveTab(tab);
-                handleTabNavigation(tab);
-              }}
-            >
-              {tab}
-            </span>
-          ))}
+        {/* Admin/Vendor Navigation Links - Hidden on mobile */}
+        <nav className="nav-links" style={{ display: 'flex', gap: '20px', marginLeft: '40px' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/vendor')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+          >
+            Vendor Portal
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/vendor/add-product')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+          >
+            Add Product
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/darkstore')}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+          >
+            Dark Store
+          </button>
         </nav>
       </div>
 
       <div className="nav-right">
-        <input
-          className="search-box"
-          placeholder="Search for apparels, brands & trends"
-        />
-
-        <button
-          className="nav-action-btn"
-          onClick={() => navigate(isLoggedIn ? '/wishlist' : '/login')}
-          title="Go to Wishlist"
-        >
-          <span className="nav-action-icon wishlist-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            {wishlistCount > 0 ? <span className="nav-count-badge">{wishlistCount}</span> : null}
-          </span>
-          <span className="nav-action-copy">
-            <strong>Wishlist</strong>
-          </span>
-        </button>
-
-        <button 
-          className="nav-action-btn"
-          onClick={() => navigate(isLoggedIn ? '/cart' : '/login')}
-          title="Go to Cart"
-        >
-          <span className="nav-action-icon cart-icon">
-            <svg viewBox="0 0 24 24">
-              <path d="M6 6h15l-1.5 9h-12z" />
-              <circle cx="9" cy="21" r="1" />
-              <circle cx="18" cy="21" r="1" />
-            </svg>
-            {cartCount > 0 ? <span className="nav-count-badge">{cartCount}</span> : null}
-          </span>
-          <span className="nav-action-copy">
-            <strong>Cart</strong>
-          </span>
-        </button>
-
         {isLoggedIn ? (
           <div
             className="profile-box"
@@ -318,10 +252,8 @@ export default function Navbar({ active }) {
 
             {profileOpen && (
               <div className="profile-dropdown">
-                <div onClick={() => navigate('/orders')}>My Orders</div>
-                <div onClick={() => navigate('/refer-earn')}>Refer & Earn — ₹50 each</div>
-                <div onClick={() => navigate('/donate-clothes')}>Donate Old Clothes — 1% off</div>
-                <div onClick={() => navigate('/wishlist')}>Wishlist</div>
+                <div onClick={() => navigate('/vendor')}>Vendor Dashboard</div>
+                <div onClick={() => navigate('/customer-service')}>Support</div>
                 <div onClick={() => navigate('/policies')}>Policies</div>
                 <div className="divider" />
                 <div 
@@ -385,50 +317,20 @@ export default function Navbar({ active }) {
               </button>
             </div>
 
-            <input
-              className="nav-drawer-search"
-              placeholder="Search for apparels, brands & trends"
-            />
-
-            <div className="nav-drawer-section-title">SHOP BY DEPARTMENT</div>
-            {tabs.map((tab) => (
-              <button
-                key={tab}
-                type="button"
-                className={`nav-drawer-link ${activeTab === tab ? 'is-active' : ''}`}
-                onClick={() => {
-                  setActiveTab(tab);
-                  closeDrawer();
-                  handleTabNavigation(tab);
-                }}
-              >
-                {tab === "HOMELIVING" ? "HOME & LIVING" : tab}
-              </button>
-            ))}
-
-            <div className="nav-drawer-section-title">YOUR ACCOUNT</div>
-            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/cart' : '/login')}>
-              🛒 Cart {cartCount > 0 ? <span className="nav-drawer-badge">{cartCount}</span> : null}
+            <div className="nav-drawer-section-title">ADMIN & VENDOR</div>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/vendor')}>
+              📦 Vendor Portal
             </button>
-            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/wishlist' : '/login')}>
-              ♡ Wishlist {wishlistCount > 0 ? <span className="nav-drawer-badge">{wishlistCount}</span> : null}
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/vendor/add-product')}>
+              ➕ Add Product
             </button>
-            <button type="button" className="nav-drawer-link" onClick={() => drawerNav(isLoggedIn ? '/orders' : '/login')}>
-              📦 My Orders
-            </button>
-
-            <div className="nav-drawer-section-title">OFFERS</div>
-            <button type="button" className="nav-drawer-link offers" onClick={() => drawerNav(isLoggedIn ? '/refer-earn' : '/login')}>
-              🎁 Refer & Earn — ₹50 each
-            </button>
-            <button type="button" className="nav-drawer-link offers" onClick={() => drawerNav(isLoggedIn ? '/donate-clothes' : '/login')}>
-              👕 Donate Old Clothes — 1% off
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/darkstore')}>
+              🏪 Dark Store
             </button>
 
             <div className="nav-drawer-section-title">MORE</div>
-            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/explore-shops')}>Explore Stores</button>
-            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/policies')}>Policies</button>
             <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/customer-service')}>Customer Service</button>
+            <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/policies')}>Policies</button>
             <button type="button" className="nav-drawer-link" onClick={() => drawerNav('/company')}>About BlinkieFash</button>
 
             {isLoggedIn && (

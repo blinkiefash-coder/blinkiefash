@@ -176,3 +176,155 @@
     font-size: 11px;
   }
 }
+
+/* MOBILE: 481px - 539px */
+@media (max-width: 539px) {
+  .admin-gate-shell {
+    padding: 16px;
+  }
+
+  .admin-gate-card {
+    padding: 18px;
+    border-radius: 12px;
+    width: 100%;
+  }
+
+  .admin-gate-logo {
+    width: 56px;
+    height: 56px;
+    margin-bottom: 6px;
+  }
+
+  .admin-gate-brand-row {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+
+  .admin-gate-brand-line {
+    font-size: 10px;
+  }
+
+  .admin-gate-card h1 {
+    font-size: 24px;
+    margin: 6px 0 8px;
+  }
+
+  .admin-gate-card p {
+    margin: 0 0 16px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .admin-gate-quotes {
+    margin: 0 0 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  .admin-gate-quotes p {
+    font-size: 12px;
+  }
+
+  .admin-gate-quotes p + p {
+    margin-top: 4px;
+  }
+
+  .admin-gate-purpose {
+    margin: 0 0 14px;
+    font-size: 12px;
+  }
+
+  .admin-gate-concept {
+    margin: 0 0 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+  }
+
+  .admin-gate-concept h2 {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  .admin-gate-concept ul {
+    padding-left: 16px;
+    font-size: 12px;
+  }
+
+  .admin-gate-form input,
+  .admin-gate-form button {
+    height: 42px;
+    font-size: 14px;
+  }
+
+  .admin-gate-form label {
+    font-size: 12px;
+  }
+}
+
+/* SMALL MOBILE: <= 380px */
+@media (max-width: 380px) {
+  .admin-gate-shell {
+    padding: 12px;
+  }
+
+  .admin-gate-card {
+    padding: 14px;
+    border-radius: 10px;
+  }
+
+  .admin-gate-logo {
+    width: 48px;
+    height: 48px;
+  }
+
+  .admin-gate-card h1 {
+    font-size: 20px;
+    margin: 4px 0 6px;
+  }
+
+  .admin-gate-card p {
+    font-size: 12px;
+    margin: 0 0 12px;
+  }
+
+  .admin-gate-quotes {
+    padding: 8px 10px;
+  }
+
+  .admin-gate-quotes p {
+    font-size: 11px;
+  }
+
+  .admin-gate-purpose {
+    font-size: 11px;
+    margin: 0 0 10px;
+  }
+
+  .admin-gate-concept {
+    padding: 8px 10px;
+    margin: 0 0 10px;
+  }
+
+  .admin-gate-concept h2 {
+    font-size: 13px;
+  }
+
+  .admin-gate-concept ul {
+    font-size: 11px;
+    padding-left: 14px;
+  }
+
+  .admin-gate-form input,
+  .admin-gate-form button {
+    height: 40px;
+    font-size: 13px;
+  }
+
+  .admin-gate-form label {
+    font-size: 11px;
+  }
+
+  .admin-gate-error {
+    font-size: 11px;
+  }
+}

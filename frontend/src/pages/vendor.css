@@ -95,3 +95,143 @@
   color: #22c55e;
   margin-bottom: 10px;
 }
+
+/* ─────────────────────────────────────────────────────────── */
+/* MOBILE RESPONSIVE STYLES */
+/* ─────────────────────────────────────────────────────────── */
+
+/* TABLET: 768px - 1024px */
+@media (max-width: 1024px) {
+  .vendor-page {
+    padding: 24px;
+  }
+
+  .vendor-card {
+    width: 100%;
+    max-width: 420px;
+    padding: 24px;
+  }
+}
+
+/* MOBILE: 481px - 767px */
+@media (max-width: 768px) {
+  .vendor-page {
+    padding: 16px;
+    min-height: auto;
+  }
+
+  .vendor-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .vendor-card h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .vendor-subtext {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .vendor-card label {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  .vendor-card input {
+    padding: 10px;
+    font-size: 14px;
+    min-height: 42px;
+    border-radius: 6px;
+  }
+
+  .vendor-card button {
+    margin-top: 16px;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .vendor-register-link {
+    margin-top: 12px;
+    font-size: 12px;
+  }
+
+  .vendor-error {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+}
+
+/* SMALL MOBILE: <= 480px */
+@media (max-width: 480px) {
+  .vendor-page {
+    padding: 12px;
+  }
+
+  .vendor-card {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .vendor-card h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .vendor-subtext {
+    font-size: 11px;
+    margin-bottom: 14px;
+  }
+
+  .vendor-card label {
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  .vendor-card input {
+    padding: 8px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+
+  .vendor-card button {
+    margin-top: 14px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .vendor-register-link {
+    margin-top: 10px;
+    font-size: 11px;
+  }
+
+  .vendor-error {
+    font-size: 11px;
+    margin: 6px 0;
+  }
+}
+
+/* EXTRA SMALL: <= 360px */
+@media (max-width: 360px) {
+  .vendor-card {
+    padding: 14px;
+  }
+
+  .vendor-card h2 {
+    font-size: 16px;
+  }
+
+  .vendor-card input {
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  .vendor-card button {
+    font-size: 12px;
+  }
+}

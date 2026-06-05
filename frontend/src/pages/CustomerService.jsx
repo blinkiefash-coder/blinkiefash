@@ -26,6 +26,7 @@ export default function CustomerService() {
           <div className="info-callout info-contact-card">
             <h4>Contact Our Support Team</h4>
             <div className="info-contact-grid">
+              <p>Phone<br />+91 9827901891</p>
               <p>Email<br />support@blinkiefash.in</p>
               <p>Support Hours<br />9:00 AM - 11:00 PM</p>
             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
+import CustomerBottomNav from "../components/CustomerBottomNav";
 import { API_API_BASE_URL } from "../apiBase";
 import "../styles/featurePages.css";
 
@@ -125,6 +126,7 @@ export default function ReferEarn() {
           </ol>
         </section>
       </div>
+      <CustomerBottomNav active="categories" />
     </div>
   );
 }

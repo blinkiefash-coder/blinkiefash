@@ -17,6 +17,53 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ── Bundle pricing rules ────────────────────────────────────────────────────
+// Check bundle offers from database for cart items
+// Returns discount amount (positive value to subtract from subtotal)
+async function calculateBundleDiscount(items, subtotal, client = pool) {
+  if (!Array.isArray(items) || items.length === 0 || subtotal <= 0) {
+    return 0;
+  }
+
+  const totalQuantity = items.reduce((sum, item) => sum + (item.quantity || 0), 0);
+
+  // Get all unique product IDs from items
+  const productIds = [...new Set(items.map((item) => item.variantId))];
+  if (productIds.length === 0) return 0;
+
+  try {
+    // Find applicable bundle offers
+    const { rows: offers } = await client.query(
+      `SELECT product_id, quantity_min, quantity_max, discount_value, discount_type
+       FROM bundle_offers
+       WHERE product_id = ANY($1::uuid[])
+       AND is_active = true
+       AND quantity_min <= $2
+       AND (quantity_max IS NULL OR quantity_max >= $2)
+       ORDER BY quantity_min DESC
+       LIMIT 1`,
+      [productIds, totalQuantity]
+    );
+
+    if (offers.length > 0) {
+      const offer = offers[0];
+      // For fixed_price offers, return the discount
+      if (offer.discount_type === 'fixed_price' && subtotal > offer.discount_value) {
+        return subtotal - offer.discount_value;
+      }
+      // For percentage offers (future use)
+      if (offer.discount_type === 'percentage') {
+        return (subtotal * offer.discount_value) / 100;
+      }
+    }
+
+    return 0;
+  } catch (err) {
+    console.error("Bundle discount calculation error:", err);
+    return 0;
+  }
+}
+
 // ── Delivery fee rules ────────────────────────────────────────────────────────
 // - subtotal >= 999 → 0 (free delivery)
 // - distance ≤ 15 km → 49
@@ -232,16 +279,21 @@ router.post("/orders", async (req, res) => {
 
     // Calculate delivery fee
     const itemsSubtotal = totalAmount; // client now sends subtotal (items only)
+    
+    // ── Calculate bundle discount ───
+    const bundleDiscount = await calculateBundleDiscount(items, itemsSubtotal, client);
+    const subtotalAfterBundle = itemsSubtotal - bundleDiscount;
+
     let deliveryFee = 0;
     if (distanceKm !== null) {
-      const calcFee = calcDeliveryFee(itemsSubtotal, distanceKm);
+      const calcFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
       if (calcFee === null) {
         await client.query("ROLLBACK");
         return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from our nearest store." });
       }
       deliveryFee = calcFee;
     } else {
-      deliveryFee = itemsSubtotal > 1499 ? 0 : 49;
+      deliveryFee = subtotalAfterBundle > 1499 ? 0 : 49;
     }
 
     // ── Apply rewards (referral ₹50 + clothing up to 5% for next order) ───
@@ -261,7 +313,7 @@ router.post("/orders", async (req, res) => {
       );
       if (refRewards.length) {
         referralRewardId = refRewards[0].id;
-        referralDiscount = Math.min(parseFloat(refRewards[0].value) || 0, itemsSubtotal);
+        referralDiscount = Math.min(parseFloat(refRewards[0].value) || 0, subtotalAfterBundle);
       }
     }
 
@@ -279,13 +331,13 @@ router.post("/orders", async (req, res) => {
           0
         );
         const percent = Math.min(totalItems, 5);
-        clothingDiscount = Math.round((itemsSubtotal * percent) / 100 * 100) / 100;
+        clothingDiscount = Math.round((subtotalAfterBundle * percent) / 100 * 100) / 100;
         clothingRewardIds = clothRewards.map((r) => r.id);
       }
     }
 
     const totalDiscount = referralDiscount + clothingDiscount;
-    const discountedSubtotal = Math.max(itemsSubtotal - totalDiscount, 0);
+    const discountedSubtotal = Math.max(subtotalAfterBundle - totalDiscount, 0);
     const finalAmount = discountedSubtotal + deliveryFee;
 
     // Create order
@@ -293,11 +345,11 @@ router.post("/orders", async (req, res) => {
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
           payment_method, dark_store_id, is_try_order,
-          referral_discount, clothing_discount)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8)
+          referral_discount, clothing_discount, bundle_discount)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
-       referralDiscount, clothingDiscount]
+       referralDiscount, clothingDiscount, bundleDiscount]
     );
     const order = orderRows[0];
 
@@ -366,6 +418,7 @@ router.post("/orders", async (req, res) => {
       orderId: order.id,
       status: order.status,
       totalAmount: order.total_amount,
+      bundleDiscount: bundleDiscount,
       deliveryFee: deliveryFee,
       referralDiscount,
       clothingDiscount,
@@ -581,6 +634,63 @@ router.get("/darkstores", async (req, res) => {
     res.json({ success: true, stores: rows });
   } catch {
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── GET /api/checkout/darkstore/:id/products ──────────────────────────────────
+// Get all products available in a specific dark store with inventory
+router.get("/darkstore/:storeId/products", async (req, res) => {
+  try {
+    const { storeId } = req.params;
+
+    // Get all products with variants that have inventory in this dark store
+    const result = await pool.query(
+      `SELECT DISTINCT
+         p.id, p.name, p.vendor_id, p.category_id, p.brand_id,
+         b.name AS brand_name,
+         c.name AS category_name,
+         (SELECT pm.url FROM product_media pm
+          JOIN product_variants pv2 ON pv2.id = pm.variant_id
+          WHERE pv2.product_id = p.id
+          ORDER BY pm.is_primary DESC, pm.id ASC LIMIT 1) AS image_url,
+         (SELECT v.price FROM product_variants v
+          WHERE v.product_id = p.id AND v.is_active = true
+          ORDER BY v.price ASC LIMIT 1) AS price
+       FROM products p
+       LEFT JOIN brands b ON b.id = p.brand_id
+       LEFT JOIN categories c ON c.id = p.category_id
+       JOIN product_variants pv ON pv.product_id = p.id
+       JOIN inventory i ON i.variant_id = pv.id
+       WHERE p.is_active = true AND i.store_id = $1 AND i.stock > 0`,
+      [storeId]
+    );
+
+    const products = result.rows;
+
+    // For each product, fetch its variants with inventory in this store
+    const productsWithVariants = await Promise.all(
+      products.map(async (product) => {
+        const variantsResult = await pool.query(
+          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
+                  COALESCE(i.stock, 0) as quantity,
+                  i.store_id
+           FROM product_variants pv
+           LEFT JOIN inventory i ON i.variant_id = pv.id AND i.store_id = $1
+           WHERE pv.product_id = $2 AND pv.is_active = true`,
+          [storeId, product.id]
+        );
+
+        return {
+          ...product,
+          variants: variantsResult.rows || []
+        };
+      })
+    );
+
+    res.json(productsWithVariants);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

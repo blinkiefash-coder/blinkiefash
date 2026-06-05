@@ -72,35 +72,106 @@ router.get("/:identifier", async (req, res) => {
   }
 });
 
+// DEBUG: GET all products (for debugging)
+router.get("/debug/all-products", async (req, res) => {
+  try {
+    const result = await pool.query(
+      `SELECT id, name, vendor_id, is_active, created_at FROM products ORDER BY created_at DESC`
+    );
+    res.json({ 
+      total: result.rows.length, 
+      products: result.rows 
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET single vendor with their products
 router.get("/:id/products", async (req, res) => {
   try {
     const { id } = req.params;
-    const result = await pool.query(
-            `SELECT p.id, p.name,
-              p.category_id,
+    
+    // First, get all products for this vendor
+    const productsResult = await pool.query(
+      `SELECT p.id, p.name, p.vendor_id, p.category_id, p.brand_id,
               b.name AS brand_name,
               c.name AS category_name,
               (SELECT pm.url FROM product_media pm
                JOIN product_variants pv2 ON pv2.id = pm.variant_id
                WHERE pv2.product_id = p.id
                ORDER BY pm.is_primary DESC, pm.id ASC LIMIT 1) AS image_url,
-              pv.price, NULL AS discount_price
+              (SELECT v.price FROM product_variants v
+               WHERE v.product_id = p.id AND v.is_active = true
+               ORDER BY v.price ASC LIMIT 1) AS price
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
-       LEFT JOIN LATERAL (
-         SELECT v.price
-         FROM product_variants v
-         WHERE v.product_id = p.id AND v.is_active = true
-         ORDER BY v.price ASC
-         LIMIT 1
-       ) pv ON true
        WHERE p.vendor_id = $1 AND p.is_active = true
-       ORDER BY p.created_at DESC
-       LIMIT 4`,
+       ORDER BY p.created_at DESC`,
       [id]
     );
+
+    const products = productsResult.rows;
+
+    // For each product, fetch its variants with inventory
+    const productsWithVariants = await Promise.all(
+      products.map(async (product) => {
+        const variantsResult = await pool.query(
+          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
+                  COALESCE(SUM(i.stock), 0) as quantity,
+                  i.store_id
+           FROM product_variants pv
+           LEFT JOIN inventory i ON i.variant_id = pv.id
+           WHERE pv.product_id = $1 AND pv.is_active = true
+           GROUP BY pv.id, i.store_id
+           ORDER BY pv.id ASC`,
+          [product.id]
+        );
+
+        return {
+          ...product,
+          variants: variantsResult.rows || []
+        };
+      })
+    );
+
+    res.json(productsWithVariants);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// GET vendor orders (for analytics)
+router.get("/:id/orders", async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const result = await pool.query(
+      `SELECT 
+         o.id,
+         o.status,
+         o.total_amount,
+         o.final_amount,
+         o.created_at,
+         json_agg(json_build_object(
+           'product_id', p.id,
+           'variant_id', oi.variant_id,
+           'quantity', oi.quantity,
+           'price', oi.price,
+           'product_name', p.name
+         )) AS items
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       JOIN product_variants v ON v.id = oi.variant_id
+       JOIN products p ON p.id = v.product_id
+       WHERE p.vendor_id = $1
+       GROUP BY o.id
+       ORDER BY o.created_at DESC`,
+      [id]
+    );
+    
     res.json(result.rows);
   } catch (err) {
     console.error(err);
