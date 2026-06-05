@@ -27,7 +27,10 @@ const allowedOrigins = [
   "http://127.0.0.1:5173",
   "http://127.0.0.1:5174",
   "https://blinkiefash.vercel.app",
+  "https://www.blinkiefash.in",
+  "https://blinkiefash.in",
   "https://www.blinkiefash.com",
+  "https://blinkiefash.com",
   ...(process.env.FRONTEND_URLS
     ? process.env.FRONTEND_URLS.split(",").map((origin) =>
         origin.trim().replace(/\/$/, "")

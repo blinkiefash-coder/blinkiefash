@@ -5,17 +5,11 @@ const getAPIBase = () => {
     return 'http://localhost:5000';
   }
   
-  // In production on Vercel - use environment variable or fallback
-  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
-    // Try to use VITE environment variable first
-    const envURL = import.meta.env.VITE_API_BASE_URL;
-    if (envURL) return envURL;
-    
-    // Fallback to Render URL
-    return 'https://blinkiefash-backend.onrender.com';
-  }
+  // In production - try to use environment variable first
+  const envURL = import.meta.env.VITE_API_BASE_URL;
+  if (envURL) return envURL;
   
-  // Custom domain or other
+  // Default fallback for production
   return 'https://blinkiefash-backend.onrender.com';
 };
 
