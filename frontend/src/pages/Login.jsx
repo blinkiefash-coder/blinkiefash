@@ -331,10 +331,7 @@ function Login() {
               <button
                 className={`lr-tab ${activeTab === 'vendor' ? 'active' : ''}`}
                 onClick={() => {
-                  setActiveTab('vendor')
-                  setError('')
-                  setSuccess('')
-                  resetOtpState()
+                  navigate('/vendor')
                 }}
                 type="button"
               >
