@@ -57,6 +57,15 @@ app.use(
 );
 app.use(express.json());
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "BlinkieFash backend is running" });
+});
+
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "BlinkieFash backend is running" });
+});
+
 app.use("/login", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/vendor", vendorRoutes);
