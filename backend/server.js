@@ -19,21 +19,26 @@ import oldClothesRoutes from "./routes/oldClothes.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.FRONTEND_URLS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-  .map((origin) => origin.replace(/\/$/, ""));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "https://blinkiefash.vercel.app",
+  "https://www.blinkiefash.com",
+  ...(process.env.FRONTEND_URLS
+    ? process.env.FRONTEND_URLS.split(",").map((origin) =>
+        origin.trim().replace(/\/$/, "")
+      )
+    : []),
+];
 
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      if (allowedOrigins.length === 0) {
         callback(null, true);
         return;
       }
@@ -44,6 +49,8 @@ app.use(
         callback(null, true);
         return;
       }
+      
+      console.warn(`CORS rejected: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     },
   })
