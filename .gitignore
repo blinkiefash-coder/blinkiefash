@@ -1,68 +1,24 @@
-# Dependencies
-node_modules/
-flutter_plugins/
-.gradle/
-.dart_tool/
-.flutter-plugins*
-
-# Build outputs
-dist/
-build/
-*.apk
-*.aar
-*.app
-*.ipa
-.next/
-out/
-
-# Environment
-.env
-.env.local
-.env.*.local
-
-# IDE
-.vscode/
-.idea/
-.DS_Store
-*.iml
-*.swp
-*.swo
-*~
-
-# Firebase
-google-services.json
-GoogleService-Info.plist
-
 # Logs
+logs
 *.log
 npm-debug.log*
 yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Misc
-.flutter-plugins
-.packages
-pubspec.lock
-package-lock.json
-yarn.lock
+node_modules
+dist
+dist-ssr
+*.local
 
-# iOS
-ios/Pods/
-ios/Podfile.lock
-ios/.symlinks/
-ios/Flutter/Flutter.framework
-ios/Flutter/Flutter.podspec
-
-# Android
-android/local.properties
-android/.gradle/
-android/captures/
-android/gradlew.bat
-android/gradlew
-
-# Coverage
-coverage/
-lcov.info
-
-# OS
-Thumbs.db
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

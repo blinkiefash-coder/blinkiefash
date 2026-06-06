@@ -1,0 +1,270 @@
+/* ── Page layout ──────────────────────────────────────────────────────────── */
+.ds-page {
+  min-height: 100vh;
+  background: #f0fdf4;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #0f172a;
+}
+
+.ds-header {
+  background: #166534;
+  color: white;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.ds-header h1 { font-size: 20px; font-weight: 700; margin: 0; }
+.ds-header p  { font-size: 13px; opacity: .75; margin: 2px 0 0; }
+.ds-refresh-time { font-size: 12px; opacity: .75; }
+
+.ds-container { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+/* ── Controls ─────────────────────────────────────────────────────────────── */
+.ds-controls {
+  background: white;
+  border-radius: 16px;
+  padding: 20px 24px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+  margin-bottom: 20px;
+}
+.ds-control-group { display: flex; flex-direction: column; gap: 4px; }
+.ds-control-group label { font-size: 12px; font-weight: 600; color: #374151; }
+.ds-control-group input,
+.ds-control-group select {
+  border: 1.5px solid #d1d5db;
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 14px;
+  outline: none;
+  min-width: 200px;
+  background: white;
+}
+.ds-control-group input:focus,
+.ds-control-group select:focus { border-color: #16a34a; }
+
+.ds-btn {
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: opacity .15s;
+}
+.ds-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ds-btn-primary  { background: #16a34a; color: white; }
+.ds-btn-primary:hover:not(:disabled) { background: #15803d; }
+.ds-btn-outline  { background: white; color: #16a34a; border: 1.5px solid #16a34a; }
+.ds-btn-outline:hover { background: #f0fdf4; }
+.ds-btn-active   { background: #dcfce7; color: #166534; border: 1.5px solid #16a34a; }
+
+/* ── Error ────────────────────────────────────────────────────────────────── */
+.ds-error {
+  background: #fef2f2; border: 1px solid #fca5a5; border-radius: 12px;
+  padding: 12px 16px; margin-bottom: 16px; color: #dc2626;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.ds-error button {
+  background: none; border: none; cursor: pointer;
+  color: #dc2626; font-size: 14px; padding: 0 4px;
+}
+
+/* ── Stats ────────────────────────────────────────────────────────────────── */
+.ds-stats {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 18px;
+}
+.ds-stat-card {
+  background: white; border-radius: 12px; padding: 14px 20px;
+  flex: 1; min-width: 110px; box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  text-align: center;
+}
+.ds-stat-num { font-size: 28px; font-weight: 800; color: #166534; }
+.ds-stat-lbl { font-size: 12px; color: #6b7280; margin-top: 2px; }
+
+/* ── Orders header ────────────────────────────────────────────────────────── */
+.ds-orders-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 12px;
+}
+.ds-orders-header h2 { font-size: 17px; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 8px; }
+.ds-store-badge {
+  background: #dcfce7; color: #166534; border-radius: 8px;
+  padding: 3px 10px; font-size: 12px; font-weight: 600;
+}
+.ds-order-count { font-size: 13px; color: #6b7280; }
+
+/* ── Loading / Empty ──────────────────────────────────────────────────────── */
+.ds-loading {
+  text-align: center; padding: 40px; color: #6b7280;
+  display: flex; align-items: center; justify-content: center; gap: 10px;
+}
+.ds-spinner {
+  width: 22px; height: 22px;
+  border: 3px solid #d1d5db; border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: ds-spin .7s linear infinite;
+}
+@keyframes ds-spin { to { transform: rotate(360deg); } }
+
+.ds-empty { text-align: center; padding: 60px 20px; color: #9ca3af; }
+.ds-empty-icon { font-size: 48px; margin-bottom: 12px; }
+.ds-empty p { font-size: 15px; }
+
+/* ── Order card ───────────────────────────────────────────────────────────── */
+.ds-order-card {
+  background: white;
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.06);
+  border-left: 4px solid #d1d5db;
+}
+
+.ds-order-top {
+  display: flex; justify-content: space-between; align-items: flex-start;
+  flex-wrap: wrap; gap: 8px; margin-bottom: 12px;
+}
+.ds-customer-name { font-weight: 700; font-size: 15px; }
+.ds-customer-phone { font-size: 13px; color: #6b7280; margin: 2px 0; }
+.ds-order-id { font-size: 12px; color: #9ca3af; font-family: monospace; }
+.ds-order-meta { text-align: right; }
+.ds-badge {
+  display: inline-block; padding: 3px 10px; border-radius: 20px;
+  font-size: 12px; font-weight: 600;
+}
+.ds-order-time  { font-size: 12px; color: #9ca3af; margin-top: 4px; }
+.ds-payment     { font-size: 12px; color: #374151; margin-top: 2px; font-weight: 600; }
+
+.ds-address {
+  font-size: 13px; color: #374151;
+  background: #f8fafc; border-radius: 8px; padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+/* ── Rider info ───────────────────────────────────────────────────────────── */
+.ds-rider-info {
+  font-size: 13px; background: #ecfdf5; border: 1px solid #bbf7d0;
+  border-radius: 8px; padding: 8px 12px; margin-bottom: 12px;
+  display: flex; flex-wrap: wrap; gap: 4px; align-items: center;
+}
+.ds-rider-label { color: #16a34a; font-weight: 600; margin-right: 4px; }
+
+/* ── Items table ──────────────────────────────────────────────────────────── */
+.ds-items-table {
+  width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px;
+}
+.ds-items-table th {
+  text-align: left; color: #6b7280; font-weight: 600;
+  border-bottom: 1px solid #e5e7eb; padding: 6px 8px;
+}
+.ds-items-table td {
+  padding: 6px 8px; border-bottom: 1px solid #f3f4f6;
+}
+.ds-items-table tr:last-child td { border-bottom: none; }
+
+/* ── Order footer ─────────────────────────────────────────────────────────── */
+.ds-order-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 8px;
+}
+.ds-total { font-weight: 700; font-size: 15px; }
+
+.ds-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.ds-action-btn {
+  padding: 5px 11px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; background: white; transition: opacity .15s;
+}
+.ds-action-btn:hover { opacity: .75; }
+.ds-action-confirmed  { border: 1.5px solid #3b82f6; color: #3b82f6; }
+.ds-action-preparing  { border: 1.5px solid #8b5cf6; color: #8b5cf6; }
+.ds-action-dispatched { border: 1.5px solid #06b6d4; color: #06b6d4; }
+.ds-action-delivered  { border: 1.5px solid #16a34a; color: #16a34a; }
+.ds-action-cancelled  { border: 1.5px solid #ef4444; color: #ef4444; }
+
+/* Cancel confirmation row */
+.ds-cancel-row { margin-top: 8px; display: flex; justify-content: flex-end; }
+.ds-cancel-ghost { opacity: 0.65; font-size: 12px; }
+.ds-cancel-ghost:hover { opacity: 1; }
+.ds-cancel-confirm {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  background: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 8px;
+  padding: 8px 12px;
+}
+.ds-cancel-prompt { font-size: 13px; font-weight: 600; color: #dc2626; flex: 1; min-width: 120px; }
+.ds-cancel-keep { border: 1.5px solid #9ca3af; color: #374151; }
+.ds-cancel-keep:hover { background: #f3f4f6; }
+
+@media (max-width: 600px) {
+  .ds-control-group input,
+  .ds-control-group select { min-width: 100%; }
+  .ds-stats { gap: 8px; }
+  .ds-stat-card { min-width: 80px; padding: 10px 12px; }
+  .ds-stat-num  { font-size: 22px; }
+}
+
+/* ── Store Pickup OTP ──────────────────────────────────────────────────────── */
+.ds-pickup-otp-box {
+  margin: 12px 0;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 100%);
+  border-radius: 14px;
+  text-align: center;
+  box-shadow: 0 4px 20px rgba(29, 78, 216, 0.35);
+  animation: ds-otp-pulse 1.8s ease-in-out infinite;
+}
+@keyframes ds-otp-pulse {
+  0%, 100% { box-shadow: 0 4px 20px rgba(29, 78, 216, 0.35); }
+  50%       { box-shadow: 0 6px 28px rgba(29, 78, 216, 0.6); }
+}
+.ds-pickup-otp-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #bfdbfe;
+  margin-bottom: 12px;
+  letter-spacing: 0.3px;
+}
+.ds-pickup-otp-digits {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.ds-otp-digit {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 60px;
+  background: #fff;
+  border-radius: 10px;
+  font-size: 34px;
+  font-weight: 900;
+  color: #1e3a8a;
+  letter-spacing: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+.ds-pickup-otp-hint {
+  font-size: 12px;
+  color: #93c5fd;
+}
+.ds-pickup-verified {
+  margin: 10px 0;
+  padding: 10px 14px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #166534;
+}
