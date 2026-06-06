@@ -10,7 +10,7 @@ const getAPIBase = () => {
   if (envURL) return envURL;
   
   // Default fallback for production
-  return 'https://blinkiefash-backend.onrender.com';
+  return 'https://blinkiefash.onrender.com';
 };
 
 const API_BASE = getAPIBase();
