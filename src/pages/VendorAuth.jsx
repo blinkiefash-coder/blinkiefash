@@ -30,6 +30,11 @@ export default function VendorAuth() {
         }
       );
 
+      if (!res.ok) {
+        setError(`Server error: ${res.status} ${res.statusText}`);
+        return;
+      }
+
       const data = await res.json();
 
       if (data.success) {
@@ -40,11 +45,12 @@ export default function VendorAuth() {
         navigate("/vendor/add-product");
 
       } else {
-        setError(data.message);
+        setError(data.message || "Verification failed");
       }
 
     } catch (err) {
-      setError("Server error");
+      console.error("Vendor auth error:", err);
+      setError(err.message || "Server error - please check your connection");
     }
   };
 

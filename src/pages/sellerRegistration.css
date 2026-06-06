@@ -491,3 +491,398 @@
     min-width: unset;
   }
 }
+
+/* MOBILE: 481px - 767px */
+@media (max-width: 768px) {
+  .seller-registration-page {
+    padding: 16px 10px;
+  }
+
+  .seller-registration-shell {
+    gap: 14px;
+  }
+
+  .seller-registration-card,
+  .seller-registration-aside {
+    padding: 14px;
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(16, 24, 39, 0.06);
+  }
+
+  .seller-registration-aside {
+    gap: 12px;
+  }
+
+  .seller-registration-aside h1 {
+    font-size: clamp(22px, 6vw, 28px);
+  }
+
+  .seller-registration-aside p {
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .seller-feature-grid {
+    gap: 8px;
+  }
+
+  .seller-feature-grid article {
+    padding: 10px;
+  }
+
+  .seller-feature-grid h3 {
+    font-size: 12px;
+    margin-bottom: 3px;
+  }
+
+  .seller-feature-grid p {
+    font-size: 11px;
+  }
+
+  .seller-registration-header h2 {
+    font-size: 20px;
+    margin-bottom: 2px;
+  }
+
+  .seller-registration-header p {
+    font-size: 12px;
+  }
+
+  .seller-stepper {
+    gap: 4px;
+    margin-bottom: 14px;
+  }
+
+  .seller-step-dot {
+    width: 28px;
+    height: 28px;
+    font-size: 11px;
+  }
+
+  .seller-step-label {
+    font-size: 8px;
+    min-height: 24px;
+  }
+
+  .seller-registration-form {
+    gap: 12px;
+  }
+
+  .seller-registration-form label span {
+    font-size: 12px;
+  }
+
+  .seller-registration-form input,
+  .seller-registration-form select,
+  .seller-registration-form textarea {
+    padding: 9px 10px;
+    font-size: 13px;
+    border-radius: 8px;
+    min-height: 40px;
+  }
+
+  .seller-registration-form input[type="checkbox"] {
+    min-height: auto;
+  }
+
+  .seller-registration-form textarea {
+    min-height: 80px;
+  }
+
+  .seller-field-grid {
+    gap: 10px;
+  }
+
+  .seller-input-inline {
+    gap: 6px;
+  }
+
+  .seller-outline-btn {
+    min-height: 38px;
+    padding: 0 10px;
+    min-width: 80px;
+    font-size: 12px;
+  }
+
+  .seller-chip-block {
+    gap: 7px;
+  }
+
+  .seller-chip-title {
+    font-size: 12px;
+  }
+
+  .seller-chip-list {
+    gap: 6px;
+  }
+
+  .seller-chip {
+    padding: 6px 9px;
+    font-size: 11px;
+    border-radius: 8px;
+  }
+
+  .seller-upload-box {
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .seller-upload-box p {
+    font-size: 11px;
+    margin-top: 3px;
+  }
+
+  .seller-upload-box input[type="file"] {
+    padding: 6px 0;
+  }
+
+  .seller-doc-grid {
+    gap: 8px;
+  }
+
+  .seller-section-title {
+    font-size: 13px;
+  }
+
+  .seller-terms {
+    gap: 8px;
+  }
+
+  .seller-terms input {
+    width: 14px;
+    height: 14px;
+  }
+
+  .seller-terms span {
+    font-size: 11px;
+  }
+
+  .seller-submit-error {
+    font-size: 11px;
+  }
+
+  .seller-action-row {
+    gap: 8px;
+    margin-top: 2px;
+  }
+
+  .seller-back-btn,
+  .seller-next-btn {
+    padding: 9px 14px;
+    font-size: 12px;
+    border-radius: 8px;
+  }
+
+  .seller-back-btn {
+    min-width: 80px;
+  }
+
+  .seller-next-btn {
+    min-width: 120px;
+    box-shadow: 0 6px 16px rgba(15, 159, 73, 0.18);
+  }
+
+  .seller-success-panel {
+    min-height: 400px;
+  }
+
+  .seller-success-panel h2 {
+    font-size: 22px;
+  }
+
+  .seller-success-panel p {
+    font-size: 13px;
+  }
+}
+
+/* SMALL MOBILE: <= 480px */
+@media (max-width: 480px) {
+  .seller-registration-page {
+    padding: 12px 8px;
+  }
+
+  .seller-registration-shell {
+    gap: 10px;
+  }
+
+  .seller-registration-card,
+  .seller-registration-aside {
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .seller-registration-aside h1 {
+    font-size: clamp(18px, 5vw, 22px);
+    line-height: 1;
+  }
+
+  .seller-registration-aside p {
+    font-size: 11px;
+  }
+
+  .seller-kicker {
+    font-size: 10px;
+    padding: 4px 8px;
+  }
+
+  .seller-feature-grid {
+    gap: 6px;
+  }
+
+  .seller-feature-grid article {
+    padding: 8px;
+  }
+
+  .seller-feature-grid h3 {
+    font-size: 11px;
+  }
+
+  .seller-feature-grid p {
+    font-size: 10px;
+  }
+
+  .seller-registration-header h2 {
+    font-size: 18px;
+  }
+
+  .seller-registration-header p {
+    font-size: 11px;
+  }
+
+  .seller-stepper {
+    gap: 2px;
+    margin-bottom: 12px;
+  }
+
+  .seller-step-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+    border-width: 1.5px;
+  }
+
+  .seller-step-label {
+    font-size: 7px;
+  }
+
+  .seller-step-line {
+    top: 12px;
+  }
+
+  .seller-registration-form {
+    gap: 10px;
+  }
+
+  .seller-registration-form label span {
+    font-size: 11px;
+  }
+
+  .seller-registration-form input,
+  .seller-registration-form select,
+  .seller-registration-form textarea {
+    padding: 8px 8px;
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  .seller-registration-form textarea {
+    min-height: 70px;
+  }
+
+  .seller-field-grid {
+    gap: 8px;
+  }
+
+  .seller-outline-btn {
+    min-height: 36px;
+    padding: 0 8px;
+    min-width: 70px;
+    font-size: 11px;
+  }
+
+  .seller-chip-list {
+    gap: 5px;
+  }
+
+  .seller-chip {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .seller-upload-box {
+    padding: 10px;
+  }
+
+  .seller-upload-box p {
+    font-size: 10px;
+  }
+
+  .seller-section-title {
+    font-size: 12px;
+  }
+
+  .seller-terms span {
+    font-size: 10px;
+  }
+
+  .seller-action-row {
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .seller-back-btn,
+  .seller-next-btn {
+    padding: 8px 12px;
+    font-size: 11px;
+    flex: 1;
+    min-width: 60px;
+  }
+
+  .seller-success-panel {
+    min-height: 350px;
+  }
+
+  .seller-success-panel h2 {
+    font-size: 18px;
+  }
+
+  .seller-success-panel p {
+    font-size: 12px;
+  }
+}
+
+/* EXTRA SMALL: <= 360px */
+@media (max-width: 360px) {
+  .seller-registration-aside {
+    padding: 10px;
+  }
+
+  .seller-registration-card {
+    padding: 10px;
+  }
+
+  .seller-registration-aside h1 {
+    font-size: 16px;
+  }
+
+  .seller-registration-header h2 {
+    font-size: 16px;
+  }
+
+  .seller-registration-form input,
+  .seller-registration-form select,
+  .seller-registration-form textarea {
+    font-size: 12px;
+    min-height: 34px;
+  }
+
+  .seller-back-btn,
+  .seller-next-btn {
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+
+  .seller-success-panel h2 {
+    font-size: 16px;
+  }
+}
