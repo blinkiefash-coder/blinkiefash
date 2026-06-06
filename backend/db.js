@@ -382,4 +382,31 @@ export const ensureDatabaseTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_product_media_variant
     ON product_media(variant_id);
   `).catch(() => {});
+
+  // ── Product reviews ───────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      user_id UUID,
+      reviewer_name VARCHAR(255),
+      rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      review_text TEXT NOT NULL,
+      image_url TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `).catch((err) => {
+    console.warn("product_reviews table create skipped:", err.message);
+  });
+
+  // Backfill columns for legacy tables that may already exist.
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS user_id UUID`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS reviewer_name VARCHAR(255)`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS image_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_reviews_product
+    ON product_reviews(product_id, created_at DESC);
+  `).catch(() => {});
 };

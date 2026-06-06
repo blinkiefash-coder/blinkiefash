@@ -446,9 +446,10 @@ router.get("/:id", async (req, res) => {
 
     // ✅ PRODUCT
     const productRes = await pool.query(
-      `SELECT p.*, b.name AS brand
+      `SELECT p.*, b.name AS brand, c.name AS category_name
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
+       LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.id = $1`,
       [id]
     );
