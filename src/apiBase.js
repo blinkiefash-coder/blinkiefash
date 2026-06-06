@@ -5,12 +5,8 @@ const getAPIBase = () => {
     return 'http://localhost:5000';
   }
   
-  // In production - try to use environment variable first
-  const envURL = import.meta.env.VITE_API_BASE_URL;
-  if (envURL) return envURL;
-  
-  // Default fallback for production
-  return 'https://blinkiefash-backend.onrender.com';
+  // In production - use the deployed backend URL
+  return 'https://blinkiefash.onrender.com';
 };
 
 const API_BASE = getAPIBase();
