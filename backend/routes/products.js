@@ -305,8 +305,8 @@ router.get("/bestsellers", async (req, res) => {
          p.id, p.name,
          COALESCE(b.name, '') AS brand,
          COALESCE(c.name, '') AS category_name,
-         MIN(v.price)                         AS price,
-         MIN(COALESCE(v.mrp, v.price))        AS original_price,
+         MIN(COALESCE(v.mrp, v.price))        AS price,
+         MIN(v.price)                         AS discount_price,
          COALESCE(
            (
              SELECT pm.url FROM product_media pm
@@ -320,14 +320,15 @@ router.get("/bestsellers", async (req, res) => {
              WHERE pv.product_id = p.id
              LIMIT 1
            )
-         )                                    AS image
+         )                                    AS image,
+         p.buy_2, p.buy_3, p.buy_4
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
        WHERE p.bestseller = true
          ${storeCondition}
-       GROUP BY p.id, b.name, c.name
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
        ORDER BY p.id
        LIMIT $${index}`,
       values
@@ -353,8 +354,8 @@ router.get("/price-range", async (req, res) => {
          p.id, p.name,
          COALESCE(b.name, '') AS brand,
          COALESCE(c.name, '') AS category_name,
-         MIN(v.price)                         AS price,
-         MIN(COALESCE(v.mrp, v.price))        AS original_price,
+         MIN(COALESCE(v.mrp, v.price))        AS price,
+         MIN(v.price)                         AS discount_price,
          COALESCE(
            (
              SELECT pm.url FROM product_media pm
@@ -368,13 +369,14 @@ router.get("/price-range", async (req, res) => {
              WHERE pv.product_id = p.id
              LIMIT 1
            )
-         )                                    AS image
+         )                                    AS image,
+         p.buy_2, p.buy_3, p.buy_4
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
        WHERE p.id IS NOT NULL
-       GROUP BY p.id, b.name, c.name
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
        LIMIT $3`,
@@ -561,7 +563,10 @@ router.get("/", async (req, res) => {
         pv.mrp        AS price,
         pv.sell_price AS discount_price,
         p.is_bestseller,
-        p.is_try_and_buy
+        p.is_try_and_buy,
+        p.buy_2,
+        p.buy_3,
+        p.buy_4
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN categories c ON c.id = p.category_id

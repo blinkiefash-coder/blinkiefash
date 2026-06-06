@@ -271,7 +271,10 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     ALTER TABLE products
       ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false
+      ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_2 BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_3 BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_4 BOOLEAN DEFAULT false
   `).catch(() => {});
 
   // ── Bulk offer/deal support ─────────────────────────────────────────────────
