@@ -298,7 +298,7 @@ export const ensureDatabaseTables = async () => {
     CREATE TABLE IF NOT EXISTS bundle_offers (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-      vendor_id UUID NOT NULL REFERENCES sellers(id) ON DELETE CASCADE,
+      vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
       quantity_min INT NOT NULL DEFAULT 1,
       quantity_max INT,
       discount_type VARCHAR(20) DEFAULT 'fixed_price',
@@ -308,6 +308,30 @@ export const ensureDatabaseTables = async () => {
       updated_at TIMESTAMP DEFAULT now()
     );
   `);
+
+  // Migration: fix bundle_offers.vendor_id to reference vendors instead of sellers
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.referential_constraints rc
+        JOIN information_schema.key_column_usage kcu
+          ON rc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+          ON rc.unique_constraint_name = ccu.constraint_name
+        WHERE kcu.table_name = 'bundle_offers'
+          AND kcu.column_name = 'vendor_id'
+          AND ccu.table_name = 'sellers'
+      ) THEN
+        ALTER TABLE bundle_offers DROP CONSTRAINT bundle_offers_vendor_id_fkey;
+        ALTER TABLE bundle_offers
+          ADD CONSTRAINT bundle_offers_vendor_id_fkey
+          FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `).catch((err) => {
+    console.warn("bundle_offers FK migration skipped:", err.message);
+  });
 
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_bundle_offers_product
