@@ -1,0 +1,182 @@
+/* ============================================================
+   BlinkieFash — shared design tokens
+   Source of truth: matches the mobile app (lib/main.dart)
+   - Primary green #16A34A (Tailwind green-600)
+   - Background #F9FAFB
+   - Inter typography
+   - 12-16px radii, soft elevation
+   ============================================================ */
+
+:root {
+  /* Brand */
+  --bf-primary: #16a34a;
+  --bf-primary-600: #16a34a;
+  --bf-primary-700: #15803d;
+  --bf-primary-800: #065f46;
+  --bf-primary-50: #ecfdf5;
+  --bf-primary-100: #dcfce7;
+  --bf-primary-200: #bbf7d0;
+
+  /* Neutrals */
+  --bf-bg: #f9fafb;
+  --bf-surface: #ffffff;
+  --bf-surface-2: #f3f4f6;
+  --bf-text: #111827;
+  --bf-text-soft: #4b5563;
+  --bf-text-muted: #6b7280;
+  --bf-border: #e5e7eb;
+  --bf-border-strong: #d1d5db;
+
+  /* Accents (used in mobile gift / banner / chips) */
+  --bf-accent-pink: #ec4899;
+  --bf-accent-amber: #f59e0b;
+  --bf-accent-red: #ef4444;
+  --bf-accent-blue: #3b82f6;
+
+  /* Radii */
+  --bf-radius-sm: 10px;
+  --bf-radius-md: 14px;
+  --bf-radius-lg: 20px;
+  --bf-radius-pill: 999px;
+
+  /* Shadows */
+  --bf-shadow-sm: 0 2px 6px rgba(15, 23, 42, 0.06);
+  --bf-shadow-md: 0 8px 20px rgba(15, 23, 42, 0.08);
+  --bf-shadow-lg: 0 18px 40px rgba(15, 23, 42, 0.12);
+
+  /* Gradients (mirrors mobile hero / refer-earn banner) */
+  --bf-gradient-hero: linear-gradient(135deg, #22c55e 0%, #16a34a 60%, #065f46 100%);
+  --bf-gradient-pink: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+  --bf-gradient-amber: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+
+  /* Layout */
+  --bf-container: 1280px;
+  --bf-page-pad: 24px;
+}
+
+/* ===== Utility classes shared across customer pages ===== */
+.bf-page {
+  background: var(--bf-bg);
+  min-height: 100vh;
+  color: var(--bf-text);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+.bf-container {
+  max-width: var(--bf-container);
+  margin: 0 auto;
+  padding: 0 var(--bf-page-pad);
+}
+
+.bf-card {
+  background: var(--bf-surface);
+  border-radius: var(--bf-radius-md);
+  box-shadow: var(--bf-shadow-sm);
+  border: 1px solid var(--bf-border);
+}
+
+.bf-btn-primary {
+  background: var(--bf-primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--bf-radius-pill);
+  padding: 12px 22px;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.1s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+.bf-btn-primary:hover { background: var(--bf-primary-700); }
+.bf-btn-primary:active { transform: translateY(1px); }
+.bf-btn-primary:disabled {
+  background: var(--bf-border-strong);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.bf-btn-ghost {
+  background: transparent;
+  color: var(--bf-primary-700);
+  border: 1.5px solid var(--bf-primary);
+  border-radius: var(--bf-radius-pill);
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.bf-btn-ghost:hover { background: var(--bf-primary-50); }
+
+.bf-input {
+  width: 100%;
+  border: 1.5px solid var(--bf-border);
+  border-radius: var(--bf-radius-md);
+  padding: 12px 14px;
+  font-size: 14px;
+  background: var(--bf-surface);
+  color: var(--bf-text);
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  font-family: inherit;
+}
+.bf-input:focus {
+  border-color: var(--bf-primary);
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.bf-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bf-primary-50);
+  color: var(--bf-primary-700);
+  border-radius: var(--bf-radius-pill);
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.bf-section-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--bf-text);
+  margin: 0 0 6px;
+  letter-spacing: -0.2px;
+}
+.bf-section-subtitle {
+  font-size: 14px;
+  color: var(--bf-text-muted);
+  margin: 0 0 16px;
+}
+
+/* ===== Mobile-first responsive helpers (apply everywhere) ===== */
+
+/* Tighten container padding on small screens */
+@media (max-width: 640px) {
+  :root { --bf-page-pad: 14px; }
+}
+
+/* Generic: stack two-column layouts on mobile */
+@media (max-width: 900px) {
+  .bf-stack-md > * + * { margin-top: 16px; }
+}
+
+/* Hide desktop-only and mobile-only helpers */
+.bf-show-mobile { display: none; }
+@media (max-width: 900px) {
+  .bf-hide-mobile { display: none !important; }
+  .bf-show-mobile { display: initial; }
+}
+
+/* Visually-hidden helper */
+.bf-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}

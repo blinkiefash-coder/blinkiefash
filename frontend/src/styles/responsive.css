@@ -1,0 +1,178 @@
+/* ============================================================
+   Mobile responsiveness overrides for legacy customer pages.
+   Mobile-first ergonomics matching the BlinkieFash mobile app.
+   Loaded globally from main.jsx — applies after page CSS.
+   ============================================================ */
+
+/* ---------- App shell ---------- */
+@media (max-width: 900px) {
+  body { background: var(--bf-bg, #f9fafb); }
+}
+
+/* ---------- HOME ---------- */
+@media (max-width: 900px) {
+  .home .hero-card {
+    flex-direction: column !important;
+    padding: 20px !important;
+    gap: 16px !important;
+    border-radius: 18px !important;
+  }
+  .home .hero-left, .home .hero-right { width: 100% !important; }
+  .home .hero-right img {
+    width: 100% !important;
+    height: auto !important;
+    border-radius: 14px;
+  }
+  .home .hero-title1, .home .hero-title2 { font-size: 28px !important; line-height: 1.15 !important; }
+  .home .subtext { font-size: 13px !important; }
+  .home .hero-features {
+    grid-template-columns: 1fr 1fr !important;
+    display: grid !important;
+    gap: 10px !important;
+  }
+  .home .hero-feature-item { font-size: 11px; }
+
+  .home .store-banner {
+    flex-direction: column !important;
+    padding: 18px !important;
+    gap: 16px !important;
+  }
+  .home .store-banner-content, .home .store-banner-visual { width: 100% !important; }
+  .home .store-banner-title { font-size: 22px !important; }
+  .home .store-banner-features {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  .home .store-banner-visual img { width: 100% !important; height: auto !important; }
+
+  .home .top-categories { padding: 24px 14px !important; }
+  .home .categories-grid {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 12px !important;
+  }
+  .home .category-card { padding: 12px 8px !important; }
+  .home .category-card img { width: 56px !important; height: 56px !important; }
+  .home .category-card h4 { font-size: 12px !important; }
+
+  .section-title { font-size: 20px !important; }
+  .section-subtitle { font-size: 12px !important; }
+}
+@media (max-width: 480px) {
+  .home .categories-grid { grid-template-columns: repeat(2, 1fr) !important; }
+}
+
+/* ---------- CART ---------- */
+@media (max-width: 900px) {
+  .cart-page, .cart-wrap, .cart-container {
+    padding: 16px !important;
+  }
+  .cart-grid, .cart-layout, .cart-content {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .cart-left, .cart-right, .cart-summary {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .cart-item {
+    flex-direction: row !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    padding: 12px !important;
+  }
+  .cart-item img, .cart-product-img {
+    width: 88px !important;
+    height: 110px !important;
+    object-fit: cover;
+  }
+  .cart-product-info, .cart-info { flex: 1; min-width: 0; }
+  .cart-product-info h3, .cart-info h3 { font-size: 14px !important; }
+  .checkout-btn { width: 100%; }
+}
+
+/* ---------- WISHLIST ---------- */
+@media (max-width: 900px) {
+  .wishlist-grid, .wish-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .wishlist-item, .wish-card { padding: 10px !important; }
+  .wishlist-item img, .wish-card img { width: 100% !important; height: auto !important; aspect-ratio: 3/4; }
+}
+
+/* ---------- PRODUCT DETAIL ---------- */
+@media (max-width: 900px) {
+  .product-page, .product-detail, .pd-wrap {
+    padding: 14px !important;
+  }
+  .pd-grid, .product-grid, .product-layout {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+  }
+  .pd-images img, .product-image, .pd-main-img {
+    width: 100% !important;
+    height: auto !important;
+  }
+}
+
+/* ---------- AUTH (Login / Signup / Password reset) ---------- */
+@media (max-width: 900px) {
+  .login-page, .signup-page, .auth-page, .auth-wrap, .password-reset-page {
+    padding: 16px !important;
+  }
+  .login-grid, .signup-grid, .auth-grid {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+  }
+  .login-left, .login-right,
+  .signup-left, .signup-right,
+  .auth-left, .auth-right {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+  .login-art, .signup-art { display: none !important; }
+}
+
+/* ---------- WOMEN / MEN / SHOP / EXPLORE SHOPS ---------- */
+@media (max-width: 900px) {
+  .women-page, .shop-page, .men-page, .explore-shops {
+    padding: 16px !important;
+  }
+  .product-grid, .shop-grid, .women-grid {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+  .filters-sidebar, .shop-filters {
+    width: 100% !important;
+    position: static !important;
+  }
+}
+
+/* ---------- POLICIES / COMPANY / CUSTOMER SERVICE ---------- */
+@media (max-width: 900px) {
+  .static-info-page, .policies-page, .company-page, .customer-service-page {
+    padding: 18px 14px !important;
+  }
+  .static-info-page h1 { font-size: 22px !important; }
+  .static-info-page h2 { font-size: 18px !important; }
+}
+
+/* ---------- FOOTER ---------- */
+@media (max-width: 900px) {
+  .footer-grid, .footer-cols {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 18px !important;
+  }
+}
+@media (max-width: 540px) {
+  .footer-grid, .footer-cols {
+    grid-template-columns: 1fr !important;
+  }
+}
