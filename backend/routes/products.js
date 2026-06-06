@@ -14,12 +14,17 @@ const getProductMediaShape = async (client) => {
      WHERE table_schema = 'public' AND table_name = 'product_media'`
   );
   const cols = new Set(result.rows.map((row) => row.column_name));
-  return {
+  const shape = {
+    hasUrl: cols.has("url"),
+    hasIsPrimary: cols.has("is_primary"),
     hasProductId: cols.has("product_id"),
     hasMediaType: cols.has("media_type"),
     hasVariantId: cols.has("variant_id"),
     hasSortOrder: cols.has("sort_order"),
   };
+  console.log("[product_media] detected columns:", Array.from(cols));
+  console.log("[product_media] resolved shape:", shape);
+  return shape;
 };
 
 const insertProductMediaRows = async ({
@@ -33,23 +38,32 @@ const insertProductMediaRows = async ({
 }) => {
   let nextOrder = startOrder;
 
+  console.log(`[product_media] inserting ${imageUrls?.length || 0} images for variant ${variantId}, product ${productId}`);
+
   for (const rawUrl of imageUrls) {
     const url = String(rawUrl || "").trim();
     if (!url) continue;
 
-    const columns = ["url", "is_primary"];
-    const values = [url, !primaryAssignedRef.value];
+    const columns = ["url"];
+    const values = [url];
 
+    if (mediaShape.hasIsPrimary) { columns.push("is_primary"); values.push(!primaryAssignedRef.value); }
     if (mediaShape.hasProductId) { columns.push("product_id"); values.push(productId); }
     if (mediaShape.hasMediaType) { columns.push("media_type"); values.push("image"); }
     if (mediaShape.hasVariantId) { columns.push("variant_id"); values.push(variantId || null); }
     if (mediaShape.hasSortOrder) { columns.push("sort_order"); values.push(nextOrder); }
 
     const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
-    await client.query(
-      `INSERT INTO product_media (${columns.join(",")}) VALUES (${placeholders})`,
-      values
-    );
+    try {
+      await client.query(
+        `INSERT INTO product_media (${columns.join(",")}) VALUES (${placeholders})`,
+        values
+      );
+      console.log(`[product_media] inserted url=${url} variant=${variantId} primary=${!primaryAssignedRef.value}`);
+    } catch (err) {
+      console.error(`[product_media] INSERT FAILED:`, err.message, { columns, url });
+      throw err;
+    }
 
     if (!primaryAssignedRef.value) {
       primaryAssignedRef.value = true;
@@ -101,6 +115,7 @@ const createProductSimple = async (req, res) => {
   const client = await pool.connect();
 
   try {
+    console.log("[create_product] incoming payload:", JSON.stringify(req.body, null, 2));
     const payload = prepareCreatePayload(req.body);
     const {
       vendor_id, category_id,
@@ -110,6 +125,7 @@ const createProductSimple = async (req, res) => {
       variants, topLevelImages,
       bundleOffers,
     } = payload;
+    console.log("[create_product] prepared variants:", variants.map(v => ({ size: v.size, color: v.color, imagesCount: v.images?.length || 0 })));
 
     if (!vendor_id || !name || !category_id) {
       return res.status(400).json({
@@ -179,6 +195,7 @@ const createProductSimple = async (req, res) => {
       );
 
       const variantImageUrls = Array.isArray(variant.images) ? variant.images : [];
+      console.log(`[create_product] variant ${variantRes.rows[0].id} has ${variantImageUrls.length} images:`, variantImageUrls);
       insertedImageCount += variantImageUrls.length;
       imageOrder = await insertProductMediaRows({
         client, productId,

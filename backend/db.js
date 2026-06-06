@@ -337,4 +337,49 @@ export const ensureDatabaseTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_bundle_offers_product
     ON bundle_offers(product_id, is_active);
   `).catch(() => {});
+
+  // ── Product media (images/videos) ─────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_media (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+      variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      media_type VARCHAR(20) DEFAULT 'image',
+      is_primary BOOLEAN DEFAULT false,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT now()
+    );
+  `).catch((err) => {
+    console.warn("product_media table create skipped:", err.message);
+  });
+
+  // Ensure product_media has all expected columns (for legacy tables)
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS product_id UUID;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS variant_id UUID;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS url TEXT;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS media_type VARCHAR(20) DEFAULT 'image';
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT false;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_media_product
+    ON product_media(product_id);
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_media_variant
+    ON product_media(variant_id);
+  `).catch(() => {});
 };
