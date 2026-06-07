@@ -456,11 +456,12 @@ router.get("/:id", async (req, res) => {
       [id]
     );
 
-    // ✅ IMAGES
+    // ✅ IMAGES (with variant_id for filtering)
     const imageRes = await pool.query(
-      `SELECT DISTINCT pm.url FROM product_media pm
+      `SELECT pm.url, pm.variant_id FROM product_media pm
        JOIN product_variants v ON v.id = pm.variant_id
-       WHERE v.product_id = $1`,
+       WHERE v.product_id = $1
+       ORDER BY pm.sort_order ASC, pm.id ASC`,
       [id]
     );
 
@@ -484,7 +485,7 @@ router.get("/:id", async (req, res) => {
 
     res.json({
       product: productRes.rows[0],
-      images: imageRes.rows.map(i => i.url),
+      images: imageRes.rows,
       variants: variantRes.rows
     });
 
