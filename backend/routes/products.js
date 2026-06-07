@@ -341,16 +341,17 @@ router.get("/bestsellers", async (req, res) => {
 });
 
 // ── GET /price-range ────────────────────────────────────────────────────────
-// Get products filtered by price range
-// Query params: min_price, max_price, limit
+// Get products filtered by price range and store inventory
+// Query params: min_price, max_price, limit, store_id (optional)
 router.get("/price-range", async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 40);
     const minPrice = parseFloat(req.query.min_price) || 0;
     const maxPrice = parseFloat(req.query.max_price) || 99999;
+    const storeId = req.query.store_id ? req.query.store_id.toString() : null;
 
-    const result = await pool.query(
-      `SELECT
+    let query = `
+      SELECT
          p.id, p.name,
          COALESCE(b.name, '') AS brand,
          COALESCE(c.name, '') AS category_name,
@@ -375,14 +376,32 @@ router.get("/price-range", async (req, res) => {
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+    `;
+
+    // Add store inventory filtering if store_id provided
+    if (storeId) {
+      query += `
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $4
+       WHERE p.id IS NOT NULL
+         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
+       ORDER BY MIN(v.price) ASC, p.id
+       LIMIT $3
+      `;
+      const result = await pool.query(query, [minPrice, maxPrice, limit, storeId]);
+      return res.json({ products: result.rows });
+    } else {
+      query += `
        WHERE p.id IS NOT NULL
        GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
-       LIMIT $3`,
-      [minPrice, maxPrice, limit]
-    );
-    res.json({ products: result.rows });
+       LIMIT $3
+      `;
+      const result = await pool.query(query, [minPrice, maxPrice, limit]);
+      return res.json({ products: result.rows });
+    }
   } catch (err) {
     console.error("PRICE-RANGE ERROR:", err);
     res.status(500).json({ error: "Server error" });
@@ -390,14 +409,15 @@ router.get("/price-range", async (req, res) => {
 });
 
 // ── GET /bulk-offers ────────────────────────────────────────────────────────
-// Get products with active bulk offers (Buy 2, Buy 3, etc.)
-// Query params: limit
+// Get products with active bulk offers filtered by store inventory
+// Query params: limit, store_id (optional)
 router.get("/bulk-offers", async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 40);
+    const storeId = req.query.store_id ? req.query.store_id.toString() : null;
 
-    const result = await pool.query(
-      `SELECT
+    let query = `
+      SELECT
          p.id, p.name,
          COALESCE(b.name, '') AS brand,
          COALESCE(c.name, '') AS category_name,
@@ -426,16 +446,36 @@ router.get("/bulk-offers", async (req, res) => {
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+    `;
+
+    // Add store inventory filtering if store_id provided
+    if (storeId) {
+      query += `
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $1
+       WHERE EXISTS (
+         SELECT 1 FROM bulk_offers bo
+         WHERE bo.product_id = p.id AND bo.is_active = true
+       )
+       AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+       GROUP BY p.id, b.name, c.name
+       ORDER BY p.id
+       LIMIT $2
+      `;
+      const result = await pool.query(query, [storeId, limit]);
+      return res.json({ products: result.rows });
+    } else {
+      query += `
        WHERE EXISTS (
          SELECT 1 FROM bulk_offers bo
          WHERE bo.product_id = p.id AND bo.is_active = true
        )
        GROUP BY p.id, b.name, c.name
        ORDER BY p.id
-       LIMIT $1`,
-      [limit]
-    );
-    res.json({ products: result.rows });
+       LIMIT $1
+      `;
+      const result = await pool.query(query, [limit]);
+      return res.json({ products: result.rows });
+    }
   } catch (err) {
     console.error("BULK-OFFERS ERROR:", err);
     res.status(500).json({ error: "Server error" });
