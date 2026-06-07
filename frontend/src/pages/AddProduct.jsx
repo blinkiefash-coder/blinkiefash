@@ -56,6 +56,24 @@ export default function AddProduct() {
     buy_4_at_999: false,
   });
 
+  // Store preview URLs separately to ensure proper cleanup
+  const [variantPreviewUrls, setVariantPreviewUrls] = useState({});
+
+  // Generate preview URLs whenever imageFiles change
+  useEffect(() => {
+    const newUrls = {};
+    variants.forEach((v, vIdx) => {
+      newUrls[vIdx] = (v.imageFiles || []).map((file) => URL.createObjectURL(file));
+    });
+    setVariantPreviewUrls(newUrls);
+
+    // Cleanup function to revoke old URLs
+    return () => {
+      Object.values(variantPreviewUrls).forEach((urlArray) => {
+        urlArray.forEach((url) => URL.revokeObjectURL(url));
+      });
+    };
+  }, [variants.map((v) => v.imageFiles?.length).join(",")]);
 
   useEffect(() => {
     if (!vendorId) { window.location.href = "/vendor"; return; }
@@ -275,9 +293,15 @@ export default function AddProduct() {
                     </div>
                     {v.imageFiles?.length > 0 && (
                       <div className="variant-preview-row">
-                        {v.imageFiles.map((img, idx) => (
+                        {(variantPreviewUrls[i] || []).map((previewUrl, idx) => (
                           <div key={`${i}-${idx}`} className="preview-thumb">
-                            <img src={URL.createObjectURL(img)} height="70" alt="preview" />
+                            <img 
+                              src={previewUrl}
+                              width="70"
+                              height="70"
+                              alt={`preview-${idx}`}
+                              style={{ objectFit: "cover" }}
+                            />
                             <button type="button" className="remove-img-btn" onClick={() => removeImageFile(i, idx)}>✕</button>
                             {idx === 0 && <span className="primary-badge">Primary</span>}
                           </div>
