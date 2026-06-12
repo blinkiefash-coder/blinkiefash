@@ -179,6 +179,75 @@ router.get("/:id/orders", async (req, res) => {
   }
 });
 
+// GET vendor sales report (date filtered, DB-backed)
+router.get("/:id/sales-report", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { from, to } = req.query;
+
+    if (from && Number.isNaN(new Date(`${from}T00:00:00`).getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid 'from' date" });
+    }
+
+    if (to && Number.isNaN(new Date(`${to}T00:00:00`).getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid 'to' date" });
+    }
+
+    if (from && to && new Date(from) > new Date(to)) {
+      return res.status(400).json({ success: false, message: "'from' cannot be after 'to'" });
+    }
+
+    const result = await pool.query(
+      `SELECT
+         o.id,
+         o.status,
+         o.created_at,
+         COALESCE(SUM(oi.quantity), 0)::int AS items_sold,
+         COALESCE(SUM(oi.quantity * oi.price), 0)::numeric(12,2) AS amount
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       JOIN product_variants pv ON pv.id = oi.variant_id
+       JOIN products p ON p.id = pv.product_id
+       WHERE p.vendor_id = $1
+         AND o.status <> 'cancelled'
+         AND ($2::date IS NULL OR o.created_at >= $2::date)
+         AND ($3::date IS NULL OR o.created_at < ($3::date + INTERVAL '1 day'))
+       GROUP BY o.id, o.status, o.created_at
+       ORDER BY o.created_at DESC`,
+      [id, from || null, to || null]
+    );
+
+    const orders = result.rows.map((row) => ({
+      id: row.id,
+      status: row.status,
+      created_at: row.created_at,
+      items_sold: Number(row.items_sold || 0),
+      amount: Number(row.amount || 0),
+    }));
+
+    const summary = orders.reduce(
+      (acc, order) => {
+        acc.orderCount += 1;
+        acc.itemsSold += order.items_sold;
+        acc.totalRevenue += order.amount;
+        return acc;
+      },
+      { orderCount: 0, itemsSold: 0, totalRevenue: 0 }
+    );
+
+    res.json({
+      success: true,
+      from: from || null,
+      to: to || null,
+      summary,
+      orders,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 router.post("/verify", async (req, res) => {
   try {
     const { email } = req.body;

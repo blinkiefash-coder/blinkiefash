@@ -93,6 +93,7 @@ export default function StockMonitoring() {
     { key: "products", label: "Products", icon: "□" },
     { key: "stock", label: "Stock Monitoring", icon: "📦" },
     { key: "analytics", label: "Product Analytics", icon: "📊" },
+    { key: "sales", label: "Sales Report", icon: "🧾" },
     { key: "orders", label: "Orders", icon: "◍" },
     { key: "settings", label: "Settings", icon: "⚙" },
   ];
@@ -101,6 +102,7 @@ export default function StockMonitoring() {
     if (item.key === "products") navigate("/vendor/add-product");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
+    if (item.key === "sales") navigate("/vendor/sales-report");
   };
 
   return (

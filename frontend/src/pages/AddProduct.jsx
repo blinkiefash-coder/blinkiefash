@@ -174,6 +174,7 @@ export default function AddProduct() {
   const handleMenuClick = (item) => {
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "sales") navigate("/vendor/sales-report");
     if (item.key === "products") navigate("/vendor/add-product");
   };
 

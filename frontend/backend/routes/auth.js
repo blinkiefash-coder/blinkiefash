@@ -61,12 +61,10 @@ router.post("/register", async (req, res) => {
       });
     }
 
+    // Check if phone already exists - use simple formatted phone check
     const existingPhone = await pool.query(
-      `SELECT id
-       FROM users
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
-       LIMIT 1`,
-      [normalizedPhone]
+      `SELECT id FROM users WHERE phone = $1 LIMIT 1`,
+      [formattedPhone]
     );
 
     if (existingPhone.rows.length > 0) {
@@ -250,6 +248,7 @@ router.post("/start", async (req, res) => {
   try {
     const { phone, expectedRole } = req.body;
     const normalizedPhone = normalizePhone(phone);
+    const formattedPhone = formatPhoneForStorage(phone);
 
     if (!normalizedPhone || !expectedRole) {
       return res.json({
@@ -259,11 +258,8 @@ router.post("/start", async (req, res) => {
     }
 
     const userResult = await pool.query(
-      `SELECT id, name, phone, role
-       FROM users
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
-       LIMIT 1`,
-      [normalizedPhone]
+      `SELECT id, name, phone, role FROM users WHERE phone = $1 LIMIT 1`,
+      [formattedPhone]
     );
 
     if (userResult.rows.length === 0) {
@@ -383,12 +379,10 @@ router.post("/verify", async (req, res) => {
       });
     }
 
+    const formattedPhone = formatPhoneForStorage(normalizedPhone);
     const userResult = await pool.query(
-      `SELECT id, name, phone, role
-       FROM users
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1
-       LIMIT 1`,
-      [normalizedPhone]
+      `SELECT id, name, phone, role FROM users WHERE phone = $1 LIMIT 1`,
+      [formattedPhone]
     );
 
     if (userResult.rows.length === 0) {
@@ -438,14 +432,14 @@ router.post("/set-password", async (req, res) => {
     }
 
     const normalizedPhone = normalizePhone(phone);
+    const formattedPhone = formatPhoneForStorage(phone);
     if (!normalizedPhone) {
       return res.json({ success: false, message: "Invalid phone number" });
     }
 
     const userResult = await pool.query(
-      `SELECT id, name, phone, role FROM users
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1 LIMIT 1`,
-      [normalizedPhone]
+      `SELECT id, name, phone, role FROM users WHERE phone = $1 LIMIT 1`,
+      [formattedPhone]
     );
 
     if (userResult.rows.length === 0) {
@@ -457,9 +451,8 @@ router.post("/set-password", async (req, res) => {
     const hash = hashPassword(String(password), salt);
 
     await pool.query(
-      `UPDATE users SET password_hash = $1, password_salt = $2, updated_at = NOW()
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $3`,
-      [hash, salt, normalizedPhone]
+      `UPDATE users SET password_hash = $1, password_salt = $2, updated_at = NOW() WHERE phone = $3`,
+      [hash, salt, formattedPhone]
     );
 
     return res.json({ 
@@ -483,15 +476,14 @@ router.post("/login-password", async (req, res) => {
     }
 
     const normalizedPhone = normalizePhone(phone);
+    const formattedPhone = formatPhoneForStorage(phone);
     if (!normalizedPhone) {
       return res.json({ success: false, message: "Invalid phone number" });
     }
 
     const userResult = await pool.query(
-      `SELECT id, name, phone, role, password_hash, password_salt
-       FROM users
-       WHERE RIGHT(regexp_replace(phone, '[^0-9]', '', 'g'), 10) = $1 LIMIT 1`,
-      [normalizedPhone]
+      `SELECT id, name, phone, role, password_hash, password_salt FROM users WHERE phone = $1 LIMIT 1`,
+      [formattedPhone]
     );
 
     if (userResult.rows.length === 0) {

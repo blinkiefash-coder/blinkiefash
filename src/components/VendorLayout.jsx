@@ -6,6 +6,7 @@ const DEFAULT_MENU = [
   { key: "products", label: "Products", icon: "□" },
   { key: "stock", label: "Stock Monitoring", icon: "📦" },
   { key: "analytics", label: "Product Analytics", icon: "📊" },
+  { key: "sales", label: "Sales Report", icon: "🧾" },
   { key: "orders", label: "Orders", icon: "◍" },
   { key: "customers", label: "Customers", icon: "◎" },
   { key: "reservations", label: "Store Visit & Reservations", icon: "◈" },
