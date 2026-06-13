@@ -353,7 +353,79 @@ router.post("/orders", async (req, res) => {
     );
     const order = orderRows[0];
 
-    // Insert order items
+    // Deduct stock immediately for successful order creation.
+    for (const item of items) {
+      const requestedQty = Math.max(1, Number(item.quantity || 1));
+      let inventoryRow = null;
+
+      if (darkStoreId) {
+        const { rows } = await client.query(
+          `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+           FROM inventory
+           WHERE variant_id = $1 AND store_id = $2
+           FOR UPDATE`,
+          [item.variantId, darkStoreId]
+        );
+        inventoryRow = rows[0] || null;
+      }
+
+      if (!inventoryRow) {
+        const { rows } = await client.query(
+          `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+           FROM inventory
+           WHERE variant_id = $1 AND store_id IS NULL
+           FOR UPDATE`,
+          [item.variantId]
+        );
+        inventoryRow = rows[0] || null;
+      }
+
+      // Final fallback: deduct from any available inventory row for this variant.
+      if (!inventoryRow) {
+        const { rows } = await client.query(
+          `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+           FROM inventory
+           WHERE variant_id = $1
+           ORDER BY COALESCE(stock, 0) DESC
+           LIMIT 1
+           FOR UPDATE`,
+          [item.variantId]
+        );
+        inventoryRow = rows[0] || null;
+      }
+
+      if (!inventoryRow) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "Inventory not found for one of the ordered items",
+        });
+      }
+
+      const availableStock = Math.max(
+        (Number(inventoryRow.stock) || 0) -
+          (Number(inventoryRow.reserved_stock) || 0),
+        0,
+      );
+
+      if (availableStock < requestedQty) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message:
+            "One of the selected sizes is no longer available in the requested quantity",
+        });
+      }
+
+      await client.query(
+        `UPDATE inventory
+         SET stock = GREATEST(COALESCE(stock, 0) - $2, 0)
+         WHERE id = $1`,
+        [inventoryRow.id, requestedQty],
+      );
+    }
+
+    // Insert order items with pending status
     for (const item of items) {
       await client.query(
         `INSERT INTO order_items (order_id, variant_id, quantity, price, item_status)
@@ -361,6 +433,14 @@ router.post("/orders", async (req, res) => {
         [order.id, item.variantId, item.quantity, item.price]
       );
     }
+
+    await client.query(
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted_at TIMESTAMPTZ`,
+    ).catch(() => {});
+    await client.query(
+      `UPDATE orders SET stock_deducted_at = NOW() WHERE id = $1`,
+      [order.id],
+    );
 
     // Mark consumed reward credits as used.
     if (referralRewardId) {
@@ -604,21 +684,149 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid status" });
   }
   try {
-    // Auto-create confirmed_at column if it doesn't exist
-    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
-    const confirmClause = status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : '';
-    const { rows } = await pool.query(
-      `UPDATE orders SET status = $1${confirmClause} WHERE id = $2 RETURNING id, status`,
-      [status, orderId]
-    );
-    if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
-    // Notify available riders when order becomes confirmed
-    if (status === 'confirmed') {
-      notifyAvailableRiders(pool, rows[0].id).catch(() => {});
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+
+      // Auto-create needed columns if they don't exist
+      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
+      await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted_at TIMESTAMPTZ`).catch(() => {});
+
+      const { rows: orderRows } = await client.query(
+        `SELECT id, status, dark_store_id, stock_deducted_at
+         FROM orders
+         WHERE id = $1
+         FOR UPDATE`,
+        [orderId]
+      );
+      if (!orderRows.length) {
+        await client.query("ROLLBACK");
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+
+      const order = orderRows[0];
+
+      const shouldEnsureStockDeduction = [
+        'confirmed',
+        'packed',
+        'picked',
+        'out_for_delivery',
+        'delivered',
+        'completed',
+      ].includes(status);
+
+      if (shouldEnsureStockDeduction && !order.stock_deducted_at) {
+        const { rows: itemRows } = await client.query(
+          `SELECT variant_id, quantity
+           FROM order_items
+           WHERE order_id = $1`,
+          [orderId]
+        );
+
+        for (const item of itemRows) {
+          const requestedQty = Math.max(1, Number(item.quantity || 1));
+          let inventoryRow = null;
+
+          if (order.dark_store_id) {
+            const { rows } = await client.query(
+              `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+               FROM inventory
+               WHERE variant_id = $1 AND store_id = $2
+               FOR UPDATE`,
+              [item.variant_id, order.dark_store_id]
+            );
+            inventoryRow = rows[0] || null;
+          }
+
+          if (!inventoryRow) {
+            const { rows } = await client.query(
+              `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+               FROM inventory
+               WHERE variant_id = $1 AND store_id IS NULL
+               FOR UPDATE`,
+              [item.variant_id]
+            );
+            inventoryRow = rows[0] || null;
+          }
+
+          if (!inventoryRow) {
+            const { rows } = await client.query(
+              `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
+               FROM inventory
+               WHERE variant_id = $1
+               ORDER BY COALESCE(stock, 0) DESC
+               LIMIT 1
+               FOR UPDATE`,
+              [item.variant_id]
+            );
+            inventoryRow = rows[0] || null;
+          }
+
+          if (!inventoryRow) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ success: false, message: "Inventory not found for one of the ordered items" });
+          }
+
+          const availableStock = Math.max(
+            (Number(inventoryRow.stock) || 0) - (Number(inventoryRow.reserved_stock) || 0),
+            0
+          );
+
+          if (availableStock < requestedQty) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({ success: false, message: "One of the selected sizes is no longer available in the requested quantity" });
+          }
+
+          await client.query(
+            `UPDATE inventory
+             SET stock = GREATEST(COALESCE(stock, 0) - $2, 0)
+             WHERE id = $1`,
+            [inventoryRow.id, requestedQty]
+          );
+        }
+      }
+
+      const statusMetaClause =
+        `${status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : ''}` +
+        `${shouldEnsureStockDeduction ? ', stock_deducted_at = COALESCE(stock_deducted_at, NOW())' : ''}`;
+      const { rows } = await client.query(
+        `UPDATE orders SET status = $1${statusMetaClause} WHERE id = $2 RETURNING id, status`,
+        [status, orderId]
+      );
+
+      let itemStatus = null;
+      if (status === 'cancelled') {
+        itemStatus = 'return';
+      } else if (status === 'out_for_delivery') {
+        itemStatus = 'pending';
+      } else if (['delivered', 'completed'].includes(status)) {
+        itemStatus = 'kept';
+      } else if (['confirmed', 'packed', 'picked'].includes(status)) {
+        itemStatus = 'pending';
+      }
+
+      if (itemStatus != null) {
+        await client.query(
+          `UPDATE order_items SET item_status = $1 WHERE order_id = $2`,
+          [itemStatus, orderId]
+        );
+      }
+
+      await client.query("COMMIT");
+
+      // Notify available riders when order becomes confirmed
+      if (status === 'confirmed') {
+        notifyAvailableRiders(pool, rows[0].id).catch(() => {});
+      }
+      // Push the status update to the customer's device
+      notifyCustomerOfStatus(pool, rows[0].id, status).catch(() => {});
+      res.json({ success: true, order: rows[0] });
+    } catch (err) {
+      await client.query("ROLLBACK");
+      throw err;
+    } finally {
+      client.release();
     }
-    // Push the status update to the customer's device
-    notifyCustomerOfStatus(pool, rows[0].id, status).catch(() => {});
-    res.json({ success: true, order: rows[0] });
   } catch (err) {
     console.error("PATCH order status error:", err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -671,7 +879,7 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
     const productsWithVariants = await Promise.all(
       products.map(async (product) => {
         const variantsResult = await pool.query(
-          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
+          `SELECT pv.id, pv.variant_code, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
                   COALESCE(i.stock, 0) as quantity,
                   i.store_id
            FROM product_variants pv

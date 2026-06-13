@@ -24,6 +24,58 @@ export const ensureDatabaseTables = async () => {
 
   // Ensure orders has confirmed_at column (used for 60-min delivery SLA timer)
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_deducted_at TIMESTAMPTZ`).catch(() => {});
+
+  await pool.query(`CREATE SEQUENCE IF NOT EXISTS product_variant_code_seq START WITH 1 INCREMENT BY 1`).catch(() => {});
+  await pool.query(`
+    CREATE OR REPLACE FUNCTION assign_product_variant_code()
+    RETURNS TRIGGER AS $$
+    BEGIN
+      IF NEW.variant_code IS NULL OR NEW.variant_code = '' THEN
+        NEW.variant_code := LPAD(nextval('product_variant_code_seq')::text, 8, '0');
+      END IF;
+      RETURN NEW;
+    END;
+    $$ LANGUAGE plpgsql;
+  `).catch(() => {});
+
+  await pool.query(`
+    DO $$
+    DECLARE
+      max_code bigint;
+      next_start bigint;
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'product_variants'
+      ) THEN
+        EXECUTE 'ALTER TABLE product_variants ADD COLUMN IF NOT EXISTS variant_code VARCHAR(8)';
+
+        SELECT COALESCE(MAX(variant_code::bigint), 0)
+          INTO max_code
+        FROM product_variants
+        WHERE variant_code ~ '^[0-9]{8}$';
+
+        next_start := COALESCE(max_code, 0) + 1;
+        PERFORM setval('product_variant_code_seq', next_start, false);
+
+        UPDATE product_variants
+          SET variant_code = LPAD(nextval('product_variant_code_seq')::text, 8, '0')
+          WHERE variant_code IS NULL OR variant_code = '';
+
+        EXECUTE 'DROP TRIGGER IF EXISTS trg_assign_product_variant_code ON product_variants';
+        EXECUTE '
+          CREATE TRIGGER trg_assign_product_variant_code
+          BEFORE INSERT ON product_variants
+          FOR EACH ROW
+          EXECUTE FUNCTION assign_product_variant_code()
+        ';
+
+        EXECUTE 'CREATE UNIQUE INDEX IF NOT EXISTS idx_product_variants_variant_code ON product_variants(variant_code) WHERE variant_code IS NOT NULL';
+      END IF;
+    END $$;
+  `).catch(() => {});
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sellers (

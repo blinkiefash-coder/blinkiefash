@@ -189,9 +189,12 @@ export default function StockMonitoring() {
                         </td>
                         <td data-label="Variants">
                           <div className="variants-list">
-                            {(product.variants || []).filter(v => v.quantity > 0).map((variant, vidx) => (
+                            {(product.variants || []).map((variant, vidx) => (
                               <div key={vidx} className="variant-item">
-                                <span>{variant.size} / {variant.color}</span>
+                                <span>
+                                  {variant.size} / {variant.color}
+                                  {variant.variant_code ? ` • ${variant.variant_code}` : ""}
+                                </span>
                                 <span className="qty">×{variant.quantity}</span>
                               </div>
                             ))}
