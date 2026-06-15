@@ -112,7 +112,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String? _normalizeImageUrl(dynamic value) {
-    final raw = (value ?? '').toString().trim();
+    if (value == null) return null;
+    // API may return image rows as Maps like {url: '...', variant_id: ...}
+    if (value is Map) {
+      final url = value['url'] ?? value['image_url'] ?? value['image'];
+      return _normalizeImageUrl(url);
+    }
+    final raw = value.toString().trim();
     if (raw.isEmpty) return null;
 
     if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
