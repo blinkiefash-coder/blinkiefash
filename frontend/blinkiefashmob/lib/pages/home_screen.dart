@@ -1817,7 +1817,9 @@ class _HomeScreenState extends State<HomeScreen>
                             left: 0,
                             right: 0,
                             child: Container(
-                              color: const Color(0xFF7C3AED).withOpacity(0.9),
+                              color: const Color(
+                                0xFF7C3AED,
+                              ).withValues(alpha: 0.9),
                               padding: const EdgeInsets.all(6),
                               child: Text(
                                 offerLabel,

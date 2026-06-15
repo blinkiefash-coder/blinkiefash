@@ -191,6 +191,9 @@ export default function StockMonitoring() {
                           <div className="variants-list">
                             {(product.variants || []).filter(v => v.quantity > 0).map((variant, vidx) => (
                               <div key={vidx} className="variant-item">
+                                {variant.variant_code && (
+                                  <span className="variant-code" title="Variant Code">{variant.variant_code}</span>
+                                )}
                                 <span>{variant.size} / {variant.color}</span>
                                 <span className="qty">×{variant.quantity}</span>
                               </div>
