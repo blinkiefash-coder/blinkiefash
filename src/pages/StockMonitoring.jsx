@@ -93,7 +93,6 @@ export default function StockMonitoring() {
     { key: "products", label: "Products", icon: "□" },
     { key: "stock", label: "Stock Monitoring", icon: "📦" },
     { key: "analytics", label: "Product Analytics", icon: "📊" },
-    { key: "sales", label: "Sales Report", icon: "🧾" },
     { key: "orders", label: "Orders", icon: "◍" },
     { key: "settings", label: "Settings", icon: "⚙" },
   ];
@@ -102,7 +101,6 @@ export default function StockMonitoring() {
     if (item.key === "products") navigate("/vendor/add-product");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
-    if (item.key === "sales") navigate("/vendor/sales-report");
   };
 
   return (
@@ -189,12 +187,9 @@ export default function StockMonitoring() {
                         </td>
                         <td data-label="Variants">
                           <div className="variants-list">
-                            {(product.variants || []).map((variant, vidx) => (
+                            {(product.variants || []).filter(v => v.quantity > 0).map((variant, vidx) => (
                               <div key={vidx} className="variant-item">
-                                <span>
-                                  {variant.size} / {variant.color}
-                                  {variant.variant_code ? ` • ${variant.variant_code}` : ""}
-                                </span>
+                                <span>{variant.size} / {variant.color}</span>
                                 <span className="qty">×{variant.quantity}</span>
                               </div>
                             ))}

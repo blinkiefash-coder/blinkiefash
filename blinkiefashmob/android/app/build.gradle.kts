@@ -20,6 +20,15 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
 
+    signingConfigs {
+        release {
+            keyAlias = System.getenv("KEY_ALIAS") ?: "upload"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+            storeFile = System.getenv("STORE_FILE")?.let { file(it) } ?: file("../../../blinkiefash-upload-keystore.jks")
+            storePassword = System.getenv("STORE_PASSWORD") ?: ""
+        }
+    }
+
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
         applicationId = "com.blinkie_fash.Customer1"
@@ -34,9 +43,7 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

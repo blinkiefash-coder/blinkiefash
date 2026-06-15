@@ -514,6 +514,7 @@ class ApiClient {
     final body = {'referralCode': code};
     final data = await _postJson(uri, body);
     return data;
+    return const {'success': false, 'message': 'Network error'};
   }
 
   // ── Old clothes pickup ─────────────────────────────────────────────────────

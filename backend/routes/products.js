@@ -228,20 +228,7 @@ const createProductSimple = async (req, res) => {
 
     await client.query("COMMIT");
 
-    const { rows: createdVariants } = await client.query(
-      `SELECT id, variant_code, size, color, price, mrp, product_id
-       FROM product_variants
-       WHERE product_id = $1
-       ORDER BY id ASC`,
-      [productId]
-    );
-
-    res.json({
-      success: true,
-      product_id: productId,
-      message: "Product created successfully",
-      variants: createdVariants,
-    });
+    res.json({ success: true, product_id: productId, message: "Product created successfully" });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("CREATE PRODUCT ERROR:", err);
@@ -525,7 +512,6 @@ router.get("/:id", async (req, res) => {
     const variantRes = await pool.query(
       `SELECT
          v.id,
-         v.variant_code,
          v.size,
          v.color,
          v.mrp        AS price,
@@ -535,6 +521,7 @@ router.get("/:id", async (req, res) => {
        LEFT JOIN inventory inv ON inv.variant_id = v.id
        WHERE v.product_id = $1
          AND v.is_active = true
+         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        ORDER BY v.price ASC, v.id ASC`,
       [id]
     );

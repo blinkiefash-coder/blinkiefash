@@ -246,19 +246,6 @@
   background: #f5f5f5;
   border-radius: 4px;
   color: #555;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.variant-item .variant-code {
-  font-family: "SF Mono", Menlo, Consolas, monospace;
-  background: #f0fdf4;
-  color: #166534;
-  font-weight: 700;
-  padding: 2px 6px;
-  border-radius: 3px;
-  font-size: 11px;
-  white-space: nowrap;
 }
 
 .variant-item span:first-child {
@@ -268,7 +255,7 @@
 .variant-item .qty {
   font-weight: 600;
   color: #2e7d32;
-  margin-left: auto;
+  margin-left: 8px;
 }
 
 /* Responsive */
