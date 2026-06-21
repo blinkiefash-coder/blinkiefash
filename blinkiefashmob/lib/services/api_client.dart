@@ -476,8 +476,7 @@ class ApiClient {
     final uri = Uri.parse('$apiApiBaseUrl/users/$userId/apply-referral-code');
     final body = {'referralCode': code};
     final data = await _postJson(uri, body);
-    if (data is Map<String, dynamic>) return data;
-    return const {'success': false, 'message': 'Network error'};
+    return data;
   }
 
   // ── Old clothes pickup ─────────────────────────────────────────────────────
