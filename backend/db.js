@@ -263,13 +263,153 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS referral_discount DECIMAL(12, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0
+      ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS bundle_discount DECIMAL(12, 2) DEFAULT 0
   `).catch(() => {});
 
   // ── Product feature flags ─────────────────────────────────────────────────
   await pool.query(`
     ALTER TABLE products
       ADD COLUMN IF NOT EXISTS is_bestseller BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false
+      ADD COLUMN IF NOT EXISTS is_try_and_buy BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_2 BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_3 BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS buy_4 BOOLEAN DEFAULT false
+  `).catch(() => {});
+
+  // ── Bulk offer/deal support ─────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bulk_offers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      offer_type VARCHAR(100) NOT NULL,
+      quantity INT NOT NULL,
+      offer_price DECIMAL(12, 2) NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_bulk_offers_product_active
+    ON bulk_offers(product_id, is_active);
+  `).catch(() => {});
+
+  // ── Bundle pricing offers ─────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS bundle_offers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      quantity_min INT NOT NULL DEFAULT 1,
+      quantity_max INT,
+      discount_type VARCHAR(20) DEFAULT 'fixed_price',
+      discount_value DECIMAL(12, 2) NOT NULL,
+      is_active BOOLEAN DEFAULT true,
+      created_at TIMESTAMP DEFAULT now(),
+      updated_at TIMESTAMP DEFAULT now()
+    );
+  `);
+
+  // Migration: fix bundle_offers.vendor_id to reference vendors instead of sellers
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1 FROM information_schema.referential_constraints rc
+        JOIN information_schema.key_column_usage kcu
+          ON rc.constraint_name = kcu.constraint_name
+        JOIN information_schema.constraint_column_usage ccu
+          ON rc.unique_constraint_name = ccu.constraint_name
+        WHERE kcu.table_name = 'bundle_offers'
+          AND kcu.column_name = 'vendor_id'
+          AND ccu.table_name = 'sellers'
+      ) THEN
+        ALTER TABLE bundle_offers DROP CONSTRAINT bundle_offers_vendor_id_fkey;
+        ALTER TABLE bundle_offers
+          ADD CONSTRAINT bundle_offers_vendor_id_fkey
+          FOREIGN KEY (vendor_id) REFERENCES vendors(id) ON DELETE CASCADE;
+      END IF;
+    END $$;
+  `).catch((err) => {
+    console.warn("bundle_offers FK migration skipped:", err.message);
+  });
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_bundle_offers_product
+    ON bundle_offers(product_id, is_active);
+  `).catch(() => {});
+
+  // ── Product media (images/videos) ─────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_media (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID REFERENCES products(id) ON DELETE CASCADE,
+      variant_id UUID REFERENCES product_variants(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      media_type VARCHAR(20) DEFAULT 'image',
+      is_primary BOOLEAN DEFAULT false,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT now()
+    );
+  `).catch((err) => {
+    console.warn("product_media table create skipped:", err.message);
+  });
+
+  // Ensure product_media has all expected columns (for legacy tables)
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS product_id UUID;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS variant_id UUID;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS url TEXT;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS media_type VARCHAR(20) DEFAULT 'image';
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT false;
+  `).catch(() => {});
+  await pool.query(`
+    ALTER TABLE product_media ADD COLUMN IF NOT EXISTS sort_order INT DEFAULT 0;
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_media_product
+    ON product_media(product_id);
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_media_variant
+    ON product_media(variant_id);
+  `).catch(() => {});
+
+  // ── Product reviews ───────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      user_id UUID,
+      reviewer_name VARCHAR(255),
+      rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+      review_text TEXT NOT NULL,
+      image_url TEXT,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `).catch((err) => {
+    console.warn("product_reviews table create skipped:", err.message);
+  });
+
+  // Backfill columns for legacy tables that may already exist.
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS user_id UUID`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS reviewer_name VARCHAR(255)`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS image_url TEXT`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_reviews_product
+    ON product_reviews(product_id, created_at DESC);
   `).catch(() => {});
 };

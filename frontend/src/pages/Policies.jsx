@@ -34,6 +34,24 @@ export default function Policies() {
               <li>Delivery addresses and payment info</li>
               <li>Device and app usage data</li>
             </ul>
+            <p>
+              <a
+                href="/privacy-policy"
+                onClick={(e) => { e.preventDefault(); navigate("/privacy-policy"); }}
+                style={{ color: "#d32f2f", fontWeight: 600 }}
+              >
+                Read the full Privacy Policy →
+              </a>
+            </p>
+            <p>
+              <a
+                href="/account-deletion"
+                onClick={(e) => { e.preventDefault(); navigate("/account-deletion"); }}
+                style={{ color: "#555", fontWeight: 500 }}
+              >
+                Request account deletion →
+              </a>
+            </p>
           </article>
 
           <article className="info-card">

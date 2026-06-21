@@ -14,12 +14,17 @@ const getProductMediaShape = async (client) => {
      WHERE table_schema = 'public' AND table_name = 'product_media'`
   );
   const cols = new Set(result.rows.map((row) => row.column_name));
-  return {
+  const shape = {
+    hasUrl: cols.has("url"),
+    hasIsPrimary: cols.has("is_primary"),
     hasProductId: cols.has("product_id"),
     hasMediaType: cols.has("media_type"),
     hasVariantId: cols.has("variant_id"),
     hasSortOrder: cols.has("sort_order"),
   };
+  console.log("[product_media] detected columns:", Array.from(cols));
+  console.log("[product_media] resolved shape:", shape);
+  return shape;
 };
 
 const insertProductMediaRows = async ({
@@ -33,23 +38,32 @@ const insertProductMediaRows = async ({
 }) => {
   let nextOrder = startOrder;
 
+  console.log(`[product_media] inserting ${imageUrls?.length || 0} images for variant ${variantId}, product ${productId}`);
+
   for (const rawUrl of imageUrls) {
     const url = String(rawUrl || "").trim();
     if (!url) continue;
 
-    const columns = ["url", "is_primary"];
-    const values = [url, !primaryAssignedRef.value];
+    const columns = ["url"];
+    const values = [url];
 
+    if (mediaShape.hasIsPrimary) { columns.push("is_primary"); values.push(!primaryAssignedRef.value); }
     if (mediaShape.hasProductId) { columns.push("product_id"); values.push(productId); }
     if (mediaShape.hasMediaType) { columns.push("media_type"); values.push("image"); }
     if (mediaShape.hasVariantId) { columns.push("variant_id"); values.push(variantId || null); }
     if (mediaShape.hasSortOrder) { columns.push("sort_order"); values.push(nextOrder); }
 
     const placeholders = values.map((_, index) => `$${index + 1}`).join(",");
-    await client.query(
-      `INSERT INTO product_media (${columns.join(",")}) VALUES (${placeholders})`,
-      values
-    );
+    try {
+      await client.query(
+        `INSERT INTO product_media (${columns.join(",")}) VALUES (${placeholders})`,
+        values
+      );
+      console.log(`[product_media] inserted url=${url} variant=${variantId} primary=${!primaryAssignedRef.value}`);
+    } catch (err) {
+      console.error(`[product_media] INSERT FAILED:`, err.message, { columns, url });
+      throw err;
+    }
 
     if (!primaryAssignedRef.value) {
       primaryAssignedRef.value = true;
@@ -64,6 +78,7 @@ const insertProductMediaRows = async ({
 const prepareCreatePayload = (body = {}) => {
   const nestedProduct = body.product || {};
   const nestedVariants = Array.isArray(body.variants) ? body.variants : [];
+  const nestedBundleOffers = Array.isArray(body.bundleOffers) ? body.bundleOffers : [];
 
   const vendor_id = nestedProduct.vendor_id || body.vendor_id;
   const category_id = nestedProduct.category_id || body.category_id;
@@ -92,6 +107,7 @@ const prepareCreatePayload = (body = {}) => {
     brand_name, brand_id,
     is_try_enabled, store_id,
     variants, topLevelImages,
+    bundleOffers: nestedBundleOffers,
   };
 };
 
@@ -99,6 +115,7 @@ const createProductSimple = async (req, res) => {
   const client = await pool.connect();
 
   try {
+    console.log("[create_product] incoming payload:", JSON.stringify(req.body, null, 2));
     const payload = prepareCreatePayload(req.body);
     const {
       vendor_id, category_id,
@@ -106,7 +123,9 @@ const createProductSimple = async (req, res) => {
       brand_name, brand_id: explicitBrandId,
       is_try_enabled, store_id,
       variants, topLevelImages,
+      bundleOffers,
     } = payload;
+    console.log("[create_product] prepared variants:", variants.map(v => ({ size: v.size, color: v.color, imagesCount: v.images?.length || 0 })));
 
     if (!vendor_id || !name || !category_id) {
       return res.status(400).json({
@@ -176,6 +195,7 @@ const createProductSimple = async (req, res) => {
       );
 
       const variantImageUrls = Array.isArray(variant.images) ? variant.images : [];
+      console.log(`[create_product] variant ${variantRes.rows[0].id} has ${variantImageUrls.length} images:`, variantImageUrls);
       insertedImageCount += variantImageUrls.length;
       imageOrder = await insertProductMediaRows({
         client, productId,
@@ -193,6 +213,17 @@ const createProductSimple = async (req, res) => {
         startOrder: imageOrder,
         mediaShape, primaryAssignedRef,
       });
+    }
+
+    // ── Create bundle offers ──────────────────────────────────────────────────
+    if (Array.isArray(bundleOffers) && bundleOffers.length > 0) {
+      for (const offer of bundleOffers) {
+        await client.query(
+          `INSERT INTO bundle_offers (product_id, vendor_id, quantity_min, quantity_max, discount_value, discount_type, is_active)
+           VALUES ($1, $2, $3, $4, $5, 'fixed_price', true)`,
+          [productId, vendor_id, offer.quantity_min, offer.quantity_max, offer.discount_value]
+        );
+      }
     }
 
     await client.query("COMMIT");
@@ -274,6 +305,122 @@ router.get("/bestsellers", async (req, res) => {
          p.id, p.name,
          COALESCE(b.name, '') AS brand,
          COALESCE(c.name, '') AS category_name,
+         MIN(COALESCE(v.mrp, v.price))        AS price,
+         MIN(v.price)                         AS discount_price,
+         COALESCE(
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id AND pm.is_primary = true
+             LIMIT 1
+           ),
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id
+             LIMIT 1
+           )
+         )                                    AS image,
+         p.buy_2, p.buy_3, p.buy_4
+       FROM products p
+       LEFT JOIN brands b       ON b.id = p.brand_id
+       LEFT JOIN categories c   ON c.id = p.category_id
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+       WHERE p.bestseller = true
+         ${storeCondition}
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       ORDER BY p.id
+       LIMIT $${index}`,
+      values
+    );
+    res.json({ bestsellers: result.rows });
+  } catch (err) {
+    console.error("BESTSELLERS ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /price-range ────────────────────────────────────────────────────────
+// Get products filtered by price range and store inventory
+// Query params: min_price, max_price, limit, store_id (optional)
+router.get("/price-range", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 40);
+    const minPrice = parseFloat(req.query.min_price) || 0;
+    const maxPrice = parseFloat(req.query.max_price) || 99999;
+    const storeId = req.query.store_id ? req.query.store_id.toString() : null;
+
+    let query = `
+      SELECT
+         p.id, p.name,
+         COALESCE(b.name, '') AS brand,
+         COALESCE(c.name, '') AS category_name,
+         MIN(COALESCE(v.mrp, v.price))        AS price,
+         MIN(v.price)                         AS discount_price,
+         COALESCE(
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id AND pm.is_primary = true
+             LIMIT 1
+           ),
+           (
+             SELECT pm.url FROM product_media pm
+             JOIN product_variants pv ON pv.id = pm.variant_id
+             WHERE pv.product_id = p.id
+             LIMIT 1
+           )
+         )                                    AS image,
+         p.buy_2, p.buy_3, p.buy_4
+       FROM products p
+       LEFT JOIN brands b       ON b.id = p.brand_id
+       LEFT JOIN categories c   ON c.id = p.category_id
+       LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
+    `;
+
+    // Add store inventory filtering if store_id provided
+    if (storeId) {
+      query += `
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $4
+       WHERE p.id IS NOT NULL
+         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
+       ORDER BY MIN(v.price) ASC, p.id
+       LIMIT $3
+      `;
+      const result = await pool.query(query, [minPrice, maxPrice, limit, storeId]);
+      return res.json({ products: result.rows });
+    } else {
+      query += `
+       WHERE p.id IS NOT NULL
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
+       ORDER BY MIN(v.price) ASC, p.id
+       LIMIT $3
+      `;
+      const result = await pool.query(query, [minPrice, maxPrice, limit]);
+      return res.json({ products: result.rows });
+    }
+  } catch (err) {
+    console.error("PRICE-RANGE ERROR:", err);
+    res.status(500).json({ error: "Server error" });
+  }
+});
+
+// ── GET /bulk-offers ────────────────────────────────────────────────────────
+// Get products with active bulk offers filtered by store inventory
+// Query params: limit, store_id (optional)
+router.get("/bulk-offers", async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 10, 40);
+    const storeId = req.query.store_id ? req.query.store_id.toString() : null;
+
+    let query = `
+      SELECT
+         p.id, p.name,
+         COALESCE(b.name, '') AS brand,
+         COALESCE(c.name, '') AS category_name,
          MIN(v.price)                         AS price,
          MIN(COALESCE(v.mrp, v.price))        AS original_price,
          COALESCE(
@@ -289,21 +436,48 @@ router.get("/bestsellers", async (req, res) => {
              WHERE pv.product_id = p.id
              LIMIT 1
            )
-         )                                    AS image
+         )                                    AS image,
+         (
+           SELECT json_agg(json_build_object('offer_type', bo.offer_type, 'quantity', bo.quantity, 'offer_price', bo.offer_price))
+           FROM bulk_offers bo
+           WHERE bo.product_id = p.id AND bo.is_active = true
+         )                                    AS bulk_offers
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
-       WHERE p.bestseller = true
-         ${storeCondition}
+    `;
+
+    // Add store inventory filtering if store_id provided
+    if (storeId) {
+      query += `
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $1
+       WHERE EXISTS (
+         SELECT 1 FROM bulk_offers bo
+         WHERE bo.product_id = p.id AND bo.is_active = true
+       )
+       AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        GROUP BY p.id, b.name, c.name
        ORDER BY p.id
-       LIMIT $${index}`,
-      values
-    );
-    res.json({ bestsellers: result.rows });
+       LIMIT $2
+      `;
+      const result = await pool.query(query, [storeId, limit]);
+      return res.json({ products: result.rows });
+    } else {
+      query += `
+       WHERE EXISTS (
+         SELECT 1 FROM bulk_offers bo
+         WHERE bo.product_id = p.id AND bo.is_active = true
+       )
+       GROUP BY p.id, b.name, c.name
+       ORDER BY p.id
+       LIMIT $1
+      `;
+      const result = await pool.query(query, [limit]);
+      return res.json({ products: result.rows });
+    }
   } catch (err) {
-    console.error("BESTSELLERS ERROR:", err);
+    console.error("BULK-OFFERS ERROR:", err);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -314,18 +488,23 @@ router.get("/:id", async (req, res) => {
 
     // ✅ PRODUCT
     const productRes = await pool.query(
-      `SELECT p.*, b.name AS brand
+      `SELECT p.*, b.name AS brand, c.name AS category_name
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
+       LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.id = $1`,
       [id]
     );
 
-    // ✅ IMAGES
+    // ✅ IMAGES (with variant_id for filtering)
+    // Include both variant-specific images AND top-level images (variant_id IS NULL)
     const imageRes = await pool.query(
-      `SELECT DISTINCT pm.url FROM product_media pm
-       JOIN product_variants v ON v.id = pm.variant_id
-       WHERE v.product_id = $1`,
+      `SELECT pm.url, pm.variant_id FROM product_media pm
+       WHERE pm.variant_id IS NULL 
+          OR pm.variant_id IN (
+            SELECT v.id FROM product_variants v WHERE v.product_id = $1
+          )
+       ORDER BY pm.sort_order ASC, pm.id ASC`,
       [id]
     );
 
@@ -349,7 +528,7 @@ router.get("/:id", async (req, res) => {
 
     res.json({
       product: productRes.rows[0],
-      images: imageRes.rows.map(i => i.url),
+      images: imageRes.rows,
       variants: variantRes.rows
     });
 
@@ -428,7 +607,10 @@ router.get("/", async (req, res) => {
         pv.mrp        AS price,
         pv.sell_price AS discount_price,
         p.is_bestseller,
-        p.is_try_and_buy
+        p.is_try_and_buy,
+        p.buy_2,
+        p.buy_3,
+        p.buy_4
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN categories c ON c.id = p.category_id

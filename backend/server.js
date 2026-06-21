@@ -16,24 +16,33 @@ import checkoutRoutes from "./routes/checkout.js";
 import usersRoutes from "./routes/users.js";
 import referralRoutes from "./routes/referrals.js";
 import oldClothesRoutes from "./routes/oldClothes.js";
+import reviewsRoutes from "./routes/reviews.js";
 
 const app = express();
 
-const allowedOrigins = (process.env.FRONTEND_URLS || "")
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean)
-  .map((origin) => origin.replace(/\/$/, ""));
+const allowedOrigins = [
+  "http://localhost:3000",
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "http://127.0.0.1:3000",
+  "http://127.0.0.1:5173",
+  "http://127.0.0.1:5174",
+  "https://blinkiefash.vercel.app",
+  "https://www.blinkiefash.in",
+  "https://blinkiefash.in",
+  "https://www.blinkiefash.com",
+  "https://blinkiefash.com",
+  ...(process.env.FRONTEND_URLS
+    ? process.env.FRONTEND_URLS.split(",").map((origin) =>
+        origin.trim().replace(/\/$/, "")
+      )
+    : []),
+];
 
 app.use(
   cors({
     origin(origin, callback) {
       if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      if (allowedOrigins.length === 0) {
         callback(null, true);
         return;
       }
@@ -44,11 +53,22 @@ app.use(
         callback(null, true);
         return;
       }
+      
+      console.warn(`CORS rejected: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     },
   })
 );
 app.use(express.json());
+
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", message: "BlinkieFash backend is running" });
+});
+
+app.get("/", (req, res) => {
+  res.json({ status: "ok", message: "BlinkieFash backend is running" });
+});
 
 app.use("/login", authRoutes);
 app.use("/api/products", productRoutes);
@@ -62,6 +82,8 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/old-clothes", oldClothesRoutes);
+app.use("/api/reviews", reviewsRoutes);
+// Force redeploy: 2026-06-06 11:20:53 UTC
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
 

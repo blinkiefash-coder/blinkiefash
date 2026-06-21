@@ -1,9 +1,11 @@
 import "./addproduct.css";
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import VendorLayout from "../components/VendorLayout";
 
 export default function AddProduct() {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
 
@@ -47,6 +49,31 @@ export default function AddProduct() {
   const [variants, setVariants] = useState([
     { size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] },
   ]);
+
+  const [bundleOffers, setBundleOffers] = useState({
+    buy_2_at_999: false,
+    buy_3_at_999: false,
+    buy_4_at_999: false,
+  });
+
+  // Store preview URLs separately to ensure proper cleanup
+  const [variantPreviewUrls, setVariantPreviewUrls] = useState({});
+
+  // Generate preview URLs whenever imageFiles change
+  useEffect(() => {
+    const newUrls = {};
+    variants.forEach((v, vIdx) => {
+      newUrls[vIdx] = (v.imageFiles || []).map((file) => URL.createObjectURL(file));
+    });
+    setVariantPreviewUrls(newUrls);
+
+    // Cleanup function to revoke old URLs
+    return () => {
+      Object.values(variantPreviewUrls).forEach((urlArray) => {
+        urlArray.forEach((url) => URL.revokeObjectURL(url));
+      });
+    };
+  }, [variants.map((v) => v.imageFiles?.length).join(",")]);
 
   useEffect(() => {
     if (!vendorId) { window.location.href = "/vendor"; return; }
@@ -116,6 +143,16 @@ export default function AddProduct() {
           full_description: form.full_description, is_try_enabled: form.is_try_enabled,
           store_id: form.store_id || null },
         variants: preparedVariants,
+        bundleOffers: Object.entries(bundleOffers)
+          .filter(([_, enabled]) => enabled)
+          .map(([key, _]) => {
+            const mapping = {
+              buy_2_at_999: { quantity_min: 2, quantity_max: 2, discount_value: 999 },
+              buy_3_at_999: { quantity_min: 3, quantity_max: 3, discount_value: 999 },
+              buy_4_at_999: { quantity_min: 4, quantity_max: null, discount_value: 999 },
+            };
+            return mapping[key] || {};
+          }),
       };
       const res = await fetch(`${API_API_BASE_URL}/products/create`, {
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
@@ -125,6 +162,7 @@ export default function AddProduct() {
       alert("Product added successfully!");
       setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", store_id: "", is_try_enabled: true });
       setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+      setBundleOffers({ buy_2_at_999: false, buy_3_at_999: false, buy_4_at_999: false });
       setSelectedParent(""); setSelectedChild("");
       setChildCategories([]); setSubChildCategories([]);
     } catch (err) { console.error(err); alert("Server error while creating product");
@@ -132,6 +170,12 @@ export default function AddProduct() {
   };
 
   const finalCategoryName = categories.find((c) => c.id === form.category_id)?.name || "";
+
+  const handleMenuClick = (item) => {
+    if (item.key === "stock") navigate("/vendor/stock-monitoring");
+    if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "products") navigate("/vendor/add-product");
+  };
 
   return (
     <>
@@ -141,7 +185,7 @@ export default function AddProduct() {
         </div>
       )}
 
-      <VendorLayout activeKey="products" storeName="Trendy Looks">
+      <VendorLayout activeKey="products" storeName="Trendy Looks" onMenuClick={handleMenuClick}>
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
@@ -249,9 +293,15 @@ export default function AddProduct() {
                     </div>
                     {v.imageFiles?.length > 0 && (
                       <div className="variant-preview-row">
-                        {v.imageFiles.map((img, idx) => (
+                        {(variantPreviewUrls[i] || []).map((previewUrl, idx) => (
                           <div key={`${i}-${idx}`} className="preview-thumb">
-                            <img src={URL.createObjectURL(img)} height="70" alt="preview" />
+                            <img 
+                              src={previewUrl}
+                              width="70"
+                              height="70"
+                              alt={`preview-${idx}`}
+                              style={{ objectFit: "cover" }}
+                            />
                             <button type="button" className="remove-img-btn" onClick={() => removeImageFile(i, idx)}>✕</button>
                             {idx === 0 && <span className="primary-badge">Primary</span>}
                           </div>
@@ -261,6 +311,35 @@ export default function AddProduct() {
                   </div>
                 ))}
                 <button type="button" className="add-variant-btn" onClick={addVariant}>+ Add Another Variant</button>
+              </section>
+
+              {/* ── 4. Bundle Pricing Offers (Optional) ────────────────────────────── */}
+              <section className="form-section">
+                <h4>4. Bundle Pricing Offers (Optional) - Buy More, Save More</h4>
+                <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
+                  Enable special bundle pricing for customers who buy multiple items (e.g., Buy 2 at ₹999, Buy 3 at ₹999)
+                </p>
+                <div className="toggle-row">
+                  <label>
+                    <input type="checkbox" checked={bundleOffers.buy_2_at_999}
+                      onChange={(e) => setBundleOffers({ ...bundleOffers, buy_2_at_999: e.target.checked })} />
+                    Buy 2 at ₹999
+                  </label>
+                </div>
+                <div className="toggle-row">
+                  <label>
+                    <input type="checkbox" checked={bundleOffers.buy_3_at_999}
+                      onChange={(e) => setBundleOffers({ ...bundleOffers, buy_3_at_999: e.target.checked })} />
+                    Buy 3 at ₹999
+                  </label>
+                </div>
+                <div className="toggle-row">
+                  <label>
+                    <input type="checkbox" checked={bundleOffers.buy_4_at_999}
+                      onChange={(e) => setBundleOffers({ ...bundleOffers, buy_4_at_999: e.target.checked })} />
+                    Buy 4+ at ₹999
+                  </label>
+                </div>
               </section>
 
               <div className="summary-line">
