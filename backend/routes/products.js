@@ -512,6 +512,8 @@ router.get("/:id", async (req, res) => {
     const variantRes = await pool.query(
       `SELECT
          v.id,
+         v.sku,
+         v.variant_code,
          v.size,
          v.color,
          v.mrp        AS price,
@@ -604,6 +606,7 @@ router.get("/", async (req, res) => {
         c.name AS category_name,
         pv.image,
         pv.variant_id,
+        pv.color,
         pv.mrp        AS price,
         pv.sell_price AS discount_price,
         p.is_bestseller,
@@ -616,6 +619,7 @@ router.get("/", async (req, res) => {
       LEFT JOIN categories c ON c.id = p.category_id
       LEFT JOIN LATERAL (
         SELECT
+          DISTINCT ON (lower(COALESCE(v.color, '')))
           v.id AS variant_id,
           v.size,
           v.color,
@@ -638,8 +642,7 @@ router.get("/", async (req, res) => {
           AND v.is_active = true
           ${storeInvCondition}
           AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
-        ORDER BY v.price ASC, v.id ASC
-        LIMIT 1
+        ORDER BY lower(COALESCE(v.color, '')), v.price ASC, v.id ASC
       ) pv ON true
       WHERE 1=1
         AND pv.variant_id IS NOT NULL
