@@ -523,7 +523,6 @@ router.get("/:id", async (req, res) => {
        LEFT JOIN inventory inv ON inv.variant_id = v.id
        WHERE v.product_id = $1
          AND v.is_active = true
-         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        ORDER BY v.price ASC, v.id ASC`,
       [id]
     );
