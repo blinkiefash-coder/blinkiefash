@@ -455,6 +455,7 @@ router.get("/orders", async (req, res) => {
          a.pincode,
          json_agg(json_build_object(
            'variant_id',  oi.variant_id,
+           'variant_code',v.variant_code,
            'quantity',    oi.quantity,
            'price',       oi.price,
            'item_status', oi.item_status,
@@ -516,6 +517,7 @@ router.get("/orders/:orderId", async (req, res) => {
     const { rows: itemRows } = await pool.query(
       `SELECT
          oi.variant_id,
+        v.variant_code,
          oi.quantity,
          oi.price,
          oi.item_status,
@@ -562,6 +564,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
         d.store_pickup_verified_at,
         json_agg(json_build_object(
           'variant_id', oi.variant_id,
+          'variant_code', v.variant_code,
           'quantity',   oi.quantity,
           'price',      oi.price,
           'item_status',oi.item_status,

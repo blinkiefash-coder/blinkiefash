@@ -323,6 +323,7 @@
     const items = (o.items || []).map(it => `
       <tr>
         <td>${escHtml(it.product_name || '-')}</td>
+        <td>${escHtml(it.variant_code || '-')}</td>
         <td>${escHtml(it.size || '-')}</td>
         <td>${escHtml(it.color || '-')}</td>
         <td>${it.quantity}</td>
@@ -353,7 +354,7 @@
       </div>
 
       <table class="items-table">
-        <thead><tr><th>Product</th><th>Size</th><th>Color</th><th>Qty</th><th>Price</th></tr></thead>
+        <thead><tr><th>Product</th><th>Variant Code</th><th>Size</th><th>Color</th><th>Qty</th><th>Price</th></tr></thead>
         <tbody>${items}</tbody>
       </table>
 

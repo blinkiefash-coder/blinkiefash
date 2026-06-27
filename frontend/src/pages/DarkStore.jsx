@@ -336,6 +336,7 @@ function OrderCard({ order, onStatusChange }) {
         <thead>
           <tr>
             <th>Product</th>
+            <th>Variant Code</th>
             <th>Size</th>
             <th>Color</th>
             <th>Qty</th>
@@ -346,6 +347,7 @@ function OrderCard({ order, onStatusChange }) {
           {(order.items || []).map((it, i) => (
             <tr key={i}>
               <td>{it.product_name || "—"}</td>
+              <td>{it.variant_code || "—"}</td>
               <td>{it.size || "—"}</td>
               <td>{it.color || "—"}</td>
               <td>{it.quantity}</td>
