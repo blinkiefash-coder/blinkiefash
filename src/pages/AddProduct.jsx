@@ -100,11 +100,29 @@ export default function AddProduct() {
     files.forEach((f) => formData.append("image", f));
     try {
       const res = await fetch(`${API_API_BASE_URL}/upload`, { method: "POST", body: formData });
-      const data = await res.json();
-      if (data.success) return data.image_urls || [];
-      alert(data.error || data.message || "Upload failed");
+      const contentType = res.headers.get("content-type") || "";
+      const raw = await res.text();
+      const data = contentType.includes("application/json")
+        ? JSON.parse(raw || "{}")
+        : null;
+
+      if (res.ok && data?.success) return data.image_urls || [];
+
+      const fallback = !res.ok
+        ? `Upload failed (${res.status})`
+        : "Upload failed";
+      const message =
+        data?.error ||
+        data?.message ||
+        (raw && raw.slice(0, 180)) ||
+        fallback;
+      alert(message);
       return [];
-    } catch (err) { console.error(err); alert("Upload error"); return []; }
+    } catch (err) {
+      console.error(err);
+      alert("Upload error. Please check backend/CORS and try again.");
+      return [];
+    }
   };
 
   const handleSubmit = async (e) => {
