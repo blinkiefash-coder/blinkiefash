@@ -234,7 +234,7 @@ function PCard({ product }) {
       <div className="pcard-h__img">
         {product?.image
           ? <img src={product.image} alt={product.name} loading="lazy" />
-          : <span>👗</span>
+          : <span className="pcard-h__ph">👗</span>
         }
         {disc > 0 && <span className="pcard-h__off">-{disc}%</span>}
         {product?.is_try_and_buy && <span className="pcard-h__try">Try</span>}
