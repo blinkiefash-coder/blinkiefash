@@ -14,17 +14,31 @@ const upload = multer({
 });
 
 // ✅ MULTIPLE IMAGE SUPPORT
-router.post("/", upload.array("image", 20), async (req, res) => {
+// NOTE: multer errors must be caught in the middleware callback,
+// not inside the async handler's try/catch (they fire before it runs).
+router.post("/", (req, res, next) => {
+  upload.array("image", 20)(req, res, (err) => {
+    if (err) {
+      console.error("[UPLOAD ROUTE] Multer error:", err);
+      if (err instanceof multer.MulterError) {
+        if (err.code === "LIMIT_FILE_SIZE") {
+          return res.status(400).json({ error: "Each file must be 10MB or smaller" });
+        }
+        return res.status(400).json({ error: err.message || "Upload validation failed" });
+      }
+      return res.status(500).json({ error: err.message || "File parse error" });
+    }
+    next();
+  });
+}, async (req, res) => {
   console.log("[UPLOAD ROUTE] /api/upload hit");
   try {
-    // Debug: Log environment variables
     console.log("Cloudinary ENV:", {
       CLOUDINARY_CLOUD_NAME: process.env.CLOUDINARY_CLOUD_NAME,
       CLOUDINARY_API_KEY: process.env.CLOUDINARY_API_KEY,
       CLOUDINARY_API_SECRET: process.env.CLOUDINARY_API_SECRET ? "[HIDDEN]" : undefined,
     });
 
-    // Debug: Log file info
     if (!req.files || req.files.length === 0) {
       console.log("[UPLOAD ROUTE] No files received");
       return res.status(400).json({ error: "No files uploaded" });
@@ -56,19 +70,10 @@ router.post("/", upload.array("image", 20), async (req, res) => {
     }
 
     console.log("[UPLOAD ROUTE] Upload success, returning image_urls:", imageUrls);
-    res.json({
-      success: true,
-      image_urls: imageUrls
-    });
+    res.json({ success: true, image_urls: imageUrls });
 
   } catch (err) {
     console.error("UPLOAD ERROR:", err);
-    if (err instanceof multer.MulterError) {
-      if (err.code === "LIMIT_FILE_SIZE") {
-        return res.status(400).json({ error: "Each file must be 10MB or smaller" });
-      }
-      return res.status(400).json({ error: err.message || "Upload validation failed" });
-    }
     res.status(500).json({ error: err.message || "Upload failed" });
   }
 });
