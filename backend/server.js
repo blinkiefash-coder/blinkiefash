@@ -49,7 +49,18 @@ app.use(
 
       const normalizedOrigin = origin.replace(/\/$/, "");
 
-      if (allowedOrigins.includes(normalizedOrigin)) {
+      const isBlinkieDomain =
+        /^https:\/\/([a-z0-9-]+\.)*blinkiefash\.(in|com)$/i.test(
+          normalizedOrigin
+        );
+      const isVercelPreview =
+        /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin);
+
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        isBlinkieDomain ||
+        isVercelPreview
+      ) {
         callback(null, true);
         return;
       }
