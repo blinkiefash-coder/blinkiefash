@@ -149,6 +149,17 @@ const startServer = async () => {
       console.error('[scheduler] re-notify error:', err.message);
     }
   }, 2 * 60 * 1000);
+
+  // ── Self-ping every 14 minutes to prevent Render free-tier cold starts ──
+  const selfUrl = process.env.RENDER_EXTERNAL_URL;
+  if (selfUrl) {
+    setInterval(() => {
+      import('node:http').then(({ default: http }) => {
+        http.get(`${selfUrl}/health`, (res) => { res.resume(); }).on('error', () => {});
+      }).catch(() => {});
+    }, 14 * 60 * 1000);
+    console.log('⏰ Self-ping scheduler active (every 14 min) →', selfUrl);
+  }
 };
 
 startServer().catch((err) => {
