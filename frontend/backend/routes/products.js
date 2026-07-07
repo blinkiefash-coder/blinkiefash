@@ -351,13 +351,15 @@ router.get("/price-range", async (req, res) => {
              WHERE pv.product_id = p.id
              LIMIT 1
            )
-         )                                    AS image
+         )                                    AS image,
+         (p.is_try_enabled OR p.is_try_and_buy) AS is_try_and_buy,
+         p.is_bestseller
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
        WHERE p.id IS NOT NULL
-       GROUP BY p.id, b.name, c.name
+       GROUP BY p.id, b.name, c.name, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
        LIMIT $3`,

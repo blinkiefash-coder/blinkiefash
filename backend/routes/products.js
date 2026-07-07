@@ -321,14 +321,16 @@ router.get("/bestsellers", async (req, res) => {
              LIMIT 1
            )
          )                                    AS image,
-         p.buy_2, p.buy_3, p.buy_4
+         p.buy_2, p.buy_3, p.buy_4,
+         (p.is_try_enabled OR p.is_try_and_buy) AS is_try_and_buy,
+         p.is_bestseller
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
        LEFT JOIN product_variants v ON v.product_id = p.id AND v.is_active = true
        WHERE p.bestseller = true
          ${storeCondition}
-       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
        ORDER BY p.id
        LIMIT $${index}`,
       values
@@ -371,7 +373,9 @@ router.get("/price-range", async (req, res) => {
              LIMIT 1
            )
          )                                    AS image,
-         p.buy_2, p.buy_3, p.buy_4
+         p.buy_2, p.buy_3, p.buy_4,
+         (p.is_try_enabled OR p.is_try_and_buy) AS is_try_and_buy,
+         p.is_bestseller
        FROM products p
        LEFT JOIN brands b       ON b.id = p.brand_id
        LEFT JOIN categories c   ON c.id = p.category_id
@@ -384,7 +388,7 @@ router.get("/price-range", async (req, res) => {
        LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $4
        WHERE p.id IS NOT NULL
          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
-       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
        LIMIT $3
@@ -394,7 +398,7 @@ router.get("/price-range", async (req, res) => {
     } else {
       query += `
        WHERE p.id IS NOT NULL
-       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4
+       GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
        LIMIT $3
