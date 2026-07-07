@@ -412,4 +412,22 @@ export const ensureDatabaseTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_product_reviews_product
     ON product_reviews(product_id, created_at DESC);
   `).catch(() => {});
+
+  // ── Support Tickets ─────────────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS support_tickets (
+      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id     UUID REFERENCES users(id) ON DELETE SET NULL,
+      order_id    UUID REFERENCES orders(id) ON DELETE SET NULL,
+      category    VARCHAR(100) NOT NULL DEFAULT 'Other',
+      message     TEXT NOT NULL,
+      status      VARCHAR(50)  NOT NULL DEFAULT 'open',
+      created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
+      updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
+    );
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_support_tickets_user
+    ON support_tickets(user_id, created_at DESC);
+  `).catch(() => {});
 };
