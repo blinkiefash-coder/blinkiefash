@@ -609,7 +609,7 @@ router.get("/", async (req, res) => {
         pv.mrp        AS price,
         pv.sell_price AS discount_price,
         p.is_bestseller,
-        p.is_try_and_buy,
+        (p.is_try_enabled OR p.is_try_and_buy) AS is_try_and_buy,
         p.buy_2,
         p.buy_3,
         p.buy_4
