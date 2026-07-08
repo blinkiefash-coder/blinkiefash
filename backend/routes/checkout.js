@@ -719,6 +719,7 @@ router.get("/orders/:orderId/invoice", async (req, res) => {
     <div class="invoice-meta">
       <strong>TAX INVOICE</strong>
       Order #${shortId}<br/>${date}<br/>
+      <span style="font-size:11px;color:#6b7280">GSTIN: 21AAOCB8427B1ZY</span><br/>
       <span class="badge">${order.status.toUpperCase()}</span>
     </div>
   </div>
@@ -751,6 +752,7 @@ router.get("/orders/:orderId/invoice", async (req, res) => {
     <tr class="grand"><td>Total Paid</td><td>₹${finalAmt.toFixed(0)}</td></tr>
   </table>
   <div class="footer">
+    GSTIN: 21AAOCB8427B1ZY &nbsp;|&nbsp;
     Payment: ${order.payment_method?.toUpperCase() || "COD"} &nbsp;|&nbsp;
     Thank you for shopping with BlinkieFash!<br/>
     Questions? hello@blinkiefash.in
