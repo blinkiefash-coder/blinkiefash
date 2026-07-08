@@ -259,6 +259,22 @@ export const ensureDatabaseTables = async () => {
     ON user_rewards(user_id, status);
   `);
 
+  // ── Delivery config table ─────────────────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS delivery_config (
+      key   VARCHAR(60) PRIMARY KEY,
+      value TEXT NOT NULL
+    )
+  `).catch(() => {});
+  // Seed defaults — ON CONFLICT DO NOTHING so manual changes are preserved
+  await pool.query(`
+    INSERT INTO delivery_config (key, value) VALUES
+      ('is_free_delivery', 'true'),
+      ('base_fee',         '49'),
+      ('free_threshold',   '999')
+    ON CONFLICT (key) DO NOTHING
+  `).catch(() => {});
+
   // ── Order discount columns ──────────────────────────────────────────────
   await pool.query(`
     ALTER TABLE orders

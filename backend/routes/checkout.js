@@ -65,9 +65,27 @@ async function calculateBundleDiscount(items, subtotal, client = pool) {
 }
 
 // ── Delivery fee rules ────────────────────────────────────────────────────────
-// - subtotal >= 999 → 0 (free delivery)
-// - distance ≤ 15 km → 49
-// - distance > 15 km → null (out of range)
+// Config is read from delivery_config table at request time.
+// Set is_free_delivery=true → always FREE regardless of distance/subtotal.
+async function calcDeliveryFeeFromConfig(subtotal, distanceKm) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT key, value FROM delivery_config WHERE key IN ('is_free_delivery','base_fee','free_threshold')`
+    );
+    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
+    if (cfg.is_free_delivery === 'true') return 0;
+    const baseFee = parseInt(cfg.base_fee ?? '49');
+    const freeThreshold = parseInt(cfg.free_threshold ?? '999');
+    if (subtotal >= freeThreshold) return 0;
+    if (distanceKm != null && distanceKm > 15) return null; // out of range
+    return baseFee;
+  } catch (_) {
+    // fallback: free
+    return 0;
+  }
+}
+
+// Legacy sync helper kept for internal use
 function calcDeliveryFee(subtotal, distanceKm) {
   if (subtotal >= 999) return 0;
   if (distanceKm <= 15) return 49;
@@ -121,7 +139,7 @@ router.get("/delivery-fee", async (req, res) => {
           if (d < minDist) { minDist = d; nearest = s; }
         }
         distance = Math.round(minDist * 10) / 10;
-        const calcFee = calcDeliveryFee(sub, distance);
+        const calcFee = await calcDeliveryFeeFromConfig(sub, distance);
         if (calcFee === null) {
           withinRange = false;
           fee = null;
@@ -308,14 +326,14 @@ router.post("/orders", async (req, res) => {
 
     let deliveryFee = 0;
     if (distanceKm !== null) {
-      const calcFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
+      const calcFee = await calcDeliveryFeeFromConfig(subtotalAfterBundle, distanceKm);
       if (calcFee === null) {
         await client.query("ROLLBACK");
         return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from our nearest store." });
       }
       deliveryFee = calcFee;
     } else {
-      deliveryFee = subtotalAfterBundle > 1499 ? 0 : 49;
+      deliveryFee = await calcDeliveryFeeFromConfig(subtotalAfterBundle, 0) ?? 0;
     }
 
     // ── Apply rewards (referral ₹50 + clothing up to 5% for next order) ───
