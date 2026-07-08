@@ -714,9 +714,9 @@ router.get("/", async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}))`;
+      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}) OR lower(c.name) LIKE lower($${index++}) OR lower(p.description) LIKE lower($${index++}))`;
       const term = `%${search}%`;
-      values.push(term, term);
+      values.push(term, term, term, term);
     }
 
     const sortMap = {
