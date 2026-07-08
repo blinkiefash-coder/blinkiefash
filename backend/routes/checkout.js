@@ -772,18 +772,22 @@ router.get("/orders/:orderId/invoice", async (req, res) => {
 // ── PATCH /api/checkout/orders/:orderId/status ────────────────────────────────
 router.patch("/orders/:orderId/status", async (req, res) => {
   const { orderId } = req.params;
-  const { status } = req.body;
+  const { status, cancelReason } = req.body;
   const validStatuses = ["placed", "confirmed", "packed", "picked", "out_for_delivery", "delivered", "trial_started", "trial_completed", "completed", "cancelled"];
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ success: false, message: "Invalid status" });
   }
   try {
-    // Auto-create confirmed_at column if it doesn't exist
     await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500)`).catch(() => {});
     const confirmClause = status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : '';
+    const cancelClause = (status === 'cancelled' && cancelReason) ? ', cancel_reason = $3' : '';
+    const params = (status === 'cancelled' && cancelReason)
+      ? [status, orderId, cancelReason.substring(0, 500)]
+      : [status, orderId];
     const { rows } = await pool.query(
-      `UPDATE orders SET status = $1${confirmClause} WHERE id = $2 RETURNING id, status`,
-      [status, orderId]
+      `UPDATE orders SET status = $1${confirmClause}${cancelClause} WHERE id = $2 RETURNING id, status`,
+      params
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
     // Notify available riders when order becomes confirmed
