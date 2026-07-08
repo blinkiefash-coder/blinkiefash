@@ -264,7 +264,8 @@ export const ensureDatabaseTables = async () => {
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS referral_discount DECIMAL(12, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS bundle_discount DECIMAL(12, 2) DEFAULT 0
+      ADD COLUMN IF NOT EXISTS bundle_discount DECIMAL(12, 2) DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS first_order_discount DECIMAL(12, 2) DEFAULT 0
   `).catch(() => {});
 
   // ── Product feature flags ─────────────────────────────────────────────────
@@ -411,23 +412,5 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_product_reviews_product
     ON product_reviews(product_id, created_at DESC);
-  `).catch(() => {});
-
-  // ── Support Tickets ─────────────────────────────────────────────────────────
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS support_tickets (
-      id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id     UUID REFERENCES users(id) ON DELETE SET NULL,
-      order_id    UUID REFERENCES orders(id) ON DELETE SET NULL,
-      category    VARCHAR(100) NOT NULL DEFAULT 'Other',
-      message     TEXT NOT NULL,
-      status      VARCHAR(50)  NOT NULL DEFAULT 'open',
-      created_at  TIMESTAMPTZ  NOT NULL DEFAULT now(),
-      updated_at  TIMESTAMPTZ  NOT NULL DEFAULT now()
-    );
-  `).catch(() => {});
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_support_tickets_user
-    ON support_tickets(user_id, created_at DESC);
   `).catch(() => {});
 };

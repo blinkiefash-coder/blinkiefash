@@ -207,12 +207,19 @@ router.get("/rewards", async (req, res) => {
       [userId]
     );
     const items = clothRows[0].items;
+    // Check if user is a first-time buyer (no successful orders yet)
+    const { rows: orderRows } = await pool.query(
+      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
+      [userId]
+    );
+    const isFirstOrder = orderRows[0].cnt === 0;
     res.json({
       success: true,
       referralAmount: refRows[0].amount,
       referralCount: refRows[0].count,
       clothingItems: items,
       clothingPercent: Math.min(items, 5),
+      isFirstOrder,
     });
   } catch (err) {
     console.error("GET rewards error:", err);
@@ -231,6 +238,7 @@ router.post("/orders", async (req, res) => {
     isTryOrder,
     useReferralReward,
     useClothingReward,
+    useFirstOrderDiscount,
   } = req.body;
   if (!userId || !addressId || !items?.length || !totalAmount) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -277,78 +285,26 @@ router.post("/orders", async (req, res) => {
       darkStoreId = cityStore.length ? cityStore[0].id : null;
     }
 
-    // Validate requested quantities against live inventory and lock rows.
-    const requestedByVariant = new Map();
-    for (const item of items) {
-      const variantId = item?.variantId?.toString();
-      const qty = Math.max(1, parseInt(item?.quantity, 10) || 1);
-      if (!variantId) {
-        await client.query("ROLLBACK");
-        return res
-          .status(400)
-          .json({ success: false, message: "Invalid order item variant" });
-      }
-      requestedByVariant.set(
-        variantId,
-        (requestedByVariant.get(variantId) || 0) + qty
-      );
-    }
-
-    const reservedRows = [];
-    for (const [variantId, qty] of requestedByVariant.entries()) {
-      let invRows;
-      if (darkStoreId) {
-        ({ rows: invRows } = await client.query(
-          `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
-           FROM inventory
-           WHERE variant_id = $1 AND store_id = $2
-           FOR UPDATE`,
-          [variantId, darkStoreId]
-        ));
-      } else {
-        ({ rows: invRows } = await client.query(
-          `SELECT id, stock, COALESCE(reserved_stock, 0) AS reserved_stock
-           FROM inventory
-           WHERE variant_id = $1
-           ORDER BY (COALESCE(stock, 0) - COALESCE(reserved_stock, 0)) DESC
-           LIMIT 1
-           FOR UPDATE`,
-          [variantId]
-        ));
-      }
-
-      if (!invRows?.length) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message: "One or more variants are unavailable",
-          variantId,
-        });
-      }
-
-      const inv = invRows[0];
-      const available =
-        (parseInt(inv.stock, 10) || 0) - (parseInt(inv.reserved_stock, 10) || 0);
-      if (available < qty) {
-        await client.query("ROLLBACK");
-        return res.status(409).json({
-          success: false,
-          message: "Insufficient stock for one or more variants",
-          variantId,
-          available,
-          requested: qty,
-        });
-      }
-
-      reservedRows.push({ inventoryId: inv.id, quantity: qty });
-    }
-
     // Calculate delivery fee
     const itemsSubtotal = totalAmount; // client now sends subtotal (items only)
     
     // ── Calculate bundle discount ───
     const bundleDiscount = await calculateBundleDiscount(items, itemsSubtotal, client);
     const subtotalAfterBundle = itemsSubtotal - bundleDiscount;
+
+    // ── First Order Discount: 50% off highest priced item ───
+    let firstOrderDiscount = 0;
+    if (useFirstOrderDiscount) {
+      // Verify user truly has no prior non-cancelled orders
+      const { rows: priorOrders } = await client.query(
+        `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
+        [userId]
+      );
+      if (priorOrders[0].cnt === 0 && items.length > 0) {
+        const highestPrice = Math.max(...items.map(i => parseFloat(i.price) || 0));
+        firstOrderDiscount = Math.round(highestPrice * 0.5 * 100) / 100;
+      }
+    }
 
     let deliveryFee = 0;
     if (distanceKm !== null) {
@@ -402,7 +358,7 @@ router.post("/orders", async (req, res) => {
       }
     }
 
-    const totalDiscount = referralDiscount + clothingDiscount;
+    const totalDiscount = referralDiscount + clothingDiscount + firstOrderDiscount;
     const discountedSubtotal = Math.max(subtotalAfterBundle - totalDiscount, 0);
     const finalAmount = discountedSubtotal + deliveryFee;
 
@@ -411,11 +367,11 @@ router.post("/orders", async (req, res) => {
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
           payment_method, dark_store_id, is_try_order,
-          referral_discount, clothing_discount, bundle_discount)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9)
+          referral_discount, clothing_discount, bundle_discount, first_order_discount)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
-       referralDiscount, clothingDiscount, bundleDiscount]
+       referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount]
     );
     const order = orderRows[0];
 
@@ -425,16 +381,6 @@ router.post("/orders", async (req, res) => {
         `INSERT INTO order_items (order_id, variant_id, quantity, price, item_status)
          VALUES ($1, $2, $3, $4, 'pending')`,
         [order.id, item.variantId, item.quantity, item.price]
-      );
-    }
-
-    // Reserve inventory immediately so remaining stock becomes unavailable to others.
-    for (const row of reservedRows) {
-      await client.query(
-        `UPDATE inventory
-         SET reserved_stock = COALESCE(reserved_stock, 0) + $1
-         WHERE id = $2`,
-        [row.quantity, row.inventoryId]
       );
     }
 
@@ -531,7 +477,6 @@ router.get("/orders", async (req, res) => {
          a.pincode,
          json_agg(json_build_object(
            'variant_id',  oi.variant_id,
-           'variant_code',v.variant_code,
            'quantity',    oi.quantity,
            'price',       oi.price,
            'item_status', oi.item_status,
@@ -593,7 +538,6 @@ router.get("/orders/:orderId", async (req, res) => {
     const { rows: itemRows } = await pool.query(
       `SELECT
          oi.variant_id,
-        v.variant_code,
          oi.quantity,
          oi.price,
          oi.item_status,
@@ -640,7 +584,6 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
         d.store_pickup_verified_at,
         json_agg(json_build_object(
           'variant_id', oi.variant_id,
-          'variant_code', v.variant_code,
           'quantity',   oi.quantity,
           'price',      oi.price,
           'item_status',oi.item_status,
@@ -682,91 +625,15 @@ router.patch("/orders/:orderId/status", async (req, res) => {
   if (!validStatuses.includes(status)) {
     return res.status(400).json({ success: false, message: "Invalid status" });
   }
-  const client = await pool.connect();
   try {
-    await client.query("BEGIN");
-
     // Auto-create confirmed_at column if it doesn't exist
-    await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
-
-    const { rows: existingRows } = await client.query(
-      `SELECT id, status, dark_store_id FROM orders WHERE id = $1 FOR UPDATE`,
-      [orderId]
-    );
-    if (!existingRows.length) {
-      await client.query("ROLLBACK");
-      return res.status(404).json({ success: false, message: "Order not found" });
-    }
-
-    const previousStatus = existingRows[0].status;
-    const darkStoreId = existingRows[0].dark_store_id;
-
+    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
     const confirmClause = status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : '';
-    const { rows } = await client.query(
+    const { rows } = await pool.query(
       `UPDATE orders SET status = $1${confirmClause} WHERE id = $2 RETURNING id, status`,
       [status, orderId]
     );
-
-    const movedToDelivered =
-      ["delivered", "completed"].includes(status) &&
-      !["delivered", "completed"].includes(previousStatus);
-    const movedToCancelled =
-      status === "cancelled" &&
-      previousStatus !== "cancelled" &&
-      !["delivered", "completed"].includes(previousStatus);
-
-    if (movedToDelivered || movedToCancelled) {
-      const { rows: qtyRows } = await client.query(
-        `SELECT variant_id, SUM(quantity)::int AS qty
-         FROM order_items
-         WHERE order_id = $1
-         GROUP BY variant_id`,
-        [orderId]
-      );
-
-      for (const q of qtyRows) {
-        const qty = parseInt(q.qty, 10) || 0;
-        if (qty <= 0) continue;
-
-        let invRows;
-        if (darkStoreId) {
-          ({ rows: invRows } = await client.query(
-            `SELECT id FROM inventory WHERE variant_id = $1 AND store_id = $2 FOR UPDATE`,
-            [q.variant_id, darkStoreId]
-          ));
-        } else {
-          ({ rows: invRows } = await client.query(
-            `SELECT id FROM inventory
-             WHERE variant_id = $1
-             ORDER BY COALESCE(reserved_stock, 0) DESC
-             LIMIT 1
-             FOR UPDATE`,
-            [q.variant_id]
-          ));
-        }
-        if (!invRows.length) continue;
-
-        if (movedToDelivered) {
-          await client.query(
-            `UPDATE inventory
-             SET reserved_stock = GREATEST(COALESCE(reserved_stock, 0) - $1, 0),
-                 stock = GREATEST(COALESCE(stock, 0) - $1, 0)
-             WHERE id = $2`,
-            [qty, invRows[0].id]
-          );
-        } else if (movedToCancelled) {
-          await client.query(
-            `UPDATE inventory
-             SET reserved_stock = GREATEST(COALESCE(reserved_stock, 0) - $1, 0)
-             WHERE id = $2`,
-            [qty, invRows[0].id]
-          );
-        }
-      }
-    }
-
-    await client.query("COMMIT");
-
+    if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
     // Notify available riders when order becomes confirmed
     if (status === 'confirmed') {
       notifyAvailableRiders(pool, rows[0].id).catch(() => {});
@@ -775,11 +642,8 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     notifyCustomerOfStatus(pool, rows[0].id, status).catch(() => {});
     res.json({ success: true, order: rows[0] });
   } catch (err) {
-    await client.query("ROLLBACK");
     console.error("PATCH order status error:", err);
     res.status(500).json({ success: false, message: "Server error" });
-  } finally {
-    client.release();
   }
 });
 
