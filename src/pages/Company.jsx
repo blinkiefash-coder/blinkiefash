@@ -1,374 +1,359 @@
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 import logo from "../assets/logo.png";
-import "./staticInfoPages.css";
+import "./companyLanding.css";
 import Footer from "../components/Footer";
+import PartnerModal from "../components/PartnerModal";
+
+const appScreens = [
+  { img: "/images/home-store.png", label: "Home", sub: "Discover trending fashion near you" },
+  { img: "/images/cloth.png", label: "Product Details", sub: "Check sizes, colors and offers" },
+  { img: "/images/Payment.png", label: "Try Before You Buy", sub: "Try at home, pay only for what you keep" },
+  { img: "/images/travel.png", label: "Track Order", sub: "Real-time tracking of your orders" },
+  { img: "/images/return.png", label: "Secure Checkout", sub: "Multiple payment options" },
+];
+
+const trustItems = [
+  { icon: "🛡️", label: "100% Original\nProducts" },
+  { icon: "👗", label: "Top Fashion\nBrands" },
+  { icon: "🏷️", label: "Best Prices &\nExclusive Deals" },
+  { icon: "🔒", label: "Secure\nPayments" },
+  { icon: "🔄", label: "Easy Returns &\nRefunds" },
+  { icon: "🎧", label: "Dedicated\nCustomer Support" },
+];
+
+const whyItems = [
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "60 Min Delivery", sub: "Lightning fast delivery to your doorstep" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><path d="M12 2L3.5 6v5c0 5.25 3.75 10.15 8.5 11 4.75-.85 8.5-5.75 8.5-11V6L12 2z"/><polyline points="9 12 11 14 15 10"/></svg>, title: "Try Before You Buy", sub: "At home, pay only for what you keep" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, title: "Nearby Fashion Stores", sub: "Shop from trusted local fashion stores" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle cx="9.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.5" r="0.8" fill="currentColor" stroke="none"/></svg>, title: "Exclusive Discounts", sub: "Best prices & exciting offers every day" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg>, title: "Easy Returns", sub: "Hassle-free returns & refunds" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>, title: "Live Tracking", sub: "Real-time tracking of your orders" },
+];
+
+const faqs = [
+  { q: "What is Try Before You Buy?", a: "Try on clothes at home before paying. You only pay for what you keep — return the rest for free within the same delivery window, no questions asked." },
+  { q: "How does 60-minute delivery work?", a: "We partner with nearby fashion stores in your city. Once you place an order, our delivery partner picks it up from the store and delivers it to your door in under 60 minutes." },
+  { q: "Can I return products?", a: "Yes! With Try Before You Buy, return items during the same delivery. For regular orders, easy returns are available through the app within 7 days of delivery." },
+  { q: "Which cities do you deliver in?", a: "We currently deliver in Cuttack and Bhubaneswar. We're expanding soon to Berhampur, Rourkela, Sambalpur, Puri, Balasore and more cities across Odisha." },
+  { q: "Is Cash on Delivery available?", a: "Yes! We support Cash on Delivery along with UPI, debit/credit cards, and net banking for your convenience." },
+];
 
 export default function Company() {
   const navigate = useNavigate();
+  const [partnerModal, setPartnerModal] = useState(null); // 'store' | 'delivery' | null
 
   return (
-    <div className="info-page company-page">
-      <header className="info-header" onClick={() => navigate("/home")} style={{ cursor: "pointer" }}>
-        <img src={logo} alt="Blinkiefash" />
-        <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
+    <div className="lp">
+      {/* NAV */}
+      <header className="lp-nav">
+        <button className="lp-brand" onClick={() => navigate("/")}>
+          <img src={logo} alt="BlinkieFash" />
+          <span>BLINKIE<b>FASH</b></span>
+        </button>
+        <nav>
+          <button className="lp-nav-active">Home</button>
+          <button onClick={() => navigate("/company")}>About Us</button>
+          <button>Stores</button>
+          <button>Careers</button>
+          <button onClick={() => navigate("/vendor")}>Vendor Login</button>
+          <button onClick={() => navigate("/customer-service")}>Contact Us</button>
+        </nav>
+        <div className="lp-nav-right">
+          <span className="lp-loc">
+            <span>📍</span>
+            <span>Delivering in<br /><strong>Cuttack, Bhubaneswar ▾</strong></span>
+          </span>
+          <button className="lp-dl-btn" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>Download App ↓</button>
+        </div>
       </header>
 
-      <main className="info-body">
-        <section className="info-hero">
-          <div className="info-hero-left">
-            <h2 className="info-page-title">REVOLUTIONIZING FASHION COMMERCE</h2>
-            <h3 className="info-page-subtitle">Style Delivered in 60 Minutes, Try Before You Buy</h3>
-            <p>
-              BlinkieFash is reimagining how India shops for fashion. We've built a technology-first platform 
-              that connects customers with their favorite local vendors, delivering authentic fashion, beauty, 
-              and lifestyle products in just 60 minutes. No waiting. No compromises. Pure speed and style.
+      <div className="lp-body">
+        {/* HERO */}
+        <section className="lp-hero">
+          {/* Left */}
+          <div className="lp-hero-left">
+            <span className="lp-kicker">⚡ INDIA'S FASTEST FASHION DELIVERY</span>
+            <h1>Fashion Delivered in<br /><span className="lp-green">60 Minutes</span></h1>
+            <p className="lp-hero-sub">
+              Shop from nearby fashion stores, <strong>Try Before You Buy</strong>,
+              and get your favorite outfits delivered in just <strong className="lp-green">60 minutes.</strong>
             </p>
-            <p style={{marginTop: '12px', fontSize: '13px', lineHeight: '1.6', color: '#333'}}>
-              With our innovative Try & Buy feature, customers get a 20-minute trial window to inspect products 
-              before making a final purchase decision. Order fashion online and try them at home with our trusted 
-              90-second return process. Experience authentic fast fashion with zero risk.
-            </p>
+            <div className="lp-cta-row">
+              <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M3.18 23.76a2.48 2.48 0 0 0 2.63-.17l12.4-7.29-2.73-2.73zM.5 1.26C.19 1.6 0 2.12 0 2.82v18.37c0 .69.19 1.21.51 1.55l.08.08 10.3-10.29v-.24zM20.1 9.85l-2.85-1.67-3.06 3.06 3.07 3.06 2.85-1.67c.81-.48.81-1.26 0-1.74zm-19.1 12.5 11.74-6.9-2.73-2.73z"/></svg>
+                <span><small>GET IT ON</small><strong>Google Play</strong></span>
+              </button>
+              <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M16.84 12.94c-.02-2.32 1.9-3.43 1.98-3.48-1.08-1.58-2.76-1.8-3.36-1.82-1.43-.14-2.8.84-3.52.84-.73 0-1.85-.82-3.04-.8-1.56.02-3 .91-3.8 2.31-1.62 2.81-.41 6.98 1.16 9.25.77 1.11 1.69 2.35 2.89 2.31 1.16-.05 1.6-.75 3-.75 1.41 0 1.8.75 3.03.72 1.25-.02 2.03-1.12 2.79-2.24.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.41-.92-2.43-3.74Zm-1.79-6.42c.63-.77 1.06-1.84.94-2.91-.91.04-2.01.61-2.66 1.38-.58.67-1.08 1.75-.95 2.79 1.01.08 2.04-.51 2.67-1.26Z"/></svg>
+                <span><small>Download on the</small><strong>App Store</strong></span>
+              </button>
+              <button className="lp-store-btn lp-sb-outline" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <span>📱</span><strong>Open in App</strong>
+              </button>
+            </div>
+            <div className="lp-hero-stats">
+              <div>
+                <span className="lp-hs-ico">🛒</span>
+                <span className="lp-hs-val">300+</span>
+                <span className="lp-hs-lbl">Orders Delivered</span>
+              </div>
+              <div>
+                <span className="lp-hs-ico">⭐</span>
+                <span className="lp-hs-val">4.8/5</span>
+                <span className="lp-hs-lbl">Customer Rating</span>
+              </div>
+              <div>
+                <span className="lp-hs-ico">📍</span>
+                <span className="lp-hs-val">2</span>
+                <span className="lp-hs-lbl">Cuttack &amp; Bhubaneswar</span>
+              </div>
+            </div>
+            <div className="lp-hs-city">
+              <div className="lp-hs-city-a">
+                <p className="lp-city-h"><span className="lp-green">📍</span> Currently Delivering In</p>
+                <p className="lp-city-n">Cuttack <span className="tick">✅</span></p>
+                <p className="lp-city-n">Bhubaneswar <span className="tick">✅</span></p>
+              </div>
+              <div className="lp-hs-city-b">
+                <p className="lp-city-h">Coming Soon</p>
+                <p className="lp-city-coming">• Berhampur &nbsp; • Rourkela &nbsp; • Sambalpur</p>
+                <p className="lp-city-coming">• Puri &nbsp; • Balasore &nbsp; • Brahmapur</p>
+                <p className="lp-city-coming">• Bhadrak &nbsp; • Jeypore &nbsp; • Angul</p>
+              </div>
+            </div>
           </div>
-          <div className="info-hero-visual" style={{
-            background: 'linear-gradient(135deg, #218c3f 0%, #17a34a 50%, #22c55e 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '64px',
-            fontWeight: 'bold',
-            color: 'white'
-          }}>
-            👗 ⚡ 🛍️
+
+          {/* Center phone */}
+          <div className="lp-hero-center">
+            <div className="lp-phone-wrap">
+              <img src="/images/Web_Right.jpeg" className="lp-hero-static" alt="BlinkieFash App" />
+            </div>
           </div>
         </section>
 
-        <section className="info-grid info-grid-2">
-          <article className="info-card info-card-wide">
-            <h5>About BlinkieFash</h5>
-            <p className="sub">The fastest fashion revolution in India</p>
-            <p>
-              Founded with a mission to transform urban fashion retail, BlinkieFash combines cutting-edge technology 
-              with hyper-local execution. We partner with trusted local vendors and dark stores to bring curated fashion, 
-              beauty, and lifestyle products to your doorstep in just 60 minutes.
-            </p>
-            <p style={{marginTop: '10px', fontSize: '13px', lineHeight: '1.6'}}>
-              BlinkieFash operates as India's first hyper-local fashion commerce platform, leveraging a unique model that 
-              integrates multiple revenue streams: D2C (Direct-to-Consumer) fast delivery, vendor marketplace operations, 
-              dark store management, and logistics coordination. Our technology stack includes AI-driven inventory management, 
-              real-time order tracking, machine learning-based personalization, and intelligent delivery optimization.
-            </p>
-            <p style={{marginTop: '10px', fontSize: '13px', lineHeight: '1.6'}}>
-              We're not just another e-commerce platform. BlinkieFash has reimagined the entire fashion shopping experience 
-              from the ground up. With our 60-minute delivery guarantee, 20-minute try-before-you-buy window, and 90-second 
-              return process, we've eliminated the traditional friction points of online fashion shopping. Whether you're looking 
-              for the latest designer trends, affordable everyday wear, beauty products, or lifestyle items, BlinkieFash delivers 
-              authentic, quality products from verified vendors.
-            </p>
-            <div className="info-mini-columns" style={{marginTop: '12px'}}>
-              <div>
-                <p className="sub">🎯 Our Vision</p>
-                <p>
-                  To become India's most trusted and fastest fashion delivery platform, empowering customers with risk-free shopping, 
-                  supporting local vendors with technology, and building a sustainable fashion ecosystem.
-                </p>
-              </div>
-              <div>
-                <p className="sub">💪 Our Mission</p>
-                <ul>
-                  <li>✨ Deliver authentic fashion in 60 minutes with guaranteed quality</li>
-                  <li>🤝 Empower local vendors and artisans with cutting-edge technology</li>
-                  <li>🛍️ Create seamless, delightful, and risk-free shopping experiences</li>
-                  <li>🌍 Build a sustainable, community-focused, and eco-friendly platform</li>
-                  <li>📱 Provide mobile-first solutions for modern Indian shoppers</li>
-                </ul>
-              </div>
-            </div>
-          </article>
+        {/* TRUST STRIP */}
+        <section className="lp-trust">
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><path d="M12 2L3.5 6v5c0 5.25 3.75 10.15 8.5 11 4.75-.85 8.5-5.75 8.5-11V6L12 2z"/><polyline points="9 12 11 14 15 10"/></svg></span>
+            <div><strong>100% Original</strong><span>Products</span></div>
+          </div>
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><path d="M20.59 13.41l-7.17 7.17a2 2 0 01-2.83 0L2 12V2h10l8.59 8.59a2 2 0 010 2.82z"/><circle cx="7" cy="7" r="1" fill="currentColor" stroke="none"/></svg></span>
+            <div><strong>Top Fashion</strong><span>Brands</span></div>
+          </div>
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><circle cx="12" cy="12" r="10"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle cx="9.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.5" r="0.8" fill="currentColor" stroke="none"/></svg></span>
+            <div><strong>Best Prices &amp;</strong><span>Exclusive Deals</span></div>
+          </div>
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></span>
+            <div><strong>Secure</strong><span>Payments</span></div>
+          </div>
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><polyline points="1 4 1 10 7 10"/><polyline points="23 20 23 14 17 14"/><path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15"/></svg></span>
+            <div><strong>Easy Returns &amp;</strong><span>Refunds</span></div>
+          </div>
+          <div className="lp-trust-item">
+            <span className="lp-ticon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="34" height="34"><path d="M3 18v-6a9 9 0 0118 0v6"/><path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z"/></svg></span>
+            <div><strong>Dedicated</strong><span>Customer Support</span></div>
+          </div>
+        </section>
 
-          <article className="info-card info-card-wide">
-            <h5>Why Choose BlinkieFash?</h5>
-            <p className="sub">Excellence in every delivery</p>
-            <p style={{marginBottom: '12px', fontSize: '13px', lineHeight: '1.6', color: '#555'}}>
-              In a crowded e-commerce space, BlinkieFash stands out with its unique value proposition combining speed, 
-              authenticity, and customer empowerment. We address the primary pain points of online fashion shopping: 
-              uncertainty about fit, doubts about quality, and complex return processes.
-            </p>
-            <div className="features-list">
-              <div className="feature-item">
-                <h6>⚡ Lightning-Fast Delivery</h6>
-                <p>Guaranteed 60-minute delivery on selected products across metro areas. Order in the morning, wear by evening. Ultra-fast fashion delivery without compromising on quality or authenticity.</p>
-              </div>
-              <div className="feature-item">
-                <h6>👗 Authentic Selection</h6>
-                <p>Curated collection from verified local vendors and trusted brands. Real brands, genuine products, real quality. Every item is authenticated before reaching your doorstep.</p>
-              </div>
-              <div className="feature-item">
-                <h6>🎁 Try Before You Buy</h6>
-                <p>Unique 20-minute trial window to inspect and try products at home. Risk-free fashion shopping with our hassle-free return guarantee. Make informed decisions before payment.</p>
-              </div>
-              <div className="feature-item">
-                <h6>💰 Smart Pricing</h6>
-                <p>Direct from vendor pricing with zero intermediaries. Bundle discounts (Buy 2 at ₹999), seasonal flash sales, and exclusive member-only deals. Maximum value for your money.</p>
-              </div>
-              <div className="feature-item">
-                <h6>🔒 Secure Shopping</h6>
-                <p>Safe digital payments with multiple options, authentic product verification, and industry-leading security. Your trust and data security are our top priorities.</p>
-              </div>
-              <div className="feature-item">
-                <h6>🌟 Rewards Program</h6>
-                <p>Earn points on every purchase, referral bonuses, loyalty rewards, and exclusive member benefits. Build your rewards and get better deals with every order.</p>
-              </div>
-            </div>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>⏱️ 20-Minute Try & Buy Experience</h5>
-            <p className="sub">Inspect, evaluate, and decide with confidence</p>
-            <p>
-              At BlinkieFash, we understand that buying fashion online comes with concerns about fit, quality, and authenticity. 
-              That's why we've introduced our revolutionary 20-minute trial window—a game-changing feature that gives customers 
-              complete peace of mind.
-            </p>
-            <div style={{marginTop: '12px', paddingTop: '12px', borderTop: '1px solid #e8ede9'}}>
-              <p className="sub">How It Works:</p>
-              <ul style={{marginLeft: '20px', fontSize: '13px', color: '#333', lineHeight: '1.8'}}>
-                <li><strong>Order & Receive:</strong> Products delivered to your doorstep within 60 minutes</li>
-                <li><strong>20-Minute Inspection:</strong> Full 20 minutes to inspect, try on, and evaluate each product</li>
-                <li><strong>Evaluate Quality:</strong> Check fabric quality, fit, color accuracy, and authenticity</li>
-                <li><strong>Make a Decision:</strong> Keep what you love or return within 20 minutes, no questions asked</li>
-                <li><strong>90-Second Return:</strong> Quick return process - our riders pick up within 90 seconds of your decision</li>
+        {/* PARTNERS */}
+        <section className="lp-partners">
+          <article className="lp-pcard">
+            <div className="lp-pc-copy">
+              <h3>Own a Fashion Store?</h3>
+              <p>Join 100+ retailers growing with BlinkieFash.</p>
+              <ul>
+                <li>Reach more customers</li>
+                <li>Increase your sales</li>
+                <li>No marketing cost</li>
+                <li>Fast &amp; secure settlements</li>
+                <li>Easy inventory sync</li>
               </ul>
+              <button className="lp-pc-btn" onClick={() => setPartnerModal('store')}>Become a Partner →</button>
             </div>
-            <div style={{marginTop: '12px', padding: '12px', backgroundColor: '#f0f8f2', borderRadius: '8px', borderLeft: '4px solid #218c3f'}}>
-              <p style={{margin: '0', fontSize: '13px', color: '#333', fontWeight: '500'}}>
-                ✅ <strong>Zero Risk Shopping:</strong> Try before you buy with our hassle-free 20-minute trial window. 
-                Unlike traditional e-commerce, you're not buying blind. Inspect the fabric, check the fit, verify authenticity—
-                all in real-time with our delivery partner present.
-              </p>
+            <div className="lp-pc-img">
+              <img src="/images/Fashion_store.jpeg" alt="store partner" />
             </div>
           </article>
 
-          <article className="info-card info-card-wide">
-            <h5>Our Unique Concepts</h5>
-            <p className="sub">Making fashion sustainable and rewarding</p>
-            <p style={{marginBottom: '12px', fontSize: '13px', lineHeight: '1.6', color: '#555'}}>
-              Beyond fast delivery, BlinkieFash is committed to building sustainable business practices and rewarding customer loyalty. 
-              Our unique concepts are designed to create value for customers while supporting environmental responsibility and community empowerment.
-            </p>
-            <div className="unique-concepts">
-              <div className="concept-card">
-                <div className="concept-icon">♻️</div>
-                <h6>Donate & Save</h6>
-                <p><strong>Give old clothes, earn 1% discount</strong></p>
-                <p className="concept-desc">
-                  Donate your old, unused clothes through our app and receive 1% discount on your next order. 
-                  Join our circular fashion movement. We responsibly recycle or repurpose donations, reducing 
-                  fashion waste and supporting sustainable practices.
-                </p>
-              </div>
-              <div className="concept-card">
-                <div className="concept-icon">🤝</div>
-                <h6>Refer & Earn</h6>
-                <p><strong>Share with friends, earn rewards</strong></p>
-                <p className="concept-desc">
-                  Invite your friends to BlinkieFash and both of you get exclusive rewards. Earn referral points, 
-                  bonus discounts, and special perks for every successful friend signup. Build your rewards network 
-                  and unlock premium benefits.
-                </p>
-              </div>
-              <div className="concept-card">
-                <div className="concept-icon">🌿</div>
-                <h6>Eco-Friendly Packaging</h6>
-                <p><strong>Sustainable deliveries</strong></p>
-                <p className="concept-desc">
-                  All BlinkieFash deliveries use 100% recyclable, biodegradable packaging materials. We're committed 
-                  to reducing our environmental footprint and promoting sustainable fashion practices across our supply chain.
-                </p>
-              </div>
-              <div className="concept-card">
-                <div className="concept-icon">🎁</div>
-                <h6>Bundle Offers</h6>
-                <p><strong>Buy 2 at ₹999, Buy 3 at ₹999</strong></p>
-                <p className="concept-desc">
-                  Get incredible bundle discounts when you shop smart. Buy 2 fashion items and pay just ₹999, 
-                  or buy 3 and still pay ₹999. Our bundle pricing makes quality fashion affordable for everyone.
-                </p>
-              </div>
-              <div className="concept-card">
-                <div className="concept-icon">💳</div>
-                <h6>Flexible Payments</h6>
-                <p><strong>Try now, pay later options</strong></p>
-                <p className="concept-desc">
-                  Shop with multiple payment options including Cash on Delivery (COD), digital payments, 
-                  and BNPL (Buy Now, Pay Later). Shop with confidence, pay your way, anytime, anywhere.
-                </p>
-              </div>
-              <div className="concept-card">
-                <div className="concept-icon">🏆</div>
-                <h6>Loyalty Rewards</h6>
-                <p><strong>Every purchase earns points</strong></p>
-                <p className="concept-desc">
-                  Accumulate loyalty points on every order placed. Redeem your points for exclusive discounts, 
-                  free products, priority delivery, and member-only deals. The more you shop, the more you save.
-                </p>
-              </div>
+          <article className="lp-pcard">
+            <div className="lp-pc-copy">
+              <h3>Become a Delivery Partner</h3>
+              <p>Earn flexible income delivering fashion.</p>
+              <ul>
+                <li>Flexible work hours</li>
+                <li>Weekly payouts</li>
+                <li>Incentives &amp; bonuses</li>
+                <li>Be your own boss</li>
+              </ul>
+              <button className="lp-pc-btn" onClick={() => setPartnerModal('delivery')}>Apply Now →</button>
+            </div>
+            <div className="lp-pc-img lp-pc-img-green">
+              <img src="/images/delivery.jpeg" alt="delivery partner" />
             </div>
           </article>
 
-          <article className="info-card info-card-wide">
-            <h5>Our Platform Capabilities</h5>
-            <p className="sub">Comprehensive technology for vendors, dark stores, and logistics</p>
-            <p style={{marginBottom: '12px', fontSize: '13px', lineHeight: '1.6', color: '#555'}}>
-              BlinkieFash provides an integrated platform ecosystem that empowers all stakeholders. From vendor management 
-              to dark store operations and logistics optimization, our technology handles every aspect of hyper-local fashion commerce.
-            </p>
-            <div className="capabilities-grid">
-              <div>
-                <h6>🏪 For Vendors</h6>
-                <p style={{fontSize: '12px', color: '#666', marginBottom: '8px'}}>
-                  Powerful tools to manage and grow your fashion business
-                </p>
-                <ul>
-                  <li>🎯 Smart inventory management system</li>
-                  <li>📊 Real-time sales analytics & insights</li>
-                  <li>💰 Bulk & bundle pricing configurations</li>
-                  <li>📦 Order fulfillment tracking</li>
-                  <li>📈 Comprehensive vendor dashboard & reports</li>
-                  <li>🔔 Customer engagement tools</li>
-                </ul>
-              </div>
-              <div>
-                <h6>🏢 For Dark Stores</h6>
-                <p style={{fontSize: '12px', color: '#666', marginBottom: '8px'}}>
-                  Optimize warehouse operations and inventory
-                </p>
-                <ul>
-                  <li>🏭 Advanced warehouse management system</li>
-                  <li>📦 Intelligent stock optimization</li>
-                  <li>🚀 Order picking & packing workflows</li>
-                  <li>✅ Quality assurance & verification tools</li>
-                  <li>🔄 Real-time inventory sync with vendors</li>
-                  <li>📊 Performance metrics & reporting</li>
-                </ul>
-              </div>
-              <div>
-                <h6>🚚 For Logistics</h6>
-                <p style={{fontSize: '12px', color: '#666', marginBottom: '8px'}}>
-                  Manage delivery operations efficiently
-                </p>
-                <ul>
-                  <li>👤 Rider management & assignment system</li>
-                  <li>🗺️ AI-powered route optimization</li>
-                  <li>📍 Real-time GPS tracking & updates</li>
-                  <li>⭐ Performance analytics & ratings</li>
-                  <li>💬 Customer communication platform</li>
-                  <li>💰 Earnings & payment management</li>
-                </ul>
-              </div>
-            </div>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>Join Our Team</h5>
-            <p className="sub">Build the future of fast fashion with us</p>
-            <p>
-              We're hiring brilliant minds passionate about technology, fashion, and customer excellence. 
-              Be part of a team that's transforming how millions of Indians shop for fashion.
-            </p>
-            <p className="sub">🚀 Exciting Opportunities</p>
-            <ul>
-              <li><strong>Product & Engineering:</strong> Full-stack developers, iOS/Android engineers, DevOps specialists</li>
-              <li><strong>Design:</strong> UI/UX designers, product designers, brand designers</li>
-              <li><strong>Operations:</strong> Vendor managers, logistics coordinators, customer success specialists</li>
-              <li><strong>Growth:</strong> Marketing specialists, data analysts, business development managers</li>
-              <li><strong>Leadership:</strong> Engineering leads, product managers, operational heads</li>
-            </ul>
-            <p>
-              <strong>Competitive Perks:</strong> Attractive salary, flexible work arrangements, learning opportunities, 
-              health insurance, performance bonuses, and equity options for select roles.
-            </p>
-            <p><strong>Interested?</strong> Send your resume to: <a href="mailto:careers@blinkiefash.in">careers@blinkiefash.in</a></p>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>BlinkieFash Blog</h5>
-            <p className="sub">Fashion trends, tech insights, and lifestyle tips</p>
-            <p>Discover the latest in fashion, technology, and lifestyle through our curated blog:</p>
-            <ul>
-              <li><strong>Fashion Forward:</strong> Trending styles, seasonal collections, styling tips</li>
-              <li><strong>Tech Talk:</strong> How AI and ML power our platform, innovation stories</li>
-              <li><strong>Vendor Spotlight:</strong> Meet our amazing local vendors and artisans</li>
-              <li><strong>Sustainability:</strong> Our commitment to ethical and eco-friendly fashion</li>
-              <li><strong>Customer Stories:</strong> Real experiences from BlinkieFash shoppers</li>
-            </ul>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>Press & Media</h5>
-            <p className="sub">Connect with our team for partnerships and features</p>
-            <p>
-              BlinkieFash is making headlines in the fast-commerce space. We welcome media enquiries, 
-              partnership opportunities, and collaboration proposals from brands and creators.
-            </p>
-            <p className="sub">📰 We're Covering</p>
-            <ul>
-              <li>Brand partnerships and collaborations</li>
-              <li>Founder and team interviews</li>
-              <li>Product launches and announcements</li>
-              <li>Industry insights and thought leadership</li>
-              <li>Community impact and CSR initiatives</li>
-            </ul>
-            <p><strong>Media Contact:</strong> For press inquiries, reach out to press@blinkiefash.in</p>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>Our Commitment</h5>
-            <p className="sub">Core values that drive everything we do</p>
-            <p style={{marginBottom: '12px', fontSize: '13px', lineHeight: '1.6', color: '#555'}}>
-              These six core values form the foundation of BlinkieFash. They guide every decision we make, 
-              every feature we build, and every interaction we have with our customers, vendors, and partners.
-            </p>
-            <div className="values-grid">
-              <div>
-                <h6>⚡ Speed</h6>
-                <p>Fastest possible delivery without compromising on quality or authenticity. We believe good fashion shouldn't require waiting.</p>
-              </div>
-              <div>
-                <h6>🤝 Trust</h6>
-                <p>Authentic products from verified vendors with transparent sourcing. Every item is authenticated before delivery to your doorstep.</p>
-              </div>
-              <div>
-                <h6>💡 Innovation</h6>
-                <p>Technology-driven solutions that solve real problems in fashion commerce. From AI inventory to real-time tracking systems.</p>
-              </div>
-              <div>
-                <h6>🌱 Sustainability</h6>
-                <p>Responsible business practices that protect our environment. Eco-friendly packaging, circular fashion, and sustainable supply chains.</p>
-              </div>
-              <div>
-                <h6>👥 Community</h6>
-                <p>Empowering local vendors and artisans with cutting-edge technology. Building a thriving ecosystem where everyone benefits.</p>
-              </div>
-              <div>
-                <h6>✨ Excellence</h6>
-                <p>Best-in-class experience at every touchpoint. From user interface to customer service, we never compromise on quality.</p>
-              </div>
-            </div>
+          <article className="lp-testimonial">
+            <h3>What Our Customers Say</h3>
+            <div className="lp-tq">❝❝</div>
+            <blockquote>Received my order in just 45 minutes! The quality is amazing and Try Before You Buy is a game changer.</blockquote>
+            <p className="lp-stars">★★★★★</p>
+            <p className="lp-author">– Ananya, Cuttack</p>
+            <div className="lp-dots"><span /><span className="on" /><span /><span /></div>
           </article>
         </section>
 
-        <section className="info-banner">
-          <h3>Fashion Delivered in a Blink. Try Before You Buy.</h3>
-          <p>
-            At BlinkieFash, we're not just selling clothes—we're revolutionizing how India shops for fashion. 
-            With 60-minute delivery, 20-minute try-before-buy window, 90-second returns, and bundle discounts starting at ₹999, 
-            we've created the fastest, most customer-friendly fashion commerce platform. 
-            Fast, authentic, reliable, and stylish. That's the BlinkieFash promise.
-          </p>
-          <button className="info-chat-btn" type="button" onClick={() => navigate("/home")}>Back to Home</button>
-        </section>
-      </main>
+        {/* SOCIAL + FAQ + NEWSLETTER */}
+        <section className="lp-sfn">
+          <article className="lp-social">
+            <div className="lp-sfn-head">
+              <div>
+                <h3>Follow Us on Instagram</h3>
+                <p className="lp-handle"><a href="https://www.instagram.com/blinkiefash_official?igsh=MWttZzBlNnUyZnAwNQ==" target="_blank" rel="noopener noreferrer" className="lp-ig-link">@blinkiefash_official</a></p>
+              </div>
+            </div>
+            <div className="lp-ig-banner">
+              <img src="/images/follow_insta.jpeg" alt="Follow BlinkieFash on Instagram" />
+            </div>
+          </article>
 
+          <article className="lp-faq">
+            <h3>Frequently Asked Questions</h3>
+            {faqs.map((f,i)=>(
+              <details key={i}>
+                <summary>{f.q} <span className="lp-arr">▾</span></summary>
+                <p className="lp-faq-ans">{f.a}</p>
+              </details>
+            ))}
+            <button className="lp-va" style={{marginTop:"10px"}} onClick={() => navigate("/faqs")}>View All FAQs →</button>
+          </article>
+
+          <article className="lp-news" style={{display:'none'}}></article>
+        </section>
+
+        {/* GET EXCLUSIVE OFFERS */}
+        <section className="lp-offer">
+          <div className="lp-offer-left">
+            <span className="lp-offer-badge">🎁 Exclusive Members Only</span>
+            <h2>Get <span style={{color:'#86efac'}}>Exclusive Offers</span> &amp; Style Updates</h2>
+            <p>Join 1,000+ fashion lovers getting early access to deals, new arrivals &amp; style tips.</p>
+            <div className="lp-offer-perks">
+              <span>✓ First order 10% off</span>
+              <span>✓ Early sale access</span>
+              <span>✓ New arrivals first</span>
+              <span>✓ Weekly style tips</span>
+            </div>
+          </div>
+          <div className="lp-offer-right">
+            <form onSubmit={(e) => e.preventDefault()} className="lp-offer-form">
+              <div className="lp-offer-input-wrap">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="18" height="18"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="2 7 12 13 22 7"/></svg>
+                <input type="email" placeholder="Enter your email address" aria-label="Email" required />
+              </div>
+              <button type="submit" className="lp-offer-btn">Subscribe for Free →</button>
+            </form>
+            <p className="lp-offer-trust">🔒 No spam, ever. Unsubscribe anytime.</p>
+            <div className="lp-offer-avatars">
+              <span className="lp-offer-av">S</span>
+              <span className="lp-offer-av">P</span>
+              <span className="lp-offer-av">A</span>
+              <span className="lp-offer-av">+</span>
+              <span className="lp-offer-count">1,000+ subscribers</span>
+            </div>
+          </div>
+        </section>
+
+        {/* WHY LOVE */}
+        <section className="lp-why">
+          <h2>Why People Love <span className="lp-green">BlinkieFash</span></h2>
+          <div className="lp-why-grid">
+            {whyItems.map((w) => (
+              <div key={w.title} className="lp-why-item">
+                <span className="lp-wico">{w.icon}</span>
+                <div><strong>{w.title}</strong><p>{w.sub}</p></div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* DOWNLOAD BAND */}
+        <section className="lp-dl">
+          <div className="lp-dl-copy">
+            <span className="lp-dl-badge">⚡ India’s Fastest Fashion Delivery</span>
+            <h2>Download the <span style={{color:'#86efac'}}>BlinkieFash</span> App</h2>
+            <p>Shop from nearby stores, try before you buy, and get fashion delivered to your door in just 60 minutes.</p>
+            <div className="lp-dl-btns">
+              <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M3.18 23.76a2.48 2.48 0 0 0 2.63-.17l12.4-7.29-2.73-2.73zM.5 1.26C.19 1.6 0 2.12 0 2.82v18.37c0 .69.19 1.21.51 1.55l.08.08 10.3-10.29v-.24zM20.1 9.85l-2.85-1.67-3.06 3.06 3.07 3.06 2.85-1.67c.81-.48.81-1.26 0-1.74zm-19.1 12.5 11.74-6.9-2.73-2.73z"/></svg>
+                <span><small>GET IT ON</small><strong>Google Play</strong></span>
+              </button>
+              <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M16.84 12.94c-.02-2.32 1.9-3.43 1.98-3.48-1.08-1.58-2.76-1.8-3.36-1.82-1.43-.14-2.8.84-3.52.84-.73 0-1.85-.82-3.04-.8-1.56.02-3 .91-3.8 2.31-1.62 2.81-.41 6.98 1.16 9.25.77 1.11 1.69 2.35 2.89 2.31 1.16-.05 1.6-.75 3-.75 1.41 0 1.8.75 3.03.72 1.25-.02 2.03-1.12 2.79-2.24.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.41-.92-2.43-3.74Zm-1.79-6.42c.63-.77 1.06-1.84.94-2.91-.91.04-2.01.61-2.66 1.38-.58.67-1.08 1.75-.95 2.79 1.01.08 2.04-.51 2.67-1.26Z"/></svg>
+                <span><small>Download on the</small><strong>App Store</strong></span>
+              </button>
+              <button className="lp-store-btn lp-sb-outline-dl" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
+                <span>📱</span><strong>Open in App</strong>
+              </button>
+            </div>
+            <div className="lp-dl-chips">
+              <span>⏱ 60 Min Delivery</span>
+              <span>👗 Try Before You Buy</span>
+              <span>📍 Live Tracking</span>
+              <span>🔄 Easy Returns</span>
+            </div>
+          </div>
+          <div className="lp-dl-or">OR</div>
+          <div className="lp-dl-qr">
+            <div className="lp-dl-qr-wrap">
+              <img
+                src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&color=0d7d3a&bgcolor=ffffff&data=https://play.google.com/store/apps/details?id=com.blinkiefash.app"
+                alt="Scan to Download BlinkieFash"
+                className="lp-qr-img"
+                width="110"
+                height="110"
+              />
+            </div>
+            <div>
+              <p style={{margin:0}}><strong>Scan to Download</strong></p>
+              <p style={{margin:'4px 0 0'}}>Point your camera at the QR code to install instantly.</p>
+              <p style={{margin:'8px 0 0',color:'#86efac',fontSize:'11px',fontWeight:700}}>✓ Free · No sign-up required</p>
+            </div>
+          </div>
+          <div className="lp-dl-stats">
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="22" height="22"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              <div><strong>300+</strong><small>Orders Delivered</small></div>
+            </div>
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="22" height="22"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              <div><strong>4.8/5</strong><small>Customer Rating</small></div>
+            </div>
+            <div>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="22" height="22"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              <div><strong>2 Cities</strong><small>& Expanding</small></div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      {partnerModal && <PartnerModal type={partnerModal} onClose={() => setPartnerModal(null)} />}
+
+      <a
+        href="https://wa.me/919827901891"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="lp-wa-btn"
+        aria-label="Chat on WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" width="22" height="22">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        <span>Chat with us</span>
+      </a>
       <Footer />
     </div>
   );

@@ -430,4 +430,43 @@ export const ensureDatabaseTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_product_reviews_product
     ON product_reviews(product_id, created_at DESC);
   `).catch(() => {});
+
+  // ── Partner Applications ───────────────────────────────────────
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS store_partner_applications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      store_name VARCHAR(255) NOT NULL,
+      owner_name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      city VARCHAR(100),
+      address TEXT,
+      pincode VARCHAR(10),
+      store_category VARCHAR(100),
+      store_size VARCHAR(50),
+      years_in_business INT DEFAULT 0,
+      gst_number VARCHAR(50),
+      message TEXT,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS delivery_partner_applications (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      full_name VARCHAR(255) NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      phone VARCHAR(20) NOT NULL,
+      city VARCHAR(100),
+      pincode VARCHAR(10),
+      vehicle_type VARCHAR(50),
+      driving_license VARCHAR(50),
+      availability VARCHAR(50),
+      experience_years INT DEFAULT 0,
+      message TEXT,
+      status VARCHAR(20) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch(() => {});
 };
