@@ -4,9 +4,8 @@ import AddProduct from "./pages/AddProduct";
 import VendorStore from "./pages/VendorStore";
 import CustomerService from "./pages/CustomerService";
 import Company from "./pages/Company";
+import Faqs from "./pages/Faqs";
 import Policies from "./pages/Policies";
-import PrivacyPolicy from "./pages/PrivacyPolicy";
-import AccountDeletion from "./pages/AccountDeletion";
 import SellerRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import StockMonitoring from "./pages/StockMonitoring";
@@ -33,11 +32,8 @@ function App() {
 
         {/* Help & Support Pages */}
         <Route path="/customer-service" element={<CustomerService />} />
+        <Route path="/faqs" element={<Faqs />} />
         <Route path="/policies" element={<Policies />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-        <Route path="/privacy" element={<PrivacyPolicy />} />
-        <Route path="/account-deletion" element={<AccountDeletion />} />
-        <Route path="/delete-account" element={<AccountDeletion />} />
 
         {/* Redirect all other routes to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
