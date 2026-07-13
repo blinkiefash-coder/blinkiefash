@@ -12,11 +12,7 @@ export const fetchVendorProfile = async (vendorId) => {
     }
 
     const vendor = await response.json();
-    if (!vendor || typeof vendor !== "object") {
-      return null;
-    }
-
-    return vendor;
+    return vendor && typeof vendor === "object" ? vendor : null;
   } catch (err) {
     console.error("Failed to load vendor profile:", err);
     return null;
