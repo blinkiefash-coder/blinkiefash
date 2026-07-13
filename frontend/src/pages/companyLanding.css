@@ -267,6 +267,14 @@
 .st-loading{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .st-skeleton{height:220px;border-radius:14px;background:linear-gradient(90deg,#f0f4f0 25%,#e8f0e8 50%,#f0f4f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
 @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
+/* BRANDS ROW */
+.st-brands-row{display:grid;grid-template-columns:repeat(8,1fr);gap:14px}
+.st-brand-logo-card{display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 8px;border:1px solid #dde9de;border-radius:14px;background:#fff;text-align:center}
+.st-brand-logo-card img{width:72px;height:72px;object-fit:contain;border-radius:8px}
+.st-brand-name-placeholder{width:72px;height:72px;border-radius:8px;background:#edf9f1;border:1px solid #c3e6cc;color:#149040;font-size:24px;font-weight:900;display:flex;align-items:center;justify-content:center}
+.st-brand-logo-card span{font-size:11px;font-weight:700;color:#1a2e1d;line-height:1.3;word-break:break-word}
+@media(max-width:960px){.st-brands-row{grid-template-columns:repeat(4,1fr)}}
+@media(max-width:480px){.st-brands-row{grid-template-columns:repeat(4,1fr)}}
 
 /* ── CAREERS ── */
 .cr-hero{border:1px solid #dce9de;border-radius:20px;background:#fff;padding:40px 32px;text-align:center}

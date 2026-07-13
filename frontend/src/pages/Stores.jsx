@@ -17,16 +17,21 @@ const CITY_FILTERS = ["All", "Cuttack", "Bhubaneswar"];
 export default function Stores() {
   const navigate = useNavigate();
   const [stores, setStores] = useState([]);
+  const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [city, setCity] = useState("All");
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/vendor`)
-      .then(r => r.json())
-      .then(data => { setStores(Array.isArray(data) ? data : []); setLoading(false); })
-      .catch(() => { setError("Could not load stores. Please try again."); setLoading(false); });
+    Promise.all([
+      fetch(`${API_BASE_URL}/api/vendor`).then(r => r.json()),
+      fetch(`${API_BASE_URL}/api/brands`).then(r => r.json()),
+    ]).then(([storeData, brandData]) => {
+      setStores(Array.isArray(storeData) ? storeData : []);
+      setBrands(Array.isArray(brandData) ? brandData : []);
+      setLoading(false);
+    }).catch(() => { setError("Could not load data. Please try again."); setLoading(false); });
   }, []);
 
   const filtered = stores.filter(s => {
@@ -54,6 +59,26 @@ export default function Stores() {
             ))}
           </div>
         </section>
+
+        {/* BRANDS WE CARRY */}
+        {brands.length > 0 && (
+          <section className="au-section">
+            <h2 className="au-section-title">Brands We <span className="lp-green">Carry</span></h2>
+            <div className="st-brands-row">
+              {brands.map(b => (
+                <div key={b.id} className="st-brand-logo-card">
+                  {b.logo_url ? (
+                    <img src={b.logo_url} alt={b.name} onError={e => { e.target.style.display='none'; e.target.nextSibling.style.display='flex'; }} />
+                  ) : null}
+                  <div className="st-brand-name-placeholder" style={{display: b.logo_url ? 'none' : 'flex'}}>
+                    {b.name.charAt(0)}
+                  </div>
+                  <span>{b.name}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* HOW IT WORKS */}
         <section className="au-section">
