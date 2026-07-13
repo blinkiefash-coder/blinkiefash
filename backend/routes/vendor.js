@@ -13,6 +13,31 @@ const createPasswordHash = (password = "") => {
   return `${salt}:${derived}`;
 };
 
+const verifyPasswordHash = (password = "", storedHash = "") => {
+  const [salt, expectedHash] = String(storedHash).split(":");
+
+  if (!salt || !expectedHash) {
+    return false;
+  }
+
+  const derived = crypto.scryptSync(password, salt, 64).toString("hex");
+
+  return crypto.timingSafeEqual(
+    Buffer.from(derived, "hex"),
+    Buffer.from(expectedHash, "hex")
+  );
+};
+
+const buildSlug = (value = "") => {
+  const base = String(value)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+
+  return base || `vendor-${Date.now()}`;
+};
+
 const uploadFileToCloudinary = async (file, folder) => {
   if (!file) return null;
 
@@ -182,11 +207,43 @@ router.get("/:id/orders", async (req, res) => {
 router.post("/verify", async (req, res) => {
   try {
     const { email } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
 
-    const userResult = await pool.query(
-      "SELECT * FROM users WHERE email = $1",
-      [email]
+    let userResult = await pool.query(
+      "SELECT * FROM users WHERE lower(email) = $1 LIMIT 1",
+      [normalizedEmail]
     );
+
+    if (userResult.rows.length === 0) {
+      const vendorLookup = await pool.query(
+        `SELECT id, owner_name, phone, email, user_id
+         FROM vendors
+         WHERE lower(email) = $1
+         LIMIT 1`,
+        [normalizedEmail]
+      );
+
+      if (vendorLookup.rows.length > 0) {
+        const vendor = vendorLookup.rows[0];
+        const linkedUser = await pool.query(
+          `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, 'vendor', false, NOW(), NOW())
+           ON CONFLICT (email) DO UPDATE
+             SET role = 'vendor',
+                 updated_at = NOW()
+           RETURNING *`,
+          [vendor.owner_name || vendor.email, vendor.phone || null, vendor.email]
+        );
+
+        const user = linkedUser.rows[0];
+        await pool.query(
+          `UPDATE vendors SET user_id = $1, updated_at = NOW() WHERE id = $2`,
+          [user.id, vendor.id]
+        ).catch(() => {});
+
+        userResult = { rows: [user] };
+      }
+    }
 
     if (userResult.rows.length === 0) {
       return res.json({ success: false, message: "User not found" });
@@ -202,8 +259,8 @@ router.post("/verify", async (req, res) => {
     }
 
     const vendorResult = await pool.query(
-      "SELECT id FROM vendors WHERE user_id = $1",
-      [user.id]
+      "SELECT id FROM vendors WHERE user_id = $1 OR lower(email) = $2 LIMIT 1",
+      [user.id, normalizedEmail]
     );
 
     if (vendorResult.rows.length === 0) {
@@ -222,6 +279,73 @@ router.post("/verify", async (req, res) => {
 
   } catch (err) {
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/login-password", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and password are required"
+      });
+    }
+
+    const vendorResult = await pool.query(
+      `SELECT id, user_id, email, password_hash, store_name, slug
+       FROM vendors
+       WHERE lower(email) = $1
+       LIMIT 1`,
+      [normalizedEmail]
+    );
+
+    if (vendorResult.rows.length === 0) {
+      return res.json({
+        success: false,
+        message: "Vendor not found"
+      });
+    }
+
+    const vendor = vendorResult.rows[0];
+
+    if (!vendor.password_hash || !verifyPasswordHash(String(password), vendor.password_hash)) {
+      return res.json({
+        success: false,
+        message: "Incorrect password"
+      });
+    }
+
+    if (!vendor.user_id) {
+      const userResult = await pool.query(
+        `INSERT INTO users (name, email, role, is_active, created_at, updated_at)
+         VALUES ($1, $2, 'vendor', true, NOW(), NOW())
+         ON CONFLICT (email) DO UPDATE
+           SET role = 'vendor',
+               updated_at = NOW()
+         RETURNING id`,
+        [vendor.store_name || vendor.email, vendor.email]
+      );
+
+      await pool.query(
+        `UPDATE vendors SET user_id = $1, updated_at = NOW() WHERE id = $2`,
+        [userResult.rows[0].id, vendor.id]
+      ).catch(() => {});
+    }
+
+    return res.json({
+      success: true,
+      vendor_id: vendor.id,
+      message: "Login successful"
+    });
+  } catch (err) {
+    console.error("Vendor password login error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to login vendor"
+    });
   }
 });
 
@@ -252,6 +376,8 @@ router.post(
         city,
         state,
         pincode,
+        lat,
+        lng,
         account_holder_name,
         account_number,
         ifsc_code,
@@ -261,7 +387,7 @@ router.post(
       if (!business_name || !owner_name || !email || !phone || !password) {
         return res.status(400).json({
           success: false,
-          message: "Missing required basic seller fields"
+          message: "Missing required basic vendor fields"
         });
       }
 
@@ -269,6 +395,21 @@ router.post(
         return res.status(400).json({
           success: false,
           message: "Store address details are required"
+        });
+      }
+
+      const latitude = Number(lat);
+      const longitude = Number(lng);
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+        return res.status(400).json({
+          success: false,
+          message: "Store latitude and longitude are required"
+        });
+      }
+      if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid latitude/longitude range"
         });
       }
 
@@ -280,128 +421,202 @@ router.post(
       }
 
       const normalizedEmail = String(email).trim().toLowerCase();
-      const existingSeller = await pool.query(
-        "SELECT id FROM sellers WHERE lower(email) = $1 LIMIT 1",
-        [normalizedEmail]
-      );
-
-      if (existingSeller.rows.length > 0) {
-        return res.status(409).json({
-          success: false,
-          message: "Seller with this email already exists"
-        });
-      }
-
-      const logoFile = req.files?.logo?.[0];
-      const panDocFile = req.files?.panDoc?.[0];
-      const gstDocFile = req.files?.gstDoc?.[0];
-      const bankProofFile = req.files?.bankProof?.[0];
-
-      let logoUrl = null;
-      let panDocUrl = null;
-      let gstDocUrl = null;
-      let bankProofUrl = null;
-      let uploadWarning = "";
+      const client = await pool.connect();
 
       try {
-        [logoUrl, panDocUrl, gstDocUrl, bankProofUrl] = await Promise.all([
-          uploadFileToCloudinary(logoFile, "blinkiefash/sellers/logo"),
-          uploadFileToCloudinary(panDocFile, "blinkiefash/sellers/pan"),
-          uploadFileToCloudinary(gstDocFile, "blinkiefash/sellers/gst"),
-          uploadFileToCloudinary(bankProofFile, "blinkiefash/sellers/bank-proof")
-        ]);
-      } catch (uploadErr) {
-        console.error("Seller document upload failed:", uploadErr);
+        await client.query("BEGIN");
 
-        if (process.env.NODE_ENV === "production") {
-          return res.status(502).json({
+        const existingVendor = await client.query(
+          "SELECT id, user_id FROM vendors WHERE lower(email) = $1 LIMIT 1",
+          [normalizedEmail]
+        );
+
+        if (existingVendor.rows.length > 0) {
+          await client.query("ROLLBACK");
+          return res.status(409).json({
             success: false,
-            message: "Seller documents upload failed"
+            message: "Vendor with this email already exists"
           });
         }
 
-        uploadWarning =
-          "Seller registered, but document upload was skipped in local environment.";
+        const existingUser = await client.query(
+          `SELECT id, role
+           FROM users
+           WHERE lower(COALESCE(email, '')) = $1
+           ORDER BY created_at ASC NULLS LAST, id ASC
+           LIMIT 1`,
+          [normalizedEmail]
+        );
+
+        let linkedUserId = null;
+        if (existingUser.rows.length > 0) {
+          const user = existingUser.rows[0];
+          const role = String(user.role || "").toLowerCase();
+          if (role && role !== "vendor") {
+            await client.query("ROLLBACK");
+            return res.status(409).json({
+              success: false,
+              message: "Email is already used by a non-vendor account"
+            });
+          }
+
+          linkedUserId = user.id;
+          await client.query(
+            `UPDATE users
+             SET role = 'vendor',
+                 is_active = false,
+                 name = COALESCE(NULLIF(name, ''), $2),
+                 phone = COALESCE(NULLIF(phone, ''), $3),
+                 updated_at = NOW()
+             WHERE id = $1`,
+            [linkedUserId, owner_name, phone]
+          );
+        } else {
+          const createUserResult = await client.query(
+            `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
+             VALUES ($1, $2, $3, 'vendor', false, NOW(), NOW())
+             RETURNING id`,
+            [owner_name, phone, normalizedEmail]
+          );
+          linkedUserId = createUserResult.rows[0].id;
+        }
+
+        const slug = buildSlug(store_name || business_name);
+
+        const logoFile = req.files?.logo?.[0];
+        const panDocFile = req.files?.panDoc?.[0];
+        const gstDocFile = req.files?.gstDoc?.[0];
+        const bankProofFile = req.files?.bankProof?.[0];
+
+        let logoUrl = null;
+        let panDocUrl = null;
+        let gstDocUrl = null;
+        let bankProofUrl = null;
+        let uploadWarning = "";
+
+        try {
+          [logoUrl, panDocUrl, gstDocUrl, bankProofUrl] = await Promise.all([
+            uploadFileToCloudinary(logoFile, "blinkiefash/vendors/logo"),
+            uploadFileToCloudinary(panDocFile, "blinkiefash/vendors/pan"),
+            uploadFileToCloudinary(gstDocFile, "blinkiefash/vendors/gst"),
+            uploadFileToCloudinary(bankProofFile, "blinkiefash/vendors/bank-proof")
+          ]);
+        } catch (uploadErr) {
+          console.error("Vendor document upload failed:", uploadErr);
+
+          if (process.env.NODE_ENV === "production") {
+            await client.query("ROLLBACK");
+            return res.status(502).json({
+              success: false,
+              message: "Vendor documents upload failed"
+            });
+          }
+
+          uploadWarning =
+            "Vendor registered, but document upload was skipped in local environment.";
+        }
+
+        const passwordHash = createPasswordHash(password);
+
+        const insertResult = await client.query(
+          `INSERT INTO vendors (
+            user_id,
+            business_name,
+            owner_name,
+            email,
+            phone,
+            password_hash,
+            business_type,
+            category,
+            gst_number,
+            pan_number,
+            years_in_business,
+            store_name,
+            slug,
+            description,
+            logo_url,
+            vendor_img_url,
+            address,
+            city,
+            state,
+            pincode,
+            lat,
+            lng,
+            account_holder_name,
+            account_number,
+            ifsc_code,
+            bank_name,
+            pan_doc_url,
+            gst_doc_url,
+            bank_proof_url,
+            status,
+            is_verified,
+            is_active,
+            is_approved,
+            is_operational,
+            created_at,
+            updated_at
+          ) VALUES (
+            $1, $2, $3, $4, $5,
+            $6, $7, $8, $9, $10,
+            $11, $12, $13, $14, $15,
+            $16, $17, $18, $19, $20,
+            $21, $22, $23, $24, $25,
+            $26, $27, $28, $29, 'pending', false, false, false, true, NOW(), NOW()
+          )
+          RETURNING id, user_id, email, store_name, slug, status, created_at`,
+          [
+            linkedUserId,
+            business_name,
+            owner_name,
+            normalizedEmail,
+            phone,
+            passwordHash,
+            business_type || null,
+            category || null,
+            gst_number || null,
+            pan_number || null,
+            years_in_business ? Number(years_in_business) : null,
+            store_name,
+            slug,
+            description || null,
+            logoUrl,
+            logoUrl,
+            address,
+            city,
+            state,
+            pincode,
+            latitude,
+            longitude,
+            account_holder_name,
+            account_number,
+            ifsc_code,
+            bank_name,
+            panDocUrl,
+            gstDocUrl,
+            bankProofUrl
+          ]
+        );
+
+        await client.query("COMMIT");
+
+        return res.status(201).json({
+          success: true,
+          message: "Vendor registration submitted for review",
+          warning: uploadWarning || undefined,
+          vendor: insertResult.rows[0]
+        });
+      } catch (innerErr) {
+        await client.query("ROLLBACK");
+        throw innerErr;
+      } finally {
+        client.release();
       }
-
-      const passwordHash = createPasswordHash(password);
-
-      const insertResult = await pool.query(
-        `INSERT INTO sellers (
-          business_name,
-          owner_name,
-          email,
-          phone,
-          password_hash,
-          business_type,
-          category,
-          gst_number,
-          pan_number,
-          years_in_business,
-          store_name,
-          description,
-          logo_url,
-          address,
-          city,
-          state,
-          pincode,
-          account_holder_name,
-          account_number,
-          ifsc_code,
-          bank_name,
-          pan_doc_url,
-          gst_doc_url,
-          bank_proof_url,
-          status,
-          created_at,
-          updated_at
-        ) VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10,
-          $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20,
-          $21, $22, $23, $24, 'pending', NOW(), NOW()
-        )
-        RETURNING id, email, store_name, status, created_at`,
-        [
-          business_name,
-          owner_name,
-          normalizedEmail,
-          phone,
-          passwordHash,
-          business_type || null,
-          category || null,
-          gst_number || null,
-          pan_number || null,
-          years_in_business ? Number(years_in_business) : null,
-          store_name,
-          description || null,
-          logoUrl,
-          address,
-          city,
-          state,
-          pincode,
-          account_holder_name,
-          account_number,
-          ifsc_code,
-          bank_name,
-          panDocUrl,
-          gstDocUrl,
-          bankProofUrl
-        ]
-      );
-
-      return res.status(201).json({
-        success: true,
-        message: "Seller registration submitted for review",
-        warning: uploadWarning || undefined,
-        seller: insertResult.rows[0]
-      });
     } catch (err) {
-      console.error("Seller register error:", err);
+      console.error("Vendor register error:", err);
       return res.status(500).json({
         success: false,
-        message: "Failed to register seller"
+        message: "Failed to register vendor"
       });
     }
   }

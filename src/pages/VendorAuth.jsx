@@ -7,26 +7,27 @@ import { API_API_BASE_URL } from "../apiBase";
 export default function VendorAuth() {
 
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!email) {
-      setError("Please enter email");
+    if (!email || !password) {
+      setError("Please enter email and password");
       return;
     }
 
     try {
       const res = await fetch(
-        `${API_API_BASE_URL}/vendor/verify`,
+        `${API_API_BASE_URL}/vendor/login-password`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({ email })
+          body: JSON.stringify({ email, password })
         }
       );
 
@@ -75,14 +76,24 @@ export default function VendorAuth() {
               }}
             />
 
+            <input
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError("");
+              }}
+            />
+
             {error && <p className="vendor-error">{error}</p>}
 
             <button type="submit">
-              Verify & Continue
+              Login & Continue
             </button>
 
             <p className="vendor-register-link">
-              New seller? <Link to="/vendor/register">Create your seller account</Link>
+              New vendor? <Link to="/vendor/register">Create your vendor account</Link>
             </p>
 
           </form>

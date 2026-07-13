@@ -6,7 +6,7 @@ import CustomerService from "./pages/CustomerService";
 import Company from "./pages/Company";
 import Faqs from "./pages/Faqs";
 import Policies from "./pages/Policies";
-import SellerRegistration from "./pages/SellerRegistration";
+import VendorRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import StockMonitoring from "./pages/StockMonitoring";
 import ProductAnalytics from "./pages/ProductAnalytics";
@@ -25,7 +25,7 @@ function App() {
         
         {/* Vendor Pages */}
         <Route path="/vendor" element={<VendorAuth />} />
-        <Route path="/vendor/register" element={<SellerRegistration />} />
+        <Route path="/vendor/register" element={<VendorRegistration />} />
         <Route path="/vendor/add-product" element={<AddProduct />} />
         <Route path="/vendor/stock-monitoring" element={<StockMonitoring />} />
         <Route path="/vendor/product-analytics" element={<ProductAnalytics />} />

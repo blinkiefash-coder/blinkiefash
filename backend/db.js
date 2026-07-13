@@ -26,8 +26,9 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
 
   await pool.query(`
-    CREATE TABLE IF NOT EXISTS sellers (
+    CREATE TABLE IF NOT EXISTS vendors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
       business_name VARCHAR(255) NOT NULL,
       owner_name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -39,12 +40,17 @@ export const ensureDatabaseTables = async () => {
       pan_number VARCHAR(20),
       years_in_business INT,
       store_name VARCHAR(255),
+      slug VARCHAR(255) UNIQUE,
       description TEXT,
       logo_url TEXT,
+      vendor_img_url TEXT,
       address TEXT,
       city VARCHAR(100),
       state VARCHAR(100),
       pincode VARCHAR(10),
+      lat DECIMAL(10, 8),
+      lng DECIMAL(11, 8),
+      service_radius_km DECIMAL(10, 2) DEFAULT 25,
       account_holder_name VARCHAR(255),
       account_number VARCHAR(50),
       ifsc_code VARCHAR(20),
@@ -53,10 +59,158 @@ export const ensureDatabaseTables = async () => {
       gst_doc_url TEXT,
       bank_proof_url TEXT,
       status VARCHAR(20) DEFAULT 'pending',
+      is_verified BOOLEAN DEFAULT false,
+      is_active BOOLEAN DEFAULT true,
+      is_approved BOOLEAN DEFAULT false,
+      is_operational BOOLEAN DEFAULT true,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  await pool.query(`
+    ALTER TABLE vendors
+      ADD COLUMN IF NOT EXISTS business_name VARCHAR(255) NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS owner_name VARCHAR(255) NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS email VARCHAR(255) UNIQUE,
+      ADD COLUMN IF NOT EXISTS phone VARCHAR(20) NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS password_hash TEXT NOT NULL DEFAULT '',
+      ADD COLUMN IF NOT EXISTS business_type VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS category TEXT,
+      ADD COLUMN IF NOT EXISTS gst_number VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS pan_number VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS years_in_business INT,
+      ADD COLUMN IF NOT EXISTS store_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS description TEXT,
+      ADD COLUMN IF NOT EXISTS logo_url TEXT,
+      ADD COLUMN IF NOT EXISTS address TEXT,
+      ADD COLUMN IF NOT EXISTS city VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS state VARCHAR(100),
+      ADD COLUMN IF NOT EXISTS pincode VARCHAR(10),
+      ADD COLUMN IF NOT EXISTS account_holder_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS account_number VARCHAR(50),
+      ADD COLUMN IF NOT EXISTS ifsc_code VARCHAR(20),
+      ADD COLUMN IF NOT EXISTS bank_name VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS pan_doc_url TEXT,
+      ADD COLUMN IF NOT EXISTS gst_doc_url TEXT,
+      ADD COLUMN IF NOT EXISTS bank_proof_url TEXT,
+      ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending',
+      ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS slug VARCHAR(255),
+      ADD COLUMN IF NOT EXISTS vendor_img_url TEXT,
+      ADD COLUMN IF NOT EXISTS lat DECIMAL(10, 8),
+      ADD COLUMN IF NOT EXISTS lng DECIMAL(11, 8),
+      ADD COLUMN IF NOT EXISTS service_radius_km DECIMAL(10, 2) DEFAULT 25,
+      ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
+      ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS is_operational BOOLEAN DEFAULT true;
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE UNIQUE INDEX IF NOT EXISTS vendors_slug_idx
+    ON vendors(slug)
+    WHERE slug IS NOT NULL;
+  `).catch(() => {});
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'sellers'
+      ) THEN
+        INSERT INTO vendors (
+          id,
+          user_id,
+          business_name,
+          owner_name,
+          email,
+          phone,
+          password_hash,
+          business_type,
+          category,
+          gst_number,
+          pan_number,
+          years_in_business,
+          store_name,
+          slug,
+          description,
+          logo_url,
+          vendor_img_url,
+          address,
+          city,
+          state,
+          pincode,
+          lat,
+          lng,
+          service_radius_km,
+          account_holder_name,
+          account_number,
+          ifsc_code,
+          bank_name,
+          pan_doc_url,
+          gst_doc_url,
+          bank_proof_url,
+          status,
+          is_verified,
+          is_active,
+          is_approved,
+          is_operational,
+          created_at,
+          updated_at
+        )
+        SELECT
+          id,
+          user_id,
+          business_name,
+          owner_name,
+          email,
+          phone,
+          password_hash,
+          business_type,
+          category,
+          gst_number,
+          pan_number,
+          years_in_business,
+          store_name,
+          slug,
+          description,
+          logo_url,
+          COALESCE(vendor_img_url, logo_url),
+          address,
+          city,
+          state,
+          pincode,
+          lat,
+          lng,
+          COALESCE(service_radius_km, 25),
+          account_holder_name,
+          account_number,
+          ifsc_code,
+          bank_name,
+          pan_doc_url,
+          gst_doc_url,
+          bank_proof_url,
+          COALESCE(status, 'pending'),
+          COALESCE(is_verified, false),
+          COALESCE(is_active, true),
+          COALESCE(is_approved, false),
+          COALESCE(is_operational, true),
+          created_at,
+          updated_at
+        FROM sellers
+        ON CONFLICT (id) DO NOTHING;
+
+        DROP TABLE sellers;
+      END IF;
+    END $$;
+  `).catch((err) => {
+    console.warn("vendors migration skipped:", err.message);
+  });
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS carts (

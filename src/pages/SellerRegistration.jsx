@@ -72,6 +72,8 @@ export default function SellerRegistration() {
 		city: "",
 		state: "",
 		pincode: "",
+		latitude: "",
+		longitude: "",
 		accountHolderName: "",
 		accountNumber: "",
 		ifscCode: "",
@@ -144,6 +146,8 @@ export default function SellerRegistration() {
 			payload.append("city", formData.city);
 			payload.append("state", formData.state);
 			payload.append("pincode", formData.pincode);
+			payload.append("lat", formData.latitude);
+			payload.append("lng", formData.longitude);
 			payload.append("account_holder_name", formData.accountHolderName);
 			payload.append("account_number", formData.accountNumber);
 			payload.append("ifsc_code", formData.ifscCode);
@@ -161,7 +165,7 @@ export default function SellerRegistration() {
 
 			const result = await response.json();
 			if (!response.ok || !result.success) {
-				throw new Error(result.message || "Seller registration failed");
+				throw new Error(result.message || "Vendor registration failed");
 			}
 
 			setIsSubmitted(true);
@@ -186,7 +190,7 @@ export default function SellerRegistration() {
 			<main className="seller-registration-shell">
 				<section className="seller-registration-aside">
 					<p className="seller-kicker">Vendor Onboarding</p>
-					<h1>Seller Registration</h1>
+					<h1>Vendor Registration</h1>
 					<p>
 						Complete four simple steps to onboard your fashion and home store and start selling on BlinkieFash.
 					</p>
@@ -457,6 +461,33 @@ export default function SellerRegistration() {
 												required
 											/>
 										</label>
+
+										<div className="seller-field-grid two-col">
+											<label>
+												<span>Latitude</span>
+												<input
+													name="latitude"
+													value={formData.latitude}
+													onChange={handleInputChange}
+													type="number"
+													step="any"
+													placeholder="20.3455508"
+													required
+												/>
+											</label>
+											<label>
+												<span>Longitude</span>
+												<input
+													name="longitude"
+													value={formData.longitude}
+													onChange={handleInputChange}
+													type="number"
+													step="any"
+													placeholder="85.8243001"
+													required
+												/>
+											</label>
+										</div>
 
 										<label className="seller-upload-box">
 											<span>Store Logo</span>

@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 import logo from "../assets/logo.png";
+import { API_BASE_URL } from "../apiBase";
 
 function ExploreShops() {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ function ExploreShops() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await fetch("http://localhost:5000/api/categories");
+        const response = await fetch(`${API_BASE_URL}/api/categories`);
         const data = await response.json();
         
         // Build hierarchy
@@ -73,7 +74,7 @@ function ExploreShops() {
 
   // Fetch brands from backend
   useEffect(() => {
-    fetch("http://localhost:5000/api/brands")
+    fetch(`${API_BASE_URL}/api/brands`)
       .then((res) => res.json())
       .then((data) => {
         setBrands(Array.isArray(data) ? data : []);
@@ -95,7 +96,7 @@ function ExploreShops() {
   useEffect(() => {
     const fetchVendors = async () => {
       try {
-        const res = await fetch("http://localhost:5000/api/vendor");
+        const res = await fetch(`${API_BASE_URL}/api/vendor`);
         const data = await res.json();
         const vendorList = Array.isArray(data) ? data : [];
 
@@ -103,7 +104,7 @@ function ExploreShops() {
         const vendorsWithProducts = await Promise.all(
           vendorList.map(async (vendor) => {
             try {
-              const pRes = await fetch(`http://localhost:5000/api/vendor/${vendor.id}/products`);
+              const pRes = await fetch(`${API_BASE_URL}/api/vendor/${vendor.id}/products`);
               const products = await pRes.json();
               return { ...vendor, products: Array.isArray(products) ? products : [] };
             } catch {
@@ -875,7 +876,7 @@ function ExploreShops() {
               <li>Terms of Service</li>
               <li>Cancellation Policy</li>
               <li>EPR Compliance</li>
-              <li className="explore-footer-seller-link" onClick={() => navigate("/vendor")}>Become a Seller</li>
+              <li className="explore-footer-seller-link" onClick={() => navigate("/vendor")}>Become a Vendor</li>
             </ul>
           </div>
 
