@@ -42,6 +42,12 @@ export default function VendorAuth() {
 
         // ✅ Store vendor_id
         localStorage.setItem("vendor_id", data.vendor_id);
+        if (data.store_name) {
+          localStorage.setItem("store_name", data.store_name);
+        }
+        if (data.owner_name) {
+          localStorage.setItem("vendor_name", data.owner_name);
+        }
 
         navigate("/vendor/add-product");
 

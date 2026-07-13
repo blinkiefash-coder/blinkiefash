@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import "./productAnalytics.css";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
+import { fetchVendorProfile } from "../utils/vendorSession";
 
 export default function ProductAnalytics() {
   const navigate = useNavigate();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
-  const [storeName] = useState(() => localStorage.getItem("store_name") || "My Store");
+  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -19,6 +20,16 @@ export default function ProductAnalytics() {
       window.location.href = "/vendor";
       return;
     }
+
+    const loadVendor = async () => {
+      const vendor = await fetchVendorProfile(vendorId);
+      if (vendor?.store_name) {
+        setStoreName(vendor.store_name);
+        localStorage.setItem("store_name", vendor.store_name);
+      }
+    };
+
+    loadVendor();
     loadAnalyticsData();
   }, [vendorId]);
 

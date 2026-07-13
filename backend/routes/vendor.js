@@ -338,6 +338,8 @@ router.post("/login-password", async (req, res) => {
     return res.json({
       success: true,
       vendor_id: vendor.id,
+      store_name: vendor.store_name,
+      owner_name: vendor.owner_name,
       message: "Login successful"
     });
   } catch (err) {

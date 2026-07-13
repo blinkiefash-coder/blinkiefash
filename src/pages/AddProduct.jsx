@@ -3,16 +3,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import VendorLayout from "../components/VendorLayout";
+import { fetchVendorProfile } from "../utils/vendorSession";
 
 export default function AddProduct() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
+  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [childrenByParent, setChildrenByParent] = useState({});
-  const [darkStores, setDarkStores] = useState([]);
 
   const [parentCategories, setParentCategories] = useState([]);
   const [childCategories, setChildCategories] = useState([]);
@@ -42,7 +43,6 @@ export default function AddProduct() {
     short_description: "",
     full_description: "",
     category_id: "",
-    store_id: "",
     is_try_enabled: true,
   });
 
@@ -59,8 +59,20 @@ export default function AddProduct() {
 
   useEffect(() => {
     if (!vendorId) { window.location.href = "/vendor"; return; }
+
+    const loadVendor = async () => {
+      const vendor = await fetchVendorProfile(vendorId);
+      if (vendor?.store_name) {
+        setStoreName(vendor.store_name);
+        localStorage.setItem("store_name", vendor.store_name);
+      }
+      if (vendor?.owner_name) {
+        localStorage.setItem("vendor_name", vendor.owner_name);
+      }
+    };
+
+    loadVendor();
     fetch(`${API_API_BASE_URL}/brands`).then(r => r.json()).then(d => setBrands(d));
-    fetch(`${API_API_BASE_URL}/checkout/darkstores`).then(r => r.json()).then(d => setDarkStores(d.stores || []));
     fetch(`${API_API_BASE_URL}/categories`).then(r => r.json()).then(d => {
       setCategories(d);
       const map = buildChildrenMap(d);
@@ -141,7 +153,7 @@ export default function AddProduct() {
         product: { vendor_id: vendorId, category_id: form.category_id, brand: form.brand,
           name: form.name, short_description: form.short_description,
           full_description: form.full_description, is_try_enabled: form.is_try_enabled,
-          store_id: form.store_id || null },
+          store_id: null },
         variants: preparedVariants,
         bundleOffers: Object.entries(bundleOffers)
           .filter(([_, enabled]) => enabled)
@@ -160,7 +172,7 @@ export default function AddProduct() {
       const data = await res.json();
       if (!data.success) { alert(`Failed: ${data.message || "Unable to create product"}`); return; }
       alert("Product added successfully!");
-      setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", store_id: "", is_try_enabled: true });
+      setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", is_try_enabled: true });
       setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
       setBundleOffers({ buy_2_at_999: false, buy_3_at_999: false, buy_4_at_999: false });
       setSelectedParent(""); setSelectedChild("");
@@ -185,7 +197,7 @@ export default function AddProduct() {
         </div>
       )}
 
-      <VendorLayout activeKey="products" storeName="Trendy Looks" onMenuClick={handleMenuClick}>
+      <VendorLayout activeKey="products" storeName={storeName} onMenuClick={handleMenuClick}>
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
@@ -240,31 +252,9 @@ export default function AddProduct() {
                 </div>
               </section>
 
-              {/* ── 2. Dark Store & Availability ───────────────────────────── */}
+              {/* ── 2. Variants ──────────────────────────────────────── */}
               <section className="form-section">
-                <h4>2. Dark Store &amp; Availability</h4>
-                <div className="input-grid">
-                  <select value={form.store_id} onChange={(e) => updateForm("store_id", e.target.value)}>
-                    <option value="">Select Dark Store (optional)</option>
-                    {darkStores.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} — {s.city}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="toggle-row">
-                  <label>
-                    <input type="checkbox" checked={form.is_try_enabled}
-                      onChange={(e) => updateForm("is_try_enabled", e.target.checked)} />
-                    Try and Buy Eligible
-                  </label>
-                </div>
-              </section>
-
-              {/* ── 3. Variants ──────────────────────────────────────── */}
-              <section className="form-section">
-                <h4>3. Variants, Pricing &amp; Inventory</h4>
+                <h4>2. Variants, Pricing &amp; Inventory</h4>
                 {variants.map((v, i) => (
                   <div key={i} className="variant-block">
                     <div className="variant-block-header">
@@ -307,9 +297,9 @@ export default function AddProduct() {
                 <button type="button" className="add-variant-btn" onClick={addVariant}>+ Add Another Variant</button>
               </section>
 
-              {/* ── 4. Bundle Pricing Offers (Optional) ────────────────────────────── */}
+              {/* ── 3. Bundle Pricing Offers (Optional) ────────────────────────────── */}
               <section className="form-section">
-                <h4>4. Bundle Pricing Offers (Optional) - Buy More, Save More</h4>
+                <h4>3. Bundle Pricing Offers (Optional) - Buy More, Save More</h4>
                 <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
                   Enable special bundle pricing for customers who buy multiple items (e.g., Buy 2 at ₹999, Buy 3 at ₹999)
                 </p>
@@ -338,6 +328,10 @@ export default function AddProduct() {
 
               <div className="summary-line">
                 <strong>Final Category:</strong> {finalCategoryName || "Not selected"}
+              </div>
+
+              <div className="summary-line">
+                <strong>Vendor:</strong> {storeName || "My Store"}
               </div>
 
               <button className="submit-btn" type="submit" disabled={loading}>

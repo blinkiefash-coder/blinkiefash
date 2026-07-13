@@ -4,6 +4,7 @@ import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
+import { fetchVendorProfile } from "../utils/vendorSession";
 import "./vendorSalesReport.css";
 
 const getToday = () => new Date().toISOString().slice(0, 10);
@@ -11,7 +12,7 @@ const getToday = () => new Date().toISOString().slice(0, 10);
 export default function VendorSalesReport() {
   const navigate = useNavigate();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
-  const [storeName] = useState(() => localStorage.getItem("store_name") || "My Store");
+  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [orders, setOrders] = useState([]);
   const [totals, setTotals] = useState({ orderCount: 0, itemsSold: 0, totalRevenue: 0 });
   const [loading, setLoading] = useState(true);
@@ -24,6 +25,16 @@ export default function VendorSalesReport() {
       window.location.href = "/vendor";
       return;
     }
+
+    const loadVendor = async () => {
+      const vendor = await fetchVendorProfile(vendorId);
+      if (vendor?.store_name) {
+        setStoreName(vendor.store_name);
+        localStorage.setItem("store_name", vendor.store_name);
+      }
+    };
+
+    loadVendor();
     loadReport(fromDate, toDate);
   }, [vendorId, fromDate, toDate]);
 
