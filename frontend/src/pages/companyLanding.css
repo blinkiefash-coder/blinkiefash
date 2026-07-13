@@ -259,6 +259,14 @@
 .st-brand-info strong{display:block;font-size:14px;font-weight:800;color:#0d1810;margin-bottom:2px}
 .st-brand-cat{font-size:11px;color:#149040;font-weight:600;display:block;margin-bottom:6px}
 .st-brand-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4d6551}
+.st-filters{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.st-search-wrap{display:flex;align-items:center;gap:8px;border:1px solid #cde5d2;border-radius:10px;padding:7px 12px;background:#fff;flex:1;max-width:260px}
+.st-search{border:none;outline:none;font-size:13px;color:#1a2e1d;width:100%;background:transparent}
+.st-verified-badge{position:absolute;top:8px;left:8px;background:#149040;color:#fff;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700}
+.st-brand-img{height:140px;overflow:hidden;background:#f5f5f5;position:relative}
+.st-loading{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.st-skeleton{height:220px;border-radius:14px;background:linear-gradient(90deg,#f0f4f0 25%,#e8f0e8 50%,#f0f4f0 75%);background-size:200% 100%;animation:shimmer 1.5s infinite}
+@keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 
 /* ── CAREERS ── */
 .cr-hero{border:1px solid #dce9de;border-radius:20px;background:#fff;padding:40px 32px;text-align:center}

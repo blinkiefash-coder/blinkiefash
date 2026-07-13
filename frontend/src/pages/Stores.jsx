@@ -1,21 +1,9 @@
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import "./companyLanding.css";
 import LpNav from "../components/LpNav";
 import Footer from "../components/Footer";
-import { useState } from "react";
-
-const categories = ["All","Men's Fashion","Women's Fashion","Kids","Ethnic Wear","Western Wear","Footwear","Accessories","Jewellery"];
-
-const brands = [
-  { name: "FashionHub", category: "Men's Fashion", city: "Cuttack", img: "/images/Men-section.png", rating: 4.8, orders: "120+" },
-  { name: "EthnicVibe", category: "Women's Fashion", city: "Bhubaneswar", img: "/images/Women-section.png", rating: 4.9, orders: "95+" },
-  { name: "TrendZone", category: "Western Wear", city: "Cuttack", img: "/images/Women-section.png", rating: 4.7, orders: "80+" },
-  { name: "KidsCorner", category: "Kids", city: "Bhubaneswar", img: "/images/Men-section.png", rating: 4.8, orders: "60+" },
-  { name: "SilkRoute", category: "Ethnic Wear", city: "Cuttack", img: "/images/Ethnicwear.png", rating: 4.9, orders: "110+" },
-  { name: "FootFirst", category: "Footwear", city: "Bhubaneswar", img: "/images/shoes.png", rating: 4.6, orders: "70+" },
-  { name: "GlamBag", category: "Accessories", city: "Cuttack", img: "/images/handbag.png", rating: 4.7, orders: "55+" },
-  { name: "GoldLeaf", category: "Jewellery", city: "Bhubaneswar", img: "/images/J.png", rating: 4.8, orders: "45+" },
-];
+import { API_BASE_URL } from "../apiBase";
 
 const steps = [
   { icon: "📍", title: "Find Nearby Stores", desc: "We show you fashion stores within your delivery zone in Cuttack & Bhubaneswar." },
@@ -24,30 +12,50 @@ const steps = [
   { icon: "👗", title: "Try Before You Pay", desc: "Try at home. Pay only for what you keep. Return the rest — no questions asked." },
 ];
 
+const CITY_FILTERS = ["All", "Cuttack", "Bhubaneswar"];
+
 export default function Stores() {
   const navigate = useNavigate();
-  const [cat, setCat] = useState("All");
-  const filtered = cat === "All" ? brands : brands.filter(b => b.category === cat);
+  const [stores, setStores] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [city, setCity] = useState("All");
+  const [search, setSearch] = useState("");
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/api/vendor`)
+      .then(r => r.json())
+      .then(data => { setStores(Array.isArray(data) ? data : []); setLoading(false); })
+      .catch(() => { setError("Could not load stores. Please try again."); setLoading(false); });
+  }, []);
+
+  const filtered = stores.filter(s => {
+    const matchCity = city === "All" || s.city === city;
+    const matchSearch = !search || s.store_name.toLowerCase().includes(search.toLowerCase()) || (s.description || "").toLowerCase().includes(search.toLowerCase());
+    return matchCity && matchSearch;
+  });
 
   return (
     <div className="lp">
       <LpNav active="Stores" />
       <div className="lp-body">
 
+        {/* HERO */}
         <section className="st-hero">
           <div>
-            <span className="lp-kicker">🏪 100+ Partner Stores</span>
+            <span className="lp-kicker">🏪 {stores.length}+ Partner Stores</span>
             <h1>Shop From Your<br /><span className="lp-green">Nearest Fashion Store</span></h1>
-            <p style={{fontSize:16,color:"#3d5042",lineHeight:1.7,margin:"14px 0 22px"}}>Browse top fashion brands nearby. Order through the app and get delivery in 60 minutes — or try before you buy.</p>
+            <p style={{fontSize:16,color:"#3d5042",lineHeight:1.7,margin:"14px 0 22px"}}>Browse top fashion stores nearby. Order through the app and get delivery in 60 minutes — or try before you buy.</p>
             <button className="lp-pc-btn" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app","_blank","noopener,noreferrer")}>Browse on App →</button>
           </div>
-          <div className="st-hero-stats">
-            {[["100+","Partner Stores"],["2","Cities"],["500+","Brands Available"],["60 Min","Delivery"]].map(([v,l]) => (
+          <div className="au-stat-grid">
+            {[[stores.length+"","Partner Stores"],["2","Cities"],["60 Min","Delivery"],["4.8★","Rating"]].map(([v,l]) => (
               <div key={l} className="au-stat"><span className="au-stat-val">{v}</span><span className="au-stat-lbl">{l}</span></div>
             ))}
           </div>
         </section>
 
+        {/* HOW IT WORKS */}
         <section className="au-section">
           <h2 className="au-section-title">How It <span className="lp-green">Works</span></h2>
           <div className="st-steps">
@@ -62,38 +70,76 @@ export default function Stores() {
           </div>
         </section>
 
+        {/* STORES GRID */}
         <section className="au-section">
-          <h2 className="au-section-title">Partner <span className="lp-green">Brands</span></h2>
-          <div className="st-cats">
-            {categories.map(c => (
-              <button key={c} className={cat===c?"st-cat-btn active":"st-cat-btn"} onClick={() => setCat(c)}>{c}</button>
-            ))}
+          <h2 className="au-section-title">Partner <span className="lp-green">Stores</span></h2>
+
+          {/* Filters */}
+          <div className="st-filters">
+            <div className="st-cats">
+              {CITY_FILTERS.map(c => (
+                <button key={c} className={city===c?"st-cat-btn active":"st-cat-btn"} onClick={() => setCity(c)}>{c === "All" ? "🌍 All Cities" : c === "Cuttack" ? "📍 Cuttack" : "📍 Bhubaneswar"}</button>
+              ))}
+            </div>
+            <div className="st-search-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="16" height="16"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input className="st-search" type="text" placeholder="Search stores..." value={search} onChange={e => setSearch(e.target.value)} />
+            </div>
           </div>
-          <div className="st-brands-grid">
-            {filtered.map(b => (
-              <div key={b.name} className="st-brand-card">
-                <div className="st-brand-img"><img src={b.img} alt={b.name} /></div>
-                <div className="st-brand-info">
-                  <strong>{b.name}</strong>
-                  <span className="st-brand-cat">{b.category}</span>
-                  <div className="st-brand-meta">
-                    <span>⭐ {b.rating}</span>
-                    <span>📦 {b.orders} orders</span>
-                    <span>📍 {b.city}</span>
+
+          {loading && (
+            <div className="st-loading">
+              {[1,2,3,4,5,6].map(i => <div key={i} className="st-skeleton" />)}
+            </div>
+          )}
+
+          {error && <p style={{textAlign:"center",color:"#dc2626",padding:"20px"}}>{error}</p>}
+
+          {!loading && !error && filtered.length === 0 && (
+            <p style={{textAlign:"center",color:"#4d6551",padding:"20px"}}>No stores found. Try a different filter.</p>
+          )}
+
+          {!loading && !error && filtered.length > 0 && (
+            <div className="st-brands-grid">
+              {filtered.map(store => (
+                <div key={store.id} className="st-brand-card">
+                  <div className="st-brand-img">
+                    <img
+                      src={store.vendor_img_url || "/images/home-section.png"}
+                      alt={store.store_name}
+                      onError={e => { e.target.src = "/images/home-section.png"; }}
+                    />
+                    {store.is_verified && <span className="st-verified-badge">✓ Verified</span>}
+                  </div>
+                  <div className="st-brand-info">
+                    <strong>{store.store_name}</strong>
+                    <span className="st-brand-cat">{store.description || "Fashion Store"}</span>
+                    <div className="st-brand-meta">
+                      <span>📍 {store.city}</span>
+                      <span>{store.address}</span>
+                    </div>
+                    <div className="st-brand-meta" style={{marginTop:4}}>
+                      <span>📌 {store.pincode}</span>
+                      <span>🏍️ {store.service_radius_km}km radius</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-          <p style={{textAlign:"center",color:"#4d6551",marginTop:16,fontSize:13}}>More brands available in the app. Download to see all stores near you.</p>
+              ))}
+            </div>
+          )}
+
+          <p style={{textAlign:"center",color:"#4d6551",marginTop:16,fontSize:13}}>
+            Showing {filtered.length} of {stores.length} stores. More stores joining daily.
+          </p>
         </section>
 
+        {/* CTA */}
         <section className="au-cta">
           <h2>Own a Fashion Store?</h2>
-          <p>Join 100+ retailers growing with BlinkieFash. Reach thousands of customers in your city.</p>
+          <p>Join {stores.length}+ retailers growing with BlinkieFash. Reach thousands of customers in your city.</p>
           <div style={{display:"flex",gap:12,justifyContent:"center",flexWrap:"wrap",marginTop:20}}>
-            <button className="lp-pc-btn" onClick={() => navigate("/")}>Become a Partner →</button>
-            <button className="lp-pc-btn" style={{background:"transparent",border:"2px solid #149040",color:"#149040"}} onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app","_blank","noopener,noreferrer")}>Download App</button>
+            <button className="lp-pc-btn" style={{background:"#fff",color:"#149040"}} onClick={() => navigate("/")}>Become a Partner →</button>
+            <button className="lp-pc-btn" style={{background:"transparent",border:"2px solid #fff",color:"#fff"}} onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app","_blank","noopener,noreferrer")}>Download App</button>
           </div>
         </section>
 
