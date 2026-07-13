@@ -4,6 +4,7 @@ import logo from "../assets/logo.png";
 import "./companyLanding.css";
 import Footer from "../components/Footer";
 import PartnerModal from "../components/PartnerModal";
+import LpNav from "../components/LpNav";
 
 const appScreens = [
   { img: "/images/home-store.png", label: "Home", sub: "Discover trending fashion near you" },
@@ -45,29 +46,7 @@ export default function Company() {
 
   return (
     <div className="lp">
-      {/* NAV */}
-      <header className="lp-nav">
-        <button className="lp-brand" onClick={() => navigate("/")}>
-          <img src={logo} alt="BlinkieFash" />
-          <span>BLINKIE<b>FASH</b></span>
-        </button>
-        <nav>
-          <button className="lp-nav-active">Home</button>
-          <button onClick={() => navigate("/company")}>About Us</button>
-          <button>Stores</button>
-          <button>Careers</button>
-          <button onClick={() => navigate("/vendor")}>Vendor Login</button>
-          <button onClick={() => navigate("/customer-service")}>Contact Us</button>
-        </nav>
-        <div className="lp-nav-right">
-          <span className="lp-loc">
-            <span>📍</span>
-            <span>Delivering in<br /><strong>Cuttack, Bhubaneswar ▾</strong></span>
-          </span>
-          <button className="lp-dl-btn" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>Download App ↓</button>
-        </div>
-      </header>
-
+      <LpNav active="Home" />
       <div className="lp-body">
         {/* HERO */}
         <section className="lp-hero">

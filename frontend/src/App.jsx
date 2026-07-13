@@ -10,6 +10,10 @@ import SellerRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import StockMonitoring from "./pages/StockMonitoring";
 import ProductAnalytics from "./pages/ProductAnalytics";
+import AboutUs from "./pages/AboutUs";
+import Stores from "./pages/Stores";
+import Careers from "./pages/Careers";
+import ContactUs from "./pages/ContactUs";
 
 function App() {
   return (
@@ -32,6 +36,10 @@ function App() {
 
         {/* Help & Support Pages */}
         <Route path="/customer-service" element={<CustomerService />} />
+        <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/stores" element={<Stores />} />
+        <Route path="/careers" element={<Careers />} />
         <Route path="/faqs" element={<Faqs />} />
         <Route path="/policies" element={<Policies />} />
 

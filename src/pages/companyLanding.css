@@ -200,6 +200,129 @@
 .lp-dl-stats strong{font-size:15px;font-weight:900;display:block;color:#fff}
 .lp-dl-stats small{font-size:11px;color:#8fcca5}
 
+.lp-dl-stats small{font-size:11px;color:#8fcca5}
+
+/* HAMBURGER & DRAWER */
+.lp-hamburger{display:none;flex-direction:column;gap:5px;border:none;background:transparent;cursor:pointer;padding:6px}
+.lp-hamburger span{display:block;width:22px;height:2px;background:#149040;border-radius:2px}
+.lp-drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;justify-content:flex-end}
+.lp-drawer{width:min(300px,85vw);background:#fff;height:100%;display:flex;flex-direction:column;padding:20px 18px;gap:12px;box-shadow:-4px 0 24px rgba(0,0,0,.15);overflow-y:auto}
+.lp-drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.lp-drawer-close{border:none;background:transparent;font-size:20px;cursor:pointer;color:#4d6551;padding:4px 8px}
+.lp-drawer-nav{display:flex;flex-direction:column;gap:4px;flex:1}
+.lp-drawer-nav button{border:none;background:transparent;text-align:left;padding:13px 14px;font-size:15px;font-weight:600;color:#1a2e1d;border-radius:10px;cursor:pointer}
+.lp-drawer-nav button:hover{background:#f0faf3;color:#149040}
+
+/* ── ABOUT US ── */
+.au-hero{display:grid;grid-template-columns:1.2fr 0.9fr;gap:20px;border:1px solid #dce9de;border-radius:20px;background:#fff;padding:36px 32px;align-items:center}
+.au-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.au-stat{display:flex;flex-direction:column;align-items:center;padding:16px 12px;border:1px solid #dce9dd;border-radius:14px;background:#f9fdf9;text-align:center}
+.au-stat-val{font-size:26px;font-weight:900;color:#0e7535}
+.au-stat-lbl{font-size:11px;color:#4d6551;margin-top:3px}
+.au-mission{display:grid;grid-template-columns:1fr 1fr;gap:20px;border:1px solid #dce9de;border-radius:20px;background:#fff;padding:32px;align-items:center}
+.au-mission-quote{font-size:17px;font-weight:700;color:#0d1a0f;line-height:1.5;border-left:3px solid #149040;padding-left:14px;margin:12px 0 16px;font-style:italic}
+.au-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+.au-pill{background:#edfff2;border:1px solid #b3e8c4;border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:#0c7535}
+.au-section{border:1px solid #dce9de;border-radius:20px;background:#fff;padding:28px 24px}
+.au-section-title{margin:0 0 20px;font-size:26px;font-weight:900;color:#0d1a0f;text-align:center}
+.au-values-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.au-value-card{border:1px solid #dde9de;border-radius:14px;padding:20px 16px;background:#fafcfa}
+.au-value-ico{font-size:28px;display:block;margin-bottom:10px}
+.au-value-card h3{margin:0 0 8px;font-size:15px;font-weight:800;color:#0d1810}
+.au-value-card p{margin:0;font-size:13px;color:#4d6551;line-height:1.6}
+.au-timeline{display:flex;flex-direction:column;gap:0}
+.au-milestone{display:grid;grid-template-columns:80px 24px 1fr;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed #dce9dd}
+.au-milestone:last-child{border-bottom:none}
+.au-mile-year{font-size:14px;font-weight:800;color:#149040;text-align:right}
+.au-mile-dot{width:14px;height:14px;border-radius:50%;background:#149040;flex-shrink:0;justify-self:center}
+.au-mile-event{margin:0;font-size:13px;color:#2c4231;line-height:1.5}
+.au-cta{background:linear-gradient(120deg,#0a3520,#0c5a32);border-radius:20px;padding:40px 32px;text-align:center;color:#fff}
+.au-cta h2{margin:0 0 10px;font-size:28px;font-weight:900;color:#fff}
+.au-cta p{margin:0;color:#baf0ce;font-size:15px}
+
+/* ── STORES ── */
+.st-hero{display:grid;grid-template-columns:1.2fr 0.9fr;gap:20px;border:1px solid #dce9de;border-radius:20px;background:#fff;padding:36px 32px;align-items:center}
+.st-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.st-step{border:1px solid #dde9de;border-radius:14px;padding:20px 14px;background:#fafcfa;text-align:center;position:relative}
+.st-step-ico{font-size:28px;margin-bottom:8px}
+.st-step-num{position:absolute;top:10px;right:12px;background:#edf9f1;border:1px solid #c3e6cc;color:#149040;border-radius:50%;width:22px;height:22px;display:grid;place-items:center;font-size:11px;font-weight:800}
+.st-step h3{margin:0 0 6px;font-size:14px;font-weight:800;color:#0d1810}
+.st-step p{margin:0;font-size:12px;color:#4d6551;line-height:1.5}
+.st-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.st-cat-btn{border:1px solid #cde5d2;background:#fff;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:600;color:#2c4231;cursor:pointer;transition:all .15s}
+.st-cat-btn.active{background:#149040;color:#fff;border-color:#149040}
+.st-brands-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.st-brand-card{border:1px solid #dde9de;border-radius:14px;overflow:hidden;background:#fff}
+.st-brand-img{height:140px;overflow:hidden;background:#f5f5f5}
+.st-brand-img img{width:100%;height:100%;object-fit:cover;object-position:top}
+.st-brand-info{padding:12px}
+.st-brand-info strong{display:block;font-size:14px;font-weight:800;color:#0d1810;margin-bottom:2px}
+.st-brand-cat{font-size:11px;color:#149040;font-weight:600;display:block;margin-bottom:6px}
+.st-brand-meta{display:flex;gap:8px;flex-wrap:wrap;font-size:11px;color:#4d6551}
+
+/* ── CAREERS ── */
+.cr-hero{border:1px solid #dce9de;border-radius:20px;background:#fff;padding:40px 32px;text-align:center}
+.cr-hero h1{font-size:clamp(28px,4vw,52px);font-weight:900;margin:12px 0}
+.cr-hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:28px}
+.cr-roles{display:flex;flex-direction:column;gap:12px}
+.cr-role-card{border:1px solid #dde9de;border-radius:14px;background:#fff;padding:20px}
+.cr-role-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:10px}
+.cr-role-card h3{margin:0 0 8px;font-size:16px;font-weight:800;color:#0d1810}
+.cr-role-meta{display:flex;gap:6px;flex-wrap:wrap}
+.cr-tag{background:#f0faf3;border:1px solid #c3e6cc;color:#149040;border-radius:999px;padding:3px 10px;font-size:11px;font-weight:600}
+.cr-tag-green{background:#149040;color:#fff;border-color:#149040}
+.cr-role-desc{margin:0;font-size:13px;color:#4d6551;line-height:1.6}
+.cr-apply-btn{white-space:nowrap;flex-shrink:0;padding:9px 16px;font-size:13px}
+
+/* ── CONTACT US ── */
+.cu-hero{border:1px solid #dce9de;border-radius:20px;background:linear-gradient(135deg,#f0faf3,#e8f5ec);padding:40px 32px;text-align:center}
+.cu-hero h1{margin:0 0 10px;font-size:clamp(24px,3.5vw,44px);font-weight:900;color:#0d1a0f}
+.cu-hero p{margin:0;font-size:16px;color:#4d6551}
+.cu-contact-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.cu-contact-card{display:flex;align-items:center;gap:16px;border:1px solid #dde9de;border-radius:16px;background:#fff;padding:20px;text-decoration:none;color:inherit;position:relative;transition:box-shadow .2s}
+.cu-contact-card:hover{box-shadow:0 4px 16px rgba(14,117,53,.12)}
+.cu-card-ico{width:52px;height:52px;border-radius:14px;background:#e8f5ec;display:grid;place-items:center;flex-shrink:0;color:#25d366}
+.cu-card-ico-blue{background:#eff6ff;color:#3b82f6}
+.cu-card-ico-orange{background:#fff7ed;color:#f97316}
+.cu-wa .cu-card-ico{background:#dcfce7;color:#25d366}
+.cu-contact-card strong{display:block;font-size:15px;font-weight:800;color:#0d1a0f;margin-bottom:2px}
+.cu-contact-card span{display:block;font-size:12px;color:#4d6551}
+.cu-contact-card p{margin:4px 0 0;font-size:13px;font-weight:700;color:#149040}
+.cu-badge{position:absolute;top:12px;right:12px;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700}
+.cu-badge-green{background:#dcfce7;color:#15803d}
+.cu-cats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.cu-cat-card{display:flex;flex-direction:column;align-items:center;gap:6px;border:1px solid #dde9de;border-radius:14px;padding:18px 12px;background:#fafcfa;text-decoration:none;color:inherit;text-align:center;transition:box-shadow .2s}
+.cu-cat-card:hover{box-shadow:0 4px 12px rgba(14,117,53,.1);border-color:#b6dfc0}
+.cu-cat-ico{font-size:26px}
+.cu-cat-card strong{font-size:13px;font-weight:700;color:#0d1810}
+.cu-cat-card span{font-size:11px;color:#4d6551}
+.cu-hours-section{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.cu-hours-card{border:1px solid #dde9de;border-radius:16px;background:#fff;padding:24px}
+.cu-hours-card h2{margin:0 0 16px;font-size:20px;font-weight:800}
+.cu-hours-list{display:flex;flex-direction:column;gap:10px}
+.cu-hour-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#f9fdf9;border-radius:10px;font-size:13px;border:1px solid #dce9dd}
+.cu-hour-row span{color:#4d6551}
+.cu-hour-row strong{color:#0d1810}
+.cu-quick-links{display:flex;flex-direction:column;gap:8px}
+.cu-quick-link{border:1px solid #dde9de;background:#fafcfa;border-radius:10px;padding:11px 14px;font-size:13px;font-weight:600;color:#1a2e1d;cursor:pointer;text-align:left;transition:background .15s}
+.cu-quick-link:hover{background:#edf9f1;color:#149040}
+
+/* ── PAGES RESPONSIVE ── */
+@media(max-width:960px){
+  .lp-hamburger{display:flex}
+  .au-hero,.st-hero,.au-mission,.cu-hours-section{grid-template-columns:1fr}
+  .au-values-grid{grid-template-columns:1fr 1fr}
+  .cr-hero-stats,.st-steps,.st-brands-grid{grid-template-columns:repeat(2,1fr)}
+  .cu-contact-cards,.cu-cats-grid{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .au-hero,.st-hero,.cr-hero,.cu-hero,.au-section,.au-cta,.cu-hours-card{padding:20px 16px}
+  .au-values-grid,.cr-hero-stats,.st-steps,.st-brands-grid{grid-template-columns:1fr}
+  .cu-cats-grid{grid-template-columns:repeat(3,1fr)}
+  .cr-role-top{flex-direction:column}
+  .au-section-title{font-size:20px}
+}
+
 /* WHATSAPP FLOAT */
 .lp-wa-btn{position:fixed;bottom:24px;right:24px;z-index:100;display:inline-flex;align-items:center;gap:8px;background:#25d366;color:#fff;border-radius:50px;padding:12px 18px;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 4px 18px rgba(37,211,102,.45);transition:transform .2s,box-shadow .2s}
 .lp-wa-btn:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(37,211,102,.55)}
