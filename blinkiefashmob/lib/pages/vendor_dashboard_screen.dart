@@ -2241,6 +2241,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                         final size = (item['size'] ?? '-').toString();
                         final color = (item['color'] ?? '-').toString();
                         final barcode = (item['barcode'] ?? '').toString();
+                        final imageUrl = (item['image_url'] ?? '').toString().trim();
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           padding: const EdgeInsets.all(8),
@@ -2249,22 +2250,55 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                          child: Column(
+                          child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                '$productName • Qty: $qty',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
+                              Container(
+                                width: 46,
+                                height: 46,
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(8),
+                                  color: const Color(0xFFE2E8F0),
                                 ),
+                                clipBehavior: Clip.antiAlias,
+                                child: imageUrl.isEmpty
+                                    ? const Icon(
+                                        Icons.inventory_2_outlined,
+                                        size: 20,
+                                        color: Color(0xFF64748B),
+                                      )
+                                    : Image.network(
+                                        imageUrl,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, _, _) =>
+                                            const Icon(
+                                              Icons.broken_image_outlined,
+                                              size: 20,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                      ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Variant: $size / $color${barcode.trim().isEmpty ? '' : ' • Barcode: $barcode'}',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  color: Color(0xFF475569),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '$productName • Qty: $qty',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Variant: $size / $color${barcode.trim().isEmpty ? '' : ' • Barcode: $barcode'}',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF475569),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],

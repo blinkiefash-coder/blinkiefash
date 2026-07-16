@@ -262,6 +262,26 @@ router.get("/:id/orders", async (req, res) => {
            'price', oi.price,
            'item_status', oi.item_status,
            'product_name', p.name,
+           'image_url', COALESCE(
+             (SELECT pm.url
+              FROM product_media pm
+              WHERE pm.variant_id = v.id AND pm.is_primary = true
+              LIMIT 1),
+             (SELECT pm.url
+              FROM product_media pm
+              WHERE pm.variant_id = v.id
+              LIMIT 1),
+             (SELECT pm.url
+              FROM product_media pm
+              JOIN product_variants pv2 ON pv2.id = pm.variant_id
+              WHERE pv2.product_id = p.id AND pm.is_primary = true
+              LIMIT 1),
+             (SELECT pm.url
+              FROM product_media pm
+              JOIN product_variants pv2 ON pv2.id = pm.variant_id
+              WHERE pv2.product_id = p.id
+              LIMIT 1)
+           ),
            'size', v.size,
            'color', v.color,
            'barcode', v.barcode
