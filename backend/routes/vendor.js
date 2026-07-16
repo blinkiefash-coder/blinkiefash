@@ -452,7 +452,7 @@ router.post("/:id/stock", async (req, res) => {
     if (existingInv.rows.length > 0) {
       await pool.query(
         `UPDATE inventory
-         SET stock = $1, updated_at = NOW()
+         SET stock = $1
          WHERE id = $2`,
         [Math.trunc(safeQty), existingInv.rows[0].id]
       );
