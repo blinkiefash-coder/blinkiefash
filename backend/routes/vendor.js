@@ -74,16 +74,18 @@ router.get("/", async (req, res) => {
 router.get("/:identifier", async (req, res) => {
   try {
     const { identifier } = req.params;
-    const numericId = Number(identifier);
 
     const result = await pool.query(
       `SELECT id, store_name, slug, description, address, city, pincode,
-              lat, lng, service_radius_km, is_verified, is_active,
+              lat, lng, service_radius_km, dark_store_id,
+              (SELECT ds.name FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_name,
+              (SELECT ds.city FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_city,
+              is_verified, is_active,
               vendor_img_url, created_at
        FROM vendors
-       WHERE id = $1 OR slug = $2
+       WHERE id::text = $1 OR slug = $1
        LIMIT 1`,
-      [Number.isNaN(numericId) ? null : numericId, identifier]
+      [identifier]
     );
 
     if (result.rows.length === 0) {
@@ -116,6 +118,16 @@ router.get("/debug/all-products", async (req, res) => {
 router.get("/:id/products", async (req, res) => {
   try {
     const { id } = req.params;
+
+    const vendorStore = await pool.query(
+      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+
+    if (!linkedStoreId) {
+      return res.json([]);
+    }
     
     // First, get all products for this vendor
     const productsResult = await pool.query(
@@ -132,9 +144,18 @@ router.get("/:id/products", async (req, res) => {
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.vendor_id = $1 AND p.is_active = true
+       WHERE p.vendor_id = $1
+         AND p.is_active = true
+         AND EXISTS (
+           SELECT 1
+           FROM product_variants pvx
+           JOIN inventory ix ON ix.variant_id = pvx.id
+           WHERE pvx.product_id = p.id
+             AND ix.store_id = $2
+             AND COALESCE(ix.stock, 0) > 0
+         )
        ORDER BY p.created_at DESC`,
-      [id]
+      [id, linkedStoreId]
     );
 
     const products = productsResult.rows;
@@ -143,15 +164,14 @@ router.get("/:id/products", async (req, res) => {
     const productsWithVariants = await Promise.all(
       products.map(async (product) => {
         const variantsResult = await pool.query(
-          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
-                  COALESCE(SUM(i.stock), 0) as quantity,
+          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.barcode, pv.price, pv.mrp, pv.is_active,
+                      COALESCE(i.stock, 0) as quantity,
                   i.store_id
            FROM product_variants pv
-           LEFT JOIN inventory i ON i.variant_id = pv.id
+                    LEFT JOIN inventory i ON i.variant_id = pv.id AND i.store_id = $2
            WHERE pv.product_id = $1 AND pv.is_active = true
-           GROUP BY pv.id, i.store_id
            ORDER BY pv.id ASC`,
-          [product.id]
+                   [product.id, linkedStoreId]
         );
 
         return {
@@ -165,6 +185,44 @@ router.get("/:id/products", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Get the vendor's linked dark store details
+router.get("/:id/store", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `SELECT v.dark_store_id,
+              ds.name,
+              ds.city,
+              ds.address
+       FROM vendors v
+       LEFT JOIN dark_stores ds ON ds.id = v.dark_store_id
+       WHERE v.id = $1
+       LIMIT 1`,
+      [id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    const row = rows[0];
+    return res.json({
+      success: true,
+      store: row.dark_store_id
+        ? {
+            id: row.dark_store_id,
+            name: row.name,
+            city: row.city,
+            address: row.address,
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error("Vendor linked store fetch error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 });
 
@@ -208,13 +266,25 @@ router.get("/:id/orders", async (req, res) => {
 router.post("/:id/stock", async (req, res) => {
   try {
     const { id: vendorId } = req.params;
-    const { storeId, variantId, quantity } = req.body || {};
+    const { variantId, quantity } = req.body || {};
 
     const safeQty = Number(quantity);
-    if (!storeId || !variantId || Number.isNaN(safeQty) || safeQty < 0) {
+    if (!variantId || Number.isNaN(safeQty) || safeQty < 0) {
       return res.status(400).json({
         success: false,
-        error: "storeId, variantId and non-negative quantity are required"
+        error: "variantId and non-negative quantity are required"
+      });
+    }
+
+    const vendorStore = await pool.query(
+      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      [vendorId]
+    );
+    const storeId = vendorStore.rows[0]?.dark_store_id || null;
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        error: "Vendor is not linked to a store"
       });
     }
 
@@ -278,6 +348,45 @@ router.post("/:id/stock", async (req, res) => {
     });
   } catch (err) {
     console.error("Vendor stock update error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+// Link/unlink vendor to a specific dark store
+router.patch("/:id/store", async (req, res) => {
+  try {
+    const { id: vendorId } = req.params;
+    const { dark_store_id } = req.body || {};
+
+    if (dark_store_id) {
+      const storeCheck = await pool.query(
+        `SELECT id FROM dark_stores WHERE id = $1 LIMIT 1`,
+        [dark_store_id]
+      );
+      if (storeCheck.rows.length === 0) {
+        return res.status(404).json({
+          success: false,
+          error: "Dark store not found"
+        });
+      }
+    }
+
+    const { rows } = await pool.query(
+      `UPDATE vendors
+       SET dark_store_id = $1,
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, dark_store_id`,
+      [dark_store_id || null, vendorId]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    return res.json({ success: true, vendor: rows[0] });
+  } catch (err) {
+    console.error("Vendor store link update error:", err);
     return res.status(500).json({ success: false, error: "Server error" });
   }
 });
@@ -373,7 +482,7 @@ router.post("/login-password", async (req, res) => {
     }
 
     const vendorResult = await pool.query(
-      `SELECT id, user_id, email, password_hash, store_name, slug
+      `SELECT id, user_id, email, password_hash, store_name, slug, dark_store_id
        FROM vendors
        WHERE lower(email) = $1
        LIMIT 1`,
@@ -416,6 +525,7 @@ router.post("/login-password", async (req, res) => {
     return res.json({
       success: true,
       vendor_id: vendor.id,
+      dark_store_id: vendor.dark_store_id,
       store_name: vendor.store_name,
       owner_name: vendor.owner_name,
       message: "Login successful"
@@ -451,6 +561,7 @@ router.post(
         pan_number,
         years_in_business,
         store_name,
+        dark_store_id,
         description,
         address,
         city,
@@ -563,6 +674,22 @@ router.post(
 
         const slug = buildSlug(store_name || business_name);
 
+        let linkedDarkStoreId = null;
+        if (dark_store_id) {
+          const storeLookup = await client.query(
+            `SELECT id FROM dark_stores WHERE id = $1 LIMIT 1`,
+            [dark_store_id]
+          );
+          if (!storeLookup.rows.length) {
+            await client.query("ROLLBACK");
+            return res.status(400).json({
+              success: false,
+              message: "Invalid dark_store_id"
+            });
+          }
+          linkedDarkStoreId = dark_store_id;
+        }
+
         const logoFile = req.files?.logo?.[0];
         const panDocFile = req.files?.panDoc?.[0];
         const gstDocFile = req.files?.gstDoc?.[0];
@@ -612,6 +739,7 @@ router.post(
             pan_number,
             years_in_business,
             store_name,
+            dark_store_id,
             slug,
             description,
             logo_url,
@@ -642,7 +770,7 @@ router.post(
             $11, $12, $13, $14, $15,
             $16, $17, $18, $19, $20,
             $21, $22, $23, $24, $25,
-            $26, $27, $28, $29, 'pending', false, false, false, true, NOW(), NOW()
+            $26, $27, $28, $29, $30, 'pending', false, false, false, true, NOW(), NOW()
           )
           RETURNING id, user_id, email, store_name, slug, status, created_at`,
           [
@@ -658,6 +786,7 @@ router.post(
             pan_number || null,
             years_in_business ? Number(years_in_business) : null,
             store_name,
+            linkedDarkStoreId,
             slug,
             description || null,
             logoUrl,

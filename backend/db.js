@@ -51,6 +51,7 @@ export const ensureDatabaseTables = async () => {
       lat DECIMAL(10, 8),
       lng DECIMAL(11, 8),
       service_radius_km DECIMAL(10, 2) DEFAULT 25,
+      dark_store_id UUID,
       account_holder_name VARCHAR(255),
       account_number VARCHAR(50),
       ifsc_code VARCHAR(20),
@@ -103,10 +104,35 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS lat DECIMAL(10, 8),
       ADD COLUMN IF NOT EXISTS lng DECIMAL(11, 8),
       ADD COLUMN IF NOT EXISTS service_radius_km DECIMAL(10, 2) DEFAULT 25,
+      ADD COLUMN IF NOT EXISTS dark_store_id UUID,
       ADD COLUMN IF NOT EXISTS is_verified BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true,
       ADD COLUMN IF NOT EXISTS is_approved BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS is_operational BOOLEAN DEFAULT true;
+  `).catch(() => {});
+
+  await pool.query(`
+    DO $$
+    BEGIN
+      IF EXISTS (
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public' AND table_name = 'dark_stores'
+      ) THEN
+        IF NOT EXISTS (
+          SELECT 1
+          FROM information_schema.table_constraints
+          WHERE table_schema = 'public'
+            AND table_name = 'vendors'
+            AND constraint_name = 'vendors_dark_store_id_fkey'
+        ) THEN
+          ALTER TABLE vendors
+            ADD CONSTRAINT vendors_dark_store_id_fkey
+            FOREIGN KEY (dark_store_id) REFERENCES dark_stores(id)
+            ON DELETE SET NULL;
+        END IF;
+      END IF;
+    END $$;
   `).catch(() => {});
 
   await pool.query(`
@@ -447,6 +473,17 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS buy_2 BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS buy_3 BOOLEAN DEFAULT false,
       ADD COLUMN IF NOT EXISTS buy_4 BOOLEAN DEFAULT false
+  `).catch(() => {});
+
+  // ── Variant barcode support ───────────────────────────────────────────────
+  await pool.query(`
+    ALTER TABLE product_variants
+      ADD COLUMN IF NOT EXISTS barcode VARCHAR(120)
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_product_variants_barcode
+    ON product_variants(barcode)
   `).catch(() => {});
 
   // ── Bulk offer/deal support ─────────────────────────────────────────────────

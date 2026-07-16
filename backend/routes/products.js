@@ -93,6 +93,7 @@ const prepareCreatePayload = (body = {}) => {
   const variants = nestedVariants.map((variant) => ({
     size: (variant.size || "").trim() || "M",
     color: (variant.color || "").trim() || "Black",
+    barcode: (variant.barcode || "").trim() || null,
     mrp: toNumber(variant.mrp, 0),
     price: toNumber(variant.price, 0),
     stock: toNumber(variant.quantity ?? variant.stock, 0),
@@ -184,9 +185,17 @@ const createProductSimple = async (req, res) => {
         .toUpperCase();
 
       const variantRes = await client.query(
-        `INSERT INTO product_variants (product_id, sku, size, color, price, mrp)
-         VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
-        [productId, sku, variant.size, variant.color, variant.price, variant.mrp]
+        `INSERT INTO product_variants (product_id, sku, size, color, barcode, price, mrp)
+         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+        [
+          productId,
+          sku,
+          variant.size,
+          variant.color,
+          variant.barcode,
+          variant.price,
+          variant.mrp,
+        ]
       );
 
       await client.query(
@@ -520,6 +529,7 @@ router.get("/:id", async (req, res) => {
          v.variant_code,
          v.size,
          v.color,
+         v.barcode,
          v.mrp        AS price,
          v.price      AS discount_price,
          GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock

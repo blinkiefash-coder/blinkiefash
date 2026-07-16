@@ -849,7 +849,7 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
     const productsWithVariants = await Promise.all(
       products.map(async (product) => {
         const variantsResult = await pool.query(
-          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.price, pv.mrp, pv.is_active,
+          `SELECT pv.id, pv.product_id, pv.size, pv.color, pv.barcode, pv.price, pv.mrp, pv.is_active,
                   COALESCE(i.stock, 0) as quantity,
                   i.store_id
            FROM product_variants pv

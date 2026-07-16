@@ -104,7 +104,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
         body: IndexedStack(
           index: _tab,
           children: [
-            _VendorAddProductTab(vendorId: widget.vendorId),
+            _VendorAddProductTab(
+              vendorId: widget.vendorId,
+              fallbackStoreLabel: widget.storeName,
+            ),
             _VendorStockMonitoringTab(vendorId: widget.vendorId),
             _VendorStockUpdateTab(vendorId: widget.vendorId),
             _VendorOrdersTab(vendorId: widget.vendorId),
@@ -152,9 +155,13 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
 }
 
 class _VendorAddProductTab extends StatefulWidget {
-  const _VendorAddProductTab({required this.vendorId});
+  const _VendorAddProductTab({
+    required this.vendorId,
+    required this.fallbackStoreLabel,
+  });
 
   final String vendorId;
+  final String fallbackStoreLabel;
 
   @override
   State<_VendorAddProductTab> createState() => _VendorAddProductTabState();
@@ -175,11 +182,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
   List<Map<String, dynamic>> _parentCategories = const [];
   List<Map<String, dynamic>> _childCategories = const [];
   List<Map<String, dynamic>> _subChildCategories = const [];
-  List<Map<String, dynamic>> _darkStores = const [];
   String? _selectedParentCategoryId;
   String? _selectedChildCategoryId;
   String? _selectedCategoryId;
   String? _selectedStoreId;
+  String? _selectedStoreLabel;
   bool _loadingCategories = true;
   bool _loadingStores = true;
   bool _submitting = false;
@@ -196,7 +203,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
   void initState() {
     super.initState();
     _loadBrandsAndCategories();
-    _loadDarkStores();
+    _loadLinkedStore();
     _loadRecentProducts();
   }
 
@@ -338,20 +345,32 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
     }
   }
 
-  Future<void> _loadDarkStores() async {
+  Future<void> _loadLinkedStore() async {
     setState(() => _loadingStores = true);
     try {
-      final stores = await _api.fetchDarkStores();
-      final rows = stores
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((e) => e['id'] != null)
-          .toList();
+      final linkedRes = await _api.fetchVendorLinkedStore(widget.vendorId);
+      final store = linkedRes['store'];
+      final linked = store is Map ? Map<String, dynamic>.from(store) : null;
+
+      final profile = await _api.fetchVendorProfile(widget.vendorId);
+      final vendorStoreName = (profile['store_name'] ?? '').toString().trim();
+      final vendorCity = (profile['city'] ?? '').toString().trim();
+
       if (!mounted) return;
       setState(() {
-        _darkStores = rows;
-        if (_selectedStoreId == null && rows.isNotEmpty) {
-          _selectedStoreId = rows.first['id']?.toString();
+        _selectedStoreId = linked?['id']?.toString();
+        if (linked != null) {
+          _selectedStoreLabel =
+              '${linked['name'] ?? ''} - ${linked['city'] ?? ''}'.trim();
+        } else if (vendorStoreName.isNotEmpty || vendorCity.isNotEmpty) {
+          _selectedStoreLabel = [
+            vendorStoreName,
+            vendorCity,
+          ].where((e) => e.isNotEmpty).join(' - ');
+        } else {
+          _selectedStoreLabel = widget.fallbackStoreLabel.trim().isEmpty
+              ? null
+              : widget.fallbackStoreLabel.trim();
         }
       });
     } finally {
@@ -426,6 +445,9 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
           'color': v.colorCtrl.text.trim().isEmpty
               ? 'Black'
               : v.colorCtrl.text.trim(),
+          'barcode': v.barcodeCtrl.text.trim().isEmpty
+              ? null
+              : v.barcodeCtrl.text.trim(),
           'mrp': mrp,
           'price': price,
           'quantity': qty,
@@ -582,26 +604,13 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                   const SizedBox(height: 12),
                   _loadingStores
                       ? const LinearProgressIndicator(minHeight: 2)
-                      : DropdownButtonFormField<String>(
-                          initialValue: _selectedStoreId,
+                      : TextFormField(
+                          initialValue: _selectedStoreLabel ?? 'Not linked',
+                          readOnly: true,
                           decoration: const InputDecoration(
-                            labelText: 'Dark Store (optional)',
+                            labelText: 'Store',
                             border: OutlineInputBorder(),
                           ),
-                          items: _darkStores
-                              .map(
-                                (s) => DropdownMenuItem<String>(
-                                  value: s['id']?.toString(),
-                                  child: Text(
-                                    '${s['name'] ?? ''} - ${s['city'] ?? ''}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                              )
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedStoreId = v),
                         ),
                   if (_brands.isNotEmpty) ...[
                     const SizedBox(height: 10),
@@ -794,6 +803,14 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: v.barcodeCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Barcode (optional)',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                           const SizedBox(height: 8),
                           Row(
@@ -1023,11 +1040,9 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
   final ApiClient _api = ApiClient();
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
-  bool _loadingStores = true;
   bool _showLowStockOnly = false;
   String _search = '';
-  List<Map<String, dynamic>> _stores = const [];
-  String? _selectedStoreId;
+  String? _storeLabel;
   List<Map<String, dynamic>> _products = const [];
 
   @override
@@ -1039,45 +1054,28 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
   @override
   void initState() {
     super.initState();
-    _loadStores();
+    _load();
   }
 
-  Future<void> _loadStores() async {
-    setState(() => _loadingStores = true);
-    try {
-      final data = await _api.fetchDarkStores();
-      final stores = data
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((e) => e['id'] != null)
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _stores = stores;
-        _selectedStoreId = stores.isNotEmpty
-            ? stores.first['id'].toString()
-            : null;
-      });
-      if (_selectedStoreId != null) {
-        await _loadProductsForStore(_selectedStoreId!);
-      } else {
-        setState(() => _loading = false);
-      }
-    } finally {
-      if (mounted) setState(() => _loadingStores = false);
-    }
-  }
-
-  Future<void> _loadProductsForStore(String storeId) async {
+  Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final data = await _api.fetchDarkStoreProducts(storeId);
+      final linkedStoreRes = await _api.fetchVendorLinkedStore(widget.vendorId);
+      final store = linkedStoreRes['store'];
+      final storeMap = store is Map ? Map<String, dynamic>.from(store) : null;
+
+      final data = await _api.fetchVendorProducts(widget.vendorId);
       final products = data
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
       if (!mounted) return;
-      setState(() => _products = products);
+      setState(() {
+        _storeLabel = storeMap == null
+            ? 'Not linked'
+            : '${storeMap['name'] ?? ''} - ${storeMap['city'] ?? ''}'.trim();
+        _products = products;
+      });
     } finally {
       if (mounted) setState(() => _loading = false);
     }
@@ -1124,53 +1122,21 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
     }).length;
 
     return RefreshIndicator(
-      onRefresh: () async {
-        if (_selectedStoreId != null) {
-          await _loadProductsForStore(_selectedStoreId!);
-        }
-      },
+      onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Stock Monitoring by Dark Store',
+            'Stock Monitoring',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'View inventory levels across selected dark stores.',
-            style: TextStyle(color: Color(0xFF64748B)),
+          Text(
+            'Store: ${_storeLabel ?? 'Loading...'}',
+            style: const TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
-          if (_loadingStores)
-            const LinearProgressIndicator(minHeight: 2)
-          else
-            DropdownButtonFormField<String>(
-              initialValue: _selectedStoreId,
-              decoration: const InputDecoration(
-                labelText: 'Select Dark Store',
-                border: OutlineInputBorder(),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              items: _stores
-                  .map(
-                    (s) => DropdownMenuItem<String>(
-                      value: s['id']?.toString(),
-                      child: Text(
-                        '${s['name'] ?? ''} - ${s['city'] ?? ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() => _selectedStoreId = v);
-                _loadProductsForStore(v);
-              },
-            ),
+          if (_loading) const LinearProgressIndicator(minHeight: 2),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -1233,9 +1199,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
-                onPressed: (_loading || _selectedStoreId == null)
-                    ? null
-                    : () => _loadProductsForStore(_selectedStoreId!),
+                onPressed: _loading ? null : _load,
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ],
@@ -1324,6 +1288,10 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
                         final qty = int.tryParse('${v['quantity'] ?? 0}') ?? 0;
                         final size = (v['size'] ?? '-').toString();
                         final color = (v['color'] ?? '-').toString();
+                        final barcode = (v['barcode'] ?? '').toString().trim();
+                        final barcodeLabel = barcode.isEmpty
+                            ? 'No barcode'
+                            : 'Barcode: $barcode';
                         return Container(
                           padding: const EdgeInsets.symmetric(
                             horizontal: 8,
@@ -1335,7 +1303,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
                           child: Text(
-                            '$size • $color • Qty: $qty',
+                            '$size • $color • Qty: $qty • $barcodeLabel',
                             style: const TextStyle(fontSize: 12),
                           ),
                         );
@@ -1365,24 +1333,21 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _refreshTimer;
 
-  bool _loadingStores = true;
   bool _loadingProducts = true;
   bool _updating = false;
   String _search = '';
-  String? _selectedStoreId;
+  String? _storeLabel;
   String? _selectedProductId;
-  List<Map<String, dynamic>> _stores = const [];
   List<Map<String, dynamic>> _products = const [];
 
   @override
   void initState() {
     super.initState();
-    _loadStores();
+    _load();
     // Poll every 8 seconds so vendors can see quickly changing inventory.
     _refreshTimer = Timer.periodic(const Duration(seconds: 8), (_) {
-      final storeId = _selectedStoreId;
-      if (storeId != null && mounted && !_updating) {
-        _loadProductsForStore(storeId, silent: true);
+      if (mounted && !_updating) {
+        _load(silent: true);
       }
     });
   }
@@ -1394,45 +1359,24 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
     super.dispose();
   }
 
-  Future<void> _loadStores() async {
-    setState(() => _loadingStores = true);
-    try {
-      final data = await _api.fetchDarkStores();
-      final stores = data
-          .whereType<Map>()
-          .map((e) => Map<String, dynamic>.from(e))
-          .where((e) => e['id'] != null)
-          .toList();
-      if (!mounted) return;
-      setState(() {
-        _stores = stores;
-        _selectedStoreId = stores.isNotEmpty
-            ? stores.first['id'].toString()
-            : null;
-      });
-      if (_selectedStoreId != null) {
-        await _loadProductsForStore(_selectedStoreId!);
-      } else {
-        setState(() => _loadingProducts = false);
-      }
-    } finally {
-      if (mounted) setState(() => _loadingStores = false);
-    }
-  }
-
-  Future<void> _loadProductsForStore(
-    String storeId, {
-    bool silent = false,
-  }) async {
+  Future<void> _load({bool silent = false}) async {
     if (!silent) setState(() => _loadingProducts = true);
     try {
-      final data = await _api.fetchDarkStoreProducts(storeId);
+      final linkedStoreRes = await _api.fetchVendorLinkedStore(widget.vendorId);
+      final store = linkedStoreRes['store'];
+      final storeMap = store is Map ? Map<String, dynamic>.from(store) : null;
+
+      final data = await _api.fetchVendorProducts(widget.vendorId);
       final products = data
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
+
       if (!mounted) return;
       setState(() {
+        _storeLabel = storeMap == null
+            ? 'Not linked'
+            : '${storeMap['name'] ?? ''} - ${storeMap['city'] ?? ''}'.trim();
         _products = products;
         if (_selectedProductId != null &&
             !_products.any((p) => p['id']?.toString() == _selectedProductId)) {
@@ -1448,9 +1392,6 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
     required String variantId,
     required int qty,
   }) async {
-    final storeId = _selectedStoreId;
-    if (storeId == null) return;
-
     if (qty < 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Quantity cannot be negative')),
@@ -1462,7 +1403,6 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
     try {
       final res = await _api.updateVendorVariantStock(
         vendorId: widget.vendorId,
-        storeId: storeId,
         variantId: variantId,
         quantity: qty,
       );
@@ -1557,12 +1497,7 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
     }).toList();
 
     return RefreshIndicator(
-      onRefresh: () async {
-        final storeId = _selectedStoreId;
-        if (storeId != null) {
-          await _loadProductsForStore(storeId);
-        }
-      },
+      onRefresh: _load,
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -1576,38 +1511,14 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
             style: TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
-          if (_loadingStores)
-            const LinearProgressIndicator(minHeight: 2)
-          else
-            DropdownButtonFormField<String>(
-              initialValue: _selectedStoreId,
-              decoration: const InputDecoration(
-                labelText: 'Select Dark Store',
-                border: OutlineInputBorder(),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              items: _stores
-                  .map(
-                    (s) => DropdownMenuItem<String>(
-                      value: s['id']?.toString(),
-                      child: Text(
-                        '${s['name'] ?? ''} - ${s['city'] ?? ''}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (v) {
-                if (v == null) return;
-                setState(() {
-                  _selectedStoreId = v;
-                  _selectedProductId = null;
-                });
-                _loadProductsForStore(v);
-              },
+          Text(
+            'Store: ${_storeLabel ?? 'Loading...'}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
             ),
+          ),
           const SizedBox(height: 12),
           TextField(
             controller: _searchController,
@@ -1664,9 +1575,7 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
               const Spacer(),
               IconButton(
                 tooltip: 'Refresh',
-                onPressed: (_loadingProducts || _selectedStoreId == null)
-                    ? null
-                    : () => _loadProductsForStore(_selectedStoreId!),
+                onPressed: _loadingProducts ? null : _load,
                 icon: const Icon(Icons.refresh_rounded),
               ),
             ],
@@ -1717,6 +1626,7 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
                       final qty = int.tryParse('${v['quantity'] ?? 0}') ?? 0;
                       final size = (v['size'] ?? '-').toString();
                       final color = (v['color'] ?? '-').toString();
+                      final barcode = (v['barcode'] ?? '').toString().trim();
                       return Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.all(10),
@@ -1728,11 +1638,24 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: Text(
-                                '$size • $color',
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '$size • $color',
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  if (barcode.isNotEmpty)
+                                    Text(
+                                      'Barcode: $barcode',
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                    ),
+                                ],
                               ),
                             ),
                             IconButton(
@@ -1844,12 +1767,14 @@ class _VariantDraft {
   _VariantDraft()
     : sizeCtrl = TextEditingController(text: 'M'),
       colorCtrl = TextEditingController(text: 'Black'),
+      barcodeCtrl = TextEditingController(),
       mrpCtrl = TextEditingController(),
       priceCtrl = TextEditingController(),
       stockCtrl = TextEditingController(text: '0');
 
   final TextEditingController sizeCtrl;
   final TextEditingController colorCtrl;
+  final TextEditingController barcodeCtrl;
   final TextEditingController mrpCtrl;
   final TextEditingController priceCtrl;
   final TextEditingController stockCtrl;
@@ -1858,6 +1783,7 @@ class _VariantDraft {
   void dispose() {
     sizeCtrl.dispose();
     colorCtrl.dispose();
+    barcodeCtrl.dispose();
     mrpCtrl.dispose();
     priceCtrl.dispose();
     stockCtrl.dispose();
@@ -1909,60 +1835,44 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Vendor Orders',
+            'Orders',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${_orders.length} orders linked to your products',
-            style: const TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: [
-              _OrderFilterChip(
-                label: 'All',
-                selected: _statusFilter == 'all',
-                onTap: () => setState(() => _statusFilter = 'all'),
-              ),
-              _OrderFilterChip(
-                label: 'Pending',
-                selected: _statusFilter == 'pending',
-                onTap: () => setState(() => _statusFilter = 'pending'),
-              ),
-              _OrderFilterChip(
-                label: 'Confirmed',
-                selected: _statusFilter == 'confirmed',
-                onTap: () => setState(() => _statusFilter = 'confirmed'),
-              ),
-              _OrderFilterChip(
-                label: 'Delivered',
-                selected: _statusFilter == 'delivered',
-                onTap: () => setState(() => _statusFilter = 'delivered'),
-              ),
+              for (final status in const [
+                'all',
+                'pending',
+                'confirmed',
+                'shipped',
+                'delivered',
+                'cancelled',
+              ])
+                ChoiceChip(
+                  label: Text(status.toUpperCase()),
+                  selected: _statusFilter == status,
+                  onSelected: (_) => setState(() => _statusFilter = status),
+                ),
             ],
           ),
           const SizedBox(height: 12),
           if (_loading)
-            const Padding(
-              padding: EdgeInsets.only(top: 20),
-              child: Center(child: CircularProgressIndicator()),
-            )
+            const Center(child: CircularProgressIndicator())
           else if (filteredOrders.isEmpty)
             const Padding(
-              padding: EdgeInsets.only(top: 24),
-              child: Center(child: Text('No orders found for this vendor.')),
+              padding: EdgeInsets.only(top: 20),
+              child: Center(child: Text('No orders found.')),
             )
           else
             ...filteredOrders.map((o) {
-              final amount = (o['final_amount'] ?? o['total_amount'] ?? 0)
+              final id = (o['id'] ?? '').toString();
+              final status = (o['status'] ?? 'pending').toString();
+              final total = (o['final_amount'] ?? o['total_amount'] ?? 0)
                   .toString();
-              final items = (o['items'] as List?) ?? const [];
-              final createdAt = DateTime.tryParse(
-                (o['created_at'] ?? '').toString(),
-              );
+              final createdAt = (o['created_at'] ?? '').toString();
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(12),
@@ -1974,82 +1884,28 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Order #${o['id'] ?? '-'}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w700,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF1F5F9),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: Text(
-                            (o['status'] ?? 'unknown').toString().toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
                     Text(
-                      'Amount: ₹$amount • Items: ${items.length}',
+                      'Order #${id.length > 8 ? id.substring(0, 8) : id}',
                       style: const TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF475569),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
                       ),
                     ),
-                    if (createdAt != null)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Text(
-                          'Created: ${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year} ${createdAt.hour.toString().padLeft(2, '0')}:${createdAt.minute.toString().padLeft(2, '0')}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                      ),
-                    if (items.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 8),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: items.whereType<Map>().take(4).map((item) {
-                            final name = (item['product_name'] ?? 'Item')
-                                .toString();
-                            return Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF8FAFC),
-                                borderRadius: BorderRadius.circular(999),
-                                border: Border.all(
-                                  color: const Color(0xFFE2E8F0),
-                                ),
-                              ),
-                              child: Text(
-                                name,
-                                style: const TextStyle(fontSize: 11),
-                              ),
-                            );
-                          }).toList(),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Status: $status',
+                      style: const TextStyle(color: Color(0xFF475569)),
+                    ),
+                    Text(
+                      'Total: ₹$total',
+                      style: const TextStyle(color: Color(0xFF475569)),
+                    ),
+                    if (createdAt.isNotEmpty)
+                      Text(
+                        createdAt,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
                         ),
                       ),
                   ],
@@ -2057,43 +1913,6 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               );
             }),
         ],
-      ),
-    );
-  }
-}
-
-class _OrderFilterChip extends StatelessWidget {
-  const _OrderFilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? const Color(0xFF16A34A) : Colors.white,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? const Color(0xFF16A34A) : const Color(0xFFE2E8F0),
-          ),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : const Color(0xFF334155),
-          ),
-        ),
       ),
     );
   }

@@ -537,6 +537,13 @@ class ApiClient {
     return const {};
   }
 
+  Future<Map<String, dynamic>> fetchVendorLinkedStore(String vendorId) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/store');
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {};
+  }
+
   Future<Map<String, dynamic>> createVendorProduct({
     required String vendorId,
     required String categoryId,
@@ -552,6 +559,7 @@ class ApiClient {
     List<Map<String, dynamic>> bundleOffers = const [],
     String size = 'M',
     String color = 'Black',
+    String? barcode,
     List<String> images = const [],
     String? storeId,
     List<Map<String, dynamic>> variants = const [],
@@ -564,6 +572,8 @@ class ApiClient {
             {
               'size': size,
               'color': color,
+              if (barcode != null && barcode.trim().isNotEmpty)
+                'barcode': barcode.trim(),
               'price': price ?? 0,
               'mrp': mrp ?? 0,
               'quantity': stock ?? 0,
@@ -593,16 +603,11 @@ class ApiClient {
 
   Future<Map<String, dynamic>> updateVendorVariantStock({
     required String vendorId,
-    required String storeId,
     required String variantId,
     required int quantity,
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/stock');
-    return _postJson(uri, {
-      'storeId': storeId,
-      'variantId': variantId,
-      'quantity': quantity,
-    });
+    return _postJson(uri, {'variantId': variantId, 'quantity': quantity});
   }
 
   Future<Map<String, dynamic>> fetchVariantAvailability(
