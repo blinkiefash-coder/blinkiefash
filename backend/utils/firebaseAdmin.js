@@ -98,6 +98,37 @@ export async function notifyAvailableRiders(pool, orderId) {
   }
 }
 
+export async function notifyVendorOfNewOrder(pool, orderId) {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT u.fcm_token, v.id AS vendor_id, v.store_name
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       JOIN product_variants pv ON pv.id = oi.variant_id
+       JOIN products p ON p.id = pv.product_id
+       JOIN vendors v ON v.id = p.vendor_id
+       JOIN users u ON u.id = v.user_id
+       WHERE o.id = $1
+         AND v.dark_store_id = o.dark_store_id
+         AND u.fcm_token IS NOT NULL
+         AND u.fcm_token != ''`,
+      [orderId]
+    );
+
+    await Promise.all(rows.map((row) => sendPush(row.fcm_token, {
+      title: '🛒 New order received',
+      body: `Order placed for ${row.store_name || 'your store'}. Open vendor app to confirm.`,
+      data: {
+        type: 'vendor_new_order',
+        orderId: String(orderId),
+        vendorId: String(row.vendor_id),
+      },
+    })));
+  } catch (err) {
+    console.error('[notifyVendorOfNewOrder] error:', err.message);
+  }
+}
+
 // ── Customer push helpers ───────────────────────────────────────────────────
 const STATUS_MESSAGES = {
   placed:           { title: '🧾 Order placed',     body: 'Your order has been received. We\'ll start preparing it shortly.' },

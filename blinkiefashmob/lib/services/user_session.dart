@@ -30,6 +30,21 @@ class UserSession {
     await _saveToPrefs();
   }
 
+  Future<void> setVendorSession({
+    required String userId,
+    required String name,
+    required String email,
+    String? phone,
+  }) async {
+    this.userId = userId;
+    this.name = name;
+    this.email = email;
+    this.phone = phone;
+    role = 'vendor';
+    token = '';
+    await _saveToPrefs();
+  }
+
   Future<void> clear() async {
     userId = null;
     name = null;

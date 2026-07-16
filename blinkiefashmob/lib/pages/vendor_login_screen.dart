@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_client.dart';
+import '../services/notification_service.dart';
+import '../services/user_session.dart';
 import 'login_screen.dart';
 import 'vendor_dashboard_screen.dart';
 
@@ -42,6 +44,7 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
 
       if (res['success'] == true && res['vendor_id'] != null) {
         final vendorId = res['vendor_id'].toString();
+        final vendorUserId = (res['user_id'] ?? '').toString();
         final profile = await _api.fetchVendorProfile(vendorId);
         final resolvedStoreName =
             (profile['store_name'] ?? res['store_name'] ?? 'Vendor Store')
@@ -49,7 +52,16 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
         final resolvedEmail = (profile['email'] ?? _emailController.text.trim())
             .toString();
 
-        Navigator.of(context).pushReplacement(
+        if (vendorUserId.isNotEmpty) {
+          await UserSession.instance.setVendorSession(
+            userId: vendorUserId,
+            name: resolvedStoreName,
+            email: resolvedEmail,
+          );
+          await NotificationService.instance.registerForCurrentUser();
+        }
+
+        Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) => VendorDashboardScreen(
               vendorId: vendorId,
@@ -57,6 +69,7 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
               email: resolvedEmail,
             ),
           ),
+          (_) => false,
         );
         return;
       }

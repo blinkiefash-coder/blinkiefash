@@ -81,7 +81,7 @@ router.get("/:identifier", async (req, res) => {
 
     const result = await pool.query(
       `SELECT id, store_name, slug, description, address, city, pincode,
-              lat, lng, service_radius_km, dark_store_id,
+              lat, lng, service_radius_km, dark_store_id, user_id,
               (SELECT ds.name FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_name,
               (SELECT ds.city FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_city,
               is_verified, is_active,
@@ -650,6 +650,7 @@ router.post("/login-password", async (req, res) => {
     return res.json({
       success: true,
       vendor_id: vendor.id,
+      user_id: vendor.user_id,
       dark_store_id: vendor.dark_store_id,
       store_name: vendor.store_name,
       owner_name: vendor.owner_name,

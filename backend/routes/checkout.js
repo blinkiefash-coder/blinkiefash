@@ -1,6 +1,10 @@
 import express from "express";
 import { pool } from "../db.js";
-import { notifyAvailableRiders, notifyCustomerOfStatus } from "../utils/firebaseAdmin.js";
+import {
+  notifyAvailableRiders,
+  notifyCustomerOfStatus,
+  notifyVendorOfNewOrder,
+} from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 
@@ -453,6 +457,7 @@ router.post("/orders", async (req, res) => {
     await client.query("COMMIT");
     // Push "order placed" to the customer (best-effort)
     notifyCustomerOfStatus(pool, order.id, 'placed').catch(() => {});
+    notifyVendorOfNewOrder(pool, order.id).catch(() => {});
     res.json({
       success: true,
       orderId: order.id,

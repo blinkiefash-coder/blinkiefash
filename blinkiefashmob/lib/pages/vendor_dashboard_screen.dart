@@ -28,7 +28,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return PopScope(
-      canPop: _tab == 0,
+      canPop: false,
       onPopInvokedWithResult: (didPop, result) {
         if (!didPop && _tab != 0) {
           setState(() => _tab = 0);
