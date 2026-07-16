@@ -4,8 +4,7 @@ class WishlistItem extends StatelessWidget {
   final Map<String, dynamic> product;
   final VoidCallback? onRemove;
 
-  const WishlistItem({Key? key, required this.product, this.onRemove})
-    : super(key: key);
+  const WishlistItem({super.key, required this.product, this.onRemove});
 
   @override
   Widget build(BuildContext context) {

@@ -273,8 +273,9 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
                         validator: (v) {
                           final value = (v ?? '').trim();
                           if (value.isEmpty) return 'Email is required';
-                          if (!value.contains('@'))
+                          if (!value.contains('@')) {
                             return 'Enter a valid email';
+                          }
                           return null;
                         },
                       ),

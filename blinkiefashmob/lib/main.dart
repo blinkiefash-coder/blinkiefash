@@ -55,7 +55,8 @@ void _prewarmBackend() {
 class BlinkieFashApp extends StatefulWidget {
   const BlinkieFashApp({super.key});
 
-  static final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.system);
+  // Keep light mode by default because most screens are designed for light UI.
+  static final themeModeNotifier = ValueNotifier<ThemeMode>(ThemeMode.light);
 
   @override
   State<BlinkieFashApp> createState() => _BlinkieFashAppState();
@@ -96,8 +97,28 @@ class _BlinkieFashAppState extends State<BlinkieFashApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF16A34A)),
         scaffoldBackgroundColor: const Color(0xFFF9FAFB),
         fontFamily: GoogleFonts.inter().fontFamily,
-        textTheme: GoogleFonts.interTextTheme(),
-        primaryTextTheme: GoogleFonts.interTextTheme(),
+        textTheme: GoogleFonts.interTextTheme().apply(
+          bodyColor: const Color(0xFF0F172A),
+          displayColor: const Color(0xFF0F172A),
+        ),
+        primaryTextTheme: GoogleFonts.interTextTheme().apply(
+          bodyColor: const Color(0xFF0F172A),
+          displayColor: const Color(0xFF0F172A),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: Colors.white,
+          hintStyle: const TextStyle(color: Color(0xFF64748B)),
+          labelStyle: const TextStyle(color: Color(0xFF334155)),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFFCBD5E1)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: const BorderSide(color: Color(0xFF16A34A), width: 1.4),
+          ),
+        ),
         useMaterial3: true,
       ),
       darkTheme: ThemeData(
