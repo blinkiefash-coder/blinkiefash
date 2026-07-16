@@ -37,15 +37,14 @@ class NotificationService {
     importance: Importance.high,
   );
 
-  static const AndroidNotificationChannel
-  _vendorOrderChannel = AndroidNotificationChannel(
-    'blinkiefash_vendor_orders',
-    'Vendor New Orders',
-    description:
-        'High-priority alerts for newly received vendor orders.',
-    importance: Importance.max,
-    playSound: true,
-  );
+  static const AndroidNotificationChannel _vendorOrderChannel =
+      AndroidNotificationChannel(
+        'blinkiefash_vendor_orders',
+        'Vendor New Orders',
+        description: 'High-priority alerts for newly received vendor orders.',
+        importance: Importance.max,
+        playSound: true,
+      );
 
   /// Call once during app startup, AFTER Firebase.initializeApp().
   Future<void> init() async {

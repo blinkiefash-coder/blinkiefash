@@ -48,6 +48,8 @@ class _HomeScreenState extends State<HomeScreen>
   bool _isLoading = true;
   bool _outOfServiceArea = false; // true when nearest store exceeds DB radius
   String _currentLocation = 'Detecting location...';
+  double? _lastKnownLat;
+  double? _lastKnownLng;
   List<Map<String, dynamic>> _products = const [];
   List<Map<String, dynamic>> _categories = const []; // root only
   List<Map<String, dynamic>> _allCategories = const []; // full tree
@@ -405,6 +407,13 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
+  Future<void> _loadHomeDataForCurrentSelection() {
+    if (_lastKnownLat != null && _lastKnownLng != null) {
+      return _loadHomeData(lat: _lastKnownLat, lng: _lastKnownLng);
+    }
+    return _loadHomeData();
+  }
+
   Future<void> _loadShopProducts({bool reset = false}) async {
     if (_shopLoading) return;
     final offset = reset ? 0 : _shopOffset;
@@ -511,6 +520,8 @@ class _HomeScreenState extends State<HomeScreen>
       if (city.isNotEmpty) {
         setState(() {
           _currentLocation = city;
+          _lastKnownLat = pos.latitude;
+          _lastKnownLng = pos.longitude;
         });
         _loadHomeData(lat: pos.latitude, lng: pos.longitude);
       }
@@ -569,6 +580,8 @@ class _HomeScreenState extends State<HomeScreen>
         _currentLocation = city.isNotEmpty
             ? city
             : (line.isNotEmpty ? line : 'Selected Location');
+        _lastKnownLat = lat;
+        _lastKnownLng = lng;
       });
     }
     _loadHomeData(lat: lat, lng: lng);
@@ -796,7 +809,7 @@ class _HomeScreenState extends State<HomeScreen>
       color: const Color(0xFF22C55E),
       backgroundColor: const Color(0xFF0D2015),
       strokeWidth: 2.5,
-      onRefresh: () => _loadHomeData(),
+      onRefresh: _loadHomeDataForCurrentSelection,
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
@@ -981,7 +994,7 @@ class _HomeScreenState extends State<HomeScreen>
           FilledButton.icon(
             onPressed: () {
               setState(() => _outOfServiceArea = false);
-              _loadHomeData();
+              _loadHomeDataForCurrentSelection();
             },
             icon: const Icon(Icons.refresh_rounded, size: 18),
             label: const Text(
@@ -1003,6 +1016,8 @@ class _HomeScreenState extends State<HomeScreen>
               setState(() {
                 _outOfServiceArea = false;
                 _currentLocation = 'Bhubaneswar';
+                _lastKnownLat = null;
+                _lastKnownLng = null;
               });
               _loadHomeData();
             },
