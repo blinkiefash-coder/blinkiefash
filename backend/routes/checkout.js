@@ -89,6 +89,40 @@ async function calcDeliveryFeeFromConfig(subtotal, distanceKm) {
   }
 }
 
+async function resolveOrderStore(client, items) {
+  const variantIds = [...new Set(items.map((item) => item.variantId).filter(Boolean))];
+  if (variantIds.length === 0) {
+    return { storeId: null, storeRows: [] };
+  }
+
+  const { rows: storeRows } = await client.query(
+    `SELECT pv.id AS variant_id,
+            p.vendor_id,
+            v.dark_store_id,
+            ds.name,
+            ds.city,
+            ds.lat,
+            ds.lng
+     FROM product_variants pv
+     JOIN products p ON p.id = pv.product_id
+     JOIN vendors v ON v.id = p.vendor_id
+     LEFT JOIN dark_stores ds ON ds.id = v.dark_store_id
+     WHERE pv.id = ANY($1::uuid[])`,
+    [variantIds]
+  );
+
+  if (!storeRows.length) {
+    return { storeId: null, storeRows: [] };
+  }
+
+  const storeIds = [...new Set(storeRows.map((row) => row.dark_store_id).filter(Boolean))];
+  if (storeIds.length > 1) {
+    return { storeId: null, storeRows, mixedStores: true };
+  }
+
+  return { storeId: storeIds[0] || null, storeRows };
+}
+
 // Legacy sync helper kept for internal use
 function calcDeliveryFee(subtotal, distanceKm) {
   if (subtotal >= 999) return 0;
@@ -284,25 +318,31 @@ router.post("/orders", async (req, res) => {
     const addrLat = addrRows[0]?.lat;
     const addrLng = addrRows[0]?.lng;
 
-    // Find nearest active dark store
-    const { rows: storeRows } = await client.query(
-      `SELECT id, lat, lng FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL`
-    );
-    let darkStoreId = null;
+    let { storeId: darkStoreId, storeRows, mixedStores } = await resolveOrderStore(client, items);
+    if (mixedStores) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        success: false,
+        message: "Cart contains items from multiple stores. Please checkout one store at a time.",
+      });
+    }
+
     let distanceKm = null;
-    if (storeRows.length && addrLat != null && addrLng != null) {
-      let nearest = storeRows[0];
-      let minDist = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(nearest.lat), parseFloat(nearest.lng));
-      for (const s of storeRows.slice(1)) {
-        const d = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(s.lat), parseFloat(s.lng));
-        if (d < minDist) { minDist = d; nearest = s; }
-      }
-      darkStoreId = nearest.id;
-      distanceKm = Math.round(minDist * 10) / 10;
-    } else {
-      // Fallback: city match
+    const primaryStore = storeRows[0] || null;
+    if (primaryStore?.lat != null && primaryStore?.lng != null && addrLat != null && addrLng != null) {
+      distanceKm = Math.round(
+        haversineKm(
+          parseFloat(addrLat),
+          parseFloat(addrLng),
+          parseFloat(primaryStore.lat),
+          parseFloat(primaryStore.lng)
+        ) * 10
+      ) / 10;
+    } else if (!darkStoreId) {
+      // Fallback: city match only if no vendor-linked store could be resolved.
       const { rows: cityStore } = await client.query(
-        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
+        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`,
+        [city]
       );
       darkStoreId = cityStore.length ? cityStore[0].id : null;
     }
@@ -333,7 +373,7 @@ router.post("/orders", async (req, res) => {
       const calcFee = await calcDeliveryFeeFromConfig(subtotalAfterBundle, distanceKm);
       if (calcFee === null) {
         await client.query("ROLLBACK");
-        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from our nearest store." });
+        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from this store." });
       }
       deliveryFee = calcFee;
     } else {
