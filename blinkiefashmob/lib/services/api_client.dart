@@ -648,7 +648,10 @@ class ApiClient {
       return const {'success': true, 'availability': []};
     }
     final uri = Uri.parse('$apiApiBaseUrl/products/variants/availability');
-    return _postJson(uri, {'variantIds': ids});
+    return _postJson(uri, {
+      'variantIds': ids,
+      if (ApiClient.currentStoreId != null) 'storeId': ApiClient.currentStoreId,
+    });
   }
 
   // ── Reviews ────────────────────────────────────────────────────────────────

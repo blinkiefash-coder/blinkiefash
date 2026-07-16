@@ -495,6 +495,65 @@ router.get("/bulk-offers", async (req, res) => {
   }
 });
 
+// POST /variants/availability
+// Body: { variantIds: string[], storeId?: string, store_id?: string }
+router.post("/variants/availability", async (req, res) => {
+  try {
+    const { variantIds, storeId, store_id } = req.body || {};
+    const ids = Array.isArray(variantIds)
+      ? variantIds.map((v) => String(v || "").trim()).filter(Boolean)
+      : [];
+
+    if (!ids.length) {
+      return res.status(400).json({
+        success: false,
+        message: "variantIds is required",
+      });
+    }
+
+    const effectiveStoreId = String(storeId || store_id || "").trim() || null;
+
+    const { rows } = await pool.query(
+      `SELECT
+         pv.id AS variant_id,
+         GREATEST(
+           COALESCE(
+             SUM(
+               CASE
+                 WHEN $2::uuid IS NULL OR inv.store_id = $2::uuid
+                   THEN COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0)
+                 ELSE 0
+               END
+             ),
+             0
+           ),
+           0
+         )::int AS available_stock
+       FROM product_variants pv
+       LEFT JOIN inventory inv ON inv.variant_id = pv.id
+       WHERE pv.id = ANY($1::uuid[])
+         AND pv.is_active = true
+       GROUP BY pv.id`,
+      [ids, effectiveStoreId]
+    );
+
+    const byId = new Map(rows.map((r) => [String(r.variant_id), Number(r.available_stock) || 0]));
+    const availability = ids.map((id) => {
+      const availableStock = byId.get(id) ?? 0;
+      return {
+        variantId: id,
+        isAvailable: availableStock > 0,
+        availableStock,
+      };
+    });
+
+    return res.json({ success: true, availability });
+  } catch (err) {
+    console.error("VARIANT AVAILABILITY ERROR:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 router.get("/:id", async (req, res) => {
   try {
     const { id } = req.params;

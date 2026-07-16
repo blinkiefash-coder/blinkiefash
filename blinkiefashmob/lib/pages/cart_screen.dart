@@ -38,6 +38,7 @@ class _CartScreenState extends State<CartScreen> {
     try {
       final ids = items.map((i) => i.productId).toList();
       final res = await _api.fetchVariantAvailability(ids);
+      if (res['success'] != true) return;
       final list = (res['availability'] as List?) ?? const [];
       final byId = <String, Map<String, dynamic>>{};
       for (final raw in list) {
