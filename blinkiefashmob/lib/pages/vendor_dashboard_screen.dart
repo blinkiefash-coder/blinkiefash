@@ -1,9 +1,11 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../services/api_client.dart';
+import '../services/notification_service.dart';
 import 'vendor_login_screen.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -1921,6 +1923,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
   final Set<String> _seenOrderIds = <String>{};
   final Map<String, String> _lastOrderStatus = <String, String>{};
   String _statusFilter = 'all';
+  bool _incomingAlertOpen = false;
 
   @override
   void initState() {
@@ -1973,14 +1976,10 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       setState(() => _orders = orders);
 
       if (newOrderIds.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF0F172A),
-            content: Text(
-              'New order received from your linked dark store (${newOrderIds.length})',
-            ),
-          ),
+        NotificationService.instance.showVendorNewOrderAlert(
+          count: newOrderIds.length,
         );
+        await _showIncomingOrderAlert(newOrderIds.length);
       } else if (statusChanges.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -1992,6 +1991,89 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       if (!silent && mounted) {
         setState(() => _loading = false);
       }
+    }
+  }
+
+  Future<void> _showIncomingOrderAlert(int newCount) async {
+    if (!mounted || _incomingAlertOpen) return;
+    _incomingAlertOpen = true;
+    HapticFeedback.vibrate();
+
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: true,
+        builder: (ctx) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFECFDF3),
+                    ),
+                    child: const Icon(
+                      Icons.notifications_active_rounded,
+                      color: Color(0xFF16A34A),
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'New Order Alert',
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    newCount <= 1
+                        ? 'You just received a new order.'
+                        : 'You just received $newCount new orders.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: const Text(
+                      'Open the order card below and Accept/Reject quickly.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      icon: const Icon(Icons.receipt_long_rounded),
+                      label: const Text('View Orders'),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    } finally {
+      _incomingAlertOpen = false;
     }
   }
 

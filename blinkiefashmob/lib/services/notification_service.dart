@@ -37,6 +37,16 @@ class NotificationService {
     importance: Importance.high,
   );
 
+  static const AndroidNotificationChannel
+  _vendorOrderChannel = AndroidNotificationChannel(
+    'blinkiefash_vendor_orders',
+    'Vendor New Orders',
+    description:
+        'High-priority alerts for newly received vendor orders.',
+    importance: Importance.max,
+    playSound: true,
+  );
+
   /// Call once during app startup, AFTER Firebase.initializeApp().
   Future<void> init() async {
     if (_initialized) return;
@@ -61,6 +71,11 @@ class NotificationService {
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.createNotificationChannel(_orderChannel);
+    await _local
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.createNotificationChannel(_vendorOrderChannel);
 
     // Permissions (iOS / Android 13+).
     await FirebaseMessaging.instance.requestPermission(
@@ -147,6 +162,38 @@ class NotificationService {
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+        ),
+      ),
+    );
+  }
+
+  Future<void> showVendorNewOrderAlert({required int count}) async {
+    final title = count <= 1 ? 'New Vendor Order' : '$count New Vendor Orders';
+    final body = count <= 1
+        ? 'You have received a new order. Open Orders to accept or reject.'
+        : 'You have received $count new orders. Open Orders to take action.';
+
+    await _local.show(
+      DateTime.now().millisecondsSinceEpoch ~/ 1000,
+      title,
+      body,
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          _vendorOrderChannel.id,
+          _vendorOrderChannel.name,
+          channelDescription: _vendorOrderChannel.description,
+          importance: Importance.max,
+          priority: Priority.max,
+          icon: '@mipmap/ic_launcher',
+          category: AndroidNotificationCategory.alarm,
+          styleInformation: BigTextStyleInformation(body),
+          ticker: 'blinkiefash_vendor_new_order',
+        ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          interruptionLevel: InterruptionLevel.timeSensitive,
         ),
       ),
     );
