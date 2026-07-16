@@ -743,9 +743,28 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                     ),
                   ],
                   const SizedBox(height: 12),
-                  const Text(
-                    'Variants, Pricing & Inventory',
-                    style: TextStyle(fontWeight: FontWeight.w700),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.qr_code_scanner_rounded,
+                        size: 18,
+                        color: Color(0xFF0F172A),
+                      ),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Variants, Pricing & Inventory',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_variants.length} variant(s)',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   ..._variants.asMap().entries.map((entry) {
@@ -753,11 +772,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                     final v = entry.value;
                     return Container(
                       margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(10),
+                      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFDCFCE7)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -768,6 +787,27 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                 'Variant ${i + 1}',
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  v.imagePaths.isEmpty
+                                      ? 'No image'
+                                      : '${v.imagePaths.length} image(s)',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF475569),
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
                               ),
                               const Spacer(),
@@ -781,6 +821,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                 ),
                             ],
                           ),
+                          const SizedBox(height: 4),
                           Row(
                             children: [
                               Expanded(
@@ -792,7 +833,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: TextField(
                                   controller: v.colorCtrl,
@@ -804,15 +845,16 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           TextField(
                             controller: v.barcodeCtrl,
                             decoration: const InputDecoration(
                               labelText: 'Barcode (optional)',
                               border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.qr_code_2_rounded),
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           Row(
                             children: [
                               Expanded(
@@ -828,7 +870,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: TextField(
                                   controller: v.priceCtrl,
@@ -842,7 +884,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 10),
                               Expanded(
                                 child: TextField(
                                   controller: v.stockCtrl,
@@ -855,7 +897,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           OutlinedButton.icon(
                             onPressed: () => _pickVariantImages(i),
                             icon: const Icon(Icons.image_outlined),
@@ -1792,29 +1834,229 @@ class _VariantDraft {
 
 class _VendorOrdersTabState extends State<_VendorOrdersTab> {
   final ApiClient _api = ApiClient();
+  Timer? _ordersPoller;
+
   bool _loading = true;
+  bool _statusUpdating = false;
   List<Map<String, dynamic>> _orders = const [];
+  final Set<String> _seenOrderIds = <String>{};
+  final Map<String, String> _lastOrderStatus = <String, String>{};
   String _statusFilter = 'all';
 
   @override
   void initState() {
     super.initState();
-    _load();
+    _load(initialLoad: true);
+    _ordersPoller = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (!mounted || _statusUpdating) return;
+      _load(silent: true);
+    });
   }
 
-  Future<void> _load() async {
-    setState(() => _loading = true);
+  @override
+  void dispose() {
+    _ordersPoller?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _load({bool silent = false, bool initialLoad = false}) async {
+    if (!silent) {
+      setState(() => _loading = true);
+    }
+
     try {
       final data = await _api.fetchVendorOrders(widget.vendorId);
       final orders = data
           .whereType<Map>()
           .map((e) => Map<String, dynamic>.from(e))
           .toList();
+
+      final newOrderIds = <String>[];
+      final statusChanges = <String>[];
+      for (final order in orders) {
+        final orderId = (order['id'] ?? '').toString();
+        final status = (order['status'] ?? '').toString().toLowerCase();
+        if (orderId.isEmpty) continue;
+
+        if (!_seenOrderIds.contains(orderId)) {
+          if (!initialLoad) {
+            newOrderIds.add(orderId);
+          }
+          _seenOrderIds.add(orderId);
+        } else if (_lastOrderStatus[orderId] != null &&
+            _lastOrderStatus[orderId] != status) {
+          statusChanges.add(orderId);
+        }
+        _lastOrderStatus[orderId] = status;
+      }
+
       if (!mounted) return;
       setState(() => _orders = orders);
+
+      if (newOrderIds.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF0F172A),
+            content: Text(
+              'New order received from your linked dark store (${newOrderIds.length})',
+            ),
+          ),
+        );
+      } else if (statusChanges.isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Order status updated (${statusChanges.length})'),
+          ),
+        );
+      }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (!silent && mounted) {
+        setState(() => _loading = false);
+      }
     }
+  }
+
+  Future<void> _updateOrderStatus({
+    required String orderId,
+    required String status,
+    String? cancelReason,
+  }) async {
+    setState(() => _statusUpdating = true);
+    try {
+      final result = await _api.updateVendorOrderStatus(
+        vendorId: widget.vendorId,
+        orderId: orderId,
+        status: status,
+        cancelReason: cancelReason,
+      );
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order marked as ${status.toUpperCase()}')),
+        );
+        await _load(silent: true);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (result['message'] ?? result['error'] ?? 'Unable to update order')
+                  .toString(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _statusUpdating = false);
+      }
+    }
+  }
+
+  Future<void> _rejectOrder(String orderId) async {
+    final reasonCtrl = TextEditingController();
+    final reason = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Reject Order'),
+          content: TextField(
+            controller: reasonCtrl,
+            maxLines: 2,
+            decoration: const InputDecoration(
+              labelText: 'Reason',
+              hintText: 'Out of stock / store closed / etc.',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(reasonCtrl.text.trim()),
+              child: const Text('Reject'),
+            ),
+          ],
+        );
+      },
+    );
+    reasonCtrl.dispose();
+    if (reason == null) return;
+    await _updateOrderStatus(
+      orderId: orderId,
+      status: 'cancelled',
+      cancelReason: reason,
+    );
+  }
+
+  Widget _buildActionRow(Map<String, dynamic> order) {
+    final orderId = (order['id'] ?? '').toString();
+    final status = (order['status'] ?? '').toString().toLowerCase();
+    if (orderId.isEmpty) return const SizedBox.shrink();
+
+    if (status == 'placed' || status == 'pending') {
+      return Row(
+        children: [
+          Expanded(
+            child: FilledButton.icon(
+              onPressed: _statusUpdating
+                  ? null
+                  : () => _updateOrderStatus(
+                      orderId: orderId,
+                      status: 'confirmed',
+                    ),
+              icon: const Icon(Icons.check_circle_outline_rounded),
+              label: const Text('Accept'),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: _statusUpdating ? null : () => _rejectOrder(orderId),
+              icon: const Icon(Icons.cancel_outlined),
+              label: const Text('Reject'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (status == 'confirmed') {
+      return FilledButton.icon(
+        onPressed: _statusUpdating
+            ? null
+            : () => _updateOrderStatus(orderId: orderId, status: 'packed'),
+        icon: const Icon(Icons.inventory_2_outlined),
+        label: const Text('Mark Packed'),
+      );
+    }
+
+    if (status == 'packed') {
+      return FilledButton.icon(
+        onPressed: _statusUpdating
+            ? null
+            : () => _updateOrderStatus(
+                orderId: orderId,
+                status: 'out_for_delivery',
+              ),
+        icon: const Icon(Icons.local_shipping_outlined),
+        label: const Text('Out For Delivery'),
+      );
+    }
+
+    if (status == 'out_for_delivery') {
+      return FilledButton.icon(
+        onPressed: _statusUpdating
+            ? null
+            : () => _updateOrderStatus(orderId: orderId, status: 'delivered'),
+        icon: const Icon(Icons.task_alt_rounded),
+        label: const Text('Mark Delivered'),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   @override
@@ -1845,9 +2087,11 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
             children: [
               for (final status in const [
                 'all',
+                'placed',
                 'pending',
                 'confirmed',
-                'shipped',
+                'packed',
+                'out_for_delivery',
                 'delivered',
                 'cancelled',
               ])
@@ -1873,29 +2117,79 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               final total = (o['final_amount'] ?? o['total_amount'] ?? 0)
                   .toString();
               final createdAt = (o['created_at'] ?? '').toString();
+              final customerName = (o['customer_name'] ?? '').toString().trim();
+              final customerPhone = (o['customer_phone'] ?? '')
+                  .toString()
+                  .trim();
+              final otp = (o['delivery_otp'] ?? '').toString().trim();
+              final otpVerifiedAt = (o['otp_verified_at'] ?? '')
+                  .toString()
+                  .trim();
+              final items =
+                  (o['items'] as List?)?.whereType<Map>().toList() ??
+                  const <Map>[];
+
+              final isNewState =
+                  status.toLowerCase() == 'placed' ||
+                  status.toLowerCase() == 'pending';
+
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isNewState ? const Color(0xFFFFFBEB) : Colors.white,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  border: Border.all(
+                    color: isNewState
+                        ? const Color(0xFFF59E0B)
+                        : const Color(0xFFE2E8F0),
+                  ),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Order #${id.length > 8 ? id.substring(0, 8) : id}',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Order #${id.length > 8 ? id.substring(0, 8) : id}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            status.toUpperCase(),
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF334155),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      'Status: $status',
-                      style: const TextStyle(color: Color(0xFF475569)),
-                    ),
+                    if (customerName.isNotEmpty || customerPhone.isNotEmpty)
+                      Text(
+                        'Customer: ${[customerName, customerPhone].where((e) => e.isNotEmpty).join(' • ')}',
+                        style: const TextStyle(
+                          color: Color(0xFF334155),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    const SizedBox(height: 4),
                     Text(
                       'Total: ₹$total',
                       style: const TextStyle(color: Color(0xFF475569)),
@@ -1908,6 +2202,78 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                           color: Color(0xFF64748B),
                         ),
                       ),
+                    if (otp.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Text(
+                          otpVerifiedAt.isEmpty
+                              ? 'Delivery OTP: $otp (not verified yet)'
+                              : 'Delivery OTP: $otp (verified)',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (items.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Items from your linked dark store',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      ...items.map((item) {
+                        final productName = (item['product_name'] ?? 'Product')
+                            .toString();
+                        final qty = (item['quantity'] ?? 0).toString();
+                        final size = (item['size'] ?? '-').toString();
+                        final color = (item['color'] ?? '-').toString();
+                        final barcode = (item['barcode'] ?? '').toString();
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 6),
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '$productName • Qty: $qty',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Variant: $size / $color${barcode.trim().isEmpty ? '' : ' • Barcode: $barcode'}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF475569),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                    const SizedBox(height: 8),
+                    _buildActionRow(o),
                   ],
                 ),
               );

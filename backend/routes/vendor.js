@@ -3,6 +3,10 @@ import multer from "multer";
 import crypto from "crypto";
 import { pool } from "../db.js";
 import cloudinary from "../utils/cloudinary.js";
+import {
+  notifyAvailableRiders,
+  notifyCustomerOfStatus,
+} from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -230,6 +234,15 @@ router.get("/:id/store", async (req, res) => {
 router.get("/:id/orders", async (req, res) => {
   try {
     const { id } = req.params;
+
+    const vendorStore = await pool.query(
+      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    if (!linkedStoreId) {
+      return res.json([]);
+    }
     
     const result = await pool.query(
       `SELECT 
@@ -237,28 +250,140 @@ router.get("/:id/orders", async (req, res) => {
          o.status,
          o.total_amount,
          o.final_amount,
+         o.delivery_otp,
+         o.otp_verified_at,
          o.created_at,
+         u.name AS customer_name,
+         u.phone AS customer_phone,
          json_agg(json_build_object(
            'product_id', p.id,
            'variant_id', oi.variant_id,
            'quantity', oi.quantity,
            'price', oi.price,
-           'product_name', p.name
+           'item_status', oi.item_status,
+           'product_name', p.name,
+           'size', v.size,
+           'color', v.color,
+           'barcode', v.barcode
          )) AS items
        FROM orders o
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
+       LEFT JOIN users u ON u.id = o.user_id
        WHERE p.vendor_id = $1
-       GROUP BY o.id
+         AND o.dark_store_id = $2
+       GROUP BY o.id, u.name, u.phone
        ORDER BY o.created_at DESC`,
-      [id]
+      [id, linkedStoreId]
     );
     
     res.json(result.rows);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.patch("/:id/orders/:orderId/status", async (req, res) => {
+  try {
+    const { id: vendorId, orderId } = req.params;
+    const { status, cancelReason } = req.body || {};
+
+    const validStatuses = new Set([
+      "confirmed",
+      "packed",
+      "picked",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+    ]);
+    const normalizedStatus = String(status || "").trim();
+    if (!validStatuses.has(normalizedStatus)) {
+      return res.status(400).json({ success: false, error: "Invalid status" });
+    }
+
+    const vendorStore = await pool.query(
+      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      [vendorId]
+    );
+    const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    if (!linkedStoreId) {
+      return res.status(400).json({
+        success: false,
+        error: "Vendor is not linked to a store",
+      });
+    }
+
+    const ownershipCheck = await pool.query(
+      `SELECT o.id
+       FROM orders o
+       JOIN order_items oi ON oi.order_id = o.id
+       JOIN product_variants pv ON pv.id = oi.variant_id
+       JOIN products p ON p.id = pv.product_id
+       WHERE o.id = $1
+         AND p.vendor_id = $2
+         AND o.dark_store_id = $3
+       LIMIT 1`,
+      [orderId, vendorId, linkedStoreId]
+    );
+
+    if (!ownershipCheck.rows.length) {
+      return res.status(404).json({
+        success: false,
+        error: "Order not found for this vendor store",
+      });
+    }
+
+    await pool.query(
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`
+    ).catch(() => {});
+    await pool.query(
+      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500)`
+    ).catch(() => {});
+
+    const confirmClause = normalizedStatus === "confirmed"
+      ? ", confirmed_at = COALESCE(confirmed_at, NOW())"
+      : "";
+    const cancelClause = normalizedStatus === "cancelled"
+      ? ", cancel_reason = $3"
+      : "";
+    const params = normalizedStatus === "cancelled"
+      ? [
+          normalizedStatus,
+          orderId,
+          String(cancelReason || "Rejected by store").slice(0, 500),
+        ]
+      : [normalizedStatus, orderId];
+
+    const updated = await pool.query(
+      `UPDATE orders
+       SET status = $1${confirmClause}${cancelClause}
+       WHERE id = $2
+       RETURNING id, status`,
+      params
+    );
+
+    await pool.query(
+      `UPDATE order_items oi
+       SET item_status = $1
+       FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       WHERE oi.order_id = $2
+         AND oi.variant_id = pv.id
+         AND p.vendor_id = $3`,
+      [normalizedStatus, orderId, vendorId]
+    ).catch(() => {});
+
+    if (normalizedStatus === "confirmed") {
+      notifyAvailableRiders(pool, orderId).catch(() => {});
+    }
+    notifyCustomerOfStatus(pool, orderId, normalizedStatus).catch(() => {});
+
+    return res.json({ success: true, order: updated.rows[0] });
+  } catch (err) {
+    console.error("Vendor order status update error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 });
 

@@ -490,6 +490,33 @@ class ApiClient {
     return const [];
   }
 
+  Future<Map<String, dynamic>> updateVendorOrderStatus({
+    required String vendorId,
+    required String orderId,
+    required String status,
+    String? cancelReason,
+  }) async {
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/vendor/$vendorId/orders/$orderId/status',
+    );
+    return _patchJson(uri, {
+      'status': status,
+      if (cancelReason != null && cancelReason.trim().isNotEmpty)
+        'cancelReason': cancelReason.trim(),
+    });
+  }
+
+  Future<Map<String, dynamic>> fetchVendorOrderDeliveryStatus(
+    String orderId,
+  ) async {
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/checkout/orders/$orderId/delivery-status',
+    );
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {};
+  }
+
   Future<List<dynamic>> fetchDarkStores() async {
     final uri = Uri.parse('$apiApiBaseUrl/checkout/darkstores');
     final data = await _getJson(uri);
