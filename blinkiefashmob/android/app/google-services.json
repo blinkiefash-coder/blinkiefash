@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "492570746016",
+    "project_id": "blinkiefash-18d9f",
+    "storage_bucket": "blinkiefash-18d9f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492570746016:android:4516a69667338913edbdc5",
+        "android_client_info": {
+          "package_name": "com.blinkiefash.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtDSqUmXgko2b9wn6aLnd6DjsLL3TiLeg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:492570746016:android:128227f18cac68a5edbdc5",
+        "android_client_info": {
+          "package_name": "com.blinkiefash.blinkiefashride"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBtDSqUmXgko2b9wn6aLnd6DjsLL3TiLeg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

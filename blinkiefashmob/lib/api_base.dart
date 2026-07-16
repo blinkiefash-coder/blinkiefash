@@ -1,17 +1,16 @@
-import 'package:flutter/foundation.dart';
+const _envApiBase = String.fromEnvironment('API_BASE_URL');
 
-String _resolveApiOrigin() {
-  if (kIsWeb) {
-    return 'http://localhost:5000';
-  }
+const _fallbackApiBase = 'https://blinkiefash.onrender.com';
 
-  switch (defaultTargetPlatform) {
-    case TargetPlatform.android:
-      return 'http://10.0.2.2:5000';
-    default:
-      return 'http://localhost:5000';
+String _trimTrailingSlash(String value) {
+  if (value.endsWith('/')) {
+    return value.substring(0, value.length - 1);
   }
+  return value;
 }
 
-final String apiBaseUrl = _resolveApiOrigin();
+final String apiBaseUrl = _trimTrailingSlash(
+  _envApiBase.trim().isEmpty ? _fallbackApiBase : _envApiBase.trim(),
+);
+
 final String apiApiBaseUrl = '$apiBaseUrl/api';

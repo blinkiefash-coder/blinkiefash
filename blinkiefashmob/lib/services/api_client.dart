@@ -463,6 +463,148 @@ class ApiClient {
     return const {};
   }
 
+  // ── Vendor (mobile vendor panel) ─────────────────────────────────────────
+
+  Future<Map<String, dynamic>> vendorLoginWithPassword({
+    required String email,
+    required String password,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/login-password');
+    return _postJson(uri, {
+      'email': email.trim().toLowerCase(),
+      'password': password,
+    });
+  }
+
+  Future<List<dynamic>> fetchVendorProducts(String vendorId) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/products');
+    final data = await _getJson(uri);
+    if (data is List) return data;
+    return const [];
+  }
+
+  Future<List<dynamic>> fetchVendorOrders(String vendorId) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/orders');
+    final data = await _getJson(uri);
+    if (data is List) return data;
+    return const [];
+  }
+
+  Future<List<dynamic>> fetchDarkStores() async {
+    final uri = Uri.parse('$apiApiBaseUrl/checkout/darkstores');
+    final data = await _getJson(uri);
+    if (data is Map && data['stores'] is List) return data['stores'] as List;
+    return const [];
+  }
+
+  Future<List<dynamic>> fetchDarkStoreProducts(String storeId) async {
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/checkout/darkstore/$storeId/products',
+    );
+    final data = await _getJson(uri);
+    if (data is List) return data;
+    return const [];
+  }
+
+  Future<List<String>> uploadImages(List<String> filePaths) async {
+    if (filePaths.isEmpty) return const [];
+
+    final uri = Uri.parse('$apiApiBaseUrl/upload');
+    final request = http.MultipartRequest('POST', uri);
+    for (final path in filePaths) {
+      request.files.add(await http.MultipartFile.fromPath('image', path));
+    }
+
+    final streamed = await request.send().timeout(const Duration(seconds: 45));
+    final body = await streamed.stream.bytesToString();
+    final decoded = _decodeBody(body);
+    if (streamed.statusCode >= 200 && streamed.statusCode < 300) {
+      final urls = (decoded is Map) ? decoded['image_urls'] : null;
+      if (urls is List) {
+        return urls
+            .map((e) => e.toString())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
+    }
+    return const [];
+  }
+
+  Future<Map<String, dynamic>> fetchVendorProfile(String vendorId) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId');
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {};
+  }
+
+  Future<Map<String, dynamic>> createVendorProduct({
+    required String vendorId,
+    required String categoryId,
+    required String name,
+    String? description,
+    String? shortDescription,
+    String? fullDescription,
+    String? brand,
+    double? price,
+    double? mrp,
+    int? stock,
+    bool isTryEnabled = true,
+    List<Map<String, dynamic>> bundleOffers = const [],
+    String size = 'M',
+    String color = 'Black',
+    List<String> images = const [],
+    String? storeId,
+    List<Map<String, dynamic>> variants = const [],
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/products/create');
+
+    final payloadVariants = variants.isNotEmpty
+        ? variants
+        : <Map<String, dynamic>>[
+            {
+              'size': size,
+              'color': color,
+              'price': price ?? 0,
+              'mrp': mrp ?? 0,
+              'quantity': stock ?? 0,
+              'images': images,
+            },
+          ];
+
+    return _postJson(uri, {
+      'product': {
+        'vendor_id': vendorId,
+        'category_id': categoryId,
+        if (brand != null && brand.trim().isNotEmpty) 'brand': brand.trim(),
+        'name': name,
+        if (shortDescription != null && shortDescription.trim().isNotEmpty)
+          'short_description': shortDescription.trim(),
+        if (fullDescription != null && fullDescription.trim().isNotEmpty)
+          'full_description': fullDescription.trim(),
+        if (description != null && description.trim().isNotEmpty)
+          'full_description': description.trim(),
+        'is_try_enabled': isTryEnabled,
+        'store_id': storeId,
+      },
+      'variants': payloadVariants,
+      'bundleOffers': bundleOffers,
+    });
+  }
+
+  Future<Map<String, dynamic>> updateVendorVariantStock({
+    required String vendorId,
+    required String storeId,
+    required String variantId,
+    required int quantity,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/stock');
+    return _postJson(uri, {
+      'storeId': storeId,
+      'variantId': variantId,
+      'quantity': quantity,
+    });
+  }
+
   Future<Map<String, dynamic>> fetchVariantAvailability(
     List<String> variantIds,
   ) async {
@@ -552,10 +694,7 @@ class ApiClient {
     String? email,
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/users/$userId');
-    return _patchJson(uri, {
-      if (name != null) 'name': name,
-      if (email != null) 'email': email,
-    });
+    return _patchJson(uri, {'name': ?name, 'email': ?email});
   }
 
   Future<Map<String, dynamic>> _postJson(

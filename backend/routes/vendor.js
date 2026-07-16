@@ -204,6 +204,84 @@ router.get("/:id/orders", async (req, res) => {
   }
 });
 
+// Update variant stock for a vendor in a selected dark store
+router.post("/:id/stock", async (req, res) => {
+  try {
+    const { id: vendorId } = req.params;
+    const { storeId, variantId, quantity } = req.body || {};
+
+    const safeQty = Number(quantity);
+    if (!storeId || !variantId || Number.isNaN(safeQty) || safeQty < 0) {
+      return res.status(400).json({
+        success: false,
+        error: "storeId, variantId and non-negative quantity are required"
+      });
+    }
+
+    const variantCheck = await pool.query(
+      `SELECT pv.id
+       FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       WHERE pv.id = $1 AND p.vendor_id = $2
+       LIMIT 1`,
+      [variantId, vendorId]
+    );
+
+    if (variantCheck.rows.length === 0) {
+      return res.status(403).json({
+        success: false,
+        error: "Variant not found for this vendor"
+      });
+    }
+
+    const storeCheck = await pool.query(
+      `SELECT id FROM dark_stores WHERE id = $1 LIMIT 1`,
+      [storeId]
+    );
+
+    if (storeCheck.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: "Dark store not found"
+      });
+    }
+
+    const existingInv = await pool.query(
+      `SELECT id
+       FROM inventory
+       WHERE variant_id = $1 AND store_id = $2
+       LIMIT 1`,
+      [variantId, storeId]
+    );
+
+    if (existingInv.rows.length > 0) {
+      await pool.query(
+        `UPDATE inventory
+         SET stock = $1, updated_at = NOW()
+         WHERE id = $2`,
+        [Math.trunc(safeQty), existingInv.rows[0].id]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO inventory (variant_id, stock, store_id)
+         VALUES ($1, $2, $3)`,
+        [variantId, Math.trunc(safeQty), storeId]
+      );
+    }
+
+    return res.json({
+      success: true,
+      message: "Stock updated",
+      variantId,
+      storeId,
+      quantity: Math.trunc(safeQty)
+    });
+  } catch (err) {
+    console.error("Vendor stock update error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
 router.post("/verify", async (req, res) => {
   try {
     const { email } = req.body;
