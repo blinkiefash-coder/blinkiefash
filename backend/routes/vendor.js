@@ -84,7 +84,7 @@ router.get("/:identifier", async (req, res) => {
               lat, lng, service_radius_km, dark_store_id, user_id,
               (SELECT ds.name FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_name,
               (SELECT ds.city FROM dark_stores ds WHERE ds.id = vendors.dark_store_id LIMIT 1) AS linked_store_city,
-              is_verified, is_active,
+              is_verified, is_active, is_operational,
               vendor_img_url, created_at
        FROM vendors
        WHERE id::text = $1 OR slug = $1
@@ -100,6 +100,45 @@ router.get("/:identifier", async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Toggle vendor operational status (ON/OFF for product availability)
+router.patch("/:id/operational-status", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const isOperational = req.body?.is_operational;
+
+    if (typeof isOperational !== "boolean") {
+      return res.status(400).json({
+        success: false,
+        error: "is_operational boolean is required",
+      });
+    }
+
+    const result = await pool.query(
+      `UPDATE vendors
+       SET is_operational = $1,
+           updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, store_name, is_operational`,
+      [isOperational, id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    return res.json({
+      success: true,
+      vendor: result.rows[0],
+      message: isOperational
+        ? "Store turned ON. Products are available."
+        : "Store turned OFF. Products are unavailable.",
+    });
+  } catch (err) {
+    console.error("Vendor operational status update error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 });
 

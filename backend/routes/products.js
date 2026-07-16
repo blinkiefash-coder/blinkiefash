@@ -520,7 +520,8 @@ router.post("/variants/availability", async (req, res) => {
            COALESCE(
              SUM(
                CASE
-                 WHEN $2::uuid IS NULL OR inv.store_id = $2::uuid
+                 WHEN vd.is_operational = true
+                  AND ($2::uuid IS NULL OR inv.store_id = $2::uuid)
                    THEN COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0)
                  ELSE 0
                END
@@ -530,6 +531,8 @@ router.post("/variants/availability", async (req, res) => {
            0
          )::int AS available_stock
        FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       JOIN vendors vd ON vd.id = p.vendor_id
        LEFT JOIN inventory inv ON inv.variant_id = pv.id
        WHERE pv.id = ANY($1::uuid[])
          AND pv.is_active = true
@@ -568,6 +571,16 @@ router.get("/:id", async (req, res) => {
       [id]
     );
 
+    if (productRes.rows.length === 0) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    const vendorStateRes = await pool.query(
+      `SELECT is_operational FROM vendors WHERE id = $1 LIMIT 1`,
+      [productRes.rows[0].vendor_id]
+    );
+    const isVendorOperational = vendorStateRes.rows[0]?.is_operational !== false;
+
     // ✅ IMAGES (with variant_id for filtering)
     // Include both variant-specific images AND top-level images (variant_id IS NULL)
     const imageRes = await pool.query(
@@ -600,10 +613,17 @@ router.get("/:id", async (req, res) => {
       [id]
     );
 
+    const variants = variantRes.rows.map((v) => ({
+      ...v,
+      available_stock: isVendorOperational
+          ? Number(v.available_stock || 0)
+          : 0,
+    }));
+
     res.json({
       product: productRes.rows[0],
       images: imageRes.rows,
-      variants: variantRes.rows
+      variants,
     });
 
   } catch (err) {

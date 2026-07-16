@@ -99,6 +99,7 @@ async function resolveOrderStore(client, items) {
     `SELECT pv.id AS variant_id,
             p.vendor_id,
             v.dark_store_id,
+            v.is_operational,
             ds.name,
             ds.city,
             ds.lat,
@@ -113,6 +114,11 @@ async function resolveOrderStore(client, items) {
 
   if (!storeRows.length) {
     return { storeId: null, storeRows: [] };
+  }
+
+  const hasOfflineVendor = storeRows.some((row) => row.is_operational === false);
+  if (hasOfflineVendor) {
+    return { storeId: null, storeRows, vendorOffline: true };
   }
 
   const storeIds = [...new Set(storeRows.map((row) => row.dark_store_id).filter(Boolean))];
@@ -318,12 +324,19 @@ router.post("/orders", async (req, res) => {
     const addrLat = addrRows[0]?.lat;
     const addrLng = addrRows[0]?.lng;
 
-    let { storeId: darkStoreId, storeRows, mixedStores } = await resolveOrderStore(client, items);
+    let { storeId: darkStoreId, storeRows, mixedStores, vendorOffline } = await resolveOrderStore(client, items);
     if (mixedStores) {
       await client.query("ROLLBACK");
       return res.status(400).json({
         success: false,
         message: "Cart contains items from multiple stores. Please checkout one store at a time.",
+      });
+    }
+    if (vendorOffline) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        success: false,
+        message: "This store is currently OFF. Products are unavailable right now.",
       });
     }
 

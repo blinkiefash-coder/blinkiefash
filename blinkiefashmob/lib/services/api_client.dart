@@ -571,6 +571,14 @@ class ApiClient {
     return const {};
   }
 
+  Future<Map<String, dynamic>> setVendorOperationalStatus({
+    required String vendorId,
+    required bool isOperational,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/operational-status');
+    return _patchJson(uri, {'is_operational': isOperational});
+  }
+
   Future<Map<String, dynamic>> createVendorProduct({
     required String vendorId,
     required String categoryId,

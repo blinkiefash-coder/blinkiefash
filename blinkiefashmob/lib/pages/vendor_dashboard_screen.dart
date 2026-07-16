@@ -23,7 +23,65 @@ class VendorDashboardScreen extends StatefulWidget {
 }
 
 class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
+  final ApiClient _api = ApiClient();
   int _tab = 0;
+  bool _statusLoading = true;
+  bool _statusUpdating = false;
+  bool _isOperational = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOperationalStatus();
+  }
+
+  Future<void> _loadOperationalStatus() async {
+    try {
+      final profile = await _api.fetchVendorProfile(widget.vendorId);
+      if (!mounted) return;
+      setState(() {
+        _isOperational = profile['is_operational'] != false;
+        _statusLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _statusLoading = false);
+    }
+  }
+
+  Future<void> _toggleOperationalStatus(bool value) async {
+    setState(() => _statusUpdating = true);
+    try {
+      final res = await _api.setVendorOperationalStatus(
+        vendorId: widget.vendorId,
+        isOperational: value,
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        setState(() => _isOperational = value);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              value
+                  ? 'Store is ON. Customers can order now.'
+                  : 'Store is OFF. All products are unavailable now.',
+            ),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (res['message'] ?? res['error'] ?? 'Unable to update status')
+                  .toString(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _statusUpdating = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,6 +147,27 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             ),
           ),
           actions: [
+            if (!_statusLoading)
+              Row(
+                children: [
+                  Text(
+                    _isOperational ? 'ON' : 'OFF',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      color: _isOperational
+                          ? const Color(0xFF166534)
+                          : const Color(0xFFB91C1C),
+                    ),
+                  ),
+                  Switch(
+                    value: _isOperational,
+                    onChanged: _statusUpdating
+                        ? null
+                        : (v) => _toggleOperationalStatus(v),
+                  ),
+                ],
+              ),
             IconButton(
               tooltip: 'Logout',
               onPressed: () {
@@ -2241,7 +2320,9 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                         final size = (item['size'] ?? '-').toString();
                         final color = (item['color'] ?? '-').toString();
                         final barcode = (item['barcode'] ?? '').toString();
-                        final imageUrl = (item['image_url'] ?? '').toString().trim();
+                        final imageUrl = (item['image_url'] ?? '')
+                            .toString()
+                            .trim();
                         return Container(
                           margin: const EdgeInsets.only(bottom: 6),
                           padding: const EdgeInsets.all(8),
@@ -2270,12 +2351,11 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                                     : Image.network(
                                         imageUrl,
                                         fit: BoxFit.cover,
-                                        errorBuilder: (_, _, _) =>
-                                            const Icon(
-                                              Icons.broken_image_outlined,
-                                              size: 20,
-                                              color: Color(0xFF64748B),
-                                            ),
+                                        errorBuilder: (_, _, _) => const Icon(
+                                          Icons.broken_image_outlined,
+                                          size: 20,
+                                          color: Color(0xFF64748B),
+                                        ),
                                       ),
                               ),
                               const SizedBox(width: 10),
