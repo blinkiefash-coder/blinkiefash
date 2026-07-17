@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
+import '../services/user_session.dart';
 import 'vendor_login_screen.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -172,7 +173,10 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               ),
             IconButton(
               tooltip: 'Logout',
-              onPressed: () {
+              onPressed: () async {
+                await UserSession.instance.clear();
+                await NotificationService.instance.clearForCurrentUser();
+                if (!context.mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const VendorLoginScreen()),
                   (_) => false,

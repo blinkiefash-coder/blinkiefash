@@ -4,6 +4,7 @@ import 'pages/login_screen.dart';
 import 'services/user_session.dart';
 import 'services/notification_service.dart';
 import 'pages/home_screen.dart';
+import 'pages/vendor_dashboard_screen.dart';
 
 // ─────────────────────────────────────────────────────────────
 //  BlinkieFash Splash Screen
@@ -95,9 +96,25 @@ class _SplashScreenState extends State<SplashScreen>
     if (UserSession.instance.isLoggedIn) {
       NotificationService.instance.registerForCurrentUser();
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
-        );
+        if (UserSession.instance.role == 'vendor' &&
+            (UserSession.instance.vendorId ?? '').isNotEmpty) {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => VendorDashboardScreen(
+                vendorId: UserSession.instance.vendorId!,
+                storeName:
+                    (UserSession.instance.vendorStoreName ?? '').isNotEmpty
+                    ? UserSession.instance.vendorStoreName!
+                    : (UserSession.instance.name ?? 'Vendor Store'),
+                email: UserSession.instance.vendorEmail ?? '',
+              ),
+            ),
+          );
+        } else {
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
       }
     } else {
       await Future.delayed(const Duration(seconds: 3));

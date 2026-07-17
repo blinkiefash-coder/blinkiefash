@@ -10,8 +10,16 @@ class UserSession {
   String? email;
   String? role;
   String? token;
+  String? vendorId;
+  String? vendorStoreName;
+  String? vendorEmail;
 
-  bool get isLoggedIn => token != null && token!.isNotEmpty;
+  bool get isLoggedIn {
+    final hasToken = token != null && token!.isNotEmpty;
+    final isVendorSession =
+        role == 'vendor' && userId != null && userId!.isNotEmpty;
+    return hasToken || isVendorSession;
+  }
 
   static const _keyUserId = 'userId';
   static const _keyName = 'name';
@@ -19,6 +27,9 @@ class UserSession {
   static const _keyEmail = 'email';
   static const _keyRole = 'role';
   static const _keyToken = 'token';
+  static const _keyVendorId = 'vendorId';
+  static const _keyVendorStoreName = 'vendorStoreName';
+  static const _keyVendorEmail = 'vendorEmail';
 
   Future<void> setFromLoginResponse(Map<String, dynamic> response) async {
     final user = response['user'] as Map<String, dynamic>? ?? {};
@@ -31,17 +42,21 @@ class UserSession {
   }
 
   Future<void> setVendorSession({
+    required String vendorId,
     required String userId,
     required String name,
     required String email,
     String? phone,
   }) async {
+    this.vendorId = vendorId;
+    vendorStoreName = name;
+    vendorEmail = email;
     this.userId = userId;
     this.name = name;
     this.email = email;
     this.phone = phone;
     role = 'vendor';
-    token = '';
+    token = 'vendor-session';
     await _saveToPrefs();
   }
 
@@ -51,6 +66,9 @@ class UserSession {
     phone = null;
     role = null;
     token = null;
+    vendorId = null;
+    vendorStoreName = null;
+    vendorEmail = null;
     await _clearPrefs();
   }
 
@@ -62,6 +80,9 @@ class UserSession {
     email = prefs.getString(_keyEmail);
     role = prefs.getString(_keyRole);
     token = prefs.getString(_keyToken);
+    vendorId = prefs.getString(_keyVendorId);
+    vendorStoreName = prefs.getString(_keyVendorStoreName);
+    vendorEmail = prefs.getString(_keyVendorEmail);
   }
 
   Future<void> _saveToPrefs() async {
@@ -72,6 +93,9 @@ class UserSession {
     await prefs.setString(_keyEmail, email ?? '');
     await prefs.setString(_keyRole, role ?? '');
     await prefs.setString(_keyToken, token ?? '');
+    await prefs.setString(_keyVendorId, vendorId ?? '');
+    await prefs.setString(_keyVendorStoreName, vendorStoreName ?? '');
+    await prefs.setString(_keyVendorEmail, vendorEmail ?? '');
   }
 
   Future<void> _clearPrefs() async {
@@ -82,5 +106,8 @@ class UserSession {
     await prefs.remove(_keyEmail);
     await prefs.remove(_keyRole);
     await prefs.remove(_keyToken);
+    await prefs.remove(_keyVendorId);
+    await prefs.remove(_keyVendorStoreName);
+    await prefs.remove(_keyVendorEmail);
   }
 }

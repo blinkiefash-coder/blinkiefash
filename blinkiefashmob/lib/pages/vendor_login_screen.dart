@@ -54,6 +54,7 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
 
         if (vendorUserId.isNotEmpty) {
           await UserSession.instance.setVendorSession(
+            vendorId: vendorId,
             userId: vendorUserId,
             name: resolvedStoreName,
             email: resolvedEmail,
