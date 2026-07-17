@@ -5,6 +5,7 @@ import {
   notifyCustomerOfStatus,
   notifyVendorOfNewOrder,
 } from "../utils/firebaseAdmin.js";
+import { sendOrderAlertEmail } from "../utils/orderAlertEmail.js";
 
 const router = express.Router();
 
@@ -528,6 +529,9 @@ router.post("/orders", async (req, res) => {
     // Push "order placed" to the customer (best-effort)
     notifyCustomerOfStatus(pool, order.id, 'placed').catch(() => {});
     notifyVendorOfNewOrder(pool, order.id).catch(() => {});
+    sendOrderAlertEmail(pool, order.id).catch((err) => {
+      console.error(`[mail] Order alert failed for ${order.id}:`, err.message);
+    });
     res.json({
       success: true,
       orderId: order.id,
