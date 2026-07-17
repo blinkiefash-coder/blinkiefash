@@ -1,10 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import 'package:latlong2/latlong.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -5349,7 +5352,284 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _deliverDropSuggestions = const [];
   int _deliverPickupSearchToken = 0;
   int _deliverDropSearchToken = 0;
+  bool _deliverPickupAutoInitialized = false;
+  bool _deliverRouteLoading = false;
+  List<LatLng> _deliverRoutePoints = const [];
+  List<LatLng> _deliverNearbyRiders = const [];
   Map<String, dynamic>? _deliverEstimate;
+
+  Future<void> _setDeliverPickupFromCurrentLocation() async {
+    if (_deliverPickupAutoInitialized) return;
+    _deliverPickupAutoInitialized = true;
+
+    double? lat = _lastKnownLat;
+    double? lng = _lastKnownLng;
+
+    if (lat == null || lng == null) {
+      try {
+        final permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.low,
+          );
+          lat = pos.latitude;
+          lng = pos.longitude;
+        }
+      } catch (_) {}
+    }
+
+    if (lat == null || lng == null || !mounted) return;
+
+    String addressText = 'Current location';
+    try {
+      final marks = await placemarkFromCoordinates(lat, lng);
+      if (marks.isNotEmpty) {
+        final p = marks.first;
+        final parts = [
+          p.name,
+          p.subLocality,
+          p.locality,
+        ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+        if (parts.isNotEmpty) addressText = parts.take(3).join(', ');
+      }
+    } catch (_) {}
+
+    if (!mounted) return;
+    setState(() {
+      _deliverPickupCtrl.text = addressText;
+      _deliverPickupLat = lat;
+      _deliverPickupLng = lng;
+      _deliverPickupSuggestions = const [];
+    });
+    _refreshDeliverNearbyRiders();
+    _refreshDeliverRoute();
+  }
+
+  void _refreshDeliverNearbyRiders() {
+    if (_deliverPickupLat == null || _deliverPickupLng == null) {
+      setState(() => _deliverNearbyRiders = const []);
+      return;
+    }
+
+    final baseLat = _deliverPickupLat!;
+    final baseLng = _deliverPickupLng!;
+    final cosLat = math.cos(baseLat * math.pi / 180).abs().clamp(0.2, 1.0);
+    final riders = <LatLng>[];
+
+    for (int i = 0; i < 6; i++) {
+      final angle = (i * 58 + 17) * math.pi / 180;
+      final radiusKm = 0.25 + (i % 3) * 0.22;
+      final dLat = (radiusKm / 111.0) * math.cos(angle);
+      final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
+      riders.add(LatLng(baseLat + dLat, baseLng + dLng));
+    }
+
+    setState(() => _deliverNearbyRiders = riders);
+  }
+
+  Future<void> _refreshDeliverRoute() async {
+    if (_deliverPickupLat == null ||
+        _deliverPickupLng == null ||
+        _deliverDropLat == null ||
+        _deliverDropLng == null) {
+      if (mounted) setState(() => _deliverRoutePoints = const []);
+      return;
+    }
+
+    if (mounted) setState(() => _deliverRouteLoading = true);
+    try {
+      final uri = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/'
+        '${_deliverPickupLng!.toStringAsFixed(6)},${_deliverPickupLat!.toStringAsFixed(6)};'
+        '${_deliverDropLng!.toStringAsFixed(6)},${_deliverDropLat!.toStringAsFixed(6)}'
+        '?overview=full&geometries=geojson',
+      );
+
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
+
+      if (!mounted) return;
+
+      final fallback = [
+        LatLng(_deliverPickupLat!, _deliverPickupLng!),
+        LatLng(_deliverDropLat!, _deliverDropLng!),
+      ];
+
+      if (res.statusCode != 200) {
+        setState(() => _deliverRoutePoints = fallback);
+        return;
+      }
+
+      final decoded = jsonDecode(res.body);
+      final routes =
+          decoded is Map ? (decoded['routes'] as List? ?? const []) : const [];
+      if (routes.isEmpty) {
+        setState(() => _deliverRoutePoints = fallback);
+        return;
+      }
+
+      final geometry = routes.first['geometry'];
+      final coords =
+          geometry is Map
+              ? (geometry['coordinates'] as List? ?? const [])
+              : const [];
+
+      final points = <LatLng>[];
+      for (final c in coords) {
+        if (c is List && c.length >= 2) {
+          final lng = (c[0] as num?)?.toDouble();
+          final lat = (c[1] as num?)?.toDouble();
+          if (lat != null && lng != null) points.add(LatLng(lat, lng));
+        }
+      }
+
+      setState(() => _deliverRoutePoints = points.isEmpty ? fallback : points);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_deliverPickupLat != null &&
+            _deliverPickupLng != null &&
+            _deliverDropLat != null &&
+            _deliverDropLng != null) {
+          _deliverRoutePoints = [
+            LatLng(_deliverPickupLat!, _deliverPickupLng!),
+            LatLng(_deliverDropLat!, _deliverDropLng!),
+          ];
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _deliverRouteLoading = false);
+    }
+  }
+
+  Widget _deliverMapPreview() {
+    final startReady = _deliverPickupLat != null && _deliverPickupLng != null;
+    if (!startReady) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: const Text(
+          'Allow location and set starting point to see live route map and nearby riders.',
+          style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+        ),
+      );
+    }
+
+    final center = LatLng(_deliverPickupLat!, _deliverPickupLng!);
+    final markers = <Marker>[
+      Marker(
+        point: center,
+        width: 40,
+        height: 40,
+        child: const Icon(
+          Icons.trip_origin_rounded,
+          color: Color(0xFF16A34A),
+          size: 26,
+        ),
+      ),
+      for (final rider in _deliverNearbyRiders)
+        Marker(
+          point: rider,
+          width: 30,
+          height: 30,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0EA5E9),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.two_wheeler_rounded,
+              color: Colors.white,
+              size: 16,
+            ),
+          ),
+        ),
+    ];
+
+    if (_deliverDropLat != null && _deliverDropLng != null) {
+      markers.add(
+        Marker(
+          point: LatLng(_deliverDropLat!, _deliverDropLng!),
+          width: 40,
+          height: 40,
+          child: const Icon(
+            Icons.place_rounded,
+            color: Color(0xFFEF4444),
+            size: 30,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 250,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            FlutterMap(
+              options: MapOptions(initialCenter: center, initialZoom: 13),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.blinkiefash.app',
+                ),
+                if (_deliverRoutePoints.length >= 2)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _deliverRoutePoints,
+                        color: const Color(0xFF2563EB),
+                        strokeWidth: 4,
+                      ),
+                    ],
+                  ),
+                MarkerLayer(markers: markers),
+              ],
+            ),
+            if (_deliverRouteLoading)
+              const Positioned(
+                top: 10,
+                right: 10,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(20)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        SizedBox(
+                          width: 12,
+                          height: 12,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                        SizedBox(width: 6),
+                        Text('Loading route', style: TextStyle(fontSize: 11)),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 
   Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(
     String query,
@@ -5399,20 +5679,30 @@ class _HomeScreenState extends State<HomeScreen>
             final address = (m['address'] is Map)
                 ? Map<String, dynamic>.from(m['address'] as Map)
                 : <String, dynamic>{};
-            final titleParts = [
-              address['road'],
-              address['neighbourhood'],
-              address['suburb'],
-              address['quarter'],
-              address['village'],
-              address['town'],
-              address['city'],
-            ].whereType<Object>().map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
-            final subtitleParts = [
-              address['state_district'],
-              address['state'],
-              address['postcode'],
-            ].whereType<Object>().map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+            final titleParts =
+                [
+                      address['road'],
+                      address['neighbourhood'],
+                      address['suburb'],
+                      address['quarter'],
+                      address['village'],
+                      address['town'],
+                      address['city'],
+                    ]
+                    .whereType<Object>()
+                    .map((e) => e.toString().trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
+            final subtitleParts =
+                [
+                      address['state_district'],
+                      address['state'],
+                      address['postcode'],
+                    ]
+                    .whereType<Object>()
+                    .map((e) => e.toString().trim())
+                    .where((e) => e.isNotEmpty)
+                    .toList();
 
             await addSuggestion(
               title: titleParts.isNotEmpty
@@ -5549,9 +5839,12 @@ class _HomeScreenState extends State<HomeScreen>
       if (pickup) {
         _deliverPickupLat = null;
         _deliverPickupLng = null;
+        _deliverNearbyRiders = const [];
+        _deliverRoutePoints = const [];
       } else {
         _deliverDropLat = null;
         _deliverDropLng = null;
+        _deliverRoutePoints = const [];
       }
     });
 
@@ -5591,6 +5884,8 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverDropSuggestions = const [];
       }
     });
+    if (pickup) _refreshDeliverNearbyRiders();
+    _refreshDeliverRoute();
     FocusScope.of(context).unfocus();
   }
 
@@ -5621,6 +5916,8 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverDropSuggestions = const [];
       }
     });
+    if (pickup) _refreshDeliverNearbyRiders();
+    _refreshDeliverRoute();
   }
 
   Widget _deliverSuggestionList({required bool pickup}) {
@@ -5689,6 +5986,8 @@ class _HomeScreenState extends State<HomeScreen>
       _deliverPickupLng ??= pickupLocations.first.longitude;
       _deliverDropLat ??= dropLocations.first.latitude;
       _deliverDropLng ??= dropLocations.first.longitude;
+      _refreshDeliverNearbyRiders();
+      _refreshDeliverRoute();
 
       final estimate = await _api.estimateDeliverFare(
         pickupLat: _deliverPickupLat!,
@@ -5747,6 +6046,9 @@ class _HomeScreenState extends State<HomeScreen>
           _deliverDropLng = null;
           _deliverPickupSuggestions = const [];
           _deliverDropSuggestions = const [];
+          _deliverNearbyRiders = const [];
+          _deliverRoutePoints = const [];
+          _deliverPickupAutoInitialized = false;
         });
       } else {
         _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
@@ -5759,6 +6061,9 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _deliverBody() {
+    if (!_deliverPickupAutoInitialized) {
+      Future.microtask(_setDeliverPickupFromCurrentLocation);
+    }
     final estimate = _deliverEstimate;
     final fare = (estimate?['estimatedFare'] ?? 0).toString();
     final distance = (estimate?['distanceKm'] ?? 0).toString();
@@ -5865,6 +6170,8 @@ class _HomeScreenState extends State<HomeScreen>
                   label: const Text('Set Destination on map'),
                 ),
               ),
+              const SizedBox(height: 6),
+              _deliverMapPreview(),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,

@@ -1,13 +1,21 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:geocoding/geocoding.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/user_session.dart';
 import 'login_screen.dart';
+import 'location_picker_screen.dart';
 import 'vendor_help_screen.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -273,13 +281,485 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
   bool _loading = true;
   bool _updating = false;
+  bool _estimating = false;
+  bool _submitting = false;
   String _status = 'pending';
   List<Map<String, dynamic>> _requests = const [];
+  final _pickupCtrl = TextEditingController();
+  final _dropCtrl = TextEditingController();
+  double? _pickupLat;
+  double? _pickupLng;
+  double? _dropLat;
+  double? _dropLng;
+  Map<String, dynamic>? _estimate;
+  List<LatLng> _routePoints = const [];
+  List<LatLng> _nearbyRiders = const [];
+  bool _routeLoading = false;
+  String _cityHint = '';
 
   @override
   void initState() {
     super.initState();
     _load();
+    _setPickupFromCurrentLocation();
+  }
+
+  @override
+  void dispose() {
+    _pickupCtrl.dispose();
+    _dropCtrl.dispose();
+    super.dispose();
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _setPickupFromCurrentLocation() async {
+    try {
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.whileInUse &&
+          permission != LocationPermission.always) {
+        return;
+      }
+
+      final pos = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.low,
+      );
+      String label = 'Current location';
+      try {
+        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        if (marks.isNotEmpty) {
+          final p = marks.first;
+          final parts = [
+            p.name,
+            p.subLocality,
+            p.locality,
+          ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+          if (parts.isNotEmpty) label = parts.take(3).join(', ');
+          _cityHint = (p.locality ?? p.administrativeArea ?? '').trim();
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
+      setState(() {
+        _pickupCtrl.text = label;
+        _pickupLat = pos.latitude;
+        _pickupLng = pos.longitude;
+      });
+      _refreshNearbyRiders();
+      _refreshRoute();
+    } catch (_) {}
+  }
+
+  void _refreshNearbyRiders() {
+    if (_pickupLat == null || _pickupLng == null) {
+      setState(() => _nearbyRiders = const []);
+      return;
+    }
+
+    final lat = _pickupLat!;
+    final lng = _pickupLng!;
+    final cosLat = math.cos(lat * math.pi / 180).abs().clamp(0.2, 1.0);
+    final riders = <LatLng>[];
+    for (int i = 0; i < 6; i++) {
+      final angle = (i * 57 + 19) * math.pi / 180;
+      final radiusKm = 0.2 + (i % 3) * 0.2;
+      final dLat = (radiusKm / 111.0) * math.cos(angle);
+      final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
+      riders.add(LatLng(lat + dLat, lng + dLng));
+    }
+    setState(() => _nearbyRiders = riders);
+  }
+
+  Future<void> _refreshRoute() async {
+    if (_pickupLat == null ||
+        _pickupLng == null ||
+        _dropLat == null ||
+        _dropLng == null) {
+      if (mounted) setState(() => _routePoints = const []);
+      return;
+    }
+
+    if (mounted) setState(() => _routeLoading = true);
+    try {
+      final uri = Uri.parse(
+        'https://router.project-osrm.org/route/v1/driving/'
+        '${_pickupLng!.toStringAsFixed(6)},${_pickupLat!.toStringAsFixed(6)};'
+        '${_dropLng!.toStringAsFixed(6)},${_dropLat!.toStringAsFixed(6)}'
+        '?overview=full&geometries=geojson',
+      );
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
+
+      if (!mounted) return;
+
+      final fallback = [LatLng(_pickupLat!, _pickupLng!), LatLng(_dropLat!, _dropLng!)];
+      if (res.statusCode != 200) {
+        setState(() => _routePoints = fallback);
+        return;
+      }
+
+      final body = jsonDecode(res.body);
+      final routes = body is Map ? (body['routes'] as List? ?? const []) : const [];
+      if (routes.isEmpty) {
+        setState(() => _routePoints = fallback);
+        return;
+      }
+
+      final geometry = routes.first['geometry'];
+      final coordinates = geometry is Map
+          ? (geometry['coordinates'] as List? ?? const [])
+          : const [];
+      final points = <LatLng>[];
+      for (final c in coordinates) {
+        if (c is List && c.length >= 2) {
+          final lng = (c[0] as num?)?.toDouble();
+          final lat = (c[1] as num?)?.toDouble();
+          if (lat != null && lng != null) points.add(LatLng(lat, lng));
+        }
+      }
+      setState(() => _routePoints = points.isEmpty ? fallback : points);
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_pickupLat != null &&
+            _pickupLng != null &&
+            _dropLat != null &&
+            _dropLng != null) {
+          _routePoints = [LatLng(_pickupLat!, _pickupLng!), LatLng(_dropLat!, _dropLng!)];
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _routeLoading = false);
+    }
+  }
+
+  Future<void> _pickLocationFromMap({required bool pickup}) async {
+    final picked = await Navigator.of(context).push<PickedAddress>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
+    if (!mounted || picked == null) return;
+
+    final text = picked.addressLine.trim().isNotEmpty
+        ? picked.addressLine.trim()
+        : [picked.city, picked.pincode].where((e) => e.trim().isNotEmpty).join(', ');
+
+    setState(() {
+      _estimate = null;
+      if (pickup) {
+        _pickupCtrl.text = text;
+        _pickupLat = picked.lat;
+        _pickupLng = picked.lng;
+        _cityHint = picked.city;
+      } else {
+        _dropCtrl.text = text;
+        _dropLat = picked.lat;
+        _dropLng = picked.lng;
+      }
+    });
+    if (pickup) _refreshNearbyRiders();
+    _refreshRoute();
+  }
+
+  Future<void> _estimateSendParcel() async {
+    if (_pickupCtrl.text.trim().isEmpty || _dropCtrl.text.trim().isEmpty) {
+      _snack('Set both pickup and destination');
+      return;
+    }
+
+    setState(() {
+      _estimating = true;
+      _estimate = null;
+    });
+
+    try {
+      if (_pickupLat == null || _pickupLng == null) {
+        final rows = await locationFromAddress(_pickupCtrl.text.trim());
+        if (rows.isNotEmpty) {
+          _pickupLat = rows.first.latitude;
+          _pickupLng = rows.first.longitude;
+        }
+      }
+
+      if (_dropLat == null || _dropLng == null) {
+        final rows = await locationFromAddress(_dropCtrl.text.trim());
+        if (rows.isNotEmpty) {
+          _dropLat = rows.first.latitude;
+          _dropLng = rows.first.longitude;
+        }
+      }
+
+      if (_pickupLat == null ||
+          _pickupLng == null ||
+          _dropLat == null ||
+          _dropLng == null) {
+        _snack('Unable to resolve locations. Use map selection.');
+        return;
+      }
+
+      _refreshNearbyRiders();
+      _refreshRoute();
+      final estimate = await _api.estimateDeliverFare(
+        pickupLat: _pickupLat!,
+        pickupLng: _pickupLng!,
+        dropLat: _dropLat!,
+        dropLng: _dropLng!,
+        city: _cityHint,
+      );
+      if (!mounted) return;
+      if (estimate['success'] == true) {
+        setState(() => _estimate = estimate);
+      } else {
+        _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
+      }
+    } catch (_) {
+      _snack('Unable to estimate parcel fare right now');
+    } finally {
+      if (mounted) setState(() => _estimating = false);
+    }
+  }
+
+  Future<void> _sendVendorParcel() async {
+    if (_estimate == null ||
+        _pickupLat == null ||
+        _pickupLng == null ||
+        _dropLat == null ||
+        _dropLng == null) {
+      _snack('Estimate fare before sending parcel request');
+      return;
+    }
+
+    setState(() => _submitting = true);
+    try {
+      final res = await _api.createDeliverRequest(
+        pickupText: _pickupCtrl.text.trim(),
+        dropText: _dropCtrl.text.trim(),
+        pickupLat: _pickupLat!,
+        pickupLng: _pickupLng!,
+        dropLat: _dropLat!,
+        dropLng: _dropLng!,
+        city: _cityHint,
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        _snack('Vendor parcel request created');
+        setState(() {
+          _dropCtrl.clear();
+          _dropLat = null;
+          _dropLng = null;
+          _estimate = null;
+          _routePoints = const [];
+        });
+        _load();
+      } else {
+        _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
+      }
+    } catch (_) {
+      _snack('Could not create parcel request');
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
+  }
+
+  Widget _vendorParcelMap() {
+    if (_pickupLat == null || _pickupLng == null) {
+      return const SizedBox.shrink();
+    }
+
+    final center = LatLng(_pickupLat!, _pickupLng!);
+    final markers = <Marker>[
+      Marker(
+        point: center,
+        width: 40,
+        height: 40,
+        child: const Icon(
+          Icons.trip_origin_rounded,
+          color: Color(0xFF16A34A),
+          size: 26,
+        ),
+      ),
+      for (final rider in _nearbyRiders)
+        Marker(
+          point: rider,
+          width: 28,
+          height: 28,
+          child: Container(
+            decoration: const BoxDecoration(
+              color: Color(0xFF0284C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.delivery_dining_rounded,
+              size: 15,
+              color: Colors.white,
+            ),
+          ),
+        ),
+    ];
+
+    if (_dropLat != null && _dropLng != null) {
+      markers.add(
+        Marker(
+          point: LatLng(_dropLat!, _dropLng!),
+          width: 40,
+          height: 40,
+          child: const Icon(
+            Icons.place_rounded,
+            color: Color(0xFFEF4444),
+            size: 30,
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 210,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Stack(
+          children: [
+            FlutterMap(
+              options: MapOptions(initialCenter: center, initialZoom: 13),
+              children: [
+                TileLayer(
+                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.blinkiefash.app',
+                ),
+                if (_routePoints.length >= 2)
+                  PolylineLayer(
+                    polylines: [
+                      Polyline(
+                        points: _routePoints,
+                        color: const Color(0xFF2563EB),
+                        strokeWidth: 4,
+                      ),
+                    ],
+                  ),
+                MarkerLayer(markers: markers),
+              ],
+            ),
+            if (_routeLoading)
+              const Positioned(
+                top: 8,
+                right: 8,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.all(Radius.circular(18)),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                    child: Text('Route...', style: TextStyle(fontSize: 11)),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _sendParcelCard() {
+    final fare = (_estimate?['estimatedFare'] ?? 0).toString();
+    final dist = (_estimate?['distanceKm'] ?? 0).toString();
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Send Parcel (Vendor)',
+            style: TextStyle(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          TextField(
+            controller: _pickupCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Starting location',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.trip_origin_rounded),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _pickLocationFromMap(pickup: true),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Set Starting on map'),
+            ),
+          ),
+          TextField(
+            controller: _dropCtrl,
+            decoration: const InputDecoration(
+              labelText: 'Destination location',
+              border: OutlineInputBorder(),
+              prefixIcon: Icon(Icons.place_outlined),
+            ),
+          ),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              onPressed: () => _pickLocationFromMap(pickup: false),
+              icon: const Icon(Icons.map_outlined),
+              label: const Text('Set Destination on map'),
+            ),
+          ),
+          _vendorParcelMap(),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _estimating ? null : _estimateSendParcel,
+                  icon: _estimating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.calculate_outlined),
+                  label: Text(_estimating ? 'Estimating...' : 'Estimate Fare'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: _submitting ? null : _sendVendorParcel,
+                  icon: _submitting
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.local_shipping_rounded),
+                  label: Text(_submitting ? 'Sending...' : 'Send Parcel'),
+                ),
+              ),
+            ],
+          ),
+          if (_estimate != null) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Distance: $dist km • Estimated Fare: ₹$fare',
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF166534),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -342,10 +822,11 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           ),
           const SizedBox(height: 6),
           const Text(
-            'Accept local parcel pickup/drop requests quickly in your city.',
+            'Send your own parcel or accept local pickup/drop requests in your city.',
             style: TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 12),
+          _sendParcelCard(),
           Wrap(
             spacing: 8,
             children: [
