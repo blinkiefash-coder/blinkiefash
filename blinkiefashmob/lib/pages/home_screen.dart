@@ -187,6 +187,7 @@ class _HomeScreenState extends State<HomeScreen>
     _heroTimer?.cancel();
     _promoTimer?.cancel();
     _lightBannerTimer?.cancel();
+    _deliverLiveTimer?.cancel();
     _deliverPickupDebounce?.cancel();
     _deliverDropDebounce?.cancel();
     _deliverPickupCtrl.dispose();
@@ -5356,6 +5357,9 @@ class _HomeScreenState extends State<HomeScreen>
   bool _deliverRouteLoading = false;
   List<LatLng> _deliverRoutePoints = const [];
   List<LatLng> _deliverNearbyRiders = const [];
+  Timer? _deliverLiveTimer;
+  int _deliverLiveTick = 0;
+  int? _deliverEtaMinutes;
   Map<String, dynamic>? _deliverEstimate;
 
   Future<void> _setDeliverPickupFromCurrentLocation() async {
@@ -5408,24 +5412,99 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _refreshDeliverNearbyRiders() {
     if (_deliverPickupLat == null || _deliverPickupLng == null) {
+      _stopDeliverLiveTracking();
       setState(() => _deliverNearbyRiders = const []);
       return;
     }
 
+    setState(() => _deliverNearbyRiders = _buildDeliverLiveRiders());
+    _startDeliverLiveTracking();
+  }
+
+  List<LatLng> _buildDeliverLiveRiders() {
+    if (_deliverPickupLat == null || _deliverPickupLng == null) return const [];
     final baseLat = _deliverPickupLat!;
     final baseLng = _deliverPickupLng!;
     final cosLat = math.cos(baseLat * math.pi / 180).abs().clamp(0.2, 1.0);
     final riders = <LatLng>[];
 
     for (int i = 0; i < 6; i++) {
-      final angle = (i * 58 + 17) * math.pi / 180;
-      final radiusKm = 0.25 + (i % 3) * 0.22;
+      if (_deliverRoutePoints.length >= 2 && i < 3) {
+        final idx =
+            (_deliverLiveTick * 2 + i * 23) % _deliverRoutePoints.length;
+        riders.add(_deliverRoutePoints[idx]);
+        continue;
+      }
+
+      final angle = ((_deliverLiveTick * 16) + (i * 58 + 17)) * math.pi / 180;
+      final radiusKm = 0.20 + (i % 3) * 0.18;
       final dLat = (radiusKm / 111.0) * math.cos(angle);
       final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
       riders.add(LatLng(baseLat + dLat, baseLng + dLng));
     }
+    return riders;
+  }
 
-    setState(() => _deliverNearbyRiders = riders);
+  void _startDeliverLiveTracking() {
+    _deliverLiveTimer?.cancel();
+    _deliverLiveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _deliverPickupLat == null || _deliverPickupLng == null) {
+        return;
+      }
+      setState(() {
+        _deliverLiveTick++;
+        _deliverNearbyRiders = _buildDeliverLiveRiders();
+      });
+    });
+  }
+
+  void _stopDeliverLiveTracking() {
+    _deliverLiveTimer?.cancel();
+    _deliverLiveTimer = null;
+  }
+
+  double _deliverHaversineKm(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * math.pi / 180.0;
+    final dLng = (lng2 - lng1) * math.pi / 180.0;
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180.0) *
+            math.cos(lat2 * math.pi / 180.0) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  void _recalculateDeliverEta() {
+    double? distanceKm;
+    final estDistance = (_deliverEstimate?['distanceKm'] as num?)?.toDouble();
+    if (estDistance != null && estDistance > 0) {
+      distanceKm = estDistance;
+    } else if (_deliverPickupLat != null &&
+        _deliverPickupLng != null &&
+        _deliverDropLat != null &&
+        _deliverDropLng != null) {
+      distanceKm = _deliverHaversineKm(
+        _deliverPickupLat!,
+        _deliverPickupLng!,
+        _deliverDropLat!,
+        _deliverDropLng!,
+      );
+    }
+
+    if (distanceKm == null) {
+      setState(() => _deliverEtaMinutes = null);
+      return;
+    }
+
+    final mins = ((distanceKm / 24.0) * 60.0).round().clamp(6, 95);
+    setState(() => _deliverEtaMinutes = mins);
   }
 
   Future<void> _refreshDeliverRoute() async {
@@ -5433,7 +5512,10 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverPickupLng == null ||
         _deliverDropLat == null ||
         _deliverDropLng == null) {
-      if (mounted) setState(() => _deliverRoutePoints = const []);
+      if (mounted) {
+        setState(() => _deliverRoutePoints = const []);
+        _recalculateDeliverEta();
+      }
       return;
     }
 
@@ -5460,22 +5542,26 @@ class _HomeScreenState extends State<HomeScreen>
 
       if (res.statusCode != 200) {
         setState(() => _deliverRoutePoints = fallback);
+        _recalculateDeliverEta();
+        _refreshDeliverNearbyRiders();
         return;
       }
 
       final decoded = jsonDecode(res.body);
-      final routes =
-          decoded is Map ? (decoded['routes'] as List? ?? const []) : const [];
+      final routes = decoded is Map
+          ? (decoded['routes'] as List? ?? const [])
+          : const [];
       if (routes.isEmpty) {
         setState(() => _deliverRoutePoints = fallback);
+        _recalculateDeliverEta();
+        _refreshDeliverNearbyRiders();
         return;
       }
 
       final geometry = routes.first['geometry'];
-      final coords =
-          geometry is Map
-              ? (geometry['coordinates'] as List? ?? const [])
-              : const [];
+      final coords = geometry is Map
+          ? (geometry['coordinates'] as List? ?? const [])
+          : const [];
 
       final points = <LatLng>[];
       for (final c in coords) {
@@ -5487,6 +5573,8 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       setState(() => _deliverRoutePoints = points.isEmpty ? fallback : points);
+      _recalculateDeliverEta();
+      _refreshDeliverNearbyRiders();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -5500,6 +5588,8 @@ class _HomeScreenState extends State<HomeScreen>
           ];
         }
       });
+      _recalculateDeliverEta();
+      _refreshDeliverNearbyRiders();
     } finally {
       if (mounted) setState(() => _deliverRouteLoading = false);
     }
@@ -5598,6 +5688,31 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 MarkerLayer(markers: markers),
               ],
+            ),
+            Positioned(
+              top: 10,
+              left: 10,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(20)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Text(
+                    _deliverEtaMinutes == null
+                        ? 'Set destination for ETA'
+                      : 'ETA ~ $_deliverEtaMinutes min • $_deliverNearbyRiders.length riders nearby',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ),
             if (_deliverRouteLoading)
               const Positioned(
@@ -5841,10 +5956,13 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverPickupLng = null;
         _deliverNearbyRiders = const [];
         _deliverRoutePoints = const [];
+        _deliverEtaMinutes = null;
+        _stopDeliverLiveTracking();
       } else {
         _deliverDropLat = null;
         _deliverDropLng = null;
         _deliverRoutePoints = const [];
+        _deliverEtaMinutes = null;
       }
     });
 
@@ -6000,6 +6118,7 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
       if (estimate['success'] == true) {
         setState(() => _deliverEstimate = estimate);
+        _recalculateDeliverEta();
       } else {
         _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
       }
@@ -6048,8 +6167,10 @@ class _HomeScreenState extends State<HomeScreen>
           _deliverDropSuggestions = const [];
           _deliverNearbyRiders = const [];
           _deliverRoutePoints = const [];
+          _deliverEtaMinutes = null;
           _deliverPickupAutoInitialized = false;
         });
+        _stopDeliverLiveTracking();
       } else {
         _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
       }

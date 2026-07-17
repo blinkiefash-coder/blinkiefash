@@ -294,6 +294,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   Map<String, dynamic>? _estimate;
   List<LatLng> _routePoints = const [];
   List<LatLng> _nearbyRiders = const [];
+  Timer? _liveTimer;
+  int _liveTick = 0;
+  int? _etaMinutes;
   bool _routeLoading = false;
   String _cityHint = '';
 
@@ -306,6 +309,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
   @override
   void dispose() {
+    _liveTimer?.cancel();
     _pickupCtrl.dispose();
     _dropCtrl.dispose();
     super.dispose();
@@ -329,7 +333,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       );
       String label = 'Current location';
       try {
-        final marks = await placemarkFromCoordinates(pos.latitude, pos.longitude);
+        final marks = await placemarkFromCoordinates(
+          pos.latitude,
+          pos.longitude,
+        );
         if (marks.isNotEmpty) {
           final p = marks.first;
           final parts = [
@@ -355,22 +362,84 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
   void _refreshNearbyRiders() {
     if (_pickupLat == null || _pickupLng == null) {
+      _stopLiveTracking();
       setState(() => _nearbyRiders = const []);
       return;
     }
 
+    setState(() => _nearbyRiders = _buildLiveRiders());
+    _startLiveTracking();
+  }
+
+  List<LatLng> _buildLiveRiders() {
+    if (_pickupLat == null || _pickupLng == null) return const [];
     final lat = _pickupLat!;
     final lng = _pickupLng!;
     final cosLat = math.cos(lat * math.pi / 180).abs().clamp(0.2, 1.0);
     final riders = <LatLng>[];
     for (int i = 0; i < 6; i++) {
-      final angle = (i * 57 + 19) * math.pi / 180;
-      final radiusKm = 0.2 + (i % 3) * 0.2;
+      if (_routePoints.length >= 2 && i < 3) {
+        final idx = (_liveTick * 2 + i * 21) % _routePoints.length;
+        riders.add(_routePoints[idx]);
+        continue;
+      }
+      final angle = ((_liveTick * 18) + (i * 57 + 19)) * math.pi / 180;
+      final radiusKm = 0.18 + (i % 3) * 0.22;
       final dLat = (radiusKm / 111.0) * math.cos(angle);
       final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
       riders.add(LatLng(lat + dLat, lng + dLng));
     }
-    setState(() => _nearbyRiders = riders);
+    return riders;
+  }
+
+  void _startLiveTracking() {
+    _liveTimer?.cancel();
+    _liveTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted || _pickupLat == null || _pickupLng == null) return;
+      setState(() {
+        _liveTick++;
+        _nearbyRiders = _buildLiveRiders();
+      });
+    });
+  }
+
+  void _stopLiveTracking() {
+    _liveTimer?.cancel();
+    _liveTimer = null;
+  }
+
+  double _haversineKm(double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = (lat2 - lat1) * math.pi / 180.0;
+    final dLng = (lng2 - lng1) * math.pi / 180.0;
+    final a =
+        math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(lat1 * math.pi / 180.0) *
+            math.cos(lat2 * math.pi / 180.0) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  void _recalculateEta() {
+    double? distanceKm;
+    final fromEstimate = (_estimate?['distanceKm'] as num?)?.toDouble();
+    if (fromEstimate != null && fromEstimate > 0) {
+      distanceKm = fromEstimate;
+    } else if (_pickupLat != null &&
+        _pickupLng != null &&
+        _dropLat != null &&
+        _dropLng != null) {
+      distanceKm = _haversineKm(_pickupLat!, _pickupLng!, _dropLat!, _dropLng!);
+    }
+
+    if (distanceKm == null) {
+      setState(() => _etaMinutes = null);
+      return;
+    }
+
+    final mins = ((distanceKm / 24.0) * 60.0).round().clamp(6, 95);
+    setState(() => _etaMinutes = mins);
   }
 
   Future<void> _refreshRoute() async {
@@ -378,7 +447,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         _pickupLng == null ||
         _dropLat == null ||
         _dropLng == null) {
-      if (mounted) setState(() => _routePoints = const []);
+      if (mounted) {
+        setState(() => _routePoints = const []);
+        _recalculateEta();
+      }
       return;
     }
 
@@ -397,16 +469,25 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
       if (!mounted) return;
 
-      final fallback = [LatLng(_pickupLat!, _pickupLng!), LatLng(_dropLat!, _dropLng!)];
+      final fallback = [
+        LatLng(_pickupLat!, _pickupLng!),
+        LatLng(_dropLat!, _dropLng!),
+      ];
       if (res.statusCode != 200) {
         setState(() => _routePoints = fallback);
+        _recalculateEta();
+        _refreshNearbyRiders();
         return;
       }
 
       final body = jsonDecode(res.body);
-      final routes = body is Map ? (body['routes'] as List? ?? const []) : const [];
+      final routes = body is Map
+          ? (body['routes'] as List? ?? const [])
+          : const [];
       if (routes.isEmpty) {
         setState(() => _routePoints = fallback);
+        _recalculateEta();
+        _refreshNearbyRiders();
         return;
       }
 
@@ -423,6 +504,8 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         }
       }
       setState(() => _routePoints = points.isEmpty ? fallback : points);
+      _recalculateEta();
+      _refreshNearbyRiders();
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -430,9 +513,14 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
             _pickupLng != null &&
             _dropLat != null &&
             _dropLng != null) {
-          _routePoints = [LatLng(_pickupLat!, _pickupLng!), LatLng(_dropLat!, _dropLng!)];
+          _routePoints = [
+            LatLng(_pickupLat!, _pickupLng!),
+            LatLng(_dropLat!, _dropLng!),
+          ];
         }
       });
+      _recalculateEta();
+      _refreshNearbyRiders();
     } finally {
       if (mounted) setState(() => _routeLoading = false);
     }
@@ -446,7 +534,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
     final text = picked.addressLine.trim().isNotEmpty
         ? picked.addressLine.trim()
-        : [picked.city, picked.pincode].where((e) => e.trim().isNotEmpty).join(', ');
+        : [
+            picked.city,
+            picked.pincode,
+          ].where((e) => e.trim().isNotEmpty).join(', ');
 
     setState(() {
       _estimate = null;
@@ -513,6 +604,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       if (!mounted) return;
       if (estimate['success'] == true) {
         setState(() => _estimate = estimate);
+        _recalculateEta();
       } else {
         _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
       }
@@ -553,7 +645,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           _dropLng = null;
           _estimate = null;
           _routePoints = const [];
+          _etaMinutes = null;
         });
+        _refreshNearbyRiders();
         _load();
       } else {
         _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
@@ -641,6 +735,31 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
                   ),
                 MarkerLayer(markers: markers),
               ],
+            ),
+            Positioned(
+              top: 8,
+              left: 8,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.all(Radius.circular(18)),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 5,
+                  ),
+                  child: Text(
+                    _etaMinutes == null
+                        ? 'Set destination for ETA'
+                        : 'ETA ~ $_etaMinutes min • $_nearbyRiders.length riders',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
             ),
             if (_routeLoading)
               const Positioned(
