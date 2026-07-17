@@ -335,8 +335,8 @@ class _LoginScreenState extends State<LoginScreen> {
         final resolvedStoreName =
             (profile['store_name'] ?? res['store_name'] ?? 'Vendor Store')
                 .toString();
-        final resolvedEmail =
-            (profile['email'] ?? _vendorEmailCtrl.text.trim()).toString();
+        final resolvedEmail = (profile['email'] ?? _vendorEmailCtrl.text.trim())
+            .toString();
 
         if (vendorUserId.isNotEmpty) {
           await UserSession.instance.setVendorSession(
@@ -543,8 +543,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onSignup: () => Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => SignupScreen(
-                                        redirectBuilder:
-                                            widget.redirectBuilder,
+                                        redirectBuilder: widget.redirectBuilder,
                                       ),
                                     ),
                                   ),
@@ -584,8 +583,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   onSignup: () => Navigator.of(context).push(
                                     MaterialPageRoute(
                                       builder: (_) => SignupScreen(
-                                        redirectBuilder:
-                                            widget.redirectBuilder,
+                                        redirectBuilder: widget.redirectBuilder,
                                       ),
                                     ),
                                   ),
@@ -692,7 +690,9 @@ class _ToggleChip extends StatelessWidget {
             Icon(
               icon,
               size: 16,
-              color: selected ? const Color(0xFF166534) : const Color(0xFF64748B),
+              color: selected
+                  ? const Color(0xFF166534)
+                  : const Color(0xFF64748B),
             ),
             const SizedBox(width: 6),
             Text(

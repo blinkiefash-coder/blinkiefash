@@ -18,6 +18,7 @@ class ApiClient {
   /// Passed as [store_id] to all product listing calls so only items
   /// stocked at that specific store are shown.
   static String? currentStoreId;
+  static List<String> currentStoreIds = const [];
 
   /// Human-readable name of the selected delivery area (city or store name).
   /// Used to display delivery location on the product detail screen.
@@ -259,16 +260,25 @@ class ApiClient {
       // Persist the nearest store id so all subsequent product calls filter
       // to only show items available at this store.
       final storeId = (data['nearestStore'] as Map?)?['id']?.toString();
+      final nearbyStoreIds = (data['nearbyStoreIds'] as List?)
+          ?.map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
       final storeName =
           (data['nearestStore'] as Map?)?['city']?.toString() ??
           (data['nearestStore'] as Map?)?['name']?.toString();
       if (storeId != null && storeId.isNotEmpty) {
         ApiClient.currentStoreId = storeId;
+        ApiClient.currentStoreIds =
+            (nearbyStoreIds != null && nearbyStoreIds.isNotEmpty)
+            ? nearbyStoreIds
+            : [storeId];
         if (storeName != null && storeName.isNotEmpty) {
           ApiClient.currentStoreName = storeName;
         }
       } else if (lat == null && lng == null) {
         ApiClient.currentStoreId = null; // reset when no location
+        ApiClient.currentStoreIds = const [];
         ApiClient.currentStoreName = null;
       }
       return data;
@@ -336,7 +346,11 @@ class ApiClient {
     if (minPrice != null) params['min_price'] = minPrice.toStringAsFixed(0);
     if (maxPrice != null) params['max_price'] = maxPrice.toStringAsFixed(0);
     if (ApiClient.currentStoreId != null) {
-      params['store_id'] = ApiClient.currentStoreId!;
+      if (ApiClient.currentStoreIds.isNotEmpty) {
+        params['store_ids'] = ApiClient.currentStoreIds.join(',');
+      } else {
+        params['store_id'] = ApiClient.currentStoreId!;
+      }
     }
     final uri = Uri.parse(
       '$apiApiBaseUrl/products',
@@ -347,9 +361,11 @@ class ApiClient {
   }
 
   Future<List<dynamic>> fetchBestsellers() async {
-    final storeParam = ApiClient.currentStoreId != null
-        ? '&store_id=${ApiClient.currentStoreId}'
-        : '';
+    final storeParam = ApiClient.currentStoreIds.isNotEmpty
+      ? '&store_ids=${ApiClient.currentStoreIds.join(',')}'
+      : (ApiClient.currentStoreId != null
+          ? '&store_id=${ApiClient.currentStoreId}'
+          : '');
     // Try the dedicated bestsellers endpoint first
     final uri = Uri.parse(
       '$apiApiBaseUrl/products/bestsellers?limit=10$storeParam',
@@ -388,7 +404,11 @@ class ApiClient {
       'max_price': maxPrice.toStringAsFixed(0),
     };
     if (ApiClient.currentStoreId != null) {
-      params['store_id'] = ApiClient.currentStoreId!;
+      if (ApiClient.currentStoreIds.isNotEmpty) {
+        params['store_ids'] = ApiClient.currentStoreIds.join(',');
+      } else {
+        params['store_id'] = ApiClient.currentStoreId!;
+      }
     }
     final uri = Uri.parse(
       '$apiApiBaseUrl/products',
@@ -411,6 +431,74 @@ class ApiClient {
       return data['products'] as List;
     }
     return const [];
+  }
+
+  Future<Map<String, dynamic>> estimateDeliverFare({
+    required double pickupLat,
+    required double pickupLng,
+    required double dropLat,
+    required double dropLng,
+    String? city,
+  }) async {
+    final params = <String, String>{
+      'pickupLat': pickupLat.toStringAsFixed(7),
+      'pickupLng': pickupLng.toStringAsFixed(7),
+      'dropLat': dropLat.toStringAsFixed(7),
+      'dropLng': dropLng.toStringAsFixed(7),
+      if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+    };
+    final uri = Uri.parse('$apiApiBaseUrl/deliver/estimate').replace(
+      queryParameters: params,
+    );
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {'success': false, 'message': 'Invalid estimate response'};
+  }
+
+  Future<Map<String, dynamic>> createDeliverRequest({
+    String? userId,
+    required String pickupText,
+    required String dropText,
+    required double pickupLat,
+    required double pickupLng,
+    required double dropLat,
+    required double dropLng,
+    String? city,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/deliver/request');
+    return _postJson(uri, {
+      if (userId != null && userId.isNotEmpty) 'userId': userId,
+      'pickupText': pickupText,
+      'dropText': dropText,
+      'pickupLat': pickupLat,
+      'pickupLng': pickupLng,
+      'dropLat': dropLat,
+      'dropLng': dropLng,
+      if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+    });
+  }
+
+  Future<List<dynamic>> fetchVendorDeliverRequests({
+    required String vendorId,
+    String status = 'pending',
+  }) async {
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/deliver/vendor/$vendorId/requests?status=$status',
+    );
+    final data = await _getJson(uri);
+    if (data is Map && data['requests'] is List) {
+      return data['requests'] as List;
+    }
+    return const [];
+  }
+
+  Future<Map<String, dynamic>> updateVendorDeliverRequestStatus({
+    required String vendorId,
+    required String requestId,
+    required String status,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/deliver/vendor/$vendorId/requests/$requestId');
+    return _patchJson(uri, {'status': status});
   }
 
   Future<Map<String, dynamic>> submitSupportTicket({

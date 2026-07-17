@@ -19,6 +19,7 @@ import oldClothesRoutes from "./routes/oldClothes.js";
 import reviewsRoutes from "./routes/reviews.js";
 import supportRoutes from "./routes/support.js";
 import partnerRoutes from "./routes/partners.js";
+import deliverRoutes from "./routes/deliver.js";
 
 const app = express();
 
@@ -98,6 +99,7 @@ app.use("/api/old-clothes", oldClothesRoutes);
 app.use("/api/reviews", reviewsRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/partners", partnerRoutes);
+app.use("/api/deliver", deliverRoutes);
 // Force redeploy: 2026-06-06 11:20:53 UTC
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);

@@ -292,18 +292,26 @@ router.get("/bestsellers", async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit) || 10, 20);
     const store_id = req.query.store_id || null;
+    const store_ids = String(req.query.store_ids || "")
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
 
     const values = [];
     let index = 1;
 
     let storeCondition = '';
-    if (store_id) {
-      values.push(store_id);
+    const effectiveStoreIds = store_ids.length
+      ? store_ids
+      : (store_id ? [String(store_id)] : []);
+
+    if (effectiveStoreIds.length) {
+      values.push(effectiveStoreIds);
       storeCondition = `AND EXISTS (
         SELECT 1 FROM product_variants sv
         JOIN inventory si ON si.variant_id = sv.id
         WHERE sv.product_id = p.id AND sv.is_active = true
-          AND si.store_id = $${index++}
+          AND si.store_id = ANY($${index++}::uuid[])
           AND GREATEST(COALESCE(si.stock, 0) - COALESCE(si.reserved_stock, 0), 0) > 0
       )`;
     }
@@ -360,6 +368,13 @@ router.get("/price-range", async (req, res) => {
     const minPrice = parseFloat(req.query.min_price) || 0;
     const maxPrice = parseFloat(req.query.max_price) || 99999;
     const storeId = req.query.store_id ? req.query.store_id.toString() : null;
+    const storeIds = String(req.query.store_ids || "")
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const effectiveStoreIds = storeIds.length
+      ? storeIds
+      : (storeId ? [storeId] : []);
 
     let query = `
       SELECT
@@ -392,9 +407,9 @@ router.get("/price-range", async (req, res) => {
     `;
 
     // Add store inventory filtering if store_id provided
-    if (storeId) {
+    if (effectiveStoreIds.length) {
       query += `
-       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $4
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = ANY($4::uuid[])
        WHERE p.id IS NOT NULL
          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
@@ -402,7 +417,7 @@ router.get("/price-range", async (req, res) => {
        ORDER BY MIN(v.price) ASC, p.id
        LIMIT $3
       `;
-      const result = await pool.query(query, [minPrice, maxPrice, limit, storeId]);
+      const result = await pool.query(query, [minPrice, maxPrice, limit, effectiveStoreIds]);
       return res.json({ products: result.rows });
     } else {
       query += `
@@ -649,6 +664,7 @@ router.get("/", async (req, res) => {
       lat,
       lng,
       store_id,   // explicit store override from frontend
+      store_ids,
     } = req.query;
 
     // Find nearest dark store when coordinates are provided
@@ -675,8 +691,46 @@ router.get("/", async (req, res) => {
       }
     }
 
-    // Effective store: explicit param first, then nearest from lat/lng
-    const effectiveStoreId = store_id || nearestStoreId || null;
+    const explicitStoreIds = String(store_ids || "")
+      .split(",")
+      .map((v) => v.trim())
+      .filter(Boolean);
+
+    let nearbyStores = [];
+    if (!store_id && !explicitStoreIds.length && lat && lng) {
+      const { rows } = await pool.query(
+        `SELECT id, name, city,
+           6371 * acos(
+             cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) +
+             sin(radians($1)) * sin(radians(lat))
+           ) AS dist
+         FROM dark_stores
+         WHERE is_active = true
+           AND lat IS NOT NULL
+           AND lng IS NOT NULL
+           AND 6371 * acos(
+             cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) +
+             sin(radians($1)) * sin(radians(lat))
+           ) <= 25
+         ORDER BY dist ASC`,
+        [parseFloat(lat), parseFloat(lng)]
+      );
+      nearbyStores = rows.map((r) => ({
+        id: r.id,
+        name: r.name,
+        city: r.city,
+        dist: parseFloat(r.dist),
+      }));
+    }
+
+    // Effective stores: explicit store(s) first, then nearby stores, then nearest store fallback.
+    const effectiveStoreIds = explicitStoreIds.length
+      ? explicitStoreIds
+      : store_id
+        ? [String(store_id)]
+        : nearbyStores.length
+          ? nearbyStores.map((s) => s.id)
+          : (nearestStoreId ? [nearestStoreId] : []);
 
     // Build parameter list — store_id is ALWAYS $1 when present so LATERAL
     // can reference it by position before other dynamic conditions are added.
@@ -684,9 +738,9 @@ router.get("/", async (req, res) => {
     let index = 1;
 
     let storeInvCondition = '';
-    if (effectiveStoreId) {
-      values.push(effectiveStoreId);
-      storeInvCondition = `AND inv.store_id = $${index++}`;
+    if (effectiveStoreIds.length) {
+      values.push(effectiveStoreIds);
+      storeInvCondition = `AND inv.store_id = ANY($${index++}::uuid[])`;
     }
 
     let query = `
@@ -829,6 +883,8 @@ router.get("/", async (req, res) => {
       nearestStore: nearestStoreName
         ? { id: nearestStoreId, name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
         : null,
+      nearbyStores,
+      nearbyStoreIds: effectiveStoreIds,
       locationProvided: !!(lat && lng),
     });
 

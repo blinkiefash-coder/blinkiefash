@@ -210,6 +210,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             _VendorStockMonitoringTab(vendorId: widget.vendorId),
             _VendorStockUpdateTab(vendorId: widget.vendorId),
             _VendorOrdersTab(vendorId: widget.vendorId),
+            _VendorDeliverTab(vendorId: widget.vendorId),
           ],
         ),
         bottomNavigationBar: BottomNavigationBar(
@@ -246,8 +247,206 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               activeIcon: Icon(Icons.receipt_long_rounded),
               label: 'Orders',
             ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_shipping_outlined),
+              activeIcon: Icon(Icons.local_shipping_rounded),
+              label: 'Deliver',
+            ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _VendorDeliverTab extends StatefulWidget {
+  const _VendorDeliverTab({required this.vendorId});
+
+  final String vendorId;
+
+  @override
+  State<_VendorDeliverTab> createState() => _VendorDeliverTabState();
+}
+
+class _VendorDeliverTabState extends State<_VendorDeliverTab> {
+  final ApiClient _api = ApiClient();
+
+  bool _loading = true;
+  bool _updating = false;
+  String _status = 'pending';
+  List<Map<String, dynamic>> _requests = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final rows = await _api.fetchVendorDeliverRequests(
+        vendorId: widget.vendorId,
+        status: _status,
+      );
+      if (!mounted) return;
+      setState(() {
+        _requests = rows.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+      });
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _updateStatus(String requestId, String newStatus) async {
+    setState(() => _updating = true);
+    try {
+      final res = await _api.updateVendorDeliverRequestStatus(
+        vendorId: widget.vendorId,
+        requestId: requestId,
+        status: newStatus,
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Deliver request marked $newStatus')),
+        );
+        await _load();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text((res['message'] ?? res['error'] ?? 'Update failed').toString())),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Deliver Service',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Accept local pick-up/drop requests like quick city delivery.',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            children: [
+              for (final s in const ['pending', 'accepted', 'completed', 'cancelled'])
+                ChoiceChip(
+                  label: Text(s.toUpperCase()),
+                  selected: _status == s,
+                  onSelected: (_) {
+                    setState(() => _status = s);
+                    _load();
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (_loading)
+            const Center(child: CircularProgressIndicator())
+          else if (_requests.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 30),
+              child: Center(child: Text('No deliver requests found.')),
+            )
+          else
+            ..._requests.map((r) {
+              final id = (r['id'] ?? '').toString();
+              final fare = (r['estimated_fare'] ?? 0).toString();
+              final dist = (r['distance_km'] ?? 0).toString();
+              final pickup = (r['pickup_text'] ?? '').toString();
+              final drop = (r['drop_text'] ?? '').toString();
+              final status = (r['status'] ?? '').toString().toLowerCase();
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'Req #${id.length > 8 ? id.substring(0, 8) : id}',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                        Text(
+                          status.toUpperCase(),
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF334155),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Text('Pickup: $pickup', style: const TextStyle(fontSize: 12)),
+                    Text('Drop: $drop', style: const TextStyle(fontSize: 12)),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Distance: $dist km • Fare: ₹$fare',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF166534),
+                      ),
+                    ),
+                    if (status == 'pending') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: FilledButton(
+                              onPressed: _updating || id.isEmpty
+                                  ? null
+                                  : () => _updateStatus(id, 'accepted'),
+                              child: const Text('Accept'),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: _updating || id.isEmpty
+                                  ? null
+                                  : () => _updateStatus(id, 'cancelled'),
+                              child: const Text('Decline'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else if (status == 'accepted') ...[
+                      const SizedBox(height: 8),
+                      FilledButton(
+                        onPressed: _updating || id.isEmpty
+                            ? null
+                            : () => _updateStatus(id, 'completed'),
+                        child: const Text('Mark Delivered'),
+                      ),
+                    ],
+                  ],
+                ),
+              );
+            }),
+        ],
       ),
     );
   }

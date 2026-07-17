@@ -574,6 +574,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     ApiClient.currentStoreId = null; // will be refreshed by _loadHomeData
+    ApiClient.currentStoreIds = const [];
     if (mounted) {
       setState(() {
         _currentLocation = city.isNotEmpty
@@ -647,6 +648,7 @@ class _HomeScreenState extends State<HomeScreen>
             _categoriesBody(),
             const OrdersScreen(),
             const WishlistScreen(),
+            _deliverBody(),
             _profileBody(),
           ],
         ),
@@ -684,6 +686,11 @@ class _HomeScreenState extends State<HomeScreen>
               icon: Icon(Icons.favorite_border_rounded),
               activeIcon: Icon(Icons.favorite_rounded),
               label: 'Wishlist',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.local_shipping_outlined),
+              activeIcon: Icon(Icons.local_shipping_rounded),
+              label: 'Deliver',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
@@ -1012,6 +1019,7 @@ class _HomeScreenState extends State<HomeScreen>
           TextButton(
             onPressed: () {
               ApiClient.currentStoreId = null; // clear store filter
+              ApiClient.currentStoreIds = const [];
               setState(() {
                 _outOfServiceArea = false;
                 _currentLocation = 'Bhubaneswar';
@@ -4907,9 +4915,8 @@ class _HomeScreenState extends State<HomeScreen>
                           Navigator.pop(context);
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const LoginScreen(
-                                startAsVendor: true,
-                              ),
+                              builder: (_) =>
+                                  const LoginScreen(startAsVendor: true),
                             ),
                           );
                         },
@@ -5312,6 +5319,246 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
           ),
         ),
+      ],
+    );
+  }
+
+  final _deliverPickupCtrl = TextEditingController();
+  final _deliverDropCtrl = TextEditingController();
+  double? _deliverPickupLat;
+  double? _deliverPickupLng;
+  double? _deliverDropLat;
+  double? _deliverDropLng;
+  bool _deliverEstimating = false;
+  bool _deliverSubmitting = false;
+  Map<String, dynamic>? _deliverEstimate;
+
+  Future<void> _resolveDeliverAddresses() async {
+    final pickup = _deliverPickupCtrl.text.trim();
+    final drop = _deliverDropCtrl.text.trim();
+    if (pickup.isEmpty || drop.isEmpty) {
+      _snack('Enter both pickup and drop locations');
+      return;
+    }
+
+    setState(() {
+      _deliverEstimating = true;
+      _deliverEstimate = null;
+    });
+
+    try {
+      final pickupLocations = await locationFromAddress(pickup);
+      final dropLocations = await locationFromAddress(drop);
+
+      if (pickupLocations.isEmpty || dropLocations.isEmpty) {
+        _snack('Unable to locate addresses. Try more specific locations.');
+        return;
+      }
+
+      _deliverPickupLat = pickupLocations.first.latitude;
+      _deliverPickupLng = pickupLocations.first.longitude;
+      _deliverDropLat = dropLocations.first.latitude;
+      _deliverDropLng = dropLocations.first.longitude;
+
+      final estimate = await _api.estimateDeliverFare(
+        pickupLat: _deliverPickupLat!,
+        pickupLng: _deliverPickupLng!,
+        dropLat: _deliverDropLat!,
+        dropLng: _deliverDropLng!,
+        city: _currentLocation,
+      );
+
+      if (!mounted) return;
+      if (estimate['success'] == true) {
+        setState(() => _deliverEstimate = estimate);
+      } else {
+        _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
+      }
+    } catch (_) {
+      _snack('Could not estimate fare. Please try again.');
+    } finally {
+      if (mounted) setState(() => _deliverEstimating = false);
+    }
+  }
+
+  Future<void> _submitDeliverRequest() async {
+    if (_deliverEstimate == null ||
+        _deliverPickupLat == null ||
+        _deliverPickupLng == null ||
+        _deliverDropLat == null ||
+        _deliverDropLng == null) {
+      _snack('Please estimate fare first');
+      return;
+    }
+
+    setState(() => _deliverSubmitting = true);
+    try {
+      final res = await _api.createDeliverRequest(
+        userId: UserSession.instance.userId,
+        pickupText: _deliverPickupCtrl.text.trim(),
+        dropText: _deliverDropCtrl.text.trim(),
+        pickupLat: _deliverPickupLat!,
+        pickupLng: _deliverPickupLng!,
+        dropLat: _deliverDropLat!,
+        dropLng: _deliverDropLng!,
+        city: _currentLocation,
+      );
+
+      if (!mounted) return;
+      if (res['success'] == true) {
+        _snack('Deliver request created successfully');
+        setState(() {
+          _deliverPickupCtrl.clear();
+          _deliverDropCtrl.clear();
+          _deliverEstimate = null;
+          _deliverPickupLat = null;
+          _deliverPickupLng = null;
+          _deliverDropLat = null;
+          _deliverDropLng = null;
+        });
+      } else {
+        _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
+      }
+    } catch (_) {
+      _snack('Request failed. Please try again.');
+    } finally {
+      if (mounted) setState(() => _deliverSubmitting = false);
+    }
+  }
+
+  Widget _deliverBody() {
+    final estimate = _deliverEstimate;
+    final fare = (estimate?['estimatedFare'] ?? 0).toString();
+    final distance = (estimate?['distanceKm'] ?? 0).toString();
+    final cityZone = (estimate?['cityZone'] ?? '').toString();
+
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0F172A), Color(0xFF0EA5E9)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          child: const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Deliver Service',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+              SizedBox(height: 6),
+              Text(
+                'Send packages from one place to another like rapido-style local delivery.',
+                style: TextStyle(color: Color(0xFFE0F2FE)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: [
+              TextField(
+                controller: _deliverPickupCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Pickup location',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.my_location_rounded),
+                ),
+              ),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _deliverDropCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Drop location',
+                  border: OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.place_outlined),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _deliverEstimating ? null : _resolveDeliverAddresses,
+                  icon: _deliverEstimating
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.calculate_outlined),
+                  label: Text(
+                    _deliverEstimating ? 'Estimating...' : 'Estimate Distance & Fare',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (estimate != null) ...[
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDF4),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFBBF7D0)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Zone: $cityZone',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: 4),
+                Text('Distance: $distance km'),
+                Text(
+                  'Estimated Fare: ₹$fare',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF166534),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _deliverSubmitting ? null : _submitDeliverRequest,
+                    icon: _deliverSubmitting
+                        ? const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.local_shipping_rounded),
+                    label: Text(
+                      _deliverSubmitting
+                          ? 'Submitting...'
+                          : 'Book Deliver Pickup',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }
