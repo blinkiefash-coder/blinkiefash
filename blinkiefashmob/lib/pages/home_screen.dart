@@ -5428,8 +5428,8 @@ class _HomeScreenState extends State<HomeScreen>
     final cosLat = math.cos(baseLat * math.pi / 180).abs().clamp(0.2, 1.0);
     final riders = <LatLng>[];
 
-    for (int i = 0; i < 6; i++) {
-      if (_deliverRoutePoints.length >= 2 && i < 3) {
+    for (int i = 0; i < 2; i++) {
+      if (_deliverRoutePoints.length >= 2) {
         final idx =
             (_deliverLiveTick * 2 + i * 23) % _deliverRoutePoints.length;
         riders.add(_deliverRoutePoints[idx]);
@@ -5437,7 +5437,7 @@ class _HomeScreenState extends State<HomeScreen>
       }
 
       final angle = ((_deliverLiveTick * 16) + (i * 58 + 17)) * math.pi / 180;
-      final radiusKm = 0.20 + (i % 3) * 0.18;
+      final radiusKm = 0.20 + i * 0.18;
       final dLat = (radiusKm / 111.0) * math.cos(angle);
       final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
       riders.add(LatLng(baseLat + dLat, baseLng + dLng));
@@ -5705,7 +5705,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Text(
                     _deliverEtaMinutes == null
                         ? 'Set destination for ETA'
-                      : 'ETA ~ $_deliverEtaMinutes min • $_deliverNearbyRiders.length riders nearby',
+                        : 'ETA ~ $_deliverEtaMinutes min • $_deliverNearbyRiders.length riders nearby',
                     style: const TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,

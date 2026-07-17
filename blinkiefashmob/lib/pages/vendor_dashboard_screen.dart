@@ -377,14 +377,14 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     final lng = _pickupLng!;
     final cosLat = math.cos(lat * math.pi / 180).abs().clamp(0.2, 1.0);
     final riders = <LatLng>[];
-    for (int i = 0; i < 6; i++) {
-      if (_routePoints.length >= 2 && i < 3) {
+    for (int i = 0; i < 2; i++) {
+      if (_routePoints.length >= 2) {
         final idx = (_liveTick * 2 + i * 21) % _routePoints.length;
         riders.add(_routePoints[idx]);
         continue;
       }
       final angle = ((_liveTick * 18) + (i * 57 + 19)) * math.pi / 180;
-      final radiusKm = 0.18 + (i % 3) * 0.22;
+      final radiusKm = 0.18 + i * 0.22;
       final dLat = (radiusKm / 111.0) * math.cos(angle);
       final dLng = (radiusKm / (111.0 * cosLat)) * math.sin(angle);
       riders.add(LatLng(lat + dLat, lng + dLng));
