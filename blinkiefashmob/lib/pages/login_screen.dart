@@ -27,12 +27,9 @@ class LoginScreen extends StatefulWidget {
 
 enum _Mode { otp, verify, password }
 
-enum _Audience { customer, vendor }
-
 class _LoginScreenState extends State<LoginScreen> {
   final ApiClient _api = ApiClient();
   _Mode _mode = _Mode.otp;
-  _Audience _audience = _Audience.customer;
   bool _loading = false;
   String? _error;
   String? _verificationId;
@@ -42,10 +39,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otpCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
   bool _pwHide = true;
-
-  final _vendorEmailCtrl = TextEditingController();
-  final _vendorPwCtrl = TextEditingController();
-  bool _vendorPwHide = true;
 
   // Hero slider
   static const _heroImages = [
@@ -62,7 +55,6 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     if (widget.startAsVendor) {
-      _audience = _Audience.vendor;
       _mode = _Mode.password;
     }
     _heroTimer = Timer.periodic(const Duration(seconds: 3), (_) {
@@ -83,8 +75,6 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     _pwCtrl.dispose();
-    _vendorEmailCtrl.dispose();
-    _vendorPwCtrl.dispose();
     super.dispose();
   }
 
@@ -96,18 +86,6 @@ class _LoginScreenState extends State<LoginScreen> {
         builder: widget.redirectBuilder ?? (_) => const HomeScreen(),
       ),
     );
-  }
-
-  void _setAudience(_Audience audience) {
-    setState(() {
-      _audience = audience;
-      _error = null;
-      _loading = false;
-      if (_audience == _Audience.customer && _mode == _Mode.verify) {
-        return;
-      }
-      _mode = _Mode.otp;
-    });
   }
 
   Future<void> _sendOtp() async {
@@ -259,15 +237,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _loginPassword() async {
-    final d = _digits(_phoneCtrl.text.trim());
-    if (d.length != 10) {
-      setState(() => _error = 'Enter a valid 10-digit mobile number');
-      return;
-    }
+    final identifier = _phoneCtrl.text.trim();
+    final looksLikeEmail = identifier.contains('@');
     if (_pwCtrl.text.isEmpty) {
       setState(() => _error = 'Enter your password');
       return;
     }
+
+    if (looksLikeEmail) {
+      if (!identifier.contains('.')) {
+        setState(() => _error = 'Enter a valid email');
+        return;
+      }
+      await _loginVendorWithCredentials(
+        email: identifier,
+        password: _pwCtrl.text,
+      );
+      return;
+    }
+
+    final d = _digits(identifier);
+    if (d.length != 10) {
+      setState(
+        () =>
+            _error = 'Enter a valid 10-digit mobile number or vendor email',
+      );
+      return;
+    }
+
     setState(() {
       _loading = true;
       _error = null;
@@ -298,9 +295,10 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  Future<void> _loginVendor() async {
-    final email = _vendorEmailCtrl.text.trim();
-    final password = _vendorPwCtrl.text;
+  Future<void> _loginVendorWithCredentials({
+    required String email,
+    required String password,
+  }) async {
     if (email.isEmpty || !email.contains('@')) {
       setState(() => _error = 'Enter a valid vendor email');
       return;
@@ -335,8 +333,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final resolvedStoreName =
             (profile['store_name'] ?? res['store_name'] ?? 'Vendor Store')
                 .toString();
-        final resolvedEmail = (profile['email'] ?? _vendorEmailCtrl.text.trim())
-            .toString();
+        final resolvedEmail = (profile['email'] ?? email).toString();
 
         if (vendorUserId.isNotEmpty) {
           await UserSession.instance.setVendorSession(
@@ -509,27 +506,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
                     child: Column(
                       children: [
-                        _AudienceToggle(
-                          audience: _audience,
-                          onChanged: _setAudience,
-                        ),
-                        const SizedBox(height: 14),
                         AnimatedSwitcher(
                           duration: const Duration(milliseconds: 280),
-                          child: _audience == _Audience.vendor
-                              ? _VendorUnifiedForm(
-                                  key: const ValueKey('vendor-login-form'),
-                                  emailCtrl: _vendorEmailCtrl,
-                                  pwCtrl: _vendorPwCtrl,
-                                  pwHide: _vendorPwHide,
-                                  loading: _loading,
-                                  error: _error,
-                                  onToggleHide: () => setState(
-                                    () => _vendorPwHide = !_vendorPwHide,
-                                  ),
-                                  onLogin: _loginVendor,
-                                )
-                              : _mode == _Mode.otp
+                          child: _mode == _Mode.otp
                               ? _OtpSendForm(
                                   key: const ValueKey('send'),
                                   ctrl: _phoneCtrl,
@@ -547,8 +526,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ),
-                                  onVendorLogin: () =>
-                                      _setAudience(_Audience.vendor),
                                 )
                               : _mode == _Mode.verify
                               ? _OtpVerifyForm(
@@ -587,8 +564,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                       ),
                                     ),
                                   ),
-                                  onVendorLogin: () =>
-                                      _setAudience(_Audience.vendor),
                                 ),
                         ),
                       ],
@@ -611,222 +586,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _AudienceToggle extends StatelessWidget {
-  const _AudienceToggle({required this.audience, required this.onChanged});
-
-  final _Audience audience;
-  final ValueChanged<_Audience> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: _ToggleChip(
-              selected: audience == _Audience.customer,
-              label: 'User',
-              icon: Icons.person_outline_rounded,
-              onTap: () => onChanged(_Audience.customer),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: _ToggleChip(
-              selected: audience == _Audience.vendor,
-              label: 'Vendor',
-              icon: Icons.storefront_outlined,
-              onTap: () => onChanged(_Audience.vendor),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToggleChip extends StatelessWidget {
-  const _ToggleChip({
-    required this.selected,
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(10),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: selected
-              ? const [
-                  BoxShadow(
-                    color: Color(0x1A0F172A),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : const [],
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: selected
-                  ? const Color(0xFF166534)
-                  : const Color(0xFF64748B),
-            ),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(
-                fontWeight: FontWeight.w700,
-                color: selected
-                    ? const Color(0xFF166534)
-                    : const Color(0xFF64748B),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _VendorUnifiedForm extends StatelessWidget {
-  const _VendorUnifiedForm({
-    super.key,
-    required this.emailCtrl,
-    required this.pwCtrl,
-    required this.pwHide,
-    required this.loading,
-    required this.error,
-    required this.onToggleHide,
-    required this.onLogin,
-  });
-
-  final TextEditingController emailCtrl;
-  final TextEditingController pwCtrl;
-  final bool pwHide;
-  final bool loading;
-  final String? error;
-  final VoidCallback onToggleHide;
-  final VoidCallback onLogin;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const Text(
-          'Vendor Login',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-            color: Color(0xFF0F172A),
-          ),
-        ),
-        const SizedBox(height: 4),
-        const Text(
-          'Use your vendor credentials to open vendor console',
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-        ),
-        const SizedBox(height: 24),
-        const _FieldLabel('Vendor Email'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: emailCtrl,
-          keyboardType: TextInputType.emailAddress,
-          decoration: InputDecoration(
-            hintText: 'name@store.com',
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
-            ),
-            prefixIcon: const Icon(
-              Icons.mail_outline_rounded,
-              color: Color(0xFF94A3B8),
-            ),
-          ),
-        ),
-        const SizedBox(height: 14),
-        const _FieldLabel('Password'),
-        const SizedBox(height: 8),
-        TextField(
-          controller: pwCtrl,
-          obscureText: pwHide,
-          decoration: InputDecoration(
-            hintText: 'Enter your password',
-            hintStyle: const TextStyle(color: Color(0xFFCBD5E1)),
-            filled: true,
-            fillColor: const Color(0xFFF8FAFC),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(14),
-              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
-            ),
-            suffixIcon: IconButton(
-              icon: Icon(
-                pwHide
-                    ? Icons.visibility_off_outlined
-                    : Icons.visibility_outlined,
-                color: const Color(0xFF94A3B8),
-              ),
-              onPressed: onToggleHide,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (error != null) _ErrorText(error!),
-        _GreenButton(
-          label: 'Login to Vendor Console',
-          icon: Icons.storefront_rounded,
-          onTap: loading ? null : onLogin,
-        ),
-        const SizedBox(height: 12),
-        const _SecurityBadges(),
-      ],
-    );
-  }
-}
-
 // ── OTP Send Form ────────────────────────────────────────────────────────────
 class _OtpSendForm extends StatelessWidget {
   const _OtpSendForm({
@@ -837,12 +596,11 @@ class _OtpSendForm extends StatelessWidget {
     required this.onSend,
     required this.onPassword,
     required this.onSignup,
-    required this.onVendorLogin,
   });
   final TextEditingController ctrl;
   final bool loading;
   final String? error;
-  final VoidCallback onSend, onPassword, onSignup, onVendorLogin;
+  final VoidCallback onSend, onPassword, onSignup;
 
   @override
   Widget build(BuildContext context) {
@@ -920,8 +678,6 @@ class _OtpSendForm extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        _VendorLoginCta(onTap: onVendorLogin),
         const SizedBox(height: 12),
         const _SecurityBadges(),
       ],
@@ -1152,12 +908,11 @@ class _PasswordForm extends StatelessWidget {
     required this.onLogin,
     required this.onOtp,
     required this.onSignup,
-    required this.onVendorLogin,
   });
   final TextEditingController phoneCtrl, pwCtrl;
   final bool pwHide, loading;
   final String? error;
-  final VoidCallback onToggleHide, onLogin, onOtp, onSignup, onVendorLogin;
+  final VoidCallback onToggleHide, onLogin, onOtp, onSignup;
 
   @override
   Widget build(BuildContext context) {
@@ -1180,9 +935,13 @@ class _PasswordForm extends StatelessWidget {
           style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
         ),
         const SizedBox(height: 24),
-        const _FieldLabel('Mobile Number'),
+        const _FieldLabel('Mobile Number or Vendor Email'),
         const SizedBox(height: 8),
-        _PhoneField(controller: phoneCtrl),
+        _PhoneField(
+          controller: phoneCtrl,
+          allowEmail: true,
+          hintText: 'Enter mobile number or vendor email',
+        ),
         const SizedBox(height: 14),
         const _FieldLabel('Password'),
         const SizedBox(height: 8),
@@ -1264,47 +1023,9 @@ class _PasswordForm extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 4),
-        _VendorLoginCta(onTap: onVendorLogin),
         const SizedBox(height: 8),
         const _SecurityBadges(),
       ],
-    );
-  }
-}
-
-class _VendorLoginCta extends StatelessWidget {
-  const _VendorLoginCta({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: TextButton.icon(
-        onPressed: onTap,
-        icon: const Icon(
-          Icons.storefront_rounded,
-          size: 16,
-          color: Color(0xFF166534),
-        ),
-        label: const Text(
-          'Vendor Login',
-          style: TextStyle(
-            color: Color(0xFF166534),
-            fontWeight: FontWeight.w700,
-            fontSize: 14,
-          ),
-        ),
-        style: TextButton.styleFrom(
-          backgroundColor: const Color(0xFFF0FDF4),
-          side: const BorderSide(color: Color(0xFFBBF7D0)),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(999),
-          ),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        ),
-      ),
     );
   }
 }
@@ -1338,11 +1059,53 @@ class _ErrorText extends StatelessWidget {
 }
 
 class _PhoneField extends StatelessWidget {
-  const _PhoneField({required this.controller});
+  const _PhoneField({
+    required this.controller,
+    this.allowEmail = false,
+    this.hintText = 'Enter 10 digit mobile number',
+  });
   final TextEditingController controller;
+  final bool allowEmail;
+  final String hintText;
 
   @override
   Widget build(BuildContext context) {
+    if (allowEmail) {
+      return SizedBox(
+        height: 54,
+        child: TextField(
+          controller: controller,
+          keyboardType: TextInputType.emailAddress,
+          autofillHints: const [
+            AutofillHints.username,
+            AutofillHints.telephoneNumberNational,
+          ],
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(
+              color: Color(0xFFCBD5E1),
+              fontSize: 14,
+            ),
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 14),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Row(
       children: [
         Container(
