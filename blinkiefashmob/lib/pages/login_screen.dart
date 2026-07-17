@@ -8,13 +8,18 @@ import '../services/user_session.dart';
 import '../services/notification_service.dart';
 import 'signup_screen.dart';
 import 'home_screen.dart';
-import 'vendor_login_screen.dart';
+import 'vendor_dashboard_screen.dart';
 import '../widgets/bf_loader.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, this.redirectBuilder});
+  const LoginScreen({
+    super.key,
+    this.redirectBuilder,
+    this.startAsVendor = false,
+  });
 
   final WidgetBuilder? redirectBuilder;
+  final bool startAsVendor;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -22,9 +27,12 @@ class LoginScreen extends StatefulWidget {
 
 enum _Mode { otp, verify, password }
 
+enum _Audience { customer, vendor }
+
 class _LoginScreenState extends State<LoginScreen> {
   final ApiClient _api = ApiClient();
   _Mode _mode = _Mode.otp;
+  _Audience _audience = _Audience.customer;
   bool _loading = false;
   String? _error;
   String? _verificationId;
@@ -34,6 +42,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _otpCtrl = TextEditingController();
   final _pwCtrl = TextEditingController();
   bool _pwHide = true;
+
+  final _vendorEmailCtrl = TextEditingController();
+  final _vendorPwCtrl = TextEditingController();
+  bool _vendorPwHide = true;
 
   // Hero slider
   static const _heroImages = [
@@ -49,6 +61,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.startAsVendor) {
+      _audience = _Audience.vendor;
+      _mode = _Mode.password;
+    }
     _heroTimer = Timer.periodic(const Duration(seconds: 3), (_) {
       if (!mounted) return;
       final next = (_heroIndex + 1) % _heroImages.length;
@@ -67,6 +83,8 @@ class _LoginScreenState extends State<LoginScreen> {
     _phoneCtrl.dispose();
     _otpCtrl.dispose();
     _pwCtrl.dispose();
+    _vendorEmailCtrl.dispose();
+    _vendorPwCtrl.dispose();
     super.dispose();
   }
 
@@ -78,6 +96,18 @@ class _LoginScreenState extends State<LoginScreen> {
         builder: widget.redirectBuilder ?? (_) => const HomeScreen(),
       ),
     );
+  }
+
+  void _setAudience(_Audience audience) {
+    setState(() {
+      _audience = audience;
+      _error = null;
+      _loading = false;
+      if (_audience == _Audience.customer && _mode == _Mode.verify) {
+        return;
+      }
+      _mode = _Mode.otp;
+    });
   }
 
   Future<void> _sendOtp() async {
@@ -268,6 +298,83 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _loginVendor() async {
+    final email = _vendorEmailCtrl.text.trim();
+    final password = _vendorPwCtrl.text;
+    if (email.isEmpty || !email.contains('@')) {
+      setState(() => _error = 'Enter a valid vendor email');
+      return;
+    }
+    if (password.isEmpty || password.length < 6) {
+      setState(() => _error = 'Enter your vendor password');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
+
+    try {
+      final res = await _api.vendorLoginWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (!mounted) return;
+
+      if (res['success'] == true && res['vendor_id'] != null) {
+        final vendorId = res['vendor_id'].toString();
+        final vendorUserId = (res['user_id'] ?? '').toString();
+        final profile = await _api.fetchVendorProfile(vendorId);
+        if (!mounted) return;
+
+        final resolvedStoreName =
+            (profile['store_name'] ?? res['store_name'] ?? 'Vendor Store')
+                .toString();
+        final resolvedEmail =
+            (profile['email'] ?? _vendorEmailCtrl.text.trim()).toString();
+
+        if (vendorUserId.isNotEmpty) {
+          await UserSession.instance.setVendorSession(
+            vendorId: vendorId,
+            userId: vendorUserId,
+            name: resolvedStoreName,
+            email: resolvedEmail,
+          );
+          await NotificationService.instance.registerForCurrentUser();
+        }
+
+        navigator.pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (_) => VendorDashboardScreen(
+              vendorId: vendorId,
+              storeName: resolvedStoreName,
+              email: resolvedEmail,
+            ),
+          ),
+          (_) => false,
+        );
+        return;
+      }
+
+      final msg = (res['message'] ?? 'Vendor login failed').toString();
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
+    } catch (_) {
+      if (!mounted) return;
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Unable to login. Please try again.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
@@ -400,75 +507,93 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 24, 24, 24),
-                    child: AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 280),
-                      child: _mode == _Mode.otp
-                          ? _OtpSendForm(
-                              key: const ValueKey('send'),
-                              ctrl: _phoneCtrl,
-                              loading: _loading,
-                              error: _error,
-                              onSend: _sendOtp,
-                              onPassword: () => setState(() {
-                                _mode = _Mode.password;
-                                _error = null;
-                              }),
-                              onSignup: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => SignupScreen(
-                                    redirectBuilder: widget.redirectBuilder,
+                    child: Column(
+                      children: [
+                        _AudienceToggle(
+                          audience: _audience,
+                          onChanged: _setAudience,
+                        ),
+                        const SizedBox(height: 14),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 280),
+                          child: _audience == _Audience.vendor
+                              ? _VendorUnifiedForm(
+                                  key: const ValueKey('vendor-login-form'),
+                                  emailCtrl: _vendorEmailCtrl,
+                                  pwCtrl: _vendorPwCtrl,
+                                  pwHide: _vendorPwHide,
+                                  loading: _loading,
+                                  error: _error,
+                                  onToggleHide: () => setState(
+                                    () => _vendorPwHide = !_vendorPwHide,
                                   ),
-                                ),
-                              ),
-                              onVendorLogin: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const VendorLoginScreen(),
-                                ),
-                              ),
-                            )
-                          : _mode == _Mode.verify
-                          ? _OtpVerifyForm(
-                              key: const ValueKey('verify'),
-                              phoneCtrl: _phoneCtrl,
-                              otpCtrl: _otpCtrl,
-                              debugOtp: null,
-                              phone: _normalizedPhone,
-                              loading: _loading,
-                              error: _error,
-                              onVerify: _verifyOtp,
-                              onBack: () => setState(() {
-                                _mode = _Mode.otp;
-                                _error = null;
-                                _otpCtrl.clear();
-                              }),
-                            )
-                          : _PasswordForm(
-                              key: const ValueKey('pw'),
-                              phoneCtrl: _phoneCtrl,
-                              pwCtrl: _pwCtrl,
-                              pwHide: _pwHide,
-                              loading: _loading,
-                              error: _error,
-                              onToggleHide: () =>
-                                  setState(() => _pwHide = !_pwHide),
-                              onLogin: _loginPassword,
-                              onOtp: () => setState(() {
-                                _mode = _Mode.otp;
-                                _error = null;
-                              }),
-                              onSignup: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => SignupScreen(
-                                    redirectBuilder: widget.redirectBuilder,
+                                  onLogin: _loginVendor,
+                                )
+                              : _mode == _Mode.otp
+                              ? _OtpSendForm(
+                                  key: const ValueKey('send'),
+                                  ctrl: _phoneCtrl,
+                                  loading: _loading,
+                                  error: _error,
+                                  onSend: _sendOtp,
+                                  onPassword: () => setState(() {
+                                    _mode = _Mode.password;
+                                    _error = null;
+                                  }),
+                                  onSignup: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => SignupScreen(
+                                        redirectBuilder:
+                                            widget.redirectBuilder,
+                                      ),
+                                    ),
                                   ),
+                                  onVendorLogin: () =>
+                                      _setAudience(_Audience.vendor),
+                                )
+                              : _mode == _Mode.verify
+                              ? _OtpVerifyForm(
+                                  key: const ValueKey('verify'),
+                                  phoneCtrl: _phoneCtrl,
+                                  otpCtrl: _otpCtrl,
+                                  debugOtp: null,
+                                  phone: _normalizedPhone,
+                                  loading: _loading,
+                                  error: _error,
+                                  onVerify: _verifyOtp,
+                                  onBack: () => setState(() {
+                                    _mode = _Mode.otp;
+                                    _error = null;
+                                    _otpCtrl.clear();
+                                  }),
+                                )
+                              : _PasswordForm(
+                                  key: const ValueKey('pw'),
+                                  phoneCtrl: _phoneCtrl,
+                                  pwCtrl: _pwCtrl,
+                                  pwHide: _pwHide,
+                                  loading: _loading,
+                                  error: _error,
+                                  onToggleHide: () =>
+                                      setState(() => _pwHide = !_pwHide),
+                                  onLogin: _loginPassword,
+                                  onOtp: () => setState(() {
+                                    _mode = _Mode.otp;
+                                    _error = null;
+                                  }),
+                                  onSignup: () => Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => SignupScreen(
+                                        redirectBuilder:
+                                            widget.redirectBuilder,
+                                      ),
+                                    ),
+                                  ),
+                                  onVendorLogin: () =>
+                                      _setAudience(_Audience.vendor),
                                 ),
-                              ),
-                              onVendorLogin: () => Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => const VendorLoginScreen(),
-                                ),
-                              ),
-                            ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -484,6 +609,220 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class _AudienceToggle extends StatelessWidget {
+  const _AudienceToggle({required this.audience, required this.onChanged});
+
+  final _Audience audience;
+  final ValueChanged<_Audience> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _ToggleChip(
+              selected: audience == _Audience.customer,
+              label: 'User',
+              icon: Icons.person_outline_rounded,
+              onTap: () => onChanged(_Audience.customer),
+            ),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: _ToggleChip(
+              selected: audience == _Audience.vendor,
+              label: 'Vendor',
+              icon: Icons.storefront_outlined,
+              onTap: () => onChanged(_Audience.vendor),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToggleChip extends StatelessWidget {
+  const _ToggleChip({
+    required this.selected,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final bool selected;
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? Colors.white : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: selected
+              ? const [
+                  BoxShadow(
+                    color: Color(0x1A0F172A),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+              : const [],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? const Color(0xFF166534) : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: selected
+                    ? const Color(0xFF166534)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VendorUnifiedForm extends StatelessWidget {
+  const _VendorUnifiedForm({
+    super.key,
+    required this.emailCtrl,
+    required this.pwCtrl,
+    required this.pwHide,
+    required this.loading,
+    required this.error,
+    required this.onToggleHide,
+    required this.onLogin,
+  });
+
+  final TextEditingController emailCtrl;
+  final TextEditingController pwCtrl;
+  final bool pwHide;
+  final bool loading;
+  final String? error;
+  final VoidCallback onToggleHide;
+  final VoidCallback onLogin;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Vendor Login',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF0F172A),
+          ),
+        ),
+        const SizedBox(height: 4),
+        const Text(
+          'Use your vendor credentials to open vendor console',
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+        ),
+        const SizedBox(height: 24),
+        const _FieldLabel('Vendor Email'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: emailCtrl,
+          keyboardType: TextInputType.emailAddress,
+          decoration: InputDecoration(
+            hintText: 'name@store.com',
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
+            ),
+            prefixIcon: const Icon(
+              Icons.mail_outline_rounded,
+              color: Color(0xFF94A3B8),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        const _FieldLabel('Password'),
+        const SizedBox(height: 8),
+        TextField(
+          controller: pwCtrl,
+          obscureText: pwHide,
+          decoration: InputDecoration(
+            hintText: 'Enter your password',
+            hintStyle: const TextStyle(color: Color(0xFFCBD5E1)),
+            filled: true,
+            fillColor: const Color(0xFFF8FAFC),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(14),
+              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
+            ),
+            suffixIcon: IconButton(
+              icon: Icon(
+                pwHide
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                color: const Color(0xFF94A3B8),
+              ),
+              onPressed: onToggleHide,
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        if (error != null) _ErrorText(error!),
+        _GreenButton(
+          label: 'Login to Vendor Console',
+          icon: Icons.storefront_rounded,
+          onTap: loading ? null : onLogin,
+        ),
+        const SizedBox(height: 12),
+        const _SecurityBadges(),
+      ],
     );
   }
 }

@@ -7,8 +7,8 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/user_session.dart';
+import 'login_screen.dart';
 import 'vendor_help_screen.dart';
-import 'vendor_login_screen.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
   const VendorDashboardScreen({
@@ -190,7 +190,9 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 await NotificationService.instance.clearForCurrentUser();
                 if (!context.mounted) return;
                 Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(builder: (_) => const VendorLoginScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const LoginScreen(startAsVendor: true),
+                  ),
                   (_) => false,
                 );
               },

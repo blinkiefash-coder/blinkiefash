@@ -28,7 +28,6 @@ import 'address_screen.dart';
 import 'location_picker_screen.dart';
 import 'spin_wheel_screen.dart';
 import 'fashion_quest_screen.dart';
-import 'vendor_login_screen.dart';
 import '../widgets/animated_search_bar.dart';
 import '../widgets/bf_loader.dart';
 import '../widgets/store_closed_banner.dart';
@@ -4908,7 +4907,9 @@ class _HomeScreenState extends State<HomeScreen>
                           Navigator.pop(context);
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const VendorLoginScreen(),
+                              builder: (_) => const LoginScreen(
+                                startAsVendor: true,
+                              ),
                             ),
                           );
                         },
