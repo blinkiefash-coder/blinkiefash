@@ -783,6 +783,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
     final order = _order!;
     final status = (order['status'] ?? 'placed').toString();
+    final cancelReason = (order['cancel_reason'] ?? '').toString().trim();
     final items = (order['items'] as List?) ?? [];
     final isCancelled = status == 'cancelled';
     final isDelivered = [
@@ -829,7 +830,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
             if (isCancelled) ...[
-              _cancelledBanner(),
+              _cancelledBanner(cancelReason: cancelReason),
               const SizedBox(height: 12),
             ],
             // ── OTP card: show when rider has arrived ──────────────────────
@@ -1495,7 +1496,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _cancelledBanner() {
+  Widget _cancelledBanner({String? cancelReason}) {
+    final reason = (cancelReason ?? '').trim();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1503,15 +1505,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: const Color(0xFFFECACA)),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.cancel_outlined, color: Color(0xFFEF4444), size: 28),
-          SizedBox(width: 12),
+          const Icon(Icons.cancel_outlined, color: Color(0xFFEF4444), size: 28),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Order Cancelled',
                   style: TextStyle(
                     fontWeight: FontWeight.w700,
@@ -1519,11 +1521,22 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     fontSize: 15,
                   ),
                 ),
-                SizedBox(height: 2),
-                Text(
-                  'This order has been cancelled.',
+                const SizedBox(height: 2),
+                const Text(
+                  'This order has been cancelled by the store.',
                   style: TextStyle(color: Color(0xFF991B1B), fontSize: 13),
                 ),
+                if (reason.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  Text(
+                    'Reason: $reason',
+                    style: const TextStyle(
+                      color: Color(0xFF7F1D1D),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

@@ -556,6 +556,11 @@ router.get("/orders", async (req, res) => {
   const { userId } = req.query;
   if (!userId) return res.status(400).json({ success: false, message: "userId required" });
   try {
+    const hasCancelReason = await hasOrdersColumn('cancel_reason');
+    const cancelReasonSelect = hasCancelReason
+      ? 'o.cancel_reason,'
+      : 'NULL::text AS cancel_reason,';
+
     const { rows } = await pool.query(
       `SELECT
          o.id,
@@ -565,6 +570,7 @@ router.get("/orders", async (req, res) => {
          o.payment_method,
          o.is_try_order,
          o.created_at,
+         ${cancelReasonSelect}
          a.address_line,
          a.city,
          a.pincode,
@@ -599,6 +605,11 @@ router.get("/orders", async (req, res) => {
 router.get("/orders/:orderId", async (req, res) => {
   const { orderId } = req.params;
   try {
+    const hasCancelReason = await hasOrdersColumn('cancel_reason');
+    const cancelReasonSelect = hasCancelReason
+      ? 'o.cancel_reason,'
+      : 'NULL::text AS cancel_reason,';
+
     const { rows: orderRows } = await pool.query(
       `SELECT
          o.id,
@@ -609,6 +620,7 @@ router.get("/orders/:orderId", async (req, res) => {
          o.is_try_order,
          o.created_at,
          o.confirmed_at,
+         ${cancelReasonSelect}
          u.name   AS customer_name,
          u.phone  AS customer_phone,
          a.address_line,

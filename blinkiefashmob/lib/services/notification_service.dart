@@ -26,6 +26,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
   final ApiClient _api = ApiClient();
   bool _initialized = false;
+  bool _vendorRingInProgress = false;
   String? _cachedToken;
 
   static const AndroidNotificationChannel
@@ -39,11 +40,13 @@ class NotificationService {
 
   static const AndroidNotificationChannel _vendorOrderChannel =
       AndroidNotificationChannel(
-        'blinkiefash_vendor_orders',
-        'Vendor New Orders',
+        'blinkiefash_vendor_orders_ring_v2',
+        'Vendor Incoming Orders',
         description: 'High-priority alerts for newly received vendor orders.',
         importance: Importance.max,
         playSound: true,
+        enableVibration: true,
+        showBadge: true,
       );
 
   /// Call once during app startup, AFTER Firebase.initializeApp().
@@ -167,34 +170,54 @@ class NotificationService {
   }
 
   Future<void> showVendorNewOrderAlert({required int count}) async {
+    if (_vendorRingInProgress) return;
+    _vendorRingInProgress = true;
+
     final title = count <= 1 ? 'New Vendor Order' : '$count New Vendor Orders';
     final body = count <= 1
         ? 'You have received a new order. Open Orders to accept or reject.'
         : 'You have received $count new orders. Open Orders to take action.';
 
-    await _local.show(
-      DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      title,
-      body,
-      NotificationDetails(
-        android: AndroidNotificationDetails(
-          _vendorOrderChannel.id,
-          _vendorOrderChannel.name,
-          channelDescription: _vendorOrderChannel.description,
-          importance: Importance.max,
-          priority: Priority.max,
-          icon: '@mipmap/ic_launcher',
-          category: AndroidNotificationCategory.alarm,
-          styleInformation: BigTextStyleInformation(body),
-          ticker: 'blinkiefash_vendor_new_order',
-        ),
-        iOS: const DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-          interruptionLevel: InterruptionLevel.timeSensitive,
-        ),
-      ),
-    );
+    try {
+      // Simulate a ring by firing a short burst of alarm-style alerts.
+      for (var i = 0; i < 3; i++) {
+        if (i > 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 1200));
+        }
+        final notificationId =
+            (DateTime.now().millisecondsSinceEpoch ~/ 1000) + i;
+        await _local.show(
+          notificationId,
+          title,
+          body,
+          NotificationDetails(
+            android: AndroidNotificationDetails(
+              _vendorOrderChannel.id,
+              _vendorOrderChannel.name,
+              channelDescription: _vendorOrderChannel.description,
+              importance: Importance.max,
+              priority: Priority.max,
+              icon: '@mipmap/ic_launcher',
+              category: AndroidNotificationCategory.alarm,
+              styleInformation: BigTextStyleInformation(body),
+              ticker: 'blinkiefash_vendor_new_order',
+              playSound: true,
+              enableVibration: true,
+              vibrationPattern: Int64List.fromList([0, 800, 300, 800]),
+              audioAttributesUsage: AudioAttributesUsage.alarm,
+              visibility: NotificationVisibility.public,
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+              interruptionLevel: InterruptionLevel.timeSensitive,
+            ),
+          ),
+        );
+      }
+    } finally {
+      _vendorRingInProgress = false;
+    }
   }
 }

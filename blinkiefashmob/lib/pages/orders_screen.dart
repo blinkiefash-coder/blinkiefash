@@ -183,6 +183,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
   Widget _orderCard(Map<String, dynamic> order) {
     final status = (order['status'] ?? 'placed').toString();
+    final cancelReason = (order['cancel_reason'] ?? '').toString().trim();
     final items = (order['items'] as List?) ?? [];
     final total =
         double.tryParse(
@@ -285,6 +286,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
                           ),
                         ),
                       ),
+                      if (status == 'cancelled' && cancelReason.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Reason: $cancelReason',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Color(0xFFB91C1C),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
