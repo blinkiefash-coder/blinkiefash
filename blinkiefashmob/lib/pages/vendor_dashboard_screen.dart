@@ -606,9 +606,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please review details and try again.'),
-        ),
+        const SnackBar(content: Text('Please review details and try again.')),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -1355,7 +1353,9 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
             Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(
-                child: Text('No matching items in your linked store right now.'),
+                child: Text(
+                  'No matching items in your linked store right now.',
+                ),
               ),
             )
           else
@@ -1730,7 +1730,9 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
           else if (filteredProducts.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 24),
-              child: Center(child: Text('No matching products for your filter.')),
+              child: Center(
+                child: Text('No matching products for your filter.'),
+              ),
             )
           else
             ...filteredProducts.map((p) {
@@ -2287,7 +2289,9 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
           else if (filteredOrders.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 20),
-              child: Center(child: Text('No orders yet. New orders will appear here.')),
+              child: Center(
+                child: Text('No orders yet. New orders will appear here.'),
+              ),
             )
           else
             ...filteredOrders.map((o) {

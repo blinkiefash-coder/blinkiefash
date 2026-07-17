@@ -17,7 +17,9 @@ class VendorHelpScreen extends StatelessWidget {
     final text = Uri.encodeComponent(
       'Hi BlinkieFash Support, I need help with my vendor account.',
     );
-    final nativeUri = Uri.parse('whatsapp://send?phone=$_supportPhone&text=$text');
+    final nativeUri = Uri.parse(
+      'whatsapp://send?phone=$_supportPhone&text=$text',
+    );
     final webUri = Uri.parse('https://wa.me/$_supportPhone?text=$text');
 
     try {
@@ -29,7 +31,10 @@ class VendorHelpScreen extends StatelessWidget {
         if (ok) return;
       }
 
-      final webOk = await launchUrl(webUri, mode: LaunchMode.externalApplication);
+      final webOk = await launchUrl(
+        webUri,
+        mode: LaunchMode.externalApplication,
+      );
       if (!webOk) {
         _showLaunchError(
           messenger,
