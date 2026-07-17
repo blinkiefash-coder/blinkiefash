@@ -182,6 +182,12 @@ class _HomeScreenState extends State<HomeScreen>
     _heroTimer?.cancel();
     _promoTimer?.cancel();
     _lightBannerTimer?.cancel();
+    _deliverPickupDebounce?.cancel();
+    _deliverDropDebounce?.cancel();
+    _deliverPickupCtrl.dispose();
+    _deliverDropCtrl.dispose();
+    _deliverPickupFocus.dispose();
+    _deliverDropFocus.dispose();
     _heroPageController.dispose();
     _promoPageController.dispose();
     _lightBannerController.dispose();
@@ -690,7 +696,7 @@ class _HomeScreenState extends State<HomeScreen>
             BottomNavigationBarItem(
               icon: Icon(Icons.local_shipping_outlined),
               activeIcon: Icon(Icons.local_shipping_rounded),
-              label: 'Deliver',
+              label: 'Parcel',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.person_outline_rounded),
@@ -5325,13 +5331,255 @@ class _HomeScreenState extends State<HomeScreen>
 
   final _deliverPickupCtrl = TextEditingController();
   final _deliverDropCtrl = TextEditingController();
+  final _deliverPickupFocus = FocusNode();
+  final _deliverDropFocus = FocusNode();
   double? _deliverPickupLat;
   double? _deliverPickupLng;
   double? _deliverDropLat;
   double? _deliverDropLng;
+  Timer? _deliverPickupDebounce;
+  Timer? _deliverDropDebounce;
   bool _deliverEstimating = false;
   bool _deliverSubmitting = false;
+  bool _deliverPickupSearching = false;
+  bool _deliverDropSearching = false;
+  List<Map<String, dynamic>> _deliverPickupSuggestions = const [];
+  List<Map<String, dynamic>> _deliverDropSuggestions = const [];
+  int _deliverPickupSearchToken = 0;
+  int _deliverDropSearchToken = 0;
   Map<String, dynamic>? _deliverEstimate;
+
+  Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(
+    String query,
+  ) async {
+    final locations = await locationFromAddress(query);
+    final seen = <String>{};
+    final suggestions = <Map<String, dynamic>>[];
+
+    for (final loc in locations) {
+      if (suggestions.length >= 6) break;
+      final key =
+          '${loc.latitude.toStringAsFixed(4)},${loc.longitude.toStringAsFixed(4)}';
+      if (seen.contains(key)) continue;
+      seen.add(key);
+
+      String title = query;
+      String subtitle = 'Tap to select';
+      try {
+        final marks = await placemarkFromCoordinates(loc.latitude, loc.longitude);
+        if (marks.isNotEmpty) {
+          final p = marks.first;
+          final parts = [
+            p.name,
+            p.subLocality,
+            p.locality,
+          ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+          final subParts = [
+            p.administrativeArea,
+            p.postalCode,
+          ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+
+          title = parts.isNotEmpty ? parts.join(', ') : query;
+          subtitle = subParts.isNotEmpty ? subParts.join(' • ') : subtitle;
+        }
+      } catch (_) {
+        // Keep fallback values when reverse geocoding fails.
+      }
+
+      suggestions.add({
+        'title': title,
+        'subtitle': subtitle,
+        'lat': loc.latitude,
+        'lng': loc.longitude,
+      });
+    }
+    return suggestions;
+  }
+
+  Future<void> _searchDeliverSuggestions(
+    String query, {
+    required bool pickup,
+  }) async {
+    final q = query.trim();
+    if (q.length < 3) {
+      if (!mounted) return;
+      setState(() {
+        if (pickup) {
+          _deliverPickupSuggestions = const [];
+          _deliverPickupSearching = false;
+        } else {
+          _deliverDropSuggestions = const [];
+          _deliverDropSearching = false;
+        }
+      });
+      return;
+    }
+
+    final token = pickup
+        ? ++_deliverPickupSearchToken
+        : ++_deliverDropSearchToken;
+
+    if (!mounted) return;
+    setState(() {
+      if (pickup) {
+        _deliverPickupSearching = true;
+      } else {
+        _deliverDropSearching = true;
+      }
+    });
+
+    try {
+      final suggestions = await _buildDeliverSuggestions(q);
+      if (!mounted) return;
+      final isStale = pickup
+          ? token != _deliverPickupSearchToken
+          : token != _deliverDropSearchToken;
+      if (isStale) return;
+      setState(() {
+        if (pickup) {
+          _deliverPickupSuggestions = suggestions;
+          _deliverPickupSearching = false;
+        } else {
+          _deliverDropSuggestions = suggestions;
+          _deliverDropSearching = false;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      final isStale = pickup
+          ? token != _deliverPickupSearchToken
+          : token != _deliverDropSearchToken;
+      if (isStale) return;
+      setState(() {
+        if (pickup) {
+          _deliverPickupSuggestions = const [];
+          _deliverPickupSearching = false;
+        } else {
+          _deliverDropSuggestions = const [];
+          _deliverDropSearching = false;
+        }
+      });
+    }
+  }
+
+  void _onDeliverLocationChanged(String value, {required bool pickup}) {
+    setState(() {
+      _deliverEstimate = null;
+      if (pickup) {
+        _deliverPickupLat = null;
+        _deliverPickupLng = null;
+      } else {
+        _deliverDropLat = null;
+        _deliverDropLng = null;
+      }
+    });
+
+    final debounce = pickup ? _deliverPickupDebounce : _deliverDropDebounce;
+    debounce?.cancel();
+    final nextDebounce = Timer(const Duration(milliseconds: 420), () {
+      _searchDeliverSuggestions(value, pickup: pickup);
+    });
+    if (pickup) {
+      _deliverPickupDebounce = nextDebounce;
+    } else {
+      _deliverDropDebounce = nextDebounce;
+    }
+  }
+
+  void _selectDeliverSuggestion(
+    Map<String, dynamic> suggestion, {
+    required bool pickup,
+  }) {
+    final title = (suggestion['title'] ?? '').toString();
+    final subtitle = (suggestion['subtitle'] ?? '').toString();
+    final text = subtitle.trim().isEmpty ? title : '$title, $subtitle';
+    final lat = (suggestion['lat'] as num?)?.toDouble();
+    final lng = (suggestion['lng'] as num?)?.toDouble();
+
+    setState(() {
+      _deliverEstimate = null;
+      if (pickup) {
+        _deliverPickupCtrl.text = text;
+        _deliverPickupLat = lat;
+        _deliverPickupLng = lng;
+        _deliverPickupSuggestions = const [];
+      } else {
+        _deliverDropCtrl.text = text;
+        _deliverDropLat = lat;
+        _deliverDropLng = lng;
+        _deliverDropSuggestions = const [];
+      }
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  Future<void> _pickDeliverLocationFromMap({required bool pickup}) async {
+    final picked = await Navigator.of(context).push<PickedAddress>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
+    if (!mounted || picked == null) return;
+
+    final text = picked.addressLine.trim().isNotEmpty
+        ? picked.addressLine.trim()
+        : [picked.city, picked.pincode]
+              .where((e) => e.trim().isNotEmpty)
+              .join(', ');
+
+    setState(() {
+      _deliverEstimate = null;
+      if (pickup) {
+        _deliverPickupCtrl.text = text;
+        _deliverPickupLat = picked.lat;
+        _deliverPickupLng = picked.lng;
+        _deliverPickupSuggestions = const [];
+      } else {
+        _deliverDropCtrl.text = text;
+        _deliverDropLat = picked.lat;
+        _deliverDropLng = picked.lng;
+        _deliverDropSuggestions = const [];
+      }
+    });
+  }
+
+  Widget _deliverSuggestionList({required bool pickup}) {
+    final suggestions = pickup
+        ? _deliverPickupSuggestions
+        : _deliverDropSuggestions;
+    if (suggestions.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        children: [
+          for (final s in suggestions)
+            ListTile(
+              dense: true,
+              leading: Icon(
+                pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
+                color: const Color(0xFF0EA5E9),
+                size: 18,
+              ),
+              title: Text(
+                (s['title'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              subtitle: Text(
+                (s['subtitle'] ?? '').toString(),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              onTap: () => _selectDeliverSuggestion(s, pickup: pickup),
+            ),
+        ],
+      ),
+    );
+  }
 
   Future<void> _resolveDeliverAddresses() async {
     final pickup = _deliverPickupCtrl.text.trim();
@@ -5355,10 +5603,10 @@ class _HomeScreenState extends State<HomeScreen>
         return;
       }
 
-      _deliverPickupLat = pickupLocations.first.latitude;
-      _deliverPickupLng = pickupLocations.first.longitude;
-      _deliverDropLat = dropLocations.first.latitude;
-      _deliverDropLng = dropLocations.first.longitude;
+      _deliverPickupLat ??= pickupLocations.first.latitude;
+      _deliverPickupLng ??= pickupLocations.first.longitude;
+      _deliverDropLat ??= dropLocations.first.latitude;
+      _deliverDropLng ??= dropLocations.first.longitude;
 
       final estimate = await _api.estimateDeliverFare(
         pickupLat: _deliverPickupLat!,
@@ -5406,7 +5654,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       if (!mounted) return;
       if (res['success'] == true) {
-        _snack('Deliver request created successfully');
+        _snack('Parcel request created successfully');
         setState(() {
           _deliverPickupCtrl.clear();
           _deliverDropCtrl.clear();
@@ -5415,6 +5663,8 @@ class _HomeScreenState extends State<HomeScreen>
           _deliverPickupLng = null;
           _deliverDropLat = null;
           _deliverDropLng = null;
+          _deliverPickupSuggestions = const [];
+          _deliverDropSuggestions = const [];
         });
       } else {
         _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
@@ -5449,7 +5699,7 @@ class _HomeScreenState extends State<HomeScreen>
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Deliver Service',
+                'Parcel Service',
                 style: TextStyle(
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
@@ -5458,7 +5708,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
               SizedBox(height: 6),
               Text(
-                'Send packages from one place to another like rapido-style local delivery.',
+                'Send parcels from one place to another with quick local pickup and drop.',
                 style: TextStyle(color: Color(0xFFE0F2FE)),
               ),
             ],
@@ -5476,26 +5726,70 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               TextField(
                 controller: _deliverPickupCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Pickup location',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.my_location_rounded),
+                focusNode: _deliverPickupFocus,
+                onChanged: (v) => _onDeliverLocationChanged(v, pickup: true),
+                decoration: InputDecoration(
+                  labelText: 'Starting location',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.trip_origin_rounded),
+                  suffixIcon: _deliverPickupSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              _deliverSuggestionList(pickup: true),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _pickDeliverLocationFromMap(pickup: true),
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Set Starting on map'),
                 ),
               ),
               const SizedBox(height: 10),
               TextField(
                 controller: _deliverDropCtrl,
-                decoration: const InputDecoration(
-                  labelText: 'Drop location',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.place_outlined),
+                focusNode: _deliverDropFocus,
+                onChanged: (v) => _onDeliverLocationChanged(v, pickup: false),
+                decoration: InputDecoration(
+                  labelText: 'Destination location',
+                  border: const OutlineInputBorder(),
+                  prefixIcon: const Icon(Icons.place_outlined),
+                  suffixIcon: _deliverDropSearching
+                      ? const Padding(
+                          padding: EdgeInsets.all(10),
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      : null,
+                ),
+              ),
+              _deliverSuggestionList(pickup: false),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: () => _pickDeliverLocationFromMap(pickup: false),
+                  icon: const Icon(Icons.map_outlined),
+                  label: const Text('Set Destination on map'),
                 ),
               ),
               const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: _deliverEstimating ? null : _resolveDeliverAddresses,
+                  onPressed: _deliverEstimating
+                      ? null
+                      : _resolveDeliverAddresses,
                   icon: _deliverEstimating
                       ? const SizedBox(
                           width: 14,
@@ -5504,7 +5798,9 @@ class _HomeScreenState extends State<HomeScreen>
                         )
                       : const Icon(Icons.calculate_outlined),
                   label: Text(
-                    _deliverEstimating ? 'Estimating...' : 'Estimate Distance & Fare',
+                    _deliverEstimating
+                        ? 'Estimating...'
+                        : 'Estimate Distance & Fare',
                   ),
                 ),
               ),
@@ -5540,7 +5836,9 @@ class _HomeScreenState extends State<HomeScreen>
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
-                    onPressed: _deliverSubmitting ? null : _submitDeliverRequest,
+                    onPressed: _deliverSubmitting
+                        ? null
+                        : _submitDeliverRequest,
                     icon: _deliverSubmitting
                         ? const SizedBox(
                             width: 14,
@@ -5551,7 +5849,7 @@ class _HomeScreenState extends State<HomeScreen>
                     label: Text(
                       _deliverSubmitting
                           ? 'Submitting...'
-                          : 'Book Deliver Pickup',
+                          : 'Book Parcel Pickup',
                     ),
                   ),
                 ),

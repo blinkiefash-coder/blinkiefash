@@ -250,7 +250,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.local_shipping_outlined),
               activeIcon: Icon(Icons.local_shipping_rounded),
-              label: 'Deliver',
+              label: 'Parcel',
             ),
           ],
         ),
@@ -291,7 +291,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       );
       if (!mounted) return;
       setState(() {
-        _requests = rows.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
+        _requests = rows
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
       });
     } finally {
       if (mounted) setState(() => _loading = false);
@@ -309,12 +312,16 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       if (!mounted) return;
       if (res['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Deliver request marked $newStatus')),
+          SnackBar(content: Text('Parcel request marked $newStatus')),
         );
         await _load();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text((res['message'] ?? res['error'] ?? 'Update failed').toString())),
+          SnackBar(
+            content: Text(
+              (res['message'] ?? res['error'] ?? 'Update failed').toString(),
+            ),
+          ),
         );
       }
     } finally {
@@ -330,19 +337,24 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Deliver Service',
+            'Parcel Service',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           const Text(
-            'Accept local pick-up/drop requests like quick city delivery.',
+            'Accept local parcel pickup/drop requests quickly in your city.',
             style: TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 12),
           Wrap(
             spacing: 8,
             children: [
-              for (final s in const ['pending', 'accepted', 'completed', 'cancelled'])
+              for (final s in const [
+                'pending',
+                'accepted',
+                'completed',
+                'cancelled',
+              ])
                 ChoiceChip(
                   label: Text(s.toUpperCase()),
                   selected: _status == s,
@@ -359,7 +371,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           else if (_requests.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 30),
-              child: Center(child: Text('No deliver requests found.')),
+              child: Center(child: Text('No parcel requests found.')),
             )
           else
             ..._requests.map((r) {
@@ -400,7 +412,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
                       ],
                     ),
                     const SizedBox(height: 6),
-                    Text('Pickup: $pickup', style: const TextStyle(fontSize: 12)),
+                    Text(
+                      'Pickup: $pickup',
+                      style: const TextStyle(fontSize: 12),
+                    ),
                     Text('Drop: $drop', style: const TextStyle(fontSize: 12)),
                     const SizedBox(height: 6),
                     Text(
@@ -439,7 +454,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
                         onPressed: _updating || id.isEmpty
                             ? null
                             : () => _updateStatus(id, 'completed'),
-                        child: const Text('Mark Delivered'),
+                        child: const Text('Mark Completed'),
                       ),
                     ],
                   ],
