@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -5352,47 +5354,126 @@ class _HomeScreenState extends State<HomeScreen>
   Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(
     String query,
   ) async {
-    final locations = await locationFromAddress(query);
     final seen = <String>{};
     final suggestions = <Map<String, dynamic>>[];
 
-    for (final loc in locations) {
-      if (suggestions.length >= 6) break;
-      final key =
-          '${loc.latitude.toStringAsFixed(4)},${loc.longitude.toStringAsFixed(4)}';
-      if (seen.contains(key)) continue;
+    Future<void> addSuggestion({
+      required String title,
+      required String subtitle,
+      required double lat,
+      required double lng,
+    }) async {
+      if (suggestions.length >= 12) return;
+      final key = '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
+      if (seen.contains(key)) return;
       seen.add(key);
-
-      String title = query;
-      String subtitle = 'Tap to select';
-      try {
-        final marks = await placemarkFromCoordinates(loc.latitude, loc.longitude);
-        if (marks.isNotEmpty) {
-          final p = marks.first;
-          final parts = [
-            p.name,
-            p.subLocality,
-            p.locality,
-          ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
-          final subParts = [
-            p.administrativeArea,
-            p.postalCode,
-          ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
-
-          title = parts.isNotEmpty ? parts.join(', ') : query;
-          subtitle = subParts.isNotEmpty ? subParts.join(' • ') : subtitle;
-        }
-      } catch (_) {
-        // Keep fallback values when reverse geocoding fails.
-      }
-
       suggestions.add({
         'title': title,
         'subtitle': subtitle,
-        'lat': loc.latitude,
-        'lng': loc.longitude,
+        'lat': lat,
+        'lng': lng,
       });
     }
+
+    // Primary source: Nominatim gives richer and larger result sets.
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/search'
+        '?q=${Uri.encodeComponent(query)}'
+        '&format=json&addressdetails=1&limit=12&countrycodes=in',
+      );
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
+      if (res.statusCode == 200) {
+        final raw = jsonDecode(res.body);
+        if (raw is List) {
+          for (final item in raw) {
+            if (item is! Map) continue;
+            final m = Map<String, dynamic>.from(item);
+            final lat = double.tryParse((m['lat'] ?? '').toString());
+            final lng = double.tryParse((m['lon'] ?? '').toString());
+            if (lat == null || lng == null) continue;
+
+            final address = (m['address'] is Map)
+                ? Map<String, dynamic>.from(m['address'] as Map)
+                : <String, dynamic>{};
+            final titleParts = [
+              address['road'],
+              address['neighbourhood'],
+              address['suburb'],
+              address['quarter'],
+              address['village'],
+              address['town'],
+              address['city'],
+            ].whereType<Object>().map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+            final subtitleParts = [
+              address['state_district'],
+              address['state'],
+              address['postcode'],
+            ].whereType<Object>().map((e) => e.toString().trim()).where((e) => e.isNotEmpty).toList();
+
+            await addSuggestion(
+              title: titleParts.isNotEmpty
+                  ? titleParts.take(3).join(', ')
+                  : (m['display_name'] ?? query).toString(),
+              subtitle: subtitleParts.isNotEmpty
+                  ? subtitleParts.join(' • ')
+                  : 'Tap to select',
+              lat: lat,
+              lng: lng,
+            );
+          }
+        }
+      }
+    } catch (_) {
+      // Keep fallback path below.
+    }
+
+    // Fallback: plugin geocoding, plus reverse-lookup labels for readability.
+    if (suggestions.length < 6) {
+      try {
+        final locations = await locationFromAddress(query);
+        for (final loc in locations) {
+          if (suggestions.length >= 12) break;
+          String title = query;
+          String subtitle = 'Tap to select';
+          try {
+            final marks = await placemarkFromCoordinates(
+              loc.latitude,
+              loc.longitude,
+            );
+            if (marks.isNotEmpty) {
+              final p = marks.first;
+              final parts = [
+                p.name,
+                p.subLocality,
+                p.locality,
+              ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+              final subParts = [
+                p.administrativeArea,
+                p.postalCode,
+              ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+
+              title = parts.isNotEmpty ? parts.join(', ') : query;
+              subtitle = subParts.isNotEmpty ? subParts.join(' • ') : subtitle;
+            }
+          } catch (_) {
+            // Keep fallback values when reverse geocoding fails.
+          }
+          await addSuggestion(
+            title: title,
+            subtitle: subtitle,
+            lat: loc.latitude,
+            lng: loc.longitude,
+          );
+        }
+      } catch (_) {
+        // If this also fails, suggestions remain empty.
+      }
+    }
+
     return suggestions;
   }
 
@@ -5521,9 +5602,10 @@ class _HomeScreenState extends State<HomeScreen>
 
     final text = picked.addressLine.trim().isNotEmpty
         ? picked.addressLine.trim()
-        : [picked.city, picked.pincode]
-              .where((e) => e.trim().isNotEmpty)
-              .join(', ');
+        : [
+            picked.city,
+            picked.pincode,
+          ].where((e) => e.trim().isNotEmpty).join(', ');
 
     setState(() {
       _deliverEstimate = null;
