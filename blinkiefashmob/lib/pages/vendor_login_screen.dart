@@ -33,6 +33,8 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
     setState(() => _loading = true);
+    final messenger = ScaffoldMessenger.of(context);
+    final navigator = Navigator.of(context);
 
     try {
       final res = await _api.vendorLoginWithPassword(
@@ -46,6 +48,7 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
         final vendorId = res['vendor_id'].toString();
         final vendorUserId = (res['user_id'] ?? '').toString();
         final profile = await _api.fetchVendorProfile(vendorId);
+        if (!mounted) return;
         final resolvedStoreName =
             (profile['store_name'] ?? res['store_name'] ?? 'Vendor Store')
                 .toString();
@@ -62,7 +65,7 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
           await NotificationService.instance.registerForCurrentUser();
         }
 
-        Navigator.of(context).pushAndRemoveUntil(
+        navigator.pushAndRemoveUntil(
           MaterialPageRoute(
             builder: (_) => VendorDashboardScreen(
               vendorId: vendorId,
@@ -76,10 +79,10 @@ class _VendorLoginScreenState extends State<VendorLoginScreen> {
       }
 
       final msg = (res['message'] ?? 'Vendor login failed').toString();
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      messenger.showSnackBar(SnackBar(content: Text(msg)));
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Unable to login. Please try again.')),
       );
     } finally {

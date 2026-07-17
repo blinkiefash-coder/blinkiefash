@@ -506,10 +506,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    final messenger = ScaffoldMessenger.of(context);
     if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select a category')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please select a category')),
+      );
       return;
     }
 
@@ -526,7 +527,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
             mrp <= 0 ||
             qty == null ||
             qty < 0) {
-          ScaffoldMessenger.of(context).showSnackBar(
+          messenger.showSnackBar(
             const SnackBar(
               content: Text(
                 'Please enter valid variant price/MRP/stock values',
@@ -590,11 +591,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
           _buy4At999 = false;
         });
         _loadRecentProducts();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Product created successfully')),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(
             content: Text(
               (res['message'] ?? res['error'] ?? 'Unable to create product')
@@ -605,7 +606,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         const SnackBar(content: Text('Please review details and try again.')),
       );
     } finally {
