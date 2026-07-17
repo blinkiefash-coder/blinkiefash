@@ -8,6 +8,23 @@ import {
 
 const router = express.Router();
 
+const hasOrdersColumn = async (columnName) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'orders'
+         AND column_name = $1
+       LIMIT 1`,
+      [columnName]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 // ── Haversine helper (km) ────────────────────────────────────────────────────
 function haversineKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
@@ -836,11 +853,19 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid status" });
   }
   try {
-    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
-    await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500)`).catch(() => {});
-    const confirmClause = status === 'confirmed' ? ', confirmed_at = COALESCE(confirmed_at, NOW())' : '';
-    const cancelClause = (status === 'cancelled' && cancelReason) ? ', cancel_reason = $3' : '';
-    const params = (status === 'cancelled' && cancelReason)
+    const [hasConfirmedAt, hasCancelReason] = await Promise.all([
+      hasOrdersColumn('confirmed_at'),
+      hasOrdersColumn('cancel_reason'),
+    ]);
+
+    const canSetConfirmedAt = status === 'confirmed' && hasConfirmedAt;
+    const canSetCancelReason = status === 'cancelled' && hasCancelReason && !!cancelReason;
+
+    const confirmClause = canSetConfirmedAt
+      ? ', confirmed_at = COALESCE(confirmed_at, NOW())'
+      : '';
+    const cancelClause = canSetCancelReason ? ', cancel_reason = $3' : '';
+    const params = canSetCancelReason
       ? [status, orderId, cancelReason.substring(0, 500)]
       : [status, orderId];
     const { rows } = await pool.query(

@@ -11,6 +11,23 @@ import {
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+const hasOrdersColumn = async (columnName) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'orders'
+         AND column_name = $1
+       LIMIT 1`,
+      [columnName]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+};
+
 const createPasswordHash = (password = "") => {
   const salt = crypto.randomBytes(16).toString("hex");
   const derived = crypto.scryptSync(password, salt, 64).toString("hex");
@@ -394,20 +411,19 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
       });
     }
 
-    await pool.query(
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`
-    ).catch(() => {});
-    await pool.query(
-      `ALTER TABLE orders ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500)`
-    ).catch(() => {});
+    const [hasConfirmedAt, hasCancelReason] = await Promise.all([
+      hasOrdersColumn("confirmed_at"),
+      hasOrdersColumn("cancel_reason"),
+    ]);
 
-    const confirmClause = normalizedStatus === "confirmed"
+    const canSetConfirmedAt = normalizedStatus === "confirmed" && hasConfirmedAt;
+    const canSetCancelReason = normalizedStatus === "cancelled" && hasCancelReason;
+
+    const confirmClause = canSetConfirmedAt
       ? ", confirmed_at = COALESCE(confirmed_at, NOW())"
       : "";
-    const cancelClause = normalizedStatus === "cancelled"
-      ? ", cancel_reason = $3"
-      : "";
-    const params = normalizedStatus === "cancelled"
+    const cancelClause = canSetCancelReason ? ", cancel_reason = $3" : "";
+    const params = canSetCancelReason
       ? [
           normalizedStatus,
           orderId,
