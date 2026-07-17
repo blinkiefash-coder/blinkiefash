@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/user_session.dart';
+import 'vendor_help_screen.dart';
 import 'vendor_login_screen.dart';
 
 class VendorDashboardScreen extends StatefulWidget {
@@ -66,8 +67,8 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           SnackBar(
             content: Text(
               value
-                  ? 'Store is ON. Customers can order now.'
-                  : 'Store is OFF. All products are unavailable now.',
+                  ? 'Store is now LIVE. Customers can place new orders.'
+                  : 'Store is now PAUSED. Products are hidden for shoppers.',
             ),
           ),
         );
@@ -139,7 +140,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  widget.storeName,
+                  'Vendor Console • ${widget.storeName}',
                   style: const TextStyle(
                     fontSize: 12,
                     color: Color(0xFF64748B),
@@ -154,7 +155,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               Row(
                 children: [
                   Text(
-                    _isOperational ? 'ON' : 'OFF',
+                    _isOperational ? 'LIVE' : 'PAUSED',
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
@@ -172,7 +173,18 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
                 ],
               ),
             IconButton(
-              tooltip: 'Logout',
+              tooltip: 'Help & Support',
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) => const VendorHelpScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.support_agent_rounded),
+            ),
+            IconButton(
+              tooltip: 'Sign out',
               onPressed: () async {
                 await UserSession.instance.clear();
                 await NotificationService.instance.clearForCurrentUser();
@@ -215,17 +227,17 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             BottomNavigationBarItem(
               icon: Icon(Icons.add_box_outlined),
               activeIcon: Icon(Icons.add_box_rounded),
-              label: 'Add Product',
+              label: 'Catalog',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.inventory_2_outlined),
               activeIcon: Icon(Icons.inventory_2_rounded),
-              label: 'Stock',
+              label: 'Insights',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.tune_outlined),
               activeIcon: Icon(Icons.tune_rounded),
-              label: 'Update',
+              label: 'Adjust',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.receipt_long_outlined),
@@ -594,7 +606,9 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Invalid values or server error')),
+        const SnackBar(
+          content: Text('Please review details and try again.'),
+        ),
       );
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -622,7 +636,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Add Product',
+                  'Create Product Listing',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -631,7 +645,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                 ),
                 SizedBox(height: 6),
                 Text(
-                  'Directly synced with database products table and inventory.',
+                  'Publish to your catalog instantly with synced stock and pricing.',
                   style: TextStyle(color: Color(0xFFDCFCE7)),
                 ),
               ],
@@ -1110,7 +1124,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                   const Padding(
                     padding: EdgeInsets.only(top: 6),
                     child: Text(
-                      'No products found yet for this vendor.',
+                      'No products added yet. Your latest listings will appear here.',
                       style: TextStyle(color: Color(0xFF64748B)),
                     ),
                   )
@@ -1254,7 +1268,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Stock Monitoring',
+            'Inventory Overview',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
@@ -1297,7 +1311,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
             controller: _searchController,
             onChanged: (v) => setState(() => _search = v),
             decoration: InputDecoration(
-              hintText: 'Search product, brand, category',
+              hintText: 'Search by product, brand or category',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _searchController.text.isEmpty
                   ? null
@@ -1320,7 +1334,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
             children: [
               FilterChip(
                 selected: _showLowStockOnly,
-                label: const Text('Low stock only'),
+                label: const Text('Show low stock only'),
                 onSelected: (v) => setState(() => _showLowStockOnly = v),
               ),
               const Spacer(),
@@ -1341,7 +1355,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
             Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(
-                child: Text('No products found in selected dark store.'),
+                child: Text('No matching items in your linked store right now.'),
               ),
             )
           else
@@ -1629,12 +1643,12 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Stock Quantity Update',
+            'Live Stock Editor',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 6),
           const Text(
-            'Search or select a product and update variant quantities in real time.',
+            'Find any product variant and adjust quantity instantly.',
             style: TextStyle(color: Color(0xFF64748B)),
           ),
           const SizedBox(height: 10),
@@ -1651,7 +1665,7 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
             controller: _searchController,
             onChanged: (v) => setState(() => _search = v),
             decoration: InputDecoration(
-              hintText: 'Search product, brand, category',
+              hintText: 'Search by product, brand or category',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: _searchController.text.isEmpty
                   ? null
@@ -1716,7 +1730,7 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
           else if (filteredProducts.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 24),
-              child: Center(child: Text('No matching products found.')),
+              child: Center(child: Text('No matching products for your filter.')),
             )
           else
             ...filteredProducts.map((p) {
@@ -2242,7 +2256,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
         padding: const EdgeInsets.all(16),
         children: [
           const Text(
-            'Orders',
+            'Order Queue',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
           ),
           const SizedBox(height: 10),
@@ -2273,7 +2287,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
           else if (filteredOrders.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 20),
-              child: Center(child: Text('No orders found.')),
+              child: Center(child: Text('No orders yet. New orders will appear here.')),
             )
           else
             ...filteredOrders.map((o) {
