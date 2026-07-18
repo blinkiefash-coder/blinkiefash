@@ -362,10 +362,10 @@ class ApiClient {
 
   Future<List<dynamic>> fetchBestsellers() async {
     final storeParam = ApiClient.currentStoreIds.isNotEmpty
-      ? '&store_ids=${ApiClient.currentStoreIds.join(',')}'
-      : (ApiClient.currentStoreId != null
-          ? '&store_id=${ApiClient.currentStoreId}'
-          : '');
+        ? '&store_ids=${ApiClient.currentStoreIds.join(',')}'
+        : (ApiClient.currentStoreId != null
+              ? '&store_id=${ApiClient.currentStoreId}'
+              : '');
     // Try the dedicated bestsellers endpoint first
     final uri = Uri.parse(
       '$apiApiBaseUrl/products/bestsellers?limit=10$storeParam',
@@ -439,17 +439,19 @@ class ApiClient {
     required double dropLat,
     required double dropLng,
     String? city,
+    String distanceProvider = 'google',
   }) async {
     final params = <String, String>{
       'pickupLat': pickupLat.toStringAsFixed(7),
       'pickupLng': pickupLng.toStringAsFixed(7),
       'dropLat': dropLat.toStringAsFixed(7),
       'dropLng': dropLng.toStringAsFixed(7),
+      'distanceProvider': distanceProvider,
       if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
     };
-    final uri = Uri.parse('$apiApiBaseUrl/deliver/estimate').replace(
-      queryParameters: params,
-    );
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/deliver/estimate',
+    ).replace(queryParameters: params);
     final data = await _getJson(uri);
     if (data is Map<String, dynamic>) return data;
     return const {'success': false, 'message': 'Invalid estimate response'};
@@ -464,6 +466,7 @@ class ApiClient {
     required double dropLat,
     required double dropLng,
     String? city,
+    String distanceProvider = 'google',
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/deliver/request');
     return _postJson(uri, {
@@ -474,6 +477,7 @@ class ApiClient {
       'pickupLng': pickupLng,
       'dropLat': dropLat,
       'dropLng': dropLng,
+      'distanceProvider': distanceProvider,
       if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
     });
   }
@@ -497,7 +501,9 @@ class ApiClient {
     required String requestId,
     required String status,
   }) async {
-    final uri = Uri.parse('$apiApiBaseUrl/deliver/vendor/$vendorId/requests/$requestId');
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/deliver/vendor/$vendorId/requests/$requestId',
+    );
     return _patchJson(uri, {'status': status});
   }
 

@@ -45,6 +45,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
+  static const String _googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
   final ApiClient _api = ApiClient();
   int _tab = 0;
   bool _guestStartupLocationPromptShown = false;
@@ -659,7 +663,6 @@ class _HomeScreenState extends State<HomeScreen>
             _homeBody(),
             _categoriesBody(),
             const OrdersScreen(),
-            const WishlistScreen(),
             _deliverBody(),
             _profileBody(),
           ],
@@ -693,11 +696,6 @@ class _HomeScreenState extends State<HomeScreen>
               icon: Icon(Icons.receipt_long_outlined),
               activeIcon: Icon(Icons.receipt_long_rounded),
               label: 'Orders',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.favorite_border_rounded),
-              activeIcon: Icon(Icons.favorite_rounded),
-              label: 'Wishlist',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.local_shipping_outlined),
@@ -5770,112 +5768,83 @@ class _HomeScreenState extends State<HomeScreen>
       });
     }
 
-    // Primary source: Nominatim gives richer and larger result sets.
-    try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/search'
-        '?q=${Uri.encodeComponent(query)}'
-        '&format=json&addressdetails=1&limit=12&countrycodes=in',
-      );
-      final res = await http.get(
-        uri,
-        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
-      );
-      if (res.statusCode == 200) {
-        final raw = jsonDecode(res.body);
-        if (raw is List) {
-          for (final item in raw) {
-            if (item is! Map) continue;
-            final m = Map<String, dynamic>.from(item);
-            final lat = double.tryParse((m['lat'] ?? '').toString());
-            final lng = double.tryParse((m['lon'] ?? '').toString());
-            if (lat == null || lng == null) continue;
-
-            final address = (m['address'] is Map)
-                ? Map<String, dynamic>.from(m['address'] as Map)
-                : <String, dynamic>{};
-            final titleParts =
-                [
-                      address['road'],
-                      address['neighbourhood'],
-                      address['suburb'],
-                      address['quarter'],
-                      address['village'],
-                      address['town'],
-                      address['city'],
-                    ]
-                    .whereType<Object>()
-                    .map((e) => e.toString().trim())
-                    .where((e) => e.isNotEmpty)
-                    .toList();
-            final subtitleParts =
-                [
-                      address['state_district'],
-                      address['state'],
-                      address['postcode'],
-                    ]
-                    .whereType<Object>()
-                    .map((e) => e.toString().trim())
-                    .where((e) => e.isNotEmpty)
-                    .toList();
-
-            await addSuggestion(
-              title: titleParts.isNotEmpty
-                  ? titleParts.take(3).join(', ')
-                  : (m['display_name'] ?? query).toString(),
-              subtitle: subtitleParts.isNotEmpty
-                  ? subtitleParts.join(' • ')
-                  : 'Tap to select',
-              lat: lat,
-              lng: lng,
-            );
-          }
-        }
-      }
-    } catch (_) {
-      // Keep fallback path below.
-    }
-
-    // Fallback: plugin geocoding, plus reverse-lookup labels for readability.
-    if (suggestions.length < 6) {
+    // Better POI/address coverage using Google Places (if key is provided).
+    if (_googleMapsApiKey.isNotEmpty) {
       try {
-        final locations = await locationFromAddress(query);
-        for (final loc in locations) {
-          if (suggestions.length >= 12) break;
-          String title = query;
-          String subtitle = 'Tap to select';
-          try {
-            final marks = await placemarkFromCoordinates(
-              loc.latitude,
-              loc.longitude,
-            );
-            if (marks.isNotEmpty) {
-              final p = marks.first;
-              final parts = [
-                p.name,
-                p.subLocality,
-                p.locality,
-              ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
-              final subParts = [
-                p.administrativeArea,
-                p.postalCode,
-              ].whereType<String>().where((e) => e.trim().isNotEmpty).toList();
+        final autoUri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+          '?input=${Uri.encodeComponent(query)}'
+          '&components=country:in'
+          '&language=en'
+          '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+        );
 
-              title = parts.isNotEmpty ? parts.join(', ') : query;
-              subtitle = subParts.isNotEmpty ? subParts.join(' • ') : subtitle;
+        final autoRes = await http.get(
+          autoUri,
+          headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+        );
+
+        if (autoRes.statusCode == 200) {
+          final autoData = jsonDecode(autoRes.body);
+          final predictions = autoData is Map
+              ? (autoData['predictions'] as List? ?? const [])
+              : const [];
+
+          for (final p in predictions.take(8)) {
+            if (p is! Map) continue;
+            final pred = Map<String, dynamic>.from(p);
+            final placeId = (pred['place_id'] ?? '').toString();
+            if (placeId.isEmpty) continue;
+
+            try {
+              final detailsUri = Uri.parse(
+                'https://maps.googleapis.com/maps/api/place/details/json'
+                '?place_id=${Uri.encodeComponent(placeId)}'
+                '&fields=name,formatted_address,geometry/location'
+                '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+              );
+              final detailsRes = await http.get(
+                detailsUri,
+                headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+              );
+              if (detailsRes.statusCode != 200) continue;
+
+              final detailsData = jsonDecode(detailsRes.body);
+              final result = detailsData is Map
+                  ? (detailsData['result'] as Map? ?? const {})
+                  : const {};
+              final geometry = result['geometry'] as Map?;
+              final location = geometry?['location'] as Map?;
+              final lat = (location?['lat'] as num?)?.toDouble();
+              final lng = (location?['lng'] as num?)?.toDouble();
+              if (lat == null || lng == null) continue;
+
+              final title =
+                  (result['name'] ??
+                          pred['structured_formatting']?['main_text'] ??
+                          pred['description'] ??
+                          query)
+                      .toString();
+              final subtitle =
+                  (result['formatted_address'] ??
+                          pred['structured_formatting']?['secondary_text'] ??
+                          pred['description'] ??
+                          'Tap to select')
+                      .toString();
+
+              await addSuggestion(
+                title: title,
+                subtitle: subtitle,
+                lat: lat,
+                lng: lng,
+              );
+            } catch (_) {
+              // Keep processing other predictions.
             }
-          } catch (_) {
-            // Keep fallback values when reverse geocoding fails.
           }
-          await addSuggestion(
-            title: title,
-            subtitle: subtitle,
-            lat: loc.latitude,
-            lng: loc.longitude,
-          );
         }
       } catch (_) {
-        // If this also fails, suggestions remain empty.
+        // Keep empty suggestions when Google search fails.
       }
     }
 
@@ -5887,7 +5856,7 @@ class _HomeScreenState extends State<HomeScreen>
     required bool pickup,
   }) async {
     final q = query.trim();
-    if (q.length < 3) {
+    if (q.length < 2) {
       if (!mounted) return;
       setState(() {
         if (pickup) {
@@ -5976,6 +5945,9 @@ class _HomeScreenState extends State<HomeScreen>
     } else {
       _deliverDropDebounce = nextDebounce;
     }
+
+    // If both coordinates are already available, keep fare in sync on edits.
+    _autoEstimateDeliverIfReady();
   }
 
   void _selectDeliverSuggestion(
@@ -6004,6 +5976,7 @@ class _HomeScreenState extends State<HomeScreen>
     });
     if (pickup) _refreshDeliverNearbyRiders();
     _refreshDeliverRoute();
+    _autoEstimateDeliverIfReady();
     FocusScope.of(context).unfocus();
   }
 
@@ -6036,6 +6009,7 @@ class _HomeScreenState extends State<HomeScreen>
     });
     if (pickup) _refreshDeliverNearbyRiders();
     _refreshDeliverRoute();
+    _autoEstimateDeliverIfReady();
   }
 
   Widget _deliverSuggestionList({required bool pickup}) {
@@ -6092,41 +6066,115 @@ class _HomeScreenState extends State<HomeScreen>
     });
 
     try {
-      final pickupLocations = await locationFromAddress(pickup);
-      final dropLocations = await locationFromAddress(drop);
+      if (_deliverPickupLat == null || _deliverPickupLng == null) {
+        final g = await _geocodeDeliverAddressWithGoogle(pickup);
+        if (g != null) {
+          _deliverPickupLat = g.latitude;
+          _deliverPickupLng = g.longitude;
+        }
+      }
+      if (_deliverDropLat == null || _deliverDropLng == null) {
+        final g = await _geocodeDeliverAddressWithGoogle(drop);
+        if (g != null) {
+          _deliverDropLat = g.latitude;
+          _deliverDropLng = g.longitude;
+        }
+      }
 
-      if (pickupLocations.isEmpty || dropLocations.isEmpty) {
+      if (_deliverPickupLat == null ||
+          _deliverPickupLng == null ||
+          _deliverDropLat == null ||
+          _deliverDropLng == null) {
         _snack('Unable to locate addresses. Try more specific locations.');
         return;
       }
-
-      _deliverPickupLat ??= pickupLocations.first.latitude;
-      _deliverPickupLng ??= pickupLocations.first.longitude;
-      _deliverDropLat ??= dropLocations.first.latitude;
-      _deliverDropLng ??= dropLocations.first.longitude;
       _refreshDeliverNearbyRiders();
       _refreshDeliverRoute();
-
-      final estimate = await _api.estimateDeliverFare(
-        pickupLat: _deliverPickupLat!,
-        pickupLng: _deliverPickupLng!,
-        dropLat: _deliverDropLat!,
-        dropLng: _deliverDropLng!,
-        city: _currentLocation,
-      );
-
-      if (!mounted) return;
-      if (estimate['success'] == true) {
-        setState(() => _deliverEstimate = estimate);
-        _recalculateDeliverEta();
-      } else {
-        _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
-      }
+      await _estimateDeliverFareNow(showError: true);
     } catch (_) {
       _snack('Could not estimate fare. Please try again.');
     } finally {
       if (mounted) setState(() => _deliverEstimating = false);
     }
+  }
+
+  Future<Location?> _geocodeDeliverAddressWithGoogle(String query) async {
+    final q = query.trim();
+    if (q.isEmpty || _googleMapsApiKey.isEmpty) return null;
+
+    try {
+      final uri = Uri.parse(
+        'https://maps.googleapis.com/maps/api/geocode/json'
+        '?address=${Uri.encodeComponent(q)}'
+        '&components=country:IN'
+        '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+      );
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body);
+      if (data is! Map || data['status'] != 'OK') return null;
+      final results = (data['results'] as List? ?? const []);
+      if (results.isEmpty || results.first is! Map) return null;
+      final first = Map<String, dynamic>.from(results.first as Map);
+      final geometry = first['geometry'] as Map?;
+      final location = geometry?['location'] as Map?;
+      final lat = (location?['lat'] as num?)?.toDouble();
+      final lng = (location?['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) return null;
+      return Location(latitude: lat, longitude: lng, timestamp: DateTime.now());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> _estimateDeliverFareNow({required bool showError}) async {
+    if (_deliverPickupLat == null ||
+        _deliverPickupLng == null ||
+        _deliverDropLat == null ||
+        _deliverDropLng == null) {
+      return;
+    }
+
+    final estimate = await _api.estimateDeliverFare(
+      pickupLat: _deliverPickupLat!,
+      pickupLng: _deliverPickupLng!,
+      dropLat: _deliverDropLat!,
+      dropLng: _deliverDropLng!,
+      city: _currentLocation,
+    );
+
+    if (!mounted) return;
+    if (estimate['success'] == true) {
+      setState(() => _deliverEstimate = estimate);
+      _recalculateDeliverEta();
+    } else if (showError) {
+      _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
+    }
+  }
+
+  void _autoEstimateDeliverIfReady() {
+    if (_deliverEstimating || _deliverSubmitting) return;
+    if (_deliverPickupLat == null ||
+        _deliverPickupLng == null ||
+        _deliverDropLat == null ||
+        _deliverDropLng == null) {
+      return;
+    }
+
+    Future.microtask(() async {
+      if (!mounted) return;
+      setState(() => _deliverEstimating = true);
+      try {
+        await _estimateDeliverFareNow(showError: false);
+      } catch (_) {
+        // Keep UI stable on transient network issues.
+      } finally {
+        if (mounted) setState(() => _deliverEstimating = false);
+      }
+    });
   }
 
   Future<void> _submitDeliverRequest() async {
@@ -6185,10 +6233,19 @@ class _HomeScreenState extends State<HomeScreen>
     if (!_deliverPickupAutoInitialized) {
       Future.microtask(_setDeliverPickupFromCurrentLocation);
     }
+
     final estimate = _deliverEstimate;
     final fare = (estimate?['estimatedFare'] ?? 0).toString();
     final distance = (estimate?['distanceKm'] ?? 0).toString();
     final cityZone = (estimate?['cityZone'] ?? '').toString();
+    final routeSource = (estimate?['routeSource'] ?? '').toString();
+    final routeLabel = routeSource == 'google-directions'
+        ? 'Google'
+        : routeSource == 'osrm'
+        ? 'OSRM'
+        : routeSource == 'haversine-fallback'
+        ? 'Fallback (approx)'
+        : '';
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -6294,26 +6351,21 @@ class _HomeScreenState extends State<HomeScreen>
               const SizedBox(height: 6),
               _deliverMapPreview(),
               const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _deliverEstimating
-                      ? null
-                      : _resolveDeliverAddresses,
-                  icon: _deliverEstimating
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.calculate_outlined),
-                  label: Text(
-                    _deliverEstimating
-                        ? 'Estimating...'
-                        : 'Estimate Distance & Fare',
+              if (_deliverEstimating)
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Padding(
+                    padding: EdgeInsets.only(left: 2, bottom: 6),
+                    child: Text(
+                      'Calculating fare automatically...',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
-              ),
             ],
           ),
         ),
@@ -6335,6 +6387,14 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
                 const SizedBox(height: 4),
                 Text('Distance: $distance km'),
+                if (routeLabel.isNotEmpty)
+                  Text(
+                    'Route source: $routeLabel',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
                 Text(
                   'Estimated Fare: ₹$fare',
                   style: const TextStyle(

@@ -277,13 +277,17 @@ class _VendorDeliverTab extends StatefulWidget {
 }
 
 class _VendorDeliverTabState extends State<_VendorDeliverTab> {
+  static const String _googleMapsApiKey = String.fromEnvironment(
+    'GOOGLE_MAPS_API_KEY',
+    defaultValue: '',
+  );
+
   final ApiClient _api = ApiClient();
 
   bool _loading = true;
   bool _updating = false;
   bool _estimating = false;
   bool _submitting = false;
-  String _status = 'pending';
   List<Map<String, dynamic>> _requests = const [];
   final _pickupCtrl = TextEditingController();
   final _dropCtrl = TextEditingController();
@@ -299,6 +303,14 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   int? _etaMinutes;
   bool _routeLoading = false;
   String _cityHint = '';
+  final FocusNode _pickupFocus = FocusNode();
+  final FocusNode _dropFocus = FocusNode();
+  Timer? _pickupDebounce;
+  Timer? _dropDebounce;
+  bool _pickupSearching = false;
+  bool _dropSearching = false;
+  List<Map<String, dynamic>> _pickupSuggestions = const [];
+  List<Map<String, dynamic>> _dropSuggestions = const [];
 
   @override
   void initState() {
@@ -310,6 +322,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   @override
   void dispose() {
     _liveTimer?.cancel();
+    _pickupDebounce?.cancel();
+    _dropDebounce?.cancel();
+    _pickupFocus.dispose();
+    _dropFocus.dispose();
     _pickupCtrl.dispose();
     _dropCtrl.dispose();
     super.dispose();
@@ -318,6 +334,39 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   void _snack(String msg) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<Location?> _geocodeVendorAddressWithGoogle(String query) async {
+    final q = query.trim();
+    if (q.isEmpty || _googleMapsApiKey.isEmpty) return null;
+
+    try {
+      final uri = Uri.parse(
+        'https://maps.googleapis.com/maps/api/geocode/json'
+        '?address=${Uri.encodeComponent(q)}'
+        '&components=country:IN'
+        '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+      );
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
+      if (res.statusCode != 200) return null;
+      final data = jsonDecode(res.body);
+      if (data is! Map || data['status'] != 'OK') return null;
+      final results = (data['results'] as List? ?? const []);
+      if (results.isEmpty || results.first is! Map) return null;
+
+      final first = Map<String, dynamic>.from(results.first as Map);
+      final geometry = first['geometry'] as Map?;
+      final location = geometry?['location'] as Map?;
+      final lat = (location?['lat'] as num?)?.toDouble();
+      final lng = (location?['lng'] as num?)?.toDouble();
+      if (lat == null || lng == null) return null;
+      return Location(latitude: lat, longitude: lng, timestamp: DateTime.now());
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<void> _setPickupFromCurrentLocation() async {
@@ -354,6 +403,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         _pickupCtrl.text = label;
         _pickupLat = pos.latitude;
         _pickupLng = pos.longitude;
+        _pickupSuggestions = const [];
       });
       _refreshNearbyRiders();
       _refreshRoute();
@@ -545,20 +595,270 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         _pickupCtrl.text = text;
         _pickupLat = picked.lat;
         _pickupLng = picked.lng;
+        _pickupSuggestions = const [];
+        _pickupSearching = false;
         _cityHint = picked.city;
       } else {
         _dropCtrl.text = text;
         _dropLat = picked.lat;
         _dropLng = picked.lng;
+        _dropSuggestions = const [];
+        _dropSearching = false;
       }
     });
     if (pickup) _refreshNearbyRiders();
     _refreshRoute();
+    _autoEstimateVendorParcelIfReady();
   }
 
-  Future<void> _estimateSendParcel() async {
+  Future<List<Map<String, dynamic>>> _searchVendorParcelSuggestions(
+    String query,
+  ) async {
+    final suggestions = <Map<String, dynamic>>[];
+    final seen = <String>{};
+
+    void addSuggestion({
+      required String title,
+      required String subtitle,
+      required double lat,
+      required double lng,
+    }) {
+      final t = title.trim();
+      final s = subtitle.trim();
+      if (t.isEmpty) return;
+      final key =
+          '${t.toLowerCase()}|${lat.toStringAsFixed(5)}|${lng.toStringAsFixed(5)}';
+      if (!seen.add(key)) return;
+      suggestions.add({
+        'title': t,
+        'subtitle': s.isEmpty ? 'Tap to select' : s,
+        'lat': lat,
+        'lng': lng,
+      });
+    }
+
+    if (_googleMapsApiKey.isNotEmpty) {
+      try {
+        final autoUri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/place/autocomplete/json'
+          '?input=${Uri.encodeComponent(query)}'
+          '&components=country:in'
+          '&language=en'
+          '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+        );
+
+        final autoRes = await http.get(
+          autoUri,
+          headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+        );
+
+        if (autoRes.statusCode == 200) {
+          final autoData = jsonDecode(autoRes.body);
+          final predictions = autoData is Map
+              ? (autoData['predictions'] as List? ?? const [])
+              : const [];
+
+          for (final p in predictions.take(8)) {
+            if (p is! Map) continue;
+            final pred = Map<String, dynamic>.from(p);
+            final placeId = (pred['place_id'] ?? '').toString();
+            if (placeId.isEmpty) continue;
+
+            try {
+              final detailsUri = Uri.parse(
+                'https://maps.googleapis.com/maps/api/place/details/json'
+                '?place_id=${Uri.encodeComponent(placeId)}'
+                '&fields=name,formatted_address,geometry/location'
+                '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+              );
+              final detailsRes = await http.get(
+                detailsUri,
+                headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+              );
+              if (detailsRes.statusCode != 200) continue;
+
+              final detailsData = jsonDecode(detailsRes.body);
+              final result = detailsData is Map
+                  ? (detailsData['result'] as Map? ?? const {})
+                  : const {};
+              final geometry = result['geometry'] as Map?;
+              final location = geometry?['location'] as Map?;
+              final lat = (location?['lat'] as num?)?.toDouble();
+              final lng = (location?['lng'] as num?)?.toDouble();
+              if (lat == null || lng == null) continue;
+
+              final title =
+                  (result['name'] ??
+                          pred['structured_formatting']?['main_text'] ??
+                          pred['description'] ??
+                          query)
+                      .toString();
+              final subtitle =
+                  (result['formatted_address'] ??
+                          pred['structured_formatting']?['secondary_text'] ??
+                          pred['description'] ??
+                          'Tap to select')
+                      .toString();
+
+              addSuggestion(
+                title: title,
+                subtitle: subtitle,
+                lat: lat,
+                lng: lng,
+              );
+            } catch (_) {
+              // Continue with next prediction.
+            }
+          }
+        }
+      } catch (_) {
+        // Keep empty suggestions when Google search fails.
+      }
+    }
+
+    return suggestions.take(12).toList();
+  }
+
+  void _onVendorLocationChanged(String value, {required bool pickup}) {
+    if (pickup) {
+      _pickupDebounce?.cancel();
+    } else {
+      _dropDebounce?.cancel();
+    }
+
+    setState(() {
+      _estimate = null;
+      if (pickup) {
+        _pickupLat = null;
+        _pickupLng = null;
+      } else {
+        _dropLat = null;
+        _dropLng = null;
+      }
+    });
+    if (pickup) _refreshNearbyRiders();
+    _refreshRoute();
+
+    final query = value.trim();
+    if (query.length < 2) {
+      if (!mounted) return;
+      setState(() {
+        if (pickup) {
+          _pickupSearching = false;
+          _pickupSuggestions = const [];
+        } else {
+          _dropSearching = false;
+          _dropSuggestions = const [];
+        }
+      });
+      return;
+    }
+
+    setState(() {
+      if (pickup) {
+        _pickupSearching = true;
+      } else {
+        _dropSearching = true;
+      }
+    });
+
+    final debounce = Timer(const Duration(milliseconds: 260), () async {
+      final rows = await _searchVendorParcelSuggestions(query);
+      if (!mounted) return;
+      setState(() {
+        if (pickup) {
+          _pickupSearching = false;
+          _pickupSuggestions = rows;
+        } else {
+          _dropSearching = false;
+          _dropSuggestions = rows;
+        }
+      });
+    });
+
+    if (pickup) {
+      _pickupDebounce = debounce;
+    } else {
+      _dropDebounce = debounce;
+    }
+  }
+
+  void _selectVendorSuggestion(Map<String, dynamic> s, {required bool pickup}) {
+    final title = (s['title'] ?? '').toString();
+    final subtitle = (s['subtitle'] ?? '').toString();
+    final lat = (s['lat'] as num?)?.toDouble();
+    final lng = (s['lng'] as num?)?.toDouble();
+    if (lat == null || lng == null) return;
+
+    final text = subtitle.isNotEmpty ? '$title, $subtitle' : title;
+    setState(() {
+      _estimate = null;
+      if (pickup) {
+        _pickupCtrl.text = text;
+        _pickupLat = lat;
+        _pickupLng = lng;
+        _pickupSuggestions = const [];
+        _pickupSearching = false;
+      } else {
+        _dropCtrl.text = text;
+        _dropLat = lat;
+        _dropLng = lng;
+        _dropSuggestions = const [];
+        _dropSearching = false;
+      }
+    });
+
+    if (pickup) _refreshNearbyRiders();
+    _refreshRoute();
+    _autoEstimateVendorParcelIfReady();
+    FocusScope.of(context).unfocus();
+  }
+
+  Widget _vendorSuggestionList({required bool pickup}) {
+    final rows = pickup ? _pickupSuggestions : _dropSuggestions;
+    if (rows.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(top: 6, bottom: 4),
+      constraints: const BoxConstraints(maxHeight: 180),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        shrinkWrap: true,
+        itemCount: rows.length,
+        separatorBuilder: (_, index) => const Divider(height: 1),
+        itemBuilder: (_, i) {
+          final s = rows[i];
+          return ListTile(
+            dense: true,
+            leading: Icon(
+              pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
+              color: pickup ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
+            ),
+            title: Text(
+              (s['title'] ?? '').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            subtitle: Text(
+              (s['subtitle'] ?? '').toString(),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            onTap: () => _selectVendorSuggestion(s, pickup: pickup),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _estimateSendParcel({bool showError = true}) async {
     if (_pickupCtrl.text.trim().isEmpty || _dropCtrl.text.trim().isEmpty) {
-      _snack('Set both pickup and destination');
+      if (showError) _snack('Set both pickup and destination');
       return;
     }
 
@@ -569,18 +869,18 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
     try {
       if (_pickupLat == null || _pickupLng == null) {
-        final rows = await locationFromAddress(_pickupCtrl.text.trim());
-        if (rows.isNotEmpty) {
-          _pickupLat = rows.first.latitude;
-          _pickupLng = rows.first.longitude;
+        final g = await _geocodeVendorAddressWithGoogle(_pickupCtrl.text);
+        if (g != null) {
+          _pickupLat = g.latitude;
+          _pickupLng = g.longitude;
         }
       }
 
       if (_dropLat == null || _dropLng == null) {
-        final rows = await locationFromAddress(_dropCtrl.text.trim());
-        if (rows.isNotEmpty) {
-          _dropLat = rows.first.latitude;
-          _dropLng = rows.first.longitude;
+        final g = await _geocodeVendorAddressWithGoogle(_dropCtrl.text);
+        if (g != null) {
+          _dropLat = g.latitude;
+          _dropLng = g.longitude;
         }
       }
 
@@ -588,7 +888,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           _pickupLng == null ||
           _dropLat == null ||
           _dropLng == null) {
-        _snack('Unable to resolve locations. Use map selection.');
+        if (showError) {
+          _snack('Unable to resolve locations. Use map selection.');
+        }
         return;
       }
 
@@ -606,13 +908,26 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
         setState(() => _estimate = estimate);
         _recalculateEta();
       } else {
-        _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
+        if (showError) {
+          _snack((estimate['message'] ?? 'Unable to estimate fare').toString());
+        }
       }
     } catch (_) {
-      _snack('Unable to estimate parcel fare right now');
+      if (showError) _snack('Unable to estimate parcel fare right now');
     } finally {
       if (mounted) setState(() => _estimating = false);
     }
+  }
+
+  void _autoEstimateVendorParcelIfReady() {
+    if (_estimating || _submitting) return;
+    if (_pickupLat == null ||
+        _pickupLng == null ||
+        _dropLat == null ||
+        _dropLng == null) {
+      return;
+    }
+    Future.microtask(() => _estimateSendParcel(showError: false));
   }
 
   Future<void> _sendVendorParcel() async {
@@ -643,6 +958,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           _dropCtrl.clear();
           _dropLat = null;
           _dropLng = null;
+          _dropSuggestions = const [];
           _estimate = null;
           _routePoints = const [];
           _etaMinutes = null;
@@ -785,6 +1101,14 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   Widget _sendParcelCard() {
     final fare = (_estimate?['estimatedFare'] ?? 0).toString();
     final dist = (_estimate?['distanceKm'] ?? 0).toString();
+    final routeSource = (_estimate?['routeSource'] ?? '').toString();
+    final routeLabel = routeSource == 'google-directions'
+        ? 'Google'
+        : routeSource == 'osrm'
+        ? 'OSRM'
+        : routeSource == 'haversine-fallback'
+        ? 'Fallback (approx)'
+        : '';
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(12),
@@ -803,12 +1127,28 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           const SizedBox(height: 8),
           TextField(
             controller: _pickupCtrl,
+            focusNode: _pickupFocus,
+            onChanged: (v) => _onVendorLocationChanged(v, pickup: true),
             decoration: const InputDecoration(
               labelText: 'Starting location',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.trip_origin_rounded),
+              suffixIcon: null,
             ),
           ),
+          if (_pickupSearching)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          _vendorSuggestionList(pickup: true),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -819,12 +1159,28 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           ),
           TextField(
             controller: _dropCtrl,
+            focusNode: _dropFocus,
+            onChanged: (v) => _onVendorLocationChanged(v, pickup: false),
             decoration: const InputDecoration(
               labelText: 'Destination location',
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.place_outlined),
+              suffixIcon: null,
             ),
           ),
+          if (_dropSearching)
+            const Padding(
+              padding: EdgeInsets.only(top: 6),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ),
+          _vendorSuggestionList(pickup: false),
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -835,36 +1191,34 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           ),
           _vendorParcelMap(),
           const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: _estimating ? null : _estimateSendParcel,
-                  icon: _estimating
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.calculate_outlined),
-                  label: Text(_estimating ? 'Estimating...' : 'Estimate Fare'),
+          if (_estimating)
+            const Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(bottom: 8),
+                child: Text(
+                  'Calculating fare automatically...',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: _submitting ? null : _sendVendorParcel,
-                  icon: _submitting
-                      ? const SizedBox(
-                          width: 14,
-                          height: 14,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.local_shipping_rounded),
-                  label: Text(_submitting ? 'Sending...' : 'Send Parcel'),
-                ),
-              ),
-            ],
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: _submitting ? null : _sendVendorParcel,
+              icon: _submitting
+                  ? const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.local_shipping_rounded),
+              label: Text(_submitting ? 'Sending...' : 'Send Parcel'),
+            ),
           ),
           if (_estimate != null) ...[
             const SizedBox(height: 8),
@@ -875,6 +1229,11 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
                 color: Color(0xFF166534),
               ),
             ),
+            if (routeLabel.isNotEmpty)
+              Text(
+                'Route source: $routeLabel',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF475569)),
+              ),
           ],
         ],
       ),
@@ -886,7 +1245,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     try {
       final rows = await _api.fetchVendorDeliverRequests(
         vendorId: widget.vendorId,
-        status: _status,
+        status: 'pending',
       );
       if (!mounted) return;
       setState(() {
@@ -946,26 +1305,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           ),
           const SizedBox(height: 12),
           _sendParcelCard(),
-          Wrap(
-            spacing: 8,
-            children: [
-              for (final s in const [
-                'pending',
-                'accepted',
-                'completed',
-                'cancelled',
-              ])
-                ChoiceChip(
-                  label: Text(s.toUpperCase()),
-                  selected: _status == s,
-                  onSelected: (_) {
-                    setState(() => _status = s);
-                    _load();
-                  },
-                ),
-            ],
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           if (_loading)
             const Center(child: CircularProgressIndicator())
           else if (_requests.isEmpty)
@@ -999,14 +1339,6 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
                           child: Text(
                             'Req #${id.length > 8 ? id.substring(0, 8) : id}',
                             style: const TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                        Text(
-                          status.toUpperCase(),
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF334155),
                           ),
                         ),
                       ],

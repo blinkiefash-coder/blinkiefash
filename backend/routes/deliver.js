@@ -41,6 +41,109 @@ const haversineKm = (lat1, lng1, lat2, lng2) => {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 };
 
+const fetchGoogleRouteMetrics = async ({ pickupLat, pickupLng, dropLat, dropLng }) => {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) return null;
+
+  const url = new URL("https://maps.googleapis.com/maps/api/directions/json");
+  url.searchParams.set("origin", `${pickupLat},${pickupLng}`);
+  url.searchParams.set("destination", `${dropLat},${dropLng}`);
+  url.searchParams.set("mode", "driving");
+  url.searchParams.set("key", key);
+
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.status !== "OK") return null;
+
+  const leg = data?.routes?.[0]?.legs?.[0];
+  const distanceM = Number(leg?.distance?.value);
+  const durationS = Number(leg?.duration?.value);
+  if (!Number.isFinite(distanceM) || distanceM <= 0) return null;
+
+  return {
+    distanceKm: Number((distanceM / 1000).toFixed(2)),
+    durationMins: Number.isFinite(durationS)
+      ? Math.max(1, Math.round(durationS / 60))
+      : null,
+    source: "google-directions",
+  };
+};
+
+const fetchOsrmRouteMetrics = async ({ pickupLat, pickupLng, dropLat, dropLng }) => {
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/` +
+    `${pickupLng.toFixed(6)},${pickupLat.toFixed(6)};` +
+    `${dropLng.toFixed(6)},${dropLat.toFixed(6)}?overview=false`;
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": "BlinkieFashBackend/1.0" },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const route = data?.routes?.[0];
+  const distanceM = Number(route?.distance);
+  const durationS = Number(route?.duration);
+  if (!Number.isFinite(distanceM) || distanceM <= 0) return null;
+
+  return {
+    distanceKm: Number((distanceM / 1000).toFixed(2)),
+    durationMins: Number.isFinite(durationS)
+      ? Math.max(1, Math.round(durationS / 60))
+      : null,
+    source: "osrm",
+  };
+};
+
+const normalizeDistanceProvider = (value) => {
+  const v = String(value || "").trim().toLowerCase();
+  if (v === "google") return "google";
+  if (v === "auto") return "auto";
+  return "google";
+};
+
+const getRouteMetrics = async ({
+  pickupLat,
+  pickupLng,
+  dropLat,
+  dropLng,
+  distanceProvider = "google",
+}) => {
+  const provider = normalizeDistanceProvider(distanceProvider);
+
+  try {
+    const google = await fetchGoogleRouteMetrics({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+    });
+    if (google) return google;
+  } catch {}
+
+  if (provider === "google") {
+    return null;
+  }
+
+  try {
+    const osrm = await fetchOsrmRouteMetrics({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+    });
+    if (osrm) return osrm;
+  } catch {}
+
+  const airKm = haversineKm(pickupLat, pickupLng, dropLat, dropLng);
+  const distanceKm = Number(Math.max(airKm * 1.25, 0.5).toFixed(2));
+  return {
+    distanceKm,
+    durationMins: Math.max(1, Math.round((distanceKm / 24) * 60)),
+    source: "haversine-fallback",
+  };
+};
+
 const resolveZone = (city, lat, lng) => {
   const cityKey = String(city || "").trim().toLowerCase();
   if (CITY_ZONE[cityKey]) {
@@ -61,7 +164,14 @@ const resolveZone = (city, lat, lng) => {
   return nearest;
 };
 
-const computeEstimate = ({ pickupLat, pickupLng, dropLat, dropLng, city }) => {
+const computeEstimate = async ({
+  pickupLat,
+  pickupLng,
+  dropLat,
+  dropLng,
+  city,
+  distanceProvider = "google",
+}) => {
   const zone = resolveZone(city, pickupLat, pickupLng);
   if (!zone) {
     return {
@@ -84,8 +194,20 @@ const computeEstimate = ({ pickupLat, pickupLng, dropLat, dropLng, city }) => {
     };
   }
 
-  const distanceKm = haversineKm(pickupLat, pickupLng, dropLat, dropLng);
-  const roundedDistance = Math.max(Number(distanceKm.toFixed(2)), 0.5);
+  const metrics = await getRouteMetrics({
+    pickupLat,
+    pickupLng,
+    dropLat,
+    dropLng,
+    distanceProvider,
+  });
+  if (!metrics) {
+    return {
+      ok: false,
+      message: "Google distance is unavailable. Please verify GOOGLE_MAPS_API_KEY and Directions API.",
+    };
+  }
+  const roundedDistance = Math.max(Number(metrics.distanceKm.toFixed(2)), 0.5);
   const rawFare = zone.baseFare + roundedDistance * zone.perKm;
   const fare = Math.max(zone.minFare, Math.round(rawFare));
 
@@ -93,6 +215,8 @@ const computeEstimate = ({ pickupLat, pickupLng, dropLat, dropLng, city }) => {
     ok: true,
     cityZone: zone.label,
     distanceKm: roundedDistance,
+    etaMinutes: metrics.durationMins,
+    routeSource: metrics.source,
     estimatedFare: fare,
     fareBreakup: {
       baseFare: zone.baseFare,
@@ -132,6 +256,9 @@ router.get("/estimate", async (req, res) => {
     const dropLat = toNumber(req.query.dropLat);
     const dropLng = toNumber(req.query.dropLng);
     const city = req.query.city;
+    const distanceProvider = normalizeDistanceProvider(
+      req.query.distanceProvider
+    );
 
     if (
       pickupLat == null ||
@@ -145,12 +272,13 @@ router.get("/estimate", async (req, res) => {
       });
     }
 
-    const estimate = computeEstimate({
+    const estimate = await computeEstimate({
       pickupLat,
       pickupLng,
       dropLat,
       dropLng,
       city,
+      distanceProvider,
     });
 
     if (!estimate.ok) {
@@ -164,6 +292,8 @@ router.get("/estimate", async (req, res) => {
       success: true,
       cityZone: estimate.cityZone,
       distanceKm: estimate.distanceKm,
+      etaMinutes: estimate.etaMinutes,
+      routeSource: estimate.routeSource,
       estimatedFare: estimate.estimatedFare,
       fareBreakup: estimate.fareBreakup,
     });
@@ -186,6 +316,7 @@ router.post("/request", async (req, res) => {
       dropLat,
       dropLng,
       city,
+      distanceProvider,
     } = req.body || {};
 
     if (
@@ -202,12 +333,13 @@ router.post("/request", async (req, res) => {
       });
     }
 
-    const estimate = computeEstimate({
+    const estimate = await computeEstimate({
       pickupLat: Number(pickupLat),
       pickupLng: Number(pickupLng),
       dropLat: Number(dropLat),
       dropLng: Number(dropLng),
       city,
+      distanceProvider,
     });
     if (!estimate.ok) {
       return res.status(400).json({
