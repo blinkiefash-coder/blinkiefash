@@ -45,10 +45,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  static const String _googleMapsApiKey = String.fromEnvironment(
+  static const String _googleMapsApiKeyUpper = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
     defaultValue: '',
   );
+  static const String _googleMapsApiKeyLower = String.fromEnvironment(
+    'google_maps_api_key',
+    defaultValue: '',
+  );
+  String get _googleMapsApiKey => _googleMapsApiKeyUpper.isNotEmpty
+      ? _googleMapsApiKeyUpper
+      : _googleMapsApiKeyLower;
   final ApiClient _api = ApiClient();
   int _tab = 0;
   bool _guestStartupLocationPromptShown = false;
@@ -5351,6 +5358,9 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _deliverDropSuggestions = const [];
   int _deliverPickupSearchToken = 0;
   int _deliverDropSearchToken = 0;
+  String _deliverGoogleSearchStatus = 'Idle';
+  String? _deliverLastGoogleApiStatus;
+  bool _shownDeliverGoogleSearchConfigWarning = false;
   bool _deliverPickupAutoInitialized = false;
   bool _deliverRouteLoading = false;
   List<LatLng> _deliverRoutePoints = const [];
@@ -5747,6 +5757,7 @@ class _HomeScreenState extends State<HomeScreen>
   Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(
     String query,
   ) async {
+    _deliverLastGoogleApiStatus = null;
     final seen = <String>{};
     final suggestions = <Map<String, dynamic>>[];
 
@@ -5768,6 +5779,57 @@ class _HomeScreenState extends State<HomeScreen>
       });
     }
 
+    Future<void> addGeocodingSuggestions() async {
+      if (_googleMapsApiKey.isEmpty) return;
+      try {
+        final geoUri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/geocode/json'
+          '?address=${Uri.encodeComponent(query)}'
+          '&components=country:IN'
+          '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+        );
+        final geoRes = await http.get(
+          geoUri,
+          headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+        );
+        if (geoRes.statusCode != 200) {
+          _deliverLastGoogleApiStatus = 'HTTP_${geoRes.statusCode}';
+          return;
+        }
+
+        final geoData = jsonDecode(geoRes.body);
+        if (geoData is! Map) return;
+        final status = (geoData['status'] ?? '').toString();
+        _deliverLastGoogleApiStatus = status;
+        _maybeWarnDeliverGoogleSearchConfig(status);
+        if (status != 'OK' && status != 'ZERO_RESULTS') return;
+
+        final results = (geoData['results'] as List? ?? const []);
+        for (final item in results.take(8)) {
+          if (item is! Map) continue;
+          final m = Map<String, dynamic>.from(item);
+          final geometry = m['geometry'] as Map?;
+          final location = geometry?['location'] as Map?;
+          final lat = (location?['lat'] as num?)?.toDouble();
+          final lng = (location?['lng'] as num?)?.toDouble();
+          if (lat == null || lng == null) continue;
+
+          final formatted = (m['formatted_address'] ?? '').toString().trim();
+          final title = formatted.isNotEmpty
+              ? formatted.split(',').first.trim()
+              : query;
+          await addSuggestion(
+            title: title,
+            subtitle: formatted.isNotEmpty ? formatted : 'Tap to select',
+            lat: lat,
+            lng: lng,
+          );
+        }
+      } catch (_) {
+        // Keep empty suggestions when Google geocoding fails.
+      }
+    }
+
     // Better POI/address coverage using Google Places (if key is provided).
     if (_googleMapsApiKey.isNotEmpty) {
       try {
@@ -5783,9 +5845,18 @@ class _HomeScreenState extends State<HomeScreen>
           autoUri,
           headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
         );
+        if (autoRes.statusCode != 200) {
+          _deliverLastGoogleApiStatus = 'HTTP_${autoRes.statusCode}';
+          return suggestions;
+        }
 
         if (autoRes.statusCode == 200) {
           final autoData = jsonDecode(autoRes.body);
+          if (autoData is Map) {
+            final status = (autoData['status'] ?? '').toString();
+            _deliverLastGoogleApiStatus = status;
+            _maybeWarnDeliverGoogleSearchConfig(status);
+          }
           final predictions = autoData is Map
               ? (autoData['predictions'] as List? ?? const [])
               : const [];
@@ -5848,6 +5919,10 @@ class _HomeScreenState extends State<HomeScreen>
       }
     }
 
+    if (suggestions.isEmpty) {
+      await addGeocodingSuggestions();
+    }
+
     return suggestions;
   }
 
@@ -5859,6 +5934,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (q.length < 2) {
       if (!mounted) return;
       setState(() {
+        _deliverGoogleSearchStatus = 'Idle';
         if (pickup) {
           _deliverPickupSuggestions = const [];
           _deliverPickupSearching = false;
@@ -5874,8 +5950,19 @@ class _HomeScreenState extends State<HomeScreen>
         ? ++_deliverPickupSearchToken
         : ++_deliverDropSearchToken;
 
+    if (_googleMapsApiKey.isEmpty && !_shownDeliverGoogleSearchConfigWarning) {
+      _shownDeliverGoogleSearchConfigWarning = true;
+      _deliverGoogleSearchStatus = 'Missing API key';
+      _snack(
+        'Google location search is not configured. Rebuild app with --dart-define=GOOGLE_MAPS_API_KEY=... (or google_maps_api_key).',
+      );
+    }
+
     if (!mounted) return;
     setState(() {
+      _deliverGoogleSearchStatus = _googleMapsApiKey.isEmpty
+          ? 'Missing API key'
+          : 'Checking...';
       if (pickup) {
         _deliverPickupSearching = true;
       } else {
@@ -5891,6 +5978,19 @@ class _HomeScreenState extends State<HomeScreen>
           : token != _deliverDropSearchToken;
       if (isStale) return;
       setState(() {
+        if (suggestions.isNotEmpty) {
+          _deliverGoogleSearchStatus = 'Connected';
+        } else {
+          final last = _deliverLastGoogleApiStatus;
+          if (last != null &&
+              last.isNotEmpty &&
+              last != 'OK' &&
+              last != 'ZERO_RESULTS') {
+            _deliverGoogleSearchStatus = 'API error: $last';
+          } else {
+            _deliverGoogleSearchStatus = 'No results';
+          }
+        }
         if (pickup) {
           _deliverPickupSuggestions = suggestions;
           _deliverPickupSearching = false;
@@ -5906,6 +6006,7 @@ class _HomeScreenState extends State<HomeScreen>
           : token != _deliverDropSearchToken;
       if (isStale) return;
       setState(() {
+        _deliverGoogleSearchStatus = 'Request failed';
         if (pickup) {
           _deliverPickupSuggestions = const [];
           _deliverPickupSearching = false;
@@ -5915,6 +6016,31 @@ class _HomeScreenState extends State<HomeScreen>
         }
       });
     }
+  }
+
+  void _maybeWarnDeliverGoogleSearchConfig(String status) {
+    if (_shownDeliverGoogleSearchConfigWarning) return;
+    const blocked = {
+      'REQUEST_DENIED',
+      'INVALID_REQUEST',
+      'OVER_DAILY_LIMIT',
+      'OVER_QUERY_LIMIT',
+      'API_KEY_INVALID',
+    };
+    if (!blocked.contains(status)) return;
+    _deliverGoogleSearchStatus = 'API error: $status';
+    _shownDeliverGoogleSearchConfigWarning = true;
+    _snack(
+      'Google location search failed ($status). Check API key and Places/Geocoding APIs.',
+    );
+  }
+
+  Color _deliverGoogleSearchStatusColor() {
+    final s = _deliverGoogleSearchStatus;
+    if (s == 'Connected') return const Color(0xFF166534);
+    if (s == 'Checking...' || s == 'Idle') return const Color(0xFF475569);
+    if (s == 'No results') return const Color(0xFF92400E);
+    return const Color(0xFFB91C1C);
   }
 
   void _onDeliverLocationChanged(String value, {required bool pickup}) {
@@ -6050,84 +6176,6 @@ class _HomeScreenState extends State<HomeScreen>
         ],
       ),
     );
-  }
-
-  Future<void> _resolveDeliverAddresses() async {
-    final pickup = _deliverPickupCtrl.text.trim();
-    final drop = _deliverDropCtrl.text.trim();
-    if (pickup.isEmpty || drop.isEmpty) {
-      _snack('Enter both pickup and drop locations');
-      return;
-    }
-
-    setState(() {
-      _deliverEstimating = true;
-      _deliverEstimate = null;
-    });
-
-    try {
-      if (_deliverPickupLat == null || _deliverPickupLng == null) {
-        final g = await _geocodeDeliverAddressWithGoogle(pickup);
-        if (g != null) {
-          _deliverPickupLat = g.latitude;
-          _deliverPickupLng = g.longitude;
-        }
-      }
-      if (_deliverDropLat == null || _deliverDropLng == null) {
-        final g = await _geocodeDeliverAddressWithGoogle(drop);
-        if (g != null) {
-          _deliverDropLat = g.latitude;
-          _deliverDropLng = g.longitude;
-        }
-      }
-
-      if (_deliverPickupLat == null ||
-          _deliverPickupLng == null ||
-          _deliverDropLat == null ||
-          _deliverDropLng == null) {
-        _snack('Unable to locate addresses. Try more specific locations.');
-        return;
-      }
-      _refreshDeliverNearbyRiders();
-      _refreshDeliverRoute();
-      await _estimateDeliverFareNow(showError: true);
-    } catch (_) {
-      _snack('Could not estimate fare. Please try again.');
-    } finally {
-      if (mounted) setState(() => _deliverEstimating = false);
-    }
-  }
-
-  Future<Location?> _geocodeDeliverAddressWithGoogle(String query) async {
-    final q = query.trim();
-    if (q.isEmpty || _googleMapsApiKey.isEmpty) return null;
-
-    try {
-      final uri = Uri.parse(
-        'https://maps.googleapis.com/maps/api/geocode/json'
-        '?address=${Uri.encodeComponent(q)}'
-        '&components=country:IN'
-        '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
-      );
-      final res = await http.get(
-        uri,
-        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
-      );
-      if (res.statusCode != 200) return null;
-      final data = jsonDecode(res.body);
-      if (data is! Map || data['status'] != 'OK') return null;
-      final results = (data['results'] as List? ?? const []);
-      if (results.isEmpty || results.first is! Map) return null;
-      final first = Map<String, dynamic>.from(results.first as Map);
-      final geometry = first['geometry'] as Map?;
-      final location = geometry?['location'] as Map?;
-      final lat = (location?['lat'] as num?)?.toDouble();
-      final lng = (location?['lng'] as num?)?.toDouble();
-      if (lat == null || lng == null) return null;
-      return Location(latitude: lat, longitude: lng, timestamp: DateTime.now());
-    } catch (_) {
-      return null;
-    }
   }
 
   Future<void> _estimateDeliverFareNow({required bool showError}) async {
@@ -6309,6 +6357,18 @@ class _HomeScreenState extends State<HomeScreen>
                       : null,
                 ),
               ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Google Search: $_deliverGoogleSearchStatus',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _deliverGoogleSearchStatusColor(),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
               _deliverSuggestionList(pickup: true),
               Align(
                 alignment: Alignment.centerLeft,
@@ -6337,6 +6397,18 @@ class _HomeScreenState extends State<HomeScreen>
                           ),
                         )
                       : null,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Google Search: $_deliverGoogleSearchStatus',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _deliverGoogleSearchStatusColor(),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               _deliverSuggestionList(pickup: false),

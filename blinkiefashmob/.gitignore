@@ -32,6 +32,8 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+dart_defines.local.json
+dart_defines.local.*.json
 
 # Symbolication related
 app.*.symbols

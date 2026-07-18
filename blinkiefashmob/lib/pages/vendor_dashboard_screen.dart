@@ -277,10 +277,17 @@ class _VendorDeliverTab extends StatefulWidget {
 }
 
 class _VendorDeliverTabState extends State<_VendorDeliverTab> {
-  static const String _googleMapsApiKey = String.fromEnvironment(
+  static const String _googleMapsApiKeyUpper = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
     defaultValue: '',
   );
+  static const String _googleMapsApiKeyLower = String.fromEnvironment(
+    'google_maps_api_key',
+    defaultValue: '',
+  );
+  String get _googleMapsApiKey => _googleMapsApiKeyUpper.isNotEmpty
+      ? _googleMapsApiKeyUpper
+      : _googleMapsApiKeyLower;
 
   final ApiClient _api = ApiClient();
 
@@ -311,6 +318,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   bool _dropSearching = false;
   List<Map<String, dynamic>> _pickupSuggestions = const [];
   List<Map<String, dynamic>> _dropSuggestions = const [];
+  String _googleSearchStatus = 'Idle';
+  String? _lastGoogleApiStatus;
+  bool _shownGoogleSearchConfigWarning = false;
 
   @override
   void initState() {
@@ -614,6 +624,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   Future<List<Map<String, dynamic>>> _searchVendorParcelSuggestions(
     String query,
   ) async {
+    _lastGoogleApiStatus = null;
     final suggestions = <Map<String, dynamic>>[];
     final seen = <String>{};
 
@@ -637,6 +648,57 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       });
     }
 
+    Future<void> addGeocodingSuggestions() async {
+      if (_googleMapsApiKey.isEmpty) return;
+      try {
+        final geoUri = Uri.parse(
+          'https://maps.googleapis.com/maps/api/geocode/json'
+          '?address=${Uri.encodeComponent(query)}'
+          '&components=country:IN'
+          '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
+        );
+        final geoRes = await http.get(
+          geoUri,
+          headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+        );
+        if (geoRes.statusCode != 200) {
+          _lastGoogleApiStatus = 'HTTP_${geoRes.statusCode}';
+          return;
+        }
+
+        final geoData = jsonDecode(geoRes.body);
+        if (geoData is! Map) return;
+        final status = (geoData['status'] ?? '').toString();
+        _lastGoogleApiStatus = status;
+        _maybeWarnGoogleSearchConfig(status);
+        if (status != 'OK' && status != 'ZERO_RESULTS') return;
+
+        final results = (geoData['results'] as List? ?? const []);
+        for (final item in results.take(8)) {
+          if (item is! Map) continue;
+          final m = Map<String, dynamic>.from(item);
+          final geometry = m['geometry'] as Map?;
+          final location = geometry?['location'] as Map?;
+          final lat = (location?['lat'] as num?)?.toDouble();
+          final lng = (location?['lng'] as num?)?.toDouble();
+          if (lat == null || lng == null) continue;
+
+          final formatted = (m['formatted_address'] ?? '').toString().trim();
+          final title = formatted.isNotEmpty
+              ? formatted.split(',').first.trim()
+              : query;
+          addSuggestion(
+            title: title,
+            subtitle: formatted.isNotEmpty ? formatted : 'Tap to select',
+            lat: lat,
+            lng: lng,
+          );
+        }
+      } catch (_) {
+        // Keep empty suggestions when Google geocoding fails.
+      }
+    }
+
     if (_googleMapsApiKey.isNotEmpty) {
       try {
         final autoUri = Uri.parse(
@@ -651,9 +713,18 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
           autoUri,
           headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
         );
+        if (autoRes.statusCode != 200) {
+          _lastGoogleApiStatus = 'HTTP_${autoRes.statusCode}';
+          return suggestions.take(12).toList();
+        }
 
         if (autoRes.statusCode == 200) {
           final autoData = jsonDecode(autoRes.body);
+          if (autoData is Map) {
+            final status = (autoData['status'] ?? '').toString();
+            _lastGoogleApiStatus = status;
+            _maybeWarnGoogleSearchConfig(status);
+          }
           final predictions = autoData is Map
               ? (autoData['predictions'] as List? ?? const [])
               : const [];
@@ -716,6 +787,10 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       }
     }
 
+    if (suggestions.isEmpty) {
+      await addGeocodingSuggestions();
+    }
+
     return suggestions.take(12).toList();
   }
 
@@ -740,9 +815,18 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     _refreshRoute();
 
     final query = value.trim();
+    if (_googleMapsApiKey.isEmpty && !_shownGoogleSearchConfigWarning) {
+      _shownGoogleSearchConfigWarning = true;
+      _googleSearchStatus = 'Missing API key';
+      _snack(
+        'Google location search is not configured. Rebuild app with --dart-define=GOOGLE_MAPS_API_KEY=... (or google_maps_api_key).',
+      );
+    }
+
     if (query.length < 2) {
       if (!mounted) return;
       setState(() {
+        _googleSearchStatus = 'Idle';
         if (pickup) {
           _pickupSearching = false;
           _pickupSuggestions = const [];
@@ -755,6 +839,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     }
 
     setState(() {
+      _googleSearchStatus = _googleMapsApiKey.isEmpty
+          ? 'Missing API key'
+          : 'Checking...';
       if (pickup) {
         _pickupSearching = true;
       } else {
@@ -763,9 +850,38 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     });
 
     final debounce = Timer(const Duration(milliseconds: 260), () async {
-      final rows = await _searchVendorParcelSuggestions(query);
+      List<Map<String, dynamic>> rows = const [];
+      try {
+        rows = await _searchVendorParcelSuggestions(query);
+      } catch (_) {
+        if (!mounted) return;
+        setState(() {
+          _googleSearchStatus = 'Request failed';
+          if (pickup) {
+            _pickupSearching = false;
+            _pickupSuggestions = const [];
+          } else {
+            _dropSearching = false;
+            _dropSuggestions = const [];
+          }
+        });
+        return;
+      }
       if (!mounted) return;
       setState(() {
+        if (rows.isNotEmpty) {
+          _googleSearchStatus = 'Connected';
+        } else {
+          final last = _lastGoogleApiStatus;
+          if (last != null &&
+              last.isNotEmpty &&
+              last != 'OK' &&
+              last != 'ZERO_RESULTS') {
+            _googleSearchStatus = 'API error: $last';
+          } else {
+            _googleSearchStatus = 'No results';
+          }
+        }
         if (pickup) {
           _pickupSearching = false;
           _pickupSuggestions = rows;
@@ -781,6 +897,31 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     } else {
       _dropDebounce = debounce;
     }
+  }
+
+  void _maybeWarnGoogleSearchConfig(String status) {
+    if (_shownGoogleSearchConfigWarning) return;
+    const blocked = {
+      'REQUEST_DENIED',
+      'INVALID_REQUEST',
+      'OVER_DAILY_LIMIT',
+      'OVER_QUERY_LIMIT',
+      'API_KEY_INVALID',
+    };
+    if (!blocked.contains(status)) return;
+    _googleSearchStatus = 'API error: $status';
+    _shownGoogleSearchConfigWarning = true;
+    _snack(
+      'Google location search failed ($status). Check API key and Places/Geocoding APIs.',
+    );
+  }
+
+  Color _googleSearchStatusColor() {
+    final s = _googleSearchStatus;
+    if (s == 'Connected') return const Color(0xFF166534);
+    if (s == 'Checking...' || s == 'Idle') return const Color(0xFF475569);
+    if (s == 'No results') return const Color(0xFF92400E);
+    return const Color(0xFFB91C1C);
   }
 
   void _selectVendorSuggestion(Map<String, dynamic> s, {required bool pickup}) {
@@ -1136,6 +1277,18 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
               suffixIcon: null,
             ),
           ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Google Search: $_googleSearchStatus',
+              style: TextStyle(
+                fontSize: 12,
+                color: _googleSearchStatusColor(),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           if (_pickupSearching)
             const Padding(
               padding: EdgeInsets.only(top: 6),
@@ -1166,6 +1319,18 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
               border: OutlineInputBorder(),
               prefixIcon: Icon(Icons.place_outlined),
               suffixIcon: null,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              'Google Search: $_googleSearchStatus',
+              style: TextStyle(
+                fontSize: 12,
+                color: _googleSearchStatusColor(),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           if (_dropSearching)
