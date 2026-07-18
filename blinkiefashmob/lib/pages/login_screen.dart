@@ -259,8 +259,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final d = _digits(identifier);
     if (d.length != 10) {
       setState(
-        () =>
-            _error = 'Enter a valid 10-digit mobile number or vendor email',
+        () => _error = 'Enter a valid 10-digit mobile number or vendor email',
       );
       return;
     }
@@ -1082,10 +1081,7 @@ class _PhoneField extends StatelessWidget {
           ],
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(
-              color: Color(0xFFCBD5E1),
-              fontSize: 14,
-            ),
+            hintStyle: const TextStyle(color: Color(0xFFCBD5E1), fontSize: 14),
             filled: true,
             fillColor: const Color(0xFFF8FAFC),
             contentPadding: const EdgeInsets.symmetric(horizontal: 14),

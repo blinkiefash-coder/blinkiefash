@@ -6,6 +6,7 @@ import CustomerService from "./pages/CustomerService";
 import Company from "./pages/Company";
 import Faqs from "./pages/Faqs";
 import Policies from "./pages/Policies";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import VendorRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import StockMonitoring from "./pages/StockMonitoring";
@@ -42,6 +43,7 @@ function App() {
         <Route path="/careers" element={<Careers />} />
         <Route path="/faqs" element={<Faqs />} />
         <Route path="/policies" element={<Policies />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
 
         {/* Redirect all other routes to landing page */}
         <Route path="*" element={<Navigate to="/" replace />} />
