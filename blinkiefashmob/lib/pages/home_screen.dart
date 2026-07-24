@@ -71,6 +71,8 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _brands = const [];
   List<Map<String, dynamic>> _under999 = const [];
   List<Map<String, dynamic>> _under1999 = const [];
+  List<Map<String, dynamic>> _pumaProducts = const [];
+  String? _pumaBrandId;
 
   // Shop By Category section
   String? _shopCatId;
@@ -374,6 +376,13 @@ class _HomeScreenState extends State<HomeScreen>
       final under999 = results[3] as List;
       final under1999 = results[4] as List;
 
+      // Find Puma brand ID from loaded brands list
+      final pumaBrand = (brs.whereType<Map<String, dynamic>>()).firstWhere(
+        (b) => (b['name']?.toString() ?? '').toLowerCase() == 'puma',
+        orElse: () => <String, dynamic>{},
+      );
+      final pumaBrandId = pumaBrand['id']?.toString();
+
       // Now that fetchProductsWithStore has run, currentStoreId is set.
       // If the price-range calls returned empty because store wasn't set
       // yet, re-fetch them if there's a store.
@@ -420,13 +429,32 @@ class _HomeScreenState extends State<HomeScreen>
         _brands = brs.whereType<Map<String, dynamic>>().take(8).toList();
         _under999 = under999Final.whereType<Map<String, dynamic>>().toList();
         _under1999 = under1999Final.whereType<Map<String, dynamic>>().toList();
+        _pumaBrandId = pumaBrandId;
         _isLoading = false;
       });
-      // Load shop section products after home data is ready
+      // Load shop section products and Puma products after home data is ready
       unawaited(_loadShopProducts(reset: true));
+      if (pumaBrandId != null) {
+        unawaited(_loadPumaProducts(pumaBrandId));
+      }
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _loadPumaProducts(String brandId) async {
+    try {
+      final result = await _api.fetchAllProducts(
+        brandId: brandId,
+        limit: 10,
+        sort: 'newest',
+      );
+      if (!mounted) return;
+      final products = (result['products'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      setState(() => _pumaProducts = products);
+    } catch (_) {}
   }
 
   Future<void> _loadHomeDataForCurrentSelection() {
@@ -918,6 +946,7 @@ class _HomeScreenState extends State<HomeScreen>
               onAction: () => setState(() => _tab = 1),
             ),
             _exploreCategories(),
+            _pumaStoreSection(),
             _sectionHeader(
               'TRENDING NOW',
               actionLabel: 'View All',
@@ -2062,6 +2091,253 @@ class _HomeScreenState extends State<HomeScreen>
             ),
         ],
       ),
+    );
+  }
+
+  // ── Puma Store Section ───────────────────────────────────────────────────
+  Widget _pumaStoreSection() {
+    // Hide completely if no Puma brand in the catalogue
+    if (_pumaBrandId == null && _pumaProducts.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Branded header
+        Container(
+          margin: const EdgeInsets.fromLTRB(16, 22, 16, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: const Color(0xFF111111),
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+          ),
+          child: Row(
+            children: [
+              // PUMA wordmark block
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFCC00),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: const Text(
+                  'PUMA',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    color: Color(0xFF111111),
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PUMA STORE',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: 1.5,
+                      ),
+                    ),
+                    Text(
+                      'Performance & Street Style',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF9CA3AF),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AllProductsScreen(
+                      brandId: _pumaBrandId,
+                      brandName: 'Puma',
+                    ),
+                  ),
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFCC00),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'View All',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Color(0xFF111111),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      SizedBox(width: 3),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 9,
+                        color: Color(0xFF111111),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Products carousel or loading shimmer
+        Container(
+          decoration: const BoxDecoration(
+            color: Color(0xFF1A1A1A),
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
+          ),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
+          child: _pumaProducts.isEmpty
+              ? SizedBox(
+                  height: 200,
+                  child: Center(
+                    child: _pumaBrandId == null
+                        ? const Text(
+                            'Puma products coming soon',
+                            style: TextStyle(color: Color(0xFF6B7280)),
+                          )
+                        : const CircularProgressIndicator(
+                            color: Color(0xFFFFCC00),
+                            strokeWidth: 2,
+                          ),
+                  ),
+                )
+              : SizedBox(
+                  height: 260,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+                    itemCount: _pumaProducts.length,
+                    itemBuilder: (_, i) {
+                      final item = _pumaProducts[i];
+                      final name = item['name']?.toString() ?? 'Product';
+                      final price = _fmt(item['discount_price'] ?? item['price']);
+                      final origP = _fmt(item['price']);
+                      final img = _imgUrl(item['image']);
+                      final hasDiscount =
+                          item['discount_price'] != null &&
+                          item['discount_price'] != item['price'];
+                      return GestureDetector(
+                        onTap: item['id'] != null ? () => _openProduct(item) : null,
+                        child: Container(
+                          width: 148,
+                          margin: const EdgeInsets.only(right: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF242424),
+                            borderRadius: BorderRadius.circular(14),
+                            border: Border.all(
+                              color: const Color(0xFF333333),
+                              width: 1,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Product image
+                              Expanded(
+                                flex: 3,
+                                child: ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(14),
+                                  ),
+                                  child: img != null
+                                      ? CachedNetworkImage(
+                                          imageUrl: img,
+                                          fit: BoxFit.cover,
+                                          width: double.infinity,
+                                          height: double.infinity,
+                                          alignment: Alignment.topCenter,
+                                          placeholder: (context2, url) => Container(
+                                            color: const Color(0xFF2A2A2A),
+                                          ),
+                                          errorWidget: (context2, url, err) => Container(
+                                            color: const Color(0xFF2A2A2A),
+                                            child: const Icon(
+                                              Icons.image_not_supported_outlined,
+                                              color: Color(0xFF4B5563),
+                                            ),
+                                          ),
+                                        )
+                                      : Container(
+                                          color: const Color(0xFF2A2A2A),
+                                          child: const Icon(
+                                            Icons.image_outlined,
+                                            color: Color(0xFF4B5563),
+                                          ),
+                                        ),
+                                ),
+                              ),
+                              // Info area
+                              Expanded(
+                                flex: 2,
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        name,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          fontSize: 11.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          height: 1.3,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Row(
+                                        children: [
+                                          Text(
+                                            '₹$price',
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFFFFCC00),
+                                            ),
+                                          ),
+                                          if (hasDiscount) ...[
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '₹$origP',
+                                              style: const TextStyle(
+                                                fontSize: 10,
+                                                color: Color(0xFF6B7280),
+                                                decoration:
+                                                    TextDecoration.lineThrough,
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+        ),
+        const SizedBox(height: 4),
+      ],
     );
   }
 
