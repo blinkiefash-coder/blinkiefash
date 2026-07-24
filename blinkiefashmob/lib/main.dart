@@ -90,7 +90,13 @@ class _BlinkieFashAppState extends State<BlinkieFashApp> {
             textScaler: const TextScaler.linear(1.0),
             boldText: false,
           ),
-          child: child ?? const SizedBox.shrink(),
+          child: SafeArea(
+            top: false,
+            left: false,
+            right: false,
+            bottom: true,
+            child: child ?? const SizedBox.shrink(),
+          ),
         );
       },
       theme: ThemeData(
