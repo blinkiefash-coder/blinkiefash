@@ -180,10 +180,12 @@ router.get("/:id/products", async (req, res) => {
     const { id } = req.params;
 
     const vendorStore = await pool.query(
-      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      `SELECT dark_store_id, user_id FROM vendors WHERE id = $1 LIMIT 1`,
       [id]
     );
     const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    const vendorUserId = vendorStore.rows[0]?.user_id || null;
+    const ownerIds = [id, vendorUserId].filter(Boolean).map(String);
 
     if (!linkedStoreId) {
       return res.json([]);
@@ -204,7 +206,7 @@ router.get("/:id/products", async (req, res) => {
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
-       WHERE p.vendor_id = $1
+       WHERE p.vendor_id::text = ANY($1::text[])
          AND p.is_active = true
          AND EXISTS (
            SELECT 1
@@ -215,7 +217,7 @@ router.get("/:id/products", async (req, res) => {
              AND COALESCE(ix.stock, 0) > 0
          )
        ORDER BY p.created_at DESC`,
-      [id, linkedStoreId]
+      [ownerIds, linkedStoreId]
     );
 
     const products = productsResult.rows;
@@ -292,10 +294,12 @@ router.get("/:id/orders", async (req, res) => {
     const { id } = req.params;
 
     const vendorStore = await pool.query(
-      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      `SELECT dark_store_id, user_id FROM vendors WHERE id = $1 LIMIT 1`,
       [id]
     );
     const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    const vendorUserId = vendorStore.rows[0]?.user_id || null;
+    const ownerIds = [id, vendorUserId].filter(Boolean).map(String);
     if (!linkedStoreId) {
       return res.json([]);
     }
@@ -347,11 +351,11 @@ router.get("/:id/orders", async (req, res) => {
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
        LEFT JOIN users u ON u.id = o.user_id
-       WHERE p.vendor_id = $1
+       WHERE p.vendor_id::text = ANY($1::text[])
          AND o.dark_store_id = $2
        GROUP BY o.id, u.name, u.phone
        ORDER BY o.created_at DESC`,
-      [id, linkedStoreId]
+      [ownerIds, linkedStoreId]
     );
     
     res.json(result.rows);
@@ -380,10 +384,12 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
     }
 
     const vendorStore = await pool.query(
-      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      `SELECT dark_store_id, user_id FROM vendors WHERE id = $1 LIMIT 1`,
       [vendorId]
     );
     const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    const vendorUserId = vendorStore.rows[0]?.user_id || null;
+    const ownerIds = [vendorId, vendorUserId].filter(Boolean).map(String);
     if (!linkedStoreId) {
       return res.status(400).json({
         success: false,
@@ -398,10 +404,10 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
        JOIN product_variants pv ON pv.id = oi.variant_id
        JOIN products p ON p.id = pv.product_id
        WHERE o.id = $1
-         AND p.vendor_id = $2
+         AND p.vendor_id::text = ANY($2::text[])
          AND o.dark_store_id = $3
        LIMIT 1`,
-      [orderId, vendorId, linkedStoreId]
+      [orderId, ownerIds, linkedStoreId]
     );
 
     if (!ownershipCheck.rows.length) {
@@ -446,8 +452,9 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
        JOIN products p ON p.id = pv.product_id
        WHERE oi.order_id = $2
          AND oi.variant_id = pv.id
-         AND p.vendor_id = $3`,
-      [normalizedStatus, orderId, vendorId]
+         AND p.vendor_id::text = ANY($3::text[])
+      `,
+      [normalizedStatus, orderId, ownerIds]
     ).catch(() => {});
 
     if (normalizedStatus === "confirmed") {
@@ -477,10 +484,12 @@ router.post("/:id/stock", async (req, res) => {
     }
 
     const vendorStore = await pool.query(
-      `SELECT dark_store_id FROM vendors WHERE id = $1 LIMIT 1`,
+      `SELECT dark_store_id, user_id FROM vendors WHERE id = $1 LIMIT 1`,
       [vendorId]
     );
     const storeId = vendorStore.rows[0]?.dark_store_id || null;
+    const vendorUserId = vendorStore.rows[0]?.user_id || null;
+    const ownerIds = [vendorId, vendorUserId].filter(Boolean).map(String);
     if (!storeId) {
       return res.status(400).json({
         success: false,
@@ -492,9 +501,9 @@ router.post("/:id/stock", async (req, res) => {
       `SELECT pv.id
        FROM product_variants pv
        JOIN products p ON p.id = pv.product_id
-       WHERE pv.id = $1 AND p.vendor_id = $2
+       WHERE pv.id = $1 AND p.vendor_id::text = ANY($2::text[])
        LIMIT 1`,
-      [variantId, vendorId]
+      [variantId, ownerIds]
     );
 
     if (variantCheck.rows.length === 0) {
