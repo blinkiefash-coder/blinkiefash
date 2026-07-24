@@ -9,6 +9,13 @@ import { sendOrderAlertEmail } from "../utils/orderAlertEmail.js";
 
 const router = express.Router();
 
+const PLATFORM_FEE_FLAT = 9;
+const SPH_FEE_PER_PRODUCT = 9; // shipping + packaging + handling per unit
+const FREE_DELIVERY_THRESHOLD = 1299;
+const BASE_DELIVERY_FEE = 39;
+const FREE_DELIVERY_DISTANCE_KM = 18;
+const EXTRA_DELIVERY_PER_KM = 2;
+
 const hasOrdersColumn = async (columnName) => {
   try {
     const { rows } = await pool.query(
@@ -86,25 +93,15 @@ async function calculateBundleDiscount(items, subtotal, client = pool) {
   }
 }
 
-// ── Delivery fee rules ────────────────────────────────────────────────────────
-// Config is read from delivery_config table at request time.
-// Set is_free_delivery=true → always FREE regardless of distance/subtotal.
-async function calcDeliveryFeeFromConfig(subtotal, distanceKm) {
-  try {
-    const { rows } = await pool.query(
-      `SELECT key, value FROM delivery_config WHERE key IN ('is_free_delivery','base_fee','free_threshold')`
-    );
-    const cfg = Object.fromEntries(rows.map(r => [r.key, r.value]));
-    if (cfg.is_free_delivery === 'true') return 0;
-    const baseFee = parseInt(cfg.base_fee ?? '49');
-    const freeThreshold = parseInt(cfg.free_threshold ?? '999');
-    if (subtotal >= freeThreshold) return 0;
-    if (distanceKm != null && distanceKm > 15) return null; // out of range
+// ── Delivery fee rules (flat policy) ─────────────────────────────────────────
+function calcDeliveryFee(subtotal, distanceKm) {
+  const baseFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
+  if (distanceKm == null || distanceKm <= FREE_DELIVERY_DISTANCE_KM) {
     return baseFee;
-  } catch (_) {
-    // fallback: free
-    return 0;
   }
+
+  const extraKm = Math.ceil(distanceKm - FREE_DELIVERY_DISTANCE_KM);
+  return baseFee + (extraKm * EXTRA_DELIVERY_PER_KM);
 }
 
 async function resolveOrderStore(client, items) {
@@ -145,13 +142,6 @@ async function resolveOrderStore(client, items) {
   }
 
   return { storeId: storeIds[0] || null, storeRows };
-}
-
-// Legacy sync helper kept for internal use
-function calcDeliveryFee(subtotal, distanceKm) {
-  if (subtotal >= 999) return 0;
-  if (distanceKm <= 15) return 49;
-  return null; // out of range
 }
 
 // ── GET /api/checkout/addresses?userId=xxx ──────────────────────────────────
@@ -201,13 +191,7 @@ router.get("/delivery-fee", async (req, res) => {
           if (d < minDist) { minDist = d; nearest = s; }
         }
         distance = Math.round(minDist * 10) / 10;
-        const calcFee = await calcDeliveryFeeFromConfig(sub, distance);
-        if (calcFee === null) {
-          withinRange = false;
-          fee = null;
-        } else {
-          fee = calcFee;
-        }
+        fee = calcDeliveryFee(sub, distance);
       }
     } else {
       // No coordinates — city-based fallback, assume in range
@@ -215,10 +199,23 @@ router.get("/delivery-fee", async (req, res) => {
         `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
       );
       if (!storeRows.length) withinRange = false;
-      fee = sub >= 999 ? 0 : 49; // free delivery on ₹999+ orders
+      fee = calcDeliveryFee(sub, null);
     }
 
-    res.json({ success: true, fee, distance, withinRange });
+    const distanceSurcharge = (distance != null && distance > FREE_DELIVERY_DISTANCE_KM)
+      ? Math.ceil(distance - FREE_DELIVERY_DISTANCE_KM) * EXTRA_DELIVERY_PER_KM
+      : 0;
+    res.json({
+      success: true,
+      fee,
+      distance,
+      withinRange,
+      freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
+      baseDeliveryFee: BASE_DELIVERY_FEE,
+      freeDistanceKm: FREE_DELIVERY_DISTANCE_KM,
+      extraPerKm: EXTRA_DELIVERY_PER_KM,
+      distanceSurcharge,
+    });
   } catch (err) {
     console.error("delivery-fee error:", err);
     res.status(500).json({ success: false, message: err.message });
@@ -380,6 +377,9 @@ router.post("/orders", async (req, res) => {
 
     // Calculate delivery fee
     const itemsSubtotal = totalAmount; // client now sends subtotal (items only)
+    const productUnits = items.reduce((sum, item) => sum + (parseInt(item.quantity, 10) || 0), 0);
+    const shippingPackagingHandlingFee = productUnits * SPH_FEE_PER_PRODUCT;
+    const platformFee = PLATFORM_FEE_FLAT;
     
     // ── Calculate bundle discount ───
     const bundleDiscount = await calculateBundleDiscount(items, itemsSubtotal, client);
@@ -399,19 +399,20 @@ router.post("/orders", async (req, res) => {
       }
     }
 
-    let deliveryFee = 0;
-    if (distanceKm !== null) {
-      const calcFee = await calcDeliveryFeeFromConfig(subtotalAfterBundle, distanceKm);
-      if (calcFee === null) {
-        await client.query("ROLLBACK");
-        return res.status(400).json({ success: false, message: "Sorry, delivery is not available beyond 15 km from this store." });
-      }
-      deliveryFee = calcFee;
-    } else {
-      deliveryFee = await calcDeliveryFeeFromConfig(subtotalAfterBundle, 0) ?? 0;
+    const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
+
+    // ── Allow only ONE offer per order ─────────────────────────────────────
+    const selectedOfferCount = [useReferralReward, useClothingReward, useFirstOrderDiscount]
+      .filter(Boolean).length;
+    if (selectedOfferCount > 1) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({
+        success: false,
+        message: "Only one offer can be applied per order.",
+      });
     }
 
-    // ── Apply rewards (referral ₹50 + clothing up to 5% for next order) ───
+    // ── Apply one reward only (referral OR clothing OR first-order) ───────
     let referralRewardId = null;
     let clothingRewardIds = [];
     let referralDiscount = 0;
@@ -430,9 +431,7 @@ router.post("/orders", async (req, res) => {
         referralRewardId = refRewards[0].id;
         referralDiscount = Math.min(parseFloat(refRewards[0].value) || 0, subtotalAfterBundle);
       }
-    }
-
-    if (useClothingReward) {
+    } else if (useClothingReward) {
       const { rows: clothRewards } = await client.query(
         `SELECT id, value FROM user_rewards
          WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'
@@ -453,7 +452,7 @@ router.post("/orders", async (req, res) => {
 
     const totalDiscount = referralDiscount + clothingDiscount + firstOrderDiscount;
     const discountedSubtotal = Math.max(subtotalAfterBundle - totalDiscount, 0);
-    const finalAmount = discountedSubtotal + deliveryFee;
+    const finalAmount = discountedSubtotal + deliveryFee + platformFee + shippingPackagingHandlingFee;
 
     // Create order
     const { rows: orderRows } = await client.query(
@@ -539,6 +538,8 @@ router.post("/orders", async (req, res) => {
       totalAmount: order.total_amount,
       bundleDiscount: bundleDiscount,
       deliveryFee: deliveryFee,
+      platformFee,
+      shippingPackagingHandlingFee,
       referralDiscount,
       clothingDiscount,
       finalAmount: order.final_amount,

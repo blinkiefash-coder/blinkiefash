@@ -309,7 +309,7 @@ class ApiClient {
     // Fallback when backend is unreachable: apply fee rule client-side
     return {
       'success': false,
-      'fee': subtotal >= 1499 ? 0 : 49,
+      'fee': subtotal >= 1299 ? 0 : 39,
       'distance': null,
       'deliveryRadiusKm': 45,
       'etaMinutes': 60,
