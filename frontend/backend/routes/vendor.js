@@ -208,14 +208,6 @@ router.get("/:id/products", async (req, res) => {
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.vendor_id::text = ANY($1::text[])
          AND p.is_active = true
-         AND EXISTS (
-           SELECT 1
-           FROM product_variants pvx
-           JOIN inventory ix ON ix.variant_id = pvx.id
-           WHERE pvx.product_id = p.id
-             AND ix.store_id = $2
-             AND COALESCE(ix.stock, 0) > 0
-         )
        ORDER BY p.created_at DESC`,
       [ownerIds, linkedStoreId]
     );
