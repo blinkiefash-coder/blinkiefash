@@ -3,6 +3,7 @@ import { useState } from "react";
 import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
+import { clearVendorPasswordAuth, markVendorPasswordAuth } from "../utils/vendorSession";
 
 const ADMIN_EMAIL = "satyxalka@blinkiefash.in";
 
@@ -41,6 +42,7 @@ export default function VendorAuth() {
         localStorage.setItem("store_name", "Admin — All Vendors");
         localStorage.setItem("vendor_name", data.admin_name || "Admin");
         localStorage.removeItem("vendor_id");
+        clearVendorPasswordAuth();
         navigate("/vendor/orders");
         return;
       }
@@ -68,6 +70,7 @@ export default function VendorAuth() {
         if (data.user_id) localStorage.setItem("user_id", data.user_id);
         if (data.store_name) localStorage.setItem("store_name", data.store_name);
         if (data.owner_name) localStorage.setItem("vendor_name", data.owner_name);
+        markVendorPasswordAuth();
         navigate("/vendor/add-product");
       } else {
         setError(data.message || "Verification failed");

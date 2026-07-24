@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
 import { auth } from '../firebase'
 import { API_BASE_URL } from '../apiBase'
+import { markVendorPasswordAuth } from '../utils/vendorSession'
 import leftPanelImage from '../assets/hero2.png'
 import './Login.css'
 
@@ -234,6 +235,7 @@ function Login() {
         localStorage.setItem('vendor_id', data.vendor_id || '')
         if (data.store_name) localStorage.setItem('store_name', data.store_name)
         if (data.owner_name) localStorage.setItem('vendor_name', data.owner_name)
+        markVendorPasswordAuth()
       } else {
         localStorage.setItem('userUuid', data.user.id)
         localStorage.setItem('userRole', data.user.role)
