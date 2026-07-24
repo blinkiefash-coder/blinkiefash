@@ -316,6 +316,8 @@ router.post("/orders", async (req, res) => {
     useReferralReward,
     useClothingReward,
     useFirstOrderDiscount,
+    manualOfferType,
+    manualOfferDiscount,
   } = req.body;
   if (!userId || !addressId || !items?.length || !totalAmount) {
     return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -402,7 +404,13 @@ router.post("/orders", async (req, res) => {
     const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
 
     // ── Allow only ONE offer per order ─────────────────────────────────────
-    const selectedOfferCount = [useReferralReward, useClothingReward, useFirstOrderDiscount]
+    const hasManualOffer = !!manualOfferType;
+    const selectedOfferCount = [
+      useReferralReward,
+      useClothingReward,
+      useFirstOrderDiscount,
+      hasManualOffer,
+    ]
       .filter(Boolean).length;
     if (selectedOfferCount > 1) {
       await client.query("ROLLBACK");
@@ -410,6 +418,25 @@ router.post("/orders", async (req, res) => {
         success: false,
         message: "Only one offer can be applied per order.",
       });
+    }
+
+    const allowedManualOfferTypes = new Set(['spin', 'quest', 'coupon', 'auto']);
+    let externalOfferType = null;
+    let externalOfferDiscount = 0;
+    if (hasManualOffer) {
+      if (!allowedManualOfferTypes.has(String(manualOfferType))) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({
+          success: false,
+          message: "Invalid manual offer type.",
+        });
+      }
+      externalOfferType = String(manualOfferType);
+      const requestedDiscount = parseFloat(manualOfferDiscount) || 0;
+      externalOfferDiscount = Math.max(
+        0,
+        Math.min(requestedDiscount, subtotalAfterBundle)
+      );
     }
 
     // ── Apply one reward only (referral OR clothing OR first-order) ───────
@@ -450,7 +477,11 @@ router.post("/orders", async (req, res) => {
       }
     }
 
-    const totalDiscount = referralDiscount + clothingDiscount + firstOrderDiscount;
+    const totalDiscount =
+      referralDiscount +
+      clothingDiscount +
+      firstOrderDiscount +
+      externalOfferDiscount;
     const discountedSubtotal = Math.max(subtotalAfterBundle - totalDiscount, 0);
     const finalAmount = discountedSubtotal + deliveryFee + platformFee + shippingPackagingHandlingFee;
 
@@ -542,6 +573,8 @@ router.post("/orders", async (req, res) => {
       shippingPackagingHandlingFee,
       referralDiscount,
       clothingDiscount,
+      manualOfferType: externalOfferType,
+      manualOfferDiscount: externalOfferDiscount,
       finalAmount: order.final_amount,
       distanceKm: distanceKm,
       createdAt: order.created_at,

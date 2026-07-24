@@ -523,6 +523,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ? _slotLabel(_tomorrowSlots[_selectedTomorrowSlotIndex])
         : null;
 
+    String? manualOfferType;
+    double manualOfferDiscount = 0;
+    if (_useSpinReward && _spinRewardPct > 0) {
+      manualOfferType = 'spin';
+      manualOfferDiscount = subtotal * _spinRewardPct / 100;
+    } else if (_useQuestReward && _questRewardPct > 0) {
+      manualOfferType = 'quest';
+      manualOfferDiscount = subtotal * _questRewardPct / 100;
+    } else if (_couponApplied && _couponDiscount > 0) {
+      manualOfferType = 'coupon';
+      manualOfferDiscount = _couponDiscount;
+    } else if (_selectedAutoOffer >= 0) {
+      final currentAuto = _kAutoOffers[_selectedAutoOffer];
+      if (currentAuto.isEligible(subtotal, cartItems.length)) {
+        manualOfferType = 'auto';
+        manualOfferDiscount = currentAuto.compute(subtotal);
+      }
+    }
+
     final res = await _api.placeOrder(
       userId: userId,
       addressId: _selectedAddressId!,
@@ -532,6 +551,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       useReferralReward: _useReferral && _availableReferralAmount > 0,
       useClothingReward: _useClothing && _availableClothingItems > 0,
       useFirstOrderDiscount: _isFirstOrder && !_hasManualOfferSelected,
+      manualOfferType: manualOfferType,
+      manualOfferDiscount: manualOfferDiscount > 0 ? manualOfferDiscount : null,
       deliveryScheduleType: isScheduled ? 'scheduled' : 'asap',
       scheduledFor: scheduledAt?.toIso8601String(),
       scheduledSlotLabel: scheduledLabel,

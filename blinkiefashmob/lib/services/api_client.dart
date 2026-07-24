@@ -171,6 +171,8 @@ class ApiClient {
     bool useReferralReward = false,
     bool useClothingReward = false,
     bool useFirstOrderDiscount = false,
+    String? manualOfferType,
+    double? manualOfferDiscount,
     String deliveryScheduleType = 'asap',
     String? scheduledFor,
     String? scheduledSlotLabel,
@@ -185,6 +187,10 @@ class ApiClient {
       'useReferralReward': useReferralReward,
       'useClothingReward': useClothingReward,
       'useFirstOrderDiscount': useFirstOrderDiscount,
+      if (manualOfferType != null && manualOfferType.isNotEmpty)
+        'manualOfferType': manualOfferType,
+      if (manualOfferDiscount != null && manualOfferDiscount > 0)
+        'manualOfferDiscount': manualOfferDiscount,
       'deliveryScheduleType': deliveryScheduleType,
       if (scheduledFor != null && scheduledFor.isNotEmpty)
         'scheduledFor': scheduledFor,
