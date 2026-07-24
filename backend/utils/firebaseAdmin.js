@@ -40,19 +40,46 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
   }
   try {
     initializeFirebaseAdmin();
+    const isVendorNewOrder = String(data?.type || '') === 'vendor_new_order';
     const stringData = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, String(v)])
+      Object.entries({ ...data, title, body }).map(([k, v]) => [k, String(v)])
     );
-    await admin.messaging().send({
+
+    const payload = {
       token: fcmToken,
-      notification: { title, body },
       data: stringData,
       android: {
         priority: 'high',
-        notification: { channelId: 'blinkiefash_orders', priority: 'max' },
+        ...(isVendorNewOrder
+            ? {}
+            : {
+                notification: {
+                  channelId: 'blinkiefash_orders',
+                  priority: 'max',
+                  sound: 'default',
+                },
+              }),
       },
-      apns: { payload: { aps: { alert: { title, body }, sound: 'default' } } },
-    });
+      apns: {
+        payload: {
+          aps: isVendorNewOrder
+              ? {
+                  'content-available': 1,
+                  sound: 'default',
+                }
+              : {
+                  alert: { title, body },
+                  sound: 'default',
+                },
+        },
+      },
+    };
+
+    if (!isVendorNewOrder) {
+      payload.notification = { title, body };
+    }
+
+    await admin.messaging().send(payload);
   } catch (err) {
     console.error('[sendPush] Error sending notification:', err.message);
   }

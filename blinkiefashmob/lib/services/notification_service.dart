@@ -6,16 +6,109 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import '../firebase_options.dart';
 import 'api_client.dart';
 import 'user_session.dart';
+
+const _orderChannelId = 'blinkiefash_orders';
+const _orderChannelName = 'Order updates';
+const _orderChannelDescription =
+    'Notifications about your order status — placed, out for delivery, delivered, etc.';
+
+const _vendorOrderChannelId = 'blinkiefash_vendor_orders_ring_v2';
+const _vendorOrderChannelName = 'Vendor Incoming Orders';
+const _vendorOrderChannelDescription =
+    'High-priority alerts for newly received vendor orders.';
+
+Future<void> _configureLocalNotifications(
+  FlutterLocalNotificationsPlugin plugin,
+) async {
+  const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const iosInit = DarwinInitializationSettings(
+    requestAlertPermission: false,
+    requestBadgePermission: false,
+    requestSoundPermission: false,
+  );
+
+  await plugin.initialize(
+    const InitializationSettings(android: androidInit, iOS: iosInit),
+  );
+
+  final android = plugin
+      .resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin
+      >();
+  await android?.createNotificationChannel(
+    const AndroidNotificationChannel(
+      _orderChannelId,
+      _orderChannelName,
+      description: _orderChannelDescription,
+      importance: Importance.high,
+    ),
+  );
+  await android?.createNotificationChannel(
+    const AndroidNotificationChannel(
+      _vendorOrderChannelId,
+      _vendorOrderChannelName,
+      description: _vendorOrderChannelDescription,
+      importance: Importance.max,
+      playSound: true,
+      enableVibration: true,
+      showBadge: true,
+    ),
+  );
+}
 
 /// Background message handler must be a top-level function annotated with
 /// @pragma('vm:entry-point').
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
-  // Notifications with a `notification` payload are auto-displayed by the
-  // system in the background — nothing more to do here.
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  if (message.data['type'] != 'vendor_new_order') {
+    return;
+  }
+
+  final local = FlutterLocalNotificationsPlugin();
+  await _configureLocalNotifications(local);
+  final title =
+      message.data['title'] as String? ??
+      message.notification?.title ??
+      'New Vendor Order';
+  final body =
+      message.data['body'] as String? ??
+      message.notification?.body ??
+      'You have received a new order. Open vendor app to confirm.';
+
+  await local.show(
+    DateTime.now().millisecondsSinceEpoch ~/ 1000,
+    title,
+    body,
+    NotificationDetails(
+      android: AndroidNotificationDetails(
+        _vendorOrderChannelId,
+        _vendorOrderChannelName,
+        channelDescription: _vendorOrderChannelDescription,
+        importance: Importance.max,
+        priority: Priority.max,
+        icon: '@mipmap/ic_launcher',
+        category: AndroidNotificationCategory.alarm,
+        styleInformation: BigTextStyleInformation(body),
+        ticker: 'blinkiefash_vendor_new_order',
+        playSound: true,
+        enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 800, 300, 800]),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        visibility: NotificationVisibility.public,
+      ),
+      iOS: const DarwinNotificationDetails(
+        presentAlert: true,
+        presentBadge: true,
+        presentSound: true,
+        interruptionLevel: InterruptionLevel.timeSensitive,
+      ),
+    ),
+  );
 }
 
 class NotificationService {
@@ -29,20 +122,19 @@ class NotificationService {
   bool _vendorRingInProgress = false;
   String? _cachedToken;
 
-  static const AndroidNotificationChannel
-  _orderChannel = AndroidNotificationChannel(
-    'blinkiefash_orders',
-    'Order updates',
-    description:
-        'Notifications about your order status — placed, out for delivery, delivered, etc.',
-    importance: Importance.high,
-  );
+  static const AndroidNotificationChannel _orderChannel =
+      AndroidNotificationChannel(
+        _orderChannelId,
+        _orderChannelName,
+        description: _orderChannelDescription,
+        importance: Importance.high,
+      );
 
   static const AndroidNotificationChannel _vendorOrderChannel =
       AndroidNotificationChannel(
-        'blinkiefash_vendor_orders_ring_v2',
-        'Vendor Incoming Orders',
-        description: 'High-priority alerts for newly received vendor orders.',
+        _vendorOrderChannelId,
+        _vendorOrderChannelName,
+        description: _vendorOrderChannelDescription,
         importance: Importance.max,
         playSound: true,
         enableVibration: true,
@@ -56,28 +148,7 @@ class NotificationService {
 
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // Local notifications init (used to display when in foreground).
-    const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const iosInit = DarwinInitializationSettings(
-      requestAlertPermission: false,
-      requestBadgePermission: false,
-      requestSoundPermission: false,
-    );
-    await _local.initialize(
-      const InitializationSettings(android: androidInit, iOS: iosInit),
-    );
-
-    // Create the Android channel up-front.
-    await _local
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_orderChannel);
-    await _local
-        .resolvePlatformSpecificImplementation<
-          AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.createNotificationChannel(_vendorOrderChannel);
+    await _configureLocalNotifications(_local);
 
     // Permissions (iOS / Android 13+).
     await FirebaseMessaging.instance.requestPermission(
@@ -142,6 +213,7 @@ class NotificationService {
   }
 
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
+    final isVendorNewOrder = message.data['type'] == 'vendor_new_order';
     final notification = message.notification;
     final title = notification?.title ?? message.data['title'] as String?;
     final body = notification?.body ?? message.data['body'] as String?;
@@ -153,17 +225,30 @@ class NotificationService {
       body,
       NotificationDetails(
         android: AndroidNotificationDetails(
-          _orderChannel.id,
-          _orderChannel.name,
-          channelDescription: _orderChannel.description,
-          importance: Importance.high,
-          priority: Priority.high,
+          isVendorNewOrder ? _vendorOrderChannel.id : _orderChannel.id,
+          isVendorNewOrder ? _vendorOrderChannel.name : _orderChannel.name,
+          channelDescription: isVendorNewOrder
+              ? _vendorOrderChannel.description
+              : _orderChannel.description,
+          importance: isVendorNewOrder ? Importance.max : Importance.high,
+          priority: isVendorNewOrder ? Priority.max : Priority.high,
           icon: '@mipmap/ic_launcher',
+          category: isVendorNewOrder
+              ? AndroidNotificationCategory.alarm
+              : AndroidNotificationCategory.status,
+          playSound: true,
+          enableVibration: isVendorNewOrder,
+          audioAttributesUsage: isVendorNewOrder
+              ? AudioAttributesUsage.alarm
+              : AudioAttributesUsage.notification,
         ),
-        iOS: const DarwinNotificationDetails(
+        iOS: DarwinNotificationDetails(
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
+          interruptionLevel: isVendorNewOrder
+              ? InterruptionLevel.timeSensitive
+              : InterruptionLevel.active,
         ),
       ),
     );

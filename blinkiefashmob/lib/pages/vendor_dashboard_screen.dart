@@ -44,6 +44,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    NotificationService.instance.registerForCurrentUser();
     _loadOperationalStatus();
   }
 
