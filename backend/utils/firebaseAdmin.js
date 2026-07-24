@@ -175,7 +175,12 @@ const STATUS_MESSAGES = {
 };
 
 export async function notifyCustomerOfStatus(pool, orderId, status) {
-  if (!STATUS_MESSAGES[status]) return;
+  const normalizedStatus = String(status || '').trim().toLowerCase();
+  const message =
+    STATUS_MESSAGES[normalizedStatus] ?? {
+      title: '📦 Order updated',
+      body: `Your order status is now ${normalizedStatus.replaceAll('_', ' ')}.`,
+    };
   try {
     const { rows } = await pool.query(
       `SELECT u.fcm_token
@@ -191,12 +196,12 @@ export async function notifyCustomerOfStatus(pool, orderId, status) {
       console.warn(`[notifyCustomerOfStatus] Customer has no FCM token for orderId: ${orderId}`);
       return;
     }
-    const { title, body } = STATUS_MESSAGES[status];
+    const { title, body } = message;
     console.log(`[notifyCustomerOfStatus] Sending "${title}" notification for orderId: ${orderId}`);
     await sendPush(rows[0].fcm_token, {
       title,
       body,
-      data: { type: 'order_status', orderId: String(orderId), status },
+      data: { type: 'order_status', orderId: String(orderId), status: normalizedStatus },
     });
   } catch (err) {
     console.error('[notifyCustomerOfStatus] error:', err.message);
