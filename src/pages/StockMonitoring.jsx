@@ -4,16 +4,25 @@ import "./stockMonitoring.css";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
+import { adminHeaders, isAdmin } from "../utils/adminSession";
 
 export default function StockMonitoring() {
   const navigate = useNavigate();
+  const adminMode = isAdmin();
   const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
+  const [darkStores, setDarkStores] = useState([]);
+  const [selectedStoreId, setSelectedStoreId] = useState("");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
+    if (adminMode) {
+      loadDarkStores();
+      return;
+    }
+
     if (!vendorId) {
       window.location.href = "/vendor";
       return;
@@ -42,7 +51,53 @@ export default function StockMonitoring() {
     };
 
     loadVendorData();
-  }, [vendorId]);
+  }, [adminMode, vendorId]);
+
+  useEffect(() => {
+    if (!adminMode || !selectedStoreId) {
+      return;
+    }
+    loadProductsForStore(selectedStoreId);
+  }, [adminMode, selectedStoreId]);
+
+  const loadDarkStores = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_API_BASE_URL}/checkout/darkstores`, {
+        headers: adminHeaders(),
+      });
+      const data = await res.json();
+      const stores = Array.isArray(data?.stores) ? data.stores : [];
+      setDarkStores(stores);
+      if (stores.length > 0) {
+        setSelectedStoreId(String(stores[0].id));
+      } else {
+        setProducts([]);
+      }
+    } catch (err) {
+      console.error("Failed to load dark stores:", err);
+      setDarkStores([]);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadProductsForStore = async (storeId) => {
+    try {
+      setLoading(true);
+      const res = await fetch(`${API_API_BASE_URL}/checkout/darkstore/${storeId}/products`, {
+        headers: adminHeaders(),
+      });
+      const productsData = await res.json();
+      setProducts(Array.isArray(productsData) ? productsData : []);
+    } catch (err) {
+      console.error("Failed to load products for dark store:", err);
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredProducts = products.filter(
     (product) =>
@@ -77,18 +132,34 @@ export default function StockMonitoring() {
     if (item.key === "orders") navigate("/vendor/orders");
   };
 
+  const selectedStore = darkStores.find((store) => String(store.id) === String(selectedStoreId));
+
   return (
     <VendorLayout activeKey="stock" storeName={storeName} menuItems={menuItems} onMenuClick={handleMenuClick}>
       <div className="stock-container">
         <div className="stock-header">
           <h1>📦 Stock Monitoring</h1>
-          <p>View inventory for your vendor store only</p>
+          <p>{adminMode ? "Admin view: monitor stock by dark store" : "View inventory for your vendor store only"}</p>
         </div>
 
         <div className="stock-controls">
           <div className="store-selector">
-            <label>Vendor:</label>
-            <div className="vendor-store-name">{storeName}</div>
+            <label>{adminMode ? "Dark Store:" : "Vendor:"}</label>
+            {adminMode ? (
+              <select
+                value={selectedStoreId}
+                onChange={(e) => setSelectedStoreId(e.target.value)}
+                disabled={darkStores.length === 0}
+              >
+                {darkStores.map((store) => (
+                  <option key={store.id} value={String(store.id)}>
+                    {store.name}{store.city ? ` - ${store.city}` : ""}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <div className="vendor-store-name">{storeName}</div>
+            )}
           </div>
 
           <div className="search-box">
@@ -176,7 +247,11 @@ export default function StockMonitoring() {
 
               {filteredProducts.length === 0 && (
                 <div className="empty-state">
-                  <p>No products found for this vendor yet.</p>
+                  <p>
+                    {adminMode
+                      ? `No products found${selectedStore?.name ? ` for ${selectedStore.name}` : " in this dark store"}.`
+                      : "No products found for this vendor yet."}
+                  </p>
                 </div>
               )}
             </div>
