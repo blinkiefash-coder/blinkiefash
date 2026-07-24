@@ -608,7 +608,11 @@ router.get("/orders", async (req, res) => {
            'product_name',p.name,
            'size',        v.size,
            'color',       v.color,
-           'image',       (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1)
+           'image',       COALESCE(
+                           (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1),
+                           (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1),
+                           (SELECT pm.url FROM product_media pm WHERE pm.product_id = p.id ORDER BY pm.is_primary DESC, pm.sort_order ASC, pm.id ASC LIMIT 1)
+                         )
          ) ORDER BY oi.id) AS items
        FROM orders o
        LEFT JOIN addresses a ON a.id = o.address_id
@@ -675,7 +679,11 @@ router.get("/orders/:orderId", async (req, res) => {
          p.name  AS product_name,
          v.size,
          v.color,
-         (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1) AS image
+         COALESCE(
+           (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1),
+           (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1),
+           (SELECT pm.url FROM product_media pm WHERE pm.product_id = p.id ORDER BY pm.is_primary DESC, pm.sort_order ASC, pm.id ASC LIMIT 1)
+         ) AS image
        FROM order_items oi
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id

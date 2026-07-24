@@ -804,7 +804,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             Text(
               'Track Order',
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+              style: const TextStyle(
+                fontWeight: FontWeight.w700,
+                fontSize: 16,
+                color: Color(0xFF0F172A),
+              ),
             ),
             Text(
               '#${_shortId(order['id'].toString())}',
@@ -1636,13 +1640,20 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   const SizedBox(height: 2),
                   Text(
                     name,
-                    style: const TextStyle(fontWeight: FontWeight.w700),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF0F172A),
+                    ),
                   ),
                 ],
                 const SizedBox(height: 2),
                 Text(
                   '$line\n$city - $pincode',
-                  style: const TextStyle(fontSize: 13, height: 1.5),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.5,
+                    color: Color(0xFF0F172A),
+                  ),
                 ),
               ],
             ),
@@ -1676,6 +1687,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 style: const TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
+                  color: Color(0xFF0F172A),
                 ),
               ),
               const Spacer(),
@@ -1746,7 +1758,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               children: [
                 Text(
                   name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0F172A),
+                  ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),

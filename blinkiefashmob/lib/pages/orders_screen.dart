@@ -257,6 +257,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                         style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           fontSize: 13,
+                          color: Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 2),
