@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth'
 import { auth } from '../firebase'
 import { API_BASE_URL } from '../apiBase'
+import { markVendorPasswordAuth } from '../utils/vendorSession'
 import leftPanelImage from '../assets/hero2.png'
 import './Login.css'
 
@@ -10,6 +11,7 @@ function Login() {
   const [activeTab, setActiveTab] = useState('customer')
   const [authMethod, setAuthMethod] = useState('otp') // 'otp' | 'password'
   const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -188,23 +190,39 @@ function Login() {
     setError('')
     setSuccess('')
 
-    const formattedPhone = normalizeToIndianPhone(phone)
-    if (!formattedPhone) {
-      setError('Enter a valid 10-digit mobile number')
-      return
-    }
     if (!password || password.length < 6) {
       setError('Enter your password (min 6 characters)')
       return
     }
 
-    const expectedRole = activeTab === 'vendor' ? 'vendor' : 'customer'
     setLoading(true)
     try {
-      const res = await fetch(`${API_BASE_URL}/login/login-password`, {
+      const isVendorLogin = activeTab === 'vendor'
+      const payload = isVendorLogin
+        ? { email, password }
+        : { phone: normalizeToIndianPhone(phone), password, expectedRole: 'customer' }
+
+      if (isVendorLogin && !String(email || '').trim()) {
+        setError('Enter your vendor email')
+        return
+      }
+
+      if (!isVendorLogin) {
+        const formattedPhone = normalizeToIndianPhone(phone)
+        if (!formattedPhone) {
+          setError('Enter a valid 10-digit mobile number')
+          return
+        }
+      }
+
+      const endpoint = isVendorLogin
+        ? `${API_BASE_URL}/vendor/login-password`
+        : `${API_BASE_URL}/login/login-password`
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formattedPhone, password, expectedRole }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!data.success) {
@@ -213,12 +231,19 @@ function Login() {
       }
       setSuccess('Login successful! Redirecting...')
       localStorage.setItem('token', data.token || '')
-      localStorage.setItem('userUuid', data.user.id)
-      localStorage.setItem('userRole', data.user.role)
-      localStorage.setItem('userPhone', data.user.phone)
-      localStorage.setItem('userName', data.user.name)
+      if (isVendorLogin) {
+        localStorage.setItem('vendor_id', data.vendor_id || '')
+        if (data.store_name) localStorage.setItem('store_name', data.store_name)
+        if (data.owner_name) localStorage.setItem('vendor_name', data.owner_name)
+        markVendorPasswordAuth()
+      } else {
+        localStorage.setItem('userUuid', data.user.id)
+        localStorage.setItem('userRole', data.user.role)
+        localStorage.setItem('userPhone', data.user.phone)
+        localStorage.setItem('userName', data.user.name)
+      }
       setTimeout(() => {
-        if (data.user.role === 'vendor') navigate('/vendor')
+        if (isVendorLogin || data.user?.role === 'vendor') navigate('/vendor')
         else navigate('/home')
       }, 800)
     } catch (err) {
@@ -331,7 +356,11 @@ function Login() {
               <button
                 className={`lr-tab ${activeTab === 'vendor' ? 'active' : ''}`}
                 onClick={() => {
-                  navigate('/vendor')
+                  setActiveTab('vendor')
+                  setAuthMethod('password')
+                  setError('')
+                  setSuccess('')
+                  resetOtpState()
                 }}
                 type="button"
               >
@@ -342,34 +371,87 @@ function Login() {
             {error && <div className="error-message">{error}</div>}
             {success && <div className="success-message">{success}</div>}
 
-            {/* AUTH METHOD SWITCH (matches mobile app) */}
-            <div className="auth-method-switch">
-              <button
-                type="button"
-                className={`auth-method-btn ${authMethod === 'otp' ? 'active' : ''}`}
-                onClick={() => {
-                  setAuthMethod('otp')
-                  setError('')
-                  setSuccess('')
-                }}
-              >
-                OTP login
-              </button>
-              <button
-                type="button"
-                className={`auth-method-btn ${authMethod === 'password' ? 'active' : ''}`}
-                onClick={() => {
-                  setAuthMethod('password')
-                  setError('')
-                  setSuccess('')
-                  resetOtpState()
-                }}
-              >
-                Password login
-              </button>
-            </div>
+            {activeTab === 'customer' && (
+              <div className="auth-method-switch">
+                <button
+                  type="button"
+                  className={`auth-method-btn ${authMethod === 'otp' ? 'active' : ''}`}
+                  onClick={() => {
+                    setAuthMethod('otp')
+                    setError('')
+                    setSuccess('')
+                  }}
+                >
+                  OTP login
+                </button>
+                <button
+                  type="button"
+                  className={`auth-method-btn ${authMethod === 'password' ? 'active' : ''}`}
+                  onClick={() => {
+                    setAuthMethod('password')
+                    setError('')
+                    setSuccess('')
+                    resetOtpState()
+                  }}
+                >
+                  Password login
+                </button>
+              </div>
+            )}
 
-            {authMethod === 'password' ? (
+            {activeTab === 'vendor' ? (
+              <form onSubmit={handleLoginPassword}>
+                <div className="form-group">
+                  <label>Vendor Email</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">📧</span>
+                    <input
+                      type="email"
+                      placeholder="Enter your vendor email"
+                      value={email}
+                      onChange={(e) => {
+                        setEmail(e.target.value)
+                        setError('')
+                        setSuccess('')
+                      }}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+
+                <div className="form-group">
+                  <label>Password</label>
+                  <div className="input-icon-wrap">
+                    <span className="input-icon">🔒</span>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={loading}
+                      autoComplete="current-password"
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword((v) => !v)}
+                      tabIndex={-1}
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showPassword ? '🙈' : '👁️'}
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" className="login-button" disabled={loading}>
+                  {loading ? 'Signing in...' : 'Vendor Login'}
+                </button>
+
+                <div className="otp-hint">
+                  Vendor accounts use email and password only.
+                </div>
+              </form>
+            ) : authMethod === 'password' ? (
               <form onSubmit={handleLoginPassword}>
                 <div className="form-group">
                   <label>Mobile Number</label>
@@ -515,7 +597,7 @@ function Login() {
               </div>
             )}
 
-            {authMethod === 'otp' && !otpSent && (
+            {activeTab === 'customer' && authMethod === 'otp' && !otpSent && (
               <div className="otp-hint">
                 We'll send a 6-digit verification code to your phone instantly.
               </div>

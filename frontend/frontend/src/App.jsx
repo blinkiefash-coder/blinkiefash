@@ -1,5 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import VendorAuth from "./pages/VendorAuth";
+import VendorOrders from "./pages/VendorOrders";
+import AdminInsights from "./pages/AdminInsights";
 import AddProduct from "./pages/AddProduct";
 import VendorStore from "./pages/VendorStore";
 import CustomerService from "./pages/CustomerService";
@@ -9,6 +11,22 @@ import SellerRegistration from "./pages/SellerRegistration";
 import DarkStore from "./pages/DarkStore";
 import StockMonitoring from "./pages/StockMonitoring";
 import ProductAnalytics from "./pages/ProductAnalytics";
+import { hasVendorPasswordAuth } from "./utils/vendorSession";
+import { isAdmin } from "./utils/adminSession";
+
+function RequireVendorOrAdmin({ children }) {
+  if (isAdmin() || hasVendorPasswordAuth()) {
+    return children;
+  }
+  return <Navigate to="/vendor" replace />;
+}
+
+function RequireAdmin({ children }) {
+  if (isAdmin()) {
+    return children;
+  }
+  return <Navigate to="/vendor" replace />;
+}
 
 function App() {
   return (
@@ -21,9 +39,11 @@ function App() {
         {/* Vendor Pages */}
         <Route path="/vendor" element={<VendorAuth />} />
         <Route path="/vendor/register" element={<SellerRegistration />} />
-        <Route path="/vendor/add-product" element={<AddProduct />} />
-        <Route path="/vendor/stock-monitoring" element={<StockMonitoring />} />
-        <Route path="/vendor/product-analytics" element={<ProductAnalytics />} />
+        <Route path="/vendor/add-product" element={<RequireVendorOrAdmin><AddProduct /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/stock-monitoring" element={<RequireVendorOrAdmin><StockMonitoring /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/product-analytics" element={<RequireVendorOrAdmin><ProductAnalytics /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/orders" element={<RequireVendorOrAdmin><VendorOrders /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/insights" element={<RequireAdmin><AdminInsights /></RequireAdmin>} />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
 
         {/* Admin Dark Store */}
