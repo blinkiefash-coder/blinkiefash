@@ -15,6 +15,12 @@ const normalizeText = (value) =>
     .replace(/\s+/g, " ")
     .trim();
 
+const extractProducts = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.products)) return payload.products;
+  return [];
+};
+
 const normalizeDepartmentKey = (value) =>
   normalizeText(value).replace(/\s+/g, "-");
 
@@ -195,10 +201,30 @@ export default function InsideCatalog() {
       .map((cat) => cat.id);
   };
 
+  const fetchAllProducts = async () => {
+    const pageSize = 100;
+    let offset = 0;
+    const all = [];
+
+    while (true) {
+      const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
+      const data = await response.json();
+      const pageItems = extractProducts(data);
+      all.push(...pageItems);
+
+      if (pageItems.length < pageSize) break;
+      offset += pageSize;
+
+      // Safety guard against runaway pagination.
+      if (offset > 5000) break;
+    }
+
+    return all;
+  };
+
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/products`)
-      .then(res => res.json())
+    fetchAllProducts()
       .then(data => setProducts(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
     fetch(`${API_BASE}/categories`)
@@ -377,7 +403,11 @@ export default function InsideCatalog() {
       return false;
     }
 
-    if (filters.brands.length && !filters.brands.includes(p.brand)) return false;
+    if (filters.brands.length) {
+      const selectedBrands = filters.brands.map((brand) => normalizeText(brand));
+      const productBrand = normalizeText(p.brand || p.brand_name);
+      if (!selectedBrands.includes(productBrand)) return false;
+    }
 
     const productSize = getEffectiveSize(p);
     const productColor = getEffectiveColor(p);

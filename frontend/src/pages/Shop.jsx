@@ -123,10 +123,39 @@ export default function Shop() {
     }));
   };
 
+  const normalizeText = (value) =>
+    String(value || "").trim().toLowerCase();
+
+  const extractProducts = (payload) => {
+    if (Array.isArray(payload)) return payload;
+    if (payload && Array.isArray(payload.products)) return payload.products;
+    return [];
+  };
+
+  const fetchAllProducts = async () => {
+    const pageSize = 100;
+    let offset = 0;
+    const all = [];
+
+    while (true) {
+      const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
+      const data = await response.json();
+      const pageItems = extractProducts(data);
+      all.push(...pageItems);
+
+      if (pageItems.length < pageSize) break;
+      offset += pageSize;
+
+      // Safety guard against runaway pagination.
+      if (offset > 5000) break;
+    }
+
+    return all;
+  };
+
   useEffect(() => {
     setLoading(true);
-    fetch(`${API_BASE}/products`)
-      .then((res) => res.json())
+    fetchAllProducts()
       .then((data) => {
         setProducts(Array.isArray(data) ? data : []);
       })
@@ -206,8 +235,8 @@ export default function Shop() {
 
   const filteredProducts = products.filter((product) => {
     if (activeBrand) {
-      const productBrand = typeof product.brand === "string" ? product.brand : "";
-      if (productBrand.trim().toLowerCase() !== activeBrand.trim().toLowerCase()) {
+      const productBrand = normalizeText(product.brand || product.brand_name);
+      if (productBrand !== normalizeText(activeBrand)) {
         return false;
       }
     }
