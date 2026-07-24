@@ -264,43 +264,36 @@ class NotificationService {
         : 'You have received $count new orders. Open Orders to take action.';
 
     try {
-      // Simulate a ring by firing a short burst of alarm-style alerts.
-      for (var i = 0; i < 3; i++) {
-        if (i > 0) {
-          await Future<void>.delayed(const Duration(milliseconds: 1200));
-        }
-        final notificationId =
-            (DateTime.now().millisecondsSinceEpoch ~/ 1000) + i;
-        await _local.show(
-          notificationId,
-          title,
-          body,
-          NotificationDetails(
-            android: AndroidNotificationDetails(
-              _vendorOrderChannel.id,
-              _vendorOrderChannel.name,
-              channelDescription: _vendorOrderChannel.description,
-              importance: Importance.max,
-              priority: Priority.max,
-              icon: '@mipmap/ic_launcher',
-              category: AndroidNotificationCategory.alarm,
-              styleInformation: BigTextStyleInformation(body),
-              ticker: 'blinkiefash_vendor_new_order',
-              playSound: true,
-              enableVibration: true,
-              vibrationPattern: Int64List.fromList([0, 800, 300, 800]),
-              audioAttributesUsage: AudioAttributesUsage.alarm,
-              visibility: NotificationVisibility.public,
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-              interruptionLevel: InterruptionLevel.timeSensitive,
-            ),
+      final notificationId = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      await _local.show(
+        notificationId,
+        title,
+        body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            _vendorOrderChannel.id,
+            _vendorOrderChannel.name,
+            channelDescription: _vendorOrderChannel.description,
+            importance: Importance.max,
+            priority: Priority.max,
+            icon: '@mipmap/ic_launcher',
+            category: AndroidNotificationCategory.alarm,
+            styleInformation: BigTextStyleInformation(body),
+            ticker: 'blinkiefash_vendor_new_order',
+            playSound: true,
+            enableVibration: true,
+            vibrationPattern: Int64List.fromList([0, 1200, 400, 1200]),
+            audioAttributesUsage: AudioAttributesUsage.alarm,
+            visibility: NotificationVisibility.public,
           ),
-        );
-      }
+          iOS: const DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+            interruptionLevel: InterruptionLevel.timeSensitive,
+          ),
+        ),
+      );
     } finally {
       _vendorRingInProgress = false;
     }

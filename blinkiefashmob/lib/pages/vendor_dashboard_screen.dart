@@ -3326,9 +3326,6 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       setState(() => _orders = orders);
 
       if (newOrderIds.isNotEmpty) {
-        NotificationService.instance.showVendorNewOrderAlert(
-          count: newOrderIds.length,
-        );
         await _showIncomingOrderAlert(newOrderIds.length);
       } else if (statusChanges.isNotEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -3465,15 +3462,17 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
   }
 
   Future<void> _rejectOrder(String orderId) async {
-    final reasonCtrl = TextEditingController();
+    String reasonText = '';
     final reason = await showDialog<String>(
       context: context,
       builder: (ctx) {
         return AlertDialog(
           title: const Text('Reject Order'),
           content: TextField(
-            controller: reasonCtrl,
             maxLines: 2,
+            autofocus: true,
+            onChanged: (value) => reasonText = value,
+            onSubmitted: (value) => Navigator.of(ctx).pop(value.trim()),
             decoration: const InputDecoration(
               labelText: 'Reason',
               hintText: 'Out of stock / store closed / etc.',
@@ -3486,19 +3485,18 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               child: const Text('Cancel'),
             ),
             FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(reasonCtrl.text.trim()),
+              onPressed: () => Navigator.of(ctx).pop(reasonText.trim()),
               child: const Text('Reject'),
             ),
           ],
         );
       },
     );
-    reasonCtrl.dispose();
-    if (reason == null) return;
+    if (reason == null || reason.trim().isEmpty) return;
     await _updateOrderStatus(
       orderId: orderId,
       status: 'cancelled',
-      cancelReason: reason,
+      cancelReason: reason.trim(),
     );
   }
 
