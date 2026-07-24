@@ -409,7 +409,7 @@ router.get("/price-range", async (req, res) => {
     // Add store inventory filtering if store_id provided
     if (effectiveStoreIds.length) {
       query += `
-       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = ANY($4::uuid[])
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND (inv.store_id = ANY($4::uuid[]) OR inv.store_id IS NULL)
        WHERE p.id IS NOT NULL
          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
@@ -479,7 +479,7 @@ router.get("/bulk-offers", async (req, res) => {
     // Add store inventory filtering if store_id provided
     if (storeId) {
       query += `
-       LEFT JOIN inventory inv ON inv.variant_id = v.id AND inv.store_id = $1
+       LEFT JOIN inventory inv ON inv.variant_id = v.id AND (inv.store_id = $1 OR inv.store_id IS NULL)
        WHERE EXISTS (
          SELECT 1 FROM bulk_offers bo
          WHERE bo.product_id = p.id AND bo.is_active = true
@@ -536,7 +536,7 @@ router.post("/variants/availability", async (req, res) => {
              SUM(
                CASE
                  WHEN vd.is_operational = true
-                  AND ($2::uuid IS NULL OR inv.store_id = $2::uuid)
+                  AND ($2::uuid IS NULL OR inv.store_id = $2::uuid OR inv.store_id IS NULL)
                    THEN COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0)
                  ELSE 0
                END
@@ -740,7 +740,7 @@ router.get("/", async (req, res) => {
     let storeInvCondition = '';
     if (effectiveStoreIds.length) {
       values.push(effectiveStoreIds);
-      storeInvCondition = `AND inv.store_id = ANY($${index++}::uuid[])`;
+      storeInvCondition = `AND (inv.store_id = ANY($${index++}::uuid[]) OR inv.store_id IS NULL)`;
     }
 
     let query = `
