@@ -39,27 +39,10 @@ export default function StockMonitoring() {
           localStorage.setItem("vendor_name", vendor.owner_name);
         }
 
-        // For vendor users, show inventory of their linked dark store
-        // (store-level view), not only products created under vendor_id.
-        const linkedStoreRes = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/store`);
-        const linkedStoreData = await linkedStoreRes.json();
-        const linkedStoreId = linkedStoreData?.store?.id;
-
-        if (linkedStoreId) {
-          if (linkedStoreData?.store?.name) {
-            const label = linkedStoreData?.store?.city
-              ? `${linkedStoreData.store.name} - ${linkedStoreData.store.city}`
-              : linkedStoreData.store.name;
-            setStoreName(label);
-            localStorage.setItem("store_name", label);
-          }
-          await loadProductsForStore(linkedStoreId, false);
-        } else {
-          // Fallback to vendor-owned products if no linked store exists.
-          const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`);
-          const productsData = await res.json();
-          setProducts(Array.isArray(productsData) ? productsData : []);
-        }
+        // Vendor mode should always show all products owned by the vendor account.
+        const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`);
+        const productsData = await res.json();
+        setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (err) {
         console.error("Failed to load vendor stock:", err);
         setProducts([]);
@@ -101,12 +84,12 @@ export default function StockMonitoring() {
     }
   };
 
-  const loadProductsForStore = async (storeId, useAdminAuth = true) => {
+  const loadProductsForStore = async (storeId) => {
     try {
       setLoading(true);
       const res = await fetch(
         `${API_API_BASE_URL}/checkout/darkstore/${storeId}/products`,
-        useAdminAuth ? { headers: adminHeaders() } : undefined
+        { headers: adminHeaders() }
       );
       const productsData = await res.json();
       setProducts(Array.isArray(productsData) ? productsData : []);
