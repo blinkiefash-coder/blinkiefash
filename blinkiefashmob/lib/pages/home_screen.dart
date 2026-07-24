@@ -2097,7 +2097,8 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Puma Store Section ───────────────────────────────────────────────────
   Widget _pumaStoreSection() {
     // Hide completely if no Puma brand in the catalogue
-    if (_pumaBrandId == null && _pumaProducts.isEmpty) return const SizedBox.shrink();
+    if (_pumaBrandId == null && _pumaProducts.isEmpty)
+      return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -2114,7 +2115,10 @@ class _HomeScreenState extends State<HomeScreen>
             children: [
               // PUMA wordmark block
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFCC00),
                   borderRadius: BorderRadius.circular(6),
@@ -2164,7 +2168,10 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFCC00),
                     borderRadius: BorderRadius.circular(20),
@@ -2224,14 +2231,18 @@ class _HomeScreenState extends State<HomeScreen>
                     itemBuilder: (_, i) {
                       final item = _pumaProducts[i];
                       final name = item['name']?.toString() ?? 'Product';
-                      final price = _fmt(item['discount_price'] ?? item['price']);
+                      final price = _fmt(
+                        item['discount_price'] ?? item['price'],
+                      );
                       final origP = _fmt(item['price']);
                       final img = _imgUrl(item['image']);
                       final hasDiscount =
                           item['discount_price'] != null &&
                           item['discount_price'] != item['price'];
                       return GestureDetector(
-                        onTap: item['id'] != null ? () => _openProduct(item) : null,
+                        onTap: item['id'] != null
+                            ? () => _openProduct(item)
+                            : null,
                         child: Container(
                           width: 148,
                           margin: const EdgeInsets.only(right: 10),
@@ -2260,16 +2271,19 @@ class _HomeScreenState extends State<HomeScreen>
                                           width: double.infinity,
                                           height: double.infinity,
                                           alignment: Alignment.topCenter,
-                                          placeholder: (context2, url) => Container(
-                                            color: const Color(0xFF2A2A2A),
-                                          ),
-                                          errorWidget: (context2, url, err) => Container(
-                                            color: const Color(0xFF2A2A2A),
-                                            child: const Icon(
-                                              Icons.image_not_supported_outlined,
-                                              color: Color(0xFF4B5563),
-                                            ),
-                                          ),
+                                          placeholder: (context2, url) =>
+                                              Container(
+                                                color: const Color(0xFF2A2A2A),
+                                              ),
+                                          errorWidget: (context2, url, err) =>
+                                              Container(
+                                                color: const Color(0xFF2A2A2A),
+                                                child: const Icon(
+                                                  Icons
+                                                      .image_not_supported_outlined,
+                                                  color: Color(0xFF4B5563),
+                                                ),
+                                              ),
                                         )
                                       : Container(
                                           color: const Color(0xFF2A2A2A),
@@ -2284,9 +2298,15 @@ class _HomeScreenState extends State<HomeScreen>
                               Expanded(
                                 flex: 2,
                                 child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+                                  padding: const EdgeInsets.fromLTRB(
+                                    8,
+                                    6,
+                                    8,
+                                    8,
+                                  ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
                                       Text(
                                         name,
