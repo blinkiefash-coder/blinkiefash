@@ -42,6 +42,9 @@ export default function VendorAuth() {
 
         // ✅ Store vendor_id
         localStorage.setItem("vendor_id", data.vendor_id);
+        if (data.user_id) {
+          localStorage.setItem("user_id", data.user_id);
+        }
         if (data.store_name) {
           localStorage.setItem("store_name", data.store_name);
         }

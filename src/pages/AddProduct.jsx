@@ -187,6 +187,7 @@ export default function AddProduct() {
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "products") navigate("/vendor/add-product");
+    if (item.key === "orders") navigate("/vendor/orders");
   };
 
   return (

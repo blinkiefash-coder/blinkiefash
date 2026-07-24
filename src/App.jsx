@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import VendorAuth from "./pages/VendorAuth";
+import VendorOrders from "./pages/VendorOrders";
 import AddProduct from "./pages/AddProduct";
 import VendorStore from "./pages/VendorStore";
 import CustomerService from "./pages/CustomerService";
@@ -30,6 +31,7 @@ function App() {
         <Route path="/vendor/add-product" element={<AddProduct />} />
         <Route path="/vendor/stock-monitoring" element={<StockMonitoring />} />
         <Route path="/vendor/product-analytics" element={<ProductAnalytics />} />
+        <Route path="/vendor/orders" element={<VendorOrders />} />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
 
         {/* Admin Dark Store */}
