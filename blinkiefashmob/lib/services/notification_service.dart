@@ -65,7 +65,10 @@ Future<void> _configureLocalNotifications(
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  if (message.data['type'] != 'vendor_new_order') {
+  // Background vendor notifications are now delivered by the OS using the
+  // vendor-specific FCM notification channel, which is more reliable while
+  // the phone is asleep or the app process is not active.
+  if (message.notification != null || message.data['type'] != 'vendor_new_order') {
     return;
   }
 

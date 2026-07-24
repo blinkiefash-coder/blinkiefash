@@ -50,22 +50,29 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
       data: stringData,
       android: {
         priority: 'high',
-        ...(isVendorNewOrder
-            ? {}
+        notification: isVendorNewOrder
+            ? {
+                channelId: 'blinkiefash_vendor_orders_ring_v2',
+                priority: 'max',
+                sound: 'default',
+                defaultSound: true,
+                defaultVibrateTimings: true,
+                notificationCount: 1,
+                tag: `vendor-order-${String(data?.orderId || '')}`,
+              }
             : {
-                notification: {
-                  channelId: 'blinkiefash_orders',
-                  priority: 'max',
-                  sound: 'default',
-                },
-              }),
+                channelId: 'blinkiefash_orders',
+                priority: 'max',
+                sound: 'default',
+              },
       },
       apns: {
         payload: {
           aps: isVendorNewOrder
               ? {
-                  'content-available': 1,
+                  alert: { title, body },
                   sound: 'default',
+                  'thread-id': `vendor-order-${String(data?.vendorId || '')}`,
                 }
               : {
                   alert: { title, body },
@@ -73,11 +80,8 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
                 },
         },
       },
+      notification: { title, body },
     };
-
-    if (!isVendorNewOrder) {
-      payload.notification = { title, body };
-    }
 
     await admin.messaging().send(payload);
   } catch (err) {
