@@ -2231,7 +2231,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               )
             : SizedBox(
-                height: 290,
+                height: 300,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -2239,14 +2239,19 @@ class _HomeScreenState extends State<HomeScreen>
                   itemBuilder: (_, i) {
                     final item = _pumaProducts[i];
                     final name = item['name']?.toString() ?? 'Product';
-                    final brand = item['brand']?.toString() ?? 'Puma';
-                    final price = _fmt(item['discount_price'] ?? item['price']);
+                    final brand = item['brand']?.toString() ?? '';
+                    final price = _fmt(
+                      item['discount_price'] ?? item['price'],
+                    );
                     final origP = _fmt(item['price']);
+                    final off = item['off']?.toString() ?? _offLabel(item);
                     final img = _imgUrl(item['image']);
-                    final hasDiscount =
-                        item['discount_price'] != null &&
-                        item['discount_price'] != item['price'];
-                    final offLabel = _offLabel(item);
+                    final wishItem = WishlistItem(
+                      productId: item['id']?.toString() ?? '',
+                      name: name,
+                      price: price,
+                      imageUrl: img,
+                    );
 
                     return GestureDetector(
                       onTap: item['id'] != null
@@ -2269,7 +2274,6 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Image area
                             Expanded(
                               flex: 3,
                               child: Stack(
@@ -2285,57 +2289,196 @@ class _HomeScreenState extends State<HomeScreen>
                                             alignment: Alignment.topCenter,
                                             width: double.infinity,
                                             height: double.infinity,
-                                            placeholder: (c, u) => Container(
-                                              color: const Color(0xFFF1F5F9),
-                                            ),
-                                            errorWidget: (c, u, e) => Container(
-                                              color: const Color(0xFFF1F5F9),
-                                              child: const Icon(
-                                                Icons.image_outlined,
-                                                color: Color(0xFFCBD5E1),
-                                                size: 32,
-                                              ),
-                                            ),
+                                            placeholder: (context, url) =>
+                                                Container(
+                                                  color: const Color(0xFFF1F5F9),
+                                                ),
+                                            errorWidget:
+                                                (context, url, error) =>
+                                                    Container(
+                                                      color: const Color(
+                                                        0xFFF1F5F9,
+                                                      ),
+                                                      child: const Icon(
+                                                        Icons
+                                                            .image_not_supported_outlined,
+                                                        color: Color(0xFFCBD5E1),
+                                                      ),
+                                                    ),
                                           )
                                         : Container(
                                             color: const Color(0xFFF1F5F9),
                                             child: const Icon(
-                                              Icons.image_outlined,
+                                              Icons.checkroom_outlined,
+                                              size: 40,
                                               color: Color(0xFFCBD5E1),
-                                              size: 32,
                                             ),
                                           ),
                                   ),
-                                  // Discount badge
-                                  if (offLabel.isNotEmpty)
-                                    Positioned(
-                                      top: 8,
-                                      left: 8,
+                                  // Top-left: Bestseller / Try & Buy / 60-min badge
+                                  Positioned(
+                                    top: 8,
+                                    left: 8,
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        if (item['is_bestseller'] == true)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 7,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFDC2626),
+                                              borderRadius:
+                                                  BorderRadius.circular(6),
+                                            ),
+                                            child: const Text(
+                                              'BESTSELLER',
+                                              style: TextStyle(
+                                                color: Colors.white,
+                                                fontSize: 8,
+                                                fontWeight: FontWeight.w800,
+                                                letterSpacing: 0.3,
+                                              ),
+                                            ),
+                                          )
+                                        else if (item['is_try_and_buy'] == true)
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xFFF59E0B),
+                                                  Color(0xFFEF4444),
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                              ),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                              boxShadow: const [
+                                                BoxShadow(
+                                                  color: Color(0x55F59E0B),
+                                                  blurRadius: 6,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ],
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '✨',
+                                                  style: TextStyle(
+                                                    fontSize: 7,
+                                                    height: 1,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 3),
+                                                Text(
+                                                  'Try & Buy',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 0.3,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 8,
+                                              vertical: 4,
+                                            ),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFF16A34A),
+                                              borderRadius:
+                                                  BorderRadius.circular(20),
+                                            ),
+                                            child: const Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  '⚡',
+                                                  style: TextStyle(
+                                                    fontSize: 7,
+                                                    height: 1,
+                                                  ),
+                                                ),
+                                                SizedBox(width: 3),
+                                                Text(
+                                                  '+60 MIN',
+                                                  style: TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 8,
+                                                    fontWeight: FontWeight.w900,
+                                                    letterSpacing: 0.3,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  // Top-right: wishlist heart
+                                  Positioned(
+                                    top: 7,
+                                    right: 7,
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        final id =
+                                            item['id']?.toString() ?? '';
+                                        if (id.isEmpty) return;
+                                        WishlistManager.instance
+                                            .toggle(wishItem);
+                                        setState(() {});
+                                      },
                                       child: Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 6,
-                                          vertical: 3,
-                                        ),
+                                        width: 30,
+                                        height: 30,
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFF16A34A),
-                                          borderRadius: BorderRadius.circular(
-                                            6,
-                                          ),
+                                          color: Colors.white,
+                                          shape: BoxShape.circle,
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Color(0x18000000),
+                                              blurRadius: 6,
+                                            ),
+                                          ],
                                         ),
-                                        child: Text(
-                                          offLabel,
-                                          style: const TextStyle(
-                                            fontSize: 9.5,
-                                            fontWeight: FontWeight.w800,
-                                            color: Colors.white,
-                                          ),
+                                        child: Icon(
+                                          WishlistManager.instance.isWishlisted(
+                                                item['id']?.toString() ?? '',
+                                              )
+                                              ? Icons.favorite_rounded
+                                              : Icons.favorite_border_rounded,
+                                          size: 16,
+                                          color:
+                                              WishlistManager.instance
+                                                      .isWishlisted(
+                                                        item['id']
+                                                                ?.toString() ??
+                                                            '',
+                                                      )
+                                                  ? const Color(0xFFE11D48)
+                                                  : const Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ),
+                                  ),
                                 ],
                               ),
                             ),
-                            // Info area
                             Expanded(
                               flex: 2,
                               child: Padding(
@@ -2348,25 +2491,26 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text(
-                                      brand,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: Color(0xFF16A34A),
-                                        letterSpacing: 0.3,
+                                    if (brand.isNotEmpty)
+                                      Text(
+                                        brand.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w700,
+                                          color: Color(0xFF9CA3AF),
+                                          letterSpacing: 0.8,
+                                        ),
                                       ),
-                                    ),
                                     const SizedBox(height: 2),
                                     Text(
                                       name,
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: const TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 14,
                                         fontWeight: FontWeight.w700,
                                         color: Color(0xFF0F172A),
-                                        height: 1.25,
+                                        height: 1.2,
                                       ),
                                     ),
                                     const Spacer(),
@@ -2377,24 +2521,49 @@ class _HomeScreenState extends State<HomeScreen>
                                         Text(
                                           '₹$price',
                                           style: const TextStyle(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w900,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w800,
                                             color: Color(0xFF0F172A),
                                           ),
                                         ),
-                                        if (hasDiscount) ...[
-                                          const SizedBox(width: 5),
+                                        if (origP.isNotEmpty &&
+                                            origP != price) ...[
+                                          const SizedBox(width: 4),
                                           Text(
                                             '₹$origP',
                                             style: const TextStyle(
-                                              fontSize: 10.5,
+                                              fontSize: 11,
                                               color: Color(0xFF94A3B8),
                                               decoration:
                                                   TextDecoration.lineThrough,
                                             ),
                                           ),
                                         ],
+                                        const Spacer(),
+                                        Container(
+                                          width: 28,
+                                          height: 28,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFDCFCE7),
+                                            borderRadius:
+                                                BorderRadius.circular(8),
+                                          ),
+                                          child: const Icon(
+                                            Icons.shopping_cart_outlined,
+                                            size: 15,
+                                            color: _green,
+                                          ),
+                                        ),
                                       ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      off,
+                                      style: const TextStyle(
+                                        fontSize: 11,
+                                        color: _green,
+                                        fontWeight: FontWeight.w700,
+                                      ),
                                     ),
                                   ],
                                 ),
