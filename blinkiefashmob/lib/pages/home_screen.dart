@@ -2103,107 +2103,168 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Section header — matches app _sectionHeader style ──────────────
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Green left accent bar (same as every other section)
-              Container(
-                width: 4,
-                height: 22,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF16A34A), Color(0xFF4ADE80)],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                  borderRadius: BorderRadius.circular(4),
-                ),
+        // ── Branded banner ───────────────────────────────────────────────────
+        GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => AllProductsScreen(
+                brandId: _pumaBrandId,
+                brandName: 'Puma',
               ),
-              const SizedBox(width: 10),
-              const Text(
-                'PUMA STORE',
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
-                  letterSpacing: 0.2,
-                ),
+            ),
+          ),
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(16, 22, 16, 12),
+            height: 110,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F172A), Color(0xFF1E3A5F)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
               ),
-              const SizedBox(width: 8),
-              // Small Puma brand chip — tasteful identity marker
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A),
-                  borderRadius: BorderRadius.circular(5),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x28000000),
+                  blurRadius: 16,
+                  offset: Offset(0, 6),
                 ),
-                child: const Text(
-                  'PUMA',
-                  style: TextStyle(
-                    fontSize: 9,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: 1.5,
-                  ),
-                ),
-              ),
-              const Spacer(),
-              // View All pill — same green style as every other section
-              GestureDetector(
-                onTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AllProductsScreen(
-                      brandId: _pumaBrandId,
-                      brandName: 'Puma',
+              ],
+            ),
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Decorative circle accents
+                Positioned(
+                  right: -18,
+                  top: -18,
+                  child: Container(
+                    width: 100,
+                    height: 100,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x1416A34A),
                     ),
                   ),
                 ),
-                child: Container(
+                Positioned(
+                  right: 30,
+                  bottom: -24,
+                  child: Container(
+                    width: 70,
+                    height: 70,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0x0C16A34A),
+                    ),
+                  ),
+                ),
+                // Content
+                Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
+                    horizontal: 20,
+                    vertical: 16,
                   ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFDCFCE7),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Text(
-                        'View All',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF16A34A),
-                          fontWeight: FontWeight.w700,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // PUMA wordmark
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 3,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF16A34A),
+                                    borderRadius: BorderRadius.circular(5),
+                                  ),
+                                  child: const Text(
+                                    'PUMA',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w900,
+                                      color: Colors.white,
+                                      letterSpacing: 2.5,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'STORE',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            const Text(
+                              'Performance & Street Style',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      SizedBox(width: 3),
-                      Icon(
-                        Icons.arrow_forward_ios_rounded,
-                        size: 10,
-                        color: Color(0xFF16A34A),
+                      // Shop Now CTA
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF16A34A), Color(0xFF15803D)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x4016A34A),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: const Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Shop Now',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 2),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 14,
+                              color: Colors.white,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-
-        // ── Subtitle tag line ───────────────────────────────────────────────
-        const Padding(
-          padding: EdgeInsets.only(left: 30, bottom: 10),
-          child: Text(
-            'Performance & Street Style',
-            style: TextStyle(
-              fontSize: 12,
-              color: Color(0xFF64748B),
-              fontWeight: FontWeight.w500,
+              ],
             ),
           ),
         ),
@@ -2240,9 +2301,7 @@ class _HomeScreenState extends State<HomeScreen>
                     final item = _pumaProducts[i];
                     final name = item['name']?.toString() ?? 'Product';
                     final brand = item['brand']?.toString() ?? '';
-                    final price = _fmt(
-                      item['discount_price'] ?? item['price'],
-                    );
+                    final price = _fmt(item['discount_price'] ?? item['price']);
                     final origP = _fmt(item['price']);
                     final off = item['off']?.toString() ?? _offLabel(item);
                     final img = _imgUrl(item['image']);
@@ -2291,20 +2350,25 @@ class _HomeScreenState extends State<HomeScreen>
                                             height: double.infinity,
                                             placeholder: (context, url) =>
                                                 Container(
-                                                  color: const Color(0xFFF1F5F9),
+                                                  color: const Color(
+                                                    0xFFF1F5F9,
+                                                  ),
                                                 ),
                                             errorWidget:
-                                                (context, url, error) =>
-                                                    Container(
-                                                      color: const Color(
-                                                        0xFFF1F5F9,
-                                                      ),
-                                                      child: const Icon(
-                                                        Icons
-                                                            .image_not_supported_outlined,
-                                                        color: Color(0xFFCBD5E1),
-                                                      ),
-                                                    ),
+                                                (
+                                                  context,
+                                                  url,
+                                                  error,
+                                                ) => Container(
+                                                  color: const Color(
+                                                    0xFFF1F5F9,
+                                                  ),
+                                                  child: const Icon(
+                                                    Icons
+                                                        .image_not_supported_outlined,
+                                                    color: Color(0xFFCBD5E1),
+                                                  ),
+                                                ),
                                           )
                                         : Container(
                                             color: const Color(0xFFF1F5F9),
@@ -2436,11 +2500,11 @@ class _HomeScreenState extends State<HomeScreen>
                                     right: 7,
                                     child: GestureDetector(
                                       onTap: () {
-                                        final id =
-                                            item['id']?.toString() ?? '';
+                                        final id = item['id']?.toString() ?? '';
                                         if (id.isEmpty) return;
-                                        WishlistManager.instance
-                                            .toggle(wishItem);
+                                        WishlistManager.instance.toggle(
+                                          wishItem,
+                                        );
                                         setState(() {});
                                       },
                                       child: Container(
@@ -2465,13 +2529,12 @@ class _HomeScreenState extends State<HomeScreen>
                                           size: 16,
                                           color:
                                               WishlistManager.instance
-                                                      .isWishlisted(
-                                                        item['id']
-                                                                ?.toString() ??
-                                                            '',
-                                                      )
-                                                  ? const Color(0xFFE11D48)
-                                                  : const Color(0xFF94A3B8),
+                                                  .isWishlisted(
+                                                    item['id']?.toString() ??
+                                                        '',
+                                                  )
+                                              ? const Color(0xFFE11D48)
+                                              : const Color(0xFF94A3B8),
                                         ),
                                       ),
                                     ),
@@ -2545,8 +2608,9 @@ class _HomeScreenState extends State<HomeScreen>
                                           height: 28,
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFDCFCE7),
-                                            borderRadius:
-                                                BorderRadius.circular(8),
+                                            borderRadius: BorderRadius.circular(
+                                              8,
+                                            ),
                                           ),
                                           child: const Icon(
                                             Icons.shopping_cart_outlined,
