@@ -152,6 +152,8 @@ export default function ProductAnalytics() {
     if (item.key === "products") navigate("/vendor/add-product");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "orders") navigate("/vendor/orders");
+    if (item.key === "insights") navigate("/vendor/insights");
   };
 
   if (loading) {

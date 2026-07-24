@@ -86,6 +86,8 @@ export default function VendorSalesReport() {
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "sales") navigate("/vendor/sales-report");
+    if (item.key === "orders") navigate("/vendor/orders");
+    if (item.key === "insights") navigate("/vendor/insights");
   };
 
   const handlePdfDownload = () => {

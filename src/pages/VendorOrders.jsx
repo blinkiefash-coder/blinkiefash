@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
 import "./VendorOrders.css";
 
 const STATUS_LABELS = {
@@ -81,12 +82,24 @@ export default function VendorOrders() {
   };
 
   const fetchOrders = useCallback(async () => {
-    if (!vendorId) return;
+    if (!vendorId && !isAdmin()) return;
     try {
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/orders`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
+      let list = [];
+      if (isAdmin()) {
+        // Admin sees all orders across all vendors
+        const url = statusFilter !== "all"
+          ? `${API_API_BASE_URL}/admin/orders?status=${statusFilter}&limit=300`
+          : `${API_API_BASE_URL}/admin/orders?limit=300`;
+        const res = await fetch(url, { headers: adminHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        list = data.orders || [];
+      } else {
+        const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/orders`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        list = Array.isArray(data) ? data : [];
+      }
 
       // Detect genuinely new orders (not on first load)
       if (!isFirstPoll.current) {
@@ -118,7 +131,7 @@ export default function VendorOrders() {
   }, [vendorId]);
 
   useEffect(() => {
-    if (!vendorId) {
+    if (!vendorId && !isAdmin()) {
       window.location.href = "/vendor";
       return;
     }
@@ -283,6 +296,13 @@ export default function VendorOrders() {
                       </a>
                     )}
                   </div>
+
+                  {/* Vendor tag for admin view */}
+                  {isAdmin() && order.items?.[0]?.vendor_name && (
+                    <div className="vo-vendor-tag">
+                      🏪 {order.items[0].vendor_name}
+                    </div>
+                  )}
 
                   {/* Items */}
                   <div className="vo-items">

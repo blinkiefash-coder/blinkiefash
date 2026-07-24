@@ -21,6 +21,7 @@ import supportRoutes from "./routes/support.js";
 import partnerRoutes from "./routes/partners.js";
 import deliverRoutes from "./routes/deliver.js";
 import gamificationRoutes, { ensureGamificationTables } from "./routes/gamification.js";
+import adminRoutes from "./routes/admin.js";
 
 const app = express();
 
@@ -102,6 +103,7 @@ app.use("/api/support", supportRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/deliver", deliverRoutes);
 app.use("/api/gamification", gamificationRoutes);
+app.use("/api/admin", adminRoutes);
 // Force redeploy: 2026-06-06 11:20:53 UTC
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
