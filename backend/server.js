@@ -20,6 +20,7 @@ import reviewsRoutes from "./routes/reviews.js";
 import supportRoutes from "./routes/support.js";
 import partnerRoutes from "./routes/partners.js";
 import deliverRoutes from "./routes/deliver.js";
+import gamificationRoutes, { ensureGamificationTables } from "./routes/gamification.js";
 
 const app = express();
 
@@ -100,6 +101,7 @@ app.use("/api/reviews", reviewsRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/partners", partnerRoutes);
 app.use("/api/deliver", deliverRoutes);
+app.use("/api/gamification", gamificationRoutes);
 // Force redeploy: 2026-06-06 11:20:53 UTC
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
@@ -123,6 +125,7 @@ const listenOnAvailablePort = (startPort) => {
 
 const startServer = async () => {
   await ensureDatabaseTables();
+  await ensureGamificationTables();
   const { port } = await listenOnAvailablePort(DEFAULT_PORT);
   console.log(`✅ Backend running on port ${port}`);
 
