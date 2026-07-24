@@ -214,9 +214,6 @@ export default function InsideCatalog() {
 
       if (pageItems.length < pageSize) break;
       offset += pageSize;
-
-      // Safety guard against runaway pagination.
-      if (offset > 5000) break;
     }
 
     return all;
