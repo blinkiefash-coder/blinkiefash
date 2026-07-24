@@ -697,6 +697,7 @@ router.post("/login-password", async (req, res) => {
     }
 
     const vendor = vendorResult.rows[0];
+    let resolvedUserId = vendor.user_id;
 
     if (!vendor.password_hash || !verifyPasswordHash(String(password), vendor.password_hash)) {
       return res.json({
@@ -716,16 +717,18 @@ router.post("/login-password", async (req, res) => {
         [vendor.store_name || vendor.email, vendor.email]
       );
 
+      resolvedUserId = userResult.rows[0].id;
+
       await pool.query(
         `UPDATE vendors SET user_id = $1, updated_at = NOW() WHERE id = $2`,
-        [userResult.rows[0].id, vendor.id]
+        [resolvedUserId, vendor.id]
       ).catch(() => {});
     }
 
     return res.json({
       success: true,
       vendor_id: vendor.id,
-      user_id: vendor.user_id,
+      user_id: resolvedUserId,
       dark_store_id: vendor.dark_store_id,
       store_name: vendor.store_name,
       owner_name: vendor.owner_name,

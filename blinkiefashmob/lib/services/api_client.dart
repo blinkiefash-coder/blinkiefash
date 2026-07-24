@@ -850,6 +850,7 @@ class ApiClient {
       final errBody = _decodeBody(response.body);
       final msg =
           (errBody is Map ? errBody['message'] : null)?.toString() ??
+          (errBody is Map ? errBody['error'] : null)?.toString() ??
           'Request failed (${response.statusCode})';
       return {'success': false, 'message': msg};
     }
@@ -908,6 +909,7 @@ class ApiClient {
       final errBody = _decodeBody(response.body);
       final msg =
           (errBody is Map ? errBody['message'] : null)?.toString() ??
+          (errBody is Map ? errBody['error'] : null)?.toString() ??
           'Request failed (${response.statusCode})';
       return {'success': false, 'message': msg};
     }

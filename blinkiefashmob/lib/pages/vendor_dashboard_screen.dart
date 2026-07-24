@@ -62,6 +62,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
   }
 
   Future<void> _toggleOperationalStatus(bool value) async {
+    final previousValue = _isOperational;
     setState(() => _statusUpdating = true);
     try {
       final res = await _api.setVendorOperationalStatus(
@@ -70,17 +71,23 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
       );
       if (!mounted) return;
       if (res['success'] == true) {
-        setState(() => _isOperational = value);
+        final returnedStatus =
+            (res['vendor'] is Map &&
+                (res['vendor'] as Map)['is_operational'] is bool)
+            ? (res['vendor'] as Map)['is_operational'] as bool
+            : value;
+        setState(() => _isOperational = returnedStatus);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              value
+              returnedStatus
                   ? 'Store is now LIVE. Customers can place new orders.'
                   : 'Store is now PAUSED. Products are hidden for shoppers.',
             ),
           ),
         );
       } else {
+        setState(() => _isOperational = previousValue);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -90,6 +97,14 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
           ),
         );
       }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _isOperational = previousValue);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to update store status. Please try again.'),
+        ),
+      );
     } finally {
       if (mounted) setState(() => _statusUpdating = false);
     }
