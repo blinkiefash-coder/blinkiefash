@@ -2246,7 +2246,6 @@ class _HomeScreenState extends State<HomeScreen>
                     final item = _pumaProducts[i];
                     final name = item['name']?.toString() ?? 'Product';
                     final brand = item['brand']?.toString() ?? '';
-                    final color = item['color']?.toString() ?? '';
                     final price = _fmt(item['discount_price'] ?? item['price']);
                     final origP = _fmt(item['price']);
                     final off = item['off']?.toString() ?? _offLabel(item);
@@ -2522,10 +2521,6 @@ class _HomeScreenState extends State<HomeScreen>
                                         height: 1.2,
                                       ),
                                     ),
-                                    if (color.isNotEmpty) ...[
-                                      const SizedBox(height: 4),
-                                      _colorChip(color),
-                                    ],
                                     const Spacer(),
                                     Row(
                                       crossAxisAlignment:
@@ -2612,85 +2607,6 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
-  }
-
-  // ── Color variant chip shown on product cards ─────────────────────────────
-  Widget _colorChip(String colorName) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: _colorNameToHex(colorName),
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFCBD5E1), width: 0.5),
-            ),
-          ),
-          const SizedBox(width: 4),
-          Text(
-            colorName,
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF475569),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Maps common color name strings to a Color for the swatch dot.
-  Color _colorNameToHex(String name) {
-    switch (name.toLowerCase().trim()) {
-      case 'red':
-        return const Color(0xFFEF4444);
-      case 'blue':
-        return const Color(0xFF3B82F6);
-      case 'green':
-        return const Color(0xFF22C55E);
-      case 'black':
-        return const Color(0xFF111827);
-      case 'white':
-        return const Color(0xFFF3F4F6);
-      case 'yellow':
-        return const Color(0xFFFACC15);
-      case 'orange':
-        return const Color(0xFFF97316);
-      case 'pink':
-        return const Color(0xFFEC4899);
-      case 'purple':
-        return const Color(0xFFA855F7);
-      case 'grey':
-      case 'gray':
-        return const Color(0xFF9CA3AF);
-      case 'brown':
-        return const Color(0xFF92400E);
-      case 'navy':
-        return const Color(0xFF1E3A5F);
-      case 'maroon':
-        return const Color(0xFF7F1D1D);
-      case 'beige':
-        return const Color(0xFFF5F5DC);
-      case 'cream':
-        return const Color(0xFFFFFDD0);
-      case 'teal':
-        return const Color(0xFF14B8A6);
-      case 'sky blue':
-      case 'light blue':
-        return const Color(0xFF7DD3FC);
-      default:
-        return const Color(0xFFCBD5E1);
-    }
   }
 
   // ── Explore Categories ────────────────────────────────────────────────────
@@ -2885,7 +2801,6 @@ class _HomeScreenState extends State<HomeScreen>
           final item = items[i];
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
-          final color = item['color']?.toString() ?? '';
           final price = _fmt(item['discount_price'] ?? item['price']);
           final origP = _fmt(item['price']);
           final off = item['off']?.toString() ?? _offLabel(item);
@@ -3134,10 +3049,6 @@ class _HomeScreenState extends State<HomeScreen>
                               height: 1.2,
                             ),
                           ),
-                          if (color.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            _colorChip(color),
-                          ],
                           const Spacer(),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
@@ -3221,7 +3132,6 @@ class _HomeScreenState extends State<HomeScreen>
           final item = items[i];
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
-          final color = item['color']?.toString() ?? '';
           final price = _fmt(item['discount_price'] ?? item['price']);
           final origP = _fmt(item['price']);
           final off = item['off']?.toString() ?? _offLabel(item);
@@ -3469,10 +3379,6 @@ class _HomeScreenState extends State<HomeScreen>
                               height: 1.25,
                             ),
                           ),
-                          if (color.isNotEmpty) ...[
-                            const SizedBox(height: 4),
-                            _colorChip(color),
-                          ],
                           const Spacer(),
                           Row(
                             crossAxisAlignment: CrossAxisAlignment.center,
@@ -4093,7 +3999,6 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _shopProductCard(Map<String, dynamic> item, double cardW) {
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
-    final color = item['color']?.toString() ?? '';
     final price = _fmt(item['discount_price'] ?? item['price']);
     final origP = _fmt(item['price']);
     final off = item['off']?.toString() ?? _offLabel(item);
@@ -4241,10 +4146,6 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 1.25,
                       ),
                     ),
-                    if (color.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      _colorChip(color),
-                    ],
                     const SizedBox(height: 7),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
