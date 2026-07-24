@@ -2096,68 +2096,62 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Puma Store Section ───────────────────────────────────────────────────
   Widget _pumaStoreSection() {
-    // Hide completely if no Puma brand in the catalogue
-    if (_pumaBrandId == null && _pumaProducts.isEmpty)
+    if (_pumaBrandId == null && _pumaProducts.isEmpty) {
       return const SizedBox.shrink();
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Branded header
-        Container(
-          margin: const EdgeInsets.fromLTRB(16, 22, 16, 0),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFF111111),
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-          ),
+        // ── Section header — matches app _sectionHeader style ──────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // PUMA wordmark block
+              // Green left accent bar (same as every other section)
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
+                width: 4,
+                height: 22,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFCC00),
-                  borderRadius: BorderRadius.circular(6),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF16A34A), Color(0xFF4ADE80)],
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                  ),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const Text(
+                'PUMA STORE',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0F172A),
+                  letterSpacing: 0.2,
+                ),
+              ),
+              const SizedBox(width: 8),
+              // Small Puma brand chip — tasteful identity marker
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A),
+                  borderRadius: BorderRadius.circular(5),
                 ),
                 child: const Text(
                   'PUMA',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 9,
                     fontWeight: FontWeight.w900,
-                    color: Color(0xFF111111),
-                    letterSpacing: 2,
+                    color: Colors.white,
+                    letterSpacing: 1.5,
                   ),
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PUMA STORE',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    Text(
-                      'Performance & Street Style',
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: Color(0xFF9CA3AF),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const Spacer(),
+              // View All pill — same green style as every other section
               GestureDetector(
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -2173,7 +2167,7 @@ class _HomeScreenState extends State<HomeScreen>
                     vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFFCC00),
+                    color: const Color(0xFFDCFCE7),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: const Row(
@@ -2182,16 +2176,16 @@ class _HomeScreenState extends State<HomeScreen>
                       Text(
                         'View All',
                         style: TextStyle(
-                          fontSize: 11,
-                          color: Color(0xFF111111),
-                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                          color: Color(0xFF16A34A),
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       SizedBox(width: 3),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 9,
-                        color: Color(0xFF111111),
+                        size: 10,
+                        color: Color(0xFF16A34A),
                       ),
                     ],
                   ),
@@ -2200,163 +2194,219 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
-        // Products carousel or loading shimmer
-        Container(
-          decoration: const BoxDecoration(
-            color: Color(0xFF1A1A1A),
-            borderRadius: BorderRadius.vertical(bottom: Radius.circular(18)),
+
+        // ── Subtitle tag line ───────────────────────────────────────────────
+        const Padding(
+          padding: EdgeInsets.only(left: 30, bottom: 10),
+          child: Text(
+            'Performance & Street Style',
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+            ),
           ),
-          margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-          child: _pumaProducts.isEmpty
-              ? SizedBox(
-                  height: 200,
-                  child: Center(
-                    child: _pumaBrandId == null
-                        ? const Text(
-                            'Puma products coming soon',
-                            style: TextStyle(color: Color(0xFF6B7280)),
-                          )
-                        : const CircularProgressIndicator(
-                            color: Color(0xFFFFCC00),
-                            strokeWidth: 2,
-                          ),
-                  ),
-                )
-              : SizedBox(
-                  height: 260,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
-                    itemCount: _pumaProducts.length,
-                    itemBuilder: (_, i) {
-                      final item = _pumaProducts[i];
-                      final name = item['name']?.toString() ?? 'Product';
-                      final price = _fmt(
-                        item['discount_price'] ?? item['price'],
-                      );
-                      final origP = _fmt(item['price']);
-                      final img = _imgUrl(item['image']);
-                      final hasDiscount =
-                          item['discount_price'] != null &&
-                          item['discount_price'] != item['price'];
-                      return GestureDetector(
-                        onTap: item['id'] != null
-                            ? () => _openProduct(item)
-                            : null,
-                        child: Container(
-                          width: 148,
-                          margin: const EdgeInsets.only(right: 10),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF242424),
-                            borderRadius: BorderRadius.circular(14),
-                            border: Border.all(
-                              color: const Color(0xFF333333),
-                              width: 1,
-                            ),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Product image
-                              Expanded(
-                                flex: 3,
-                                child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(14),
-                                  ),
-                                  child: img != null
-                                      ? CachedNetworkImage(
-                                          imageUrl: img,
-                                          fit: BoxFit.cover,
-                                          width: double.infinity,
-                                          height: double.infinity,
-                                          alignment: Alignment.topCenter,
-                                          placeholder: (context2, url) =>
-                                              Container(
-                                                color: const Color(0xFF2A2A2A),
-                                              ),
-                                          errorWidget: (context2, url, err) =>
-                                              Container(
-                                                color: const Color(0xFF2A2A2A),
-                                                child: const Icon(
-                                                  Icons
-                                                      .image_not_supported_outlined,
-                                                  color: Color(0xFF4B5563),
-                                                ),
-                                              ),
-                                        )
-                                      : Container(
-                                          color: const Color(0xFF2A2A2A),
-                                          child: const Icon(
-                                            Icons.image_outlined,
-                                            color: Color(0xFF4B5563),
-                                          ),
-                                        ),
-                                ),
-                              ),
-                              // Info area
-                              Expanded(
-                                flex: 2,
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(
-                                    8,
-                                    6,
-                                    8,
-                                    8,
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        name,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          fontSize: 11.5,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                          height: 1.3,
-                                        ),
-                                      ),
-                                      const Spacer(),
-                                      Row(
-                                        children: [
-                                          Text(
-                                            '₹$price',
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w900,
-                                              color: Color(0xFFFFCC00),
-                                            ),
-                                          ),
-                                          if (hasDiscount) ...[
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              '₹$origP',
-                                              style: const TextStyle(
-                                                fontSize: 10,
-                                                color: Color(0xFF6B7280),
-                                                decoration:
-                                                    TextDecoration.lineThrough,
-                                              ),
-                                            ),
-                                          ],
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
         ),
-        const SizedBox(height: 4),
+
+        // ── Product carousel ────────────────────────────────────────────────
+        _pumaProducts.isEmpty
+            ? Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                height: 190,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Center(
+                  child: _pumaBrandId == null
+                      ? const Text(
+                          'Puma products coming soon',
+                          style: TextStyle(color: Color(0xFF94A3B8)),
+                        )
+                      : const CircularProgressIndicator(
+                          color: Color(0xFF16A34A),
+                          strokeWidth: 2,
+                        ),
+                ),
+              )
+            : SizedBox(
+                height: 290,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  itemCount: _pumaProducts.length,
+                  itemBuilder: (_, i) {
+                    final item = _pumaProducts[i];
+                    final name = item['name']?.toString() ?? 'Product';
+                    final brand = item['brand']?.toString() ?? 'Puma';
+                    final price = _fmt(item['discount_price'] ?? item['price']);
+                    final origP = _fmt(item['price']);
+                    final img = _imgUrl(item['image']);
+                    final hasDiscount =
+                        item['discount_price'] != null &&
+                        item['discount_price'] != item['price'];
+                    final offLabel = _offLabel(item);
+
+                    return GestureDetector(
+                      onTap: item['id'] != null
+                          ? () => _openProduct(item)
+                          : null,
+                      child: Container(
+                        width: 160,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0F000000),
+                              blurRadius: 12,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Image area
+                            Expanded(
+                              flex: 3,
+                              child: Stack(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(18),
+                                    ),
+                                    child: img != null
+                                        ? CachedNetworkImage(
+                                            imageUrl: img,
+                                            fit: BoxFit.cover,
+                                            alignment: Alignment.topCenter,
+                                            width: double.infinity,
+                                            height: double.infinity,
+                                            placeholder: (c, u) => Container(
+                                              color: const Color(0xFFF1F5F9),
+                                            ),
+                                            errorWidget: (c, u, e) => Container(
+                                              color: const Color(0xFFF1F5F9),
+                                              child: const Icon(
+                                                Icons.image_outlined,
+                                                color: Color(0xFFCBD5E1),
+                                                size: 32,
+                                              ),
+                                            ),
+                                          )
+                                        : Container(
+                                            color: const Color(0xFFF1F5F9),
+                                            child: const Icon(
+                                              Icons.image_outlined,
+                                              color: Color(0xFFCBD5E1),
+                                              size: 32,
+                                            ),
+                                          ),
+                                  ),
+                                  // Discount badge
+                                  if (offLabel.isNotEmpty)
+                                    Positioned(
+                                      top: 8,
+                                      left: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF16A34A),
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          offLabel,
+                                          style: const TextStyle(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                            // Info area
+                            Expanded(
+                              flex: 2,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                  10,
+                                  8,
+                                  10,
+                                  10,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      brand,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: Color(0xFF16A34A),
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      name,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0F172A),
+                                        height: 1.25,
+                                      ),
+                                    ),
+                                    const Spacer(),
+                                    Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(
+                                          '₹$price',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w900,
+                                            color: Color(0xFF0F172A),
+                                          ),
+                                        ),
+                                        if (hasDiscount) ...[
+                                          const SizedBox(width: 5),
+                                          Text(
+                                            '₹$origP',
+                                            style: const TextStyle(
+                                              fontSize: 10.5,
+                                              color: Color(0xFF94A3B8),
+                                              decoration:
+                                                  TextDecoration.lineThrough,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
       ],
     );
   }
