@@ -31,7 +31,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   static const double _defaultDeliveryRangeKm = 45;
   static const double _platformFeeFlat = 9.0;
   static const double _shippingPackagingHandlingPerProduct = 9.0;
-  static const double _freeDeliveryThreshold = 1299.0;
 
   List<CartItem> get _effectiveItems =>
       widget.overrideItems ?? CartManager.instance.items;
@@ -1549,30 +1548,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 // ── Delivery ─────────────────────────────────────────────
                 _PriceRow(
                   label: 'Delivery Charges',
-                  value: _deliveryFee == 0
-                      ? 'FREE'
-                      : '₹${_deliveryFee.toStringAsFixed(0)}',
-                  valueColor: _deliveryFee == 0
-                      ? const Color(0xFF16A34A)
-                      : null,
-                ),
-                const SizedBox(height: 4),
-                Padding(
-                  padding: const EdgeInsets.only(left: 12),
-                  child: _PriceRow(
-                    label: subtotal >= _freeDeliveryThreshold
-                        ? '↳ Free over ₹1299 (extra ₹2/km only beyond 18 km)'
-                        : '↳ Free up to 18 km, then ₹39 + ₹2/km beyond 18 km',
-                    value: '',
-                    labelStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                    valueStyle: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF6B7280),
-                    ),
-                  ),
+                  value: 'FREE',
+                  valueColor: const Color(0xFF16A34A),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
