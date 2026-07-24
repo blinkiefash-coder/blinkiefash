@@ -21,7 +21,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
   String? _code;
   int _totalReferrals = 0;
   double _availableReward = 0;
-  int _perReferralReward = 100;
+  int _perReferralReward = 50;
   bool _userHasAppliedCode = false;
   bool _redeeming = false;
   String? _redeemError;
@@ -135,7 +135,7 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
           _availableReward =
               (data['availableReward'] as num?)?.toDouble() ?? 0.0;
           _perReferralReward =
-              (data['perReferralReward'] as num?)?.toInt() ?? 100;
+              (data['perReferralReward'] as num?)?.toInt() ?? 50;
           _loading = false;
         });
       } else {

@@ -439,6 +439,12 @@ export const ensureDatabaseTables = async () => {
     ON user_rewards(user_id, status);
   `);
 
+  await pool.query(`
+    UPDATE user_rewards
+    SET type = 'referral_50', value = 50
+    WHERE type LIKE 'referral_%' AND type <> 'referral_50';
+  `);
+
   // ── Delivery config table ─────────────────────────────────────────────────
   await pool.query(`
     CREATE TABLE IF NOT EXISTS delivery_config (

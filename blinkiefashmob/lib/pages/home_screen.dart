@@ -1078,17 +1078,9 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Promo Banner Strip ────────────────────────────────────────────────────
   static const _promoCards = [
     {
-      'tag': 'FIRST ORDER',
-      'title': '50% OFF UP TO ₹300',
-      'subtitle': 'On your very first order.\nNo code needed — auto-applied!',
-      'icon': '🎉',
-      'gradient': [Color(0xFF16A34A), Color(0xFF065F46)],
-      'route': 'allProducts',
-    },
-    {
       'tag': 'REFER & EARN',
-      'title': '₹100 for You & Friend',
-      'subtitle': 'Share your referral code.\nBoth of you get ₹100 off!',
+      'title': '₹50 for You & Friend',
+      'subtitle': 'Share your referral code.\nBoth of you get ₹50 off!',
       'icon': '🎁',
       'gradient': [Color(0xFF7C3AED), Color(0xFF4338CA)],
       'route': 'refer',
@@ -1614,17 +1606,6 @@ class _HomeScreenState extends State<HomeScreen>
   // Save your banner images to assets/images/ with these exact filenames:
   //   50.jpeg  women.jpeg  homepick.jpeg  hair.jpeg  Mens.jpeg
   static const _lightBanners = [
-    {
-      'image': 'assets/images/50.jpeg',
-      'headline1': 'Flat',
-      'headline2': '50%',
-      'headline3': 'OFF',
-      'sub': 'Up to ₹300 on First Order',
-      'emoji': '🛍️',
-      'bg': Color(0xFFF0FDF4),
-      'accent': Color(0xFF16A34A),
-      'route': 'sale',
-    },
     {
       'image': 'assets/images/women.jpeg',
       'headline1': 'Trending',
@@ -6981,7 +6962,7 @@ class _HomeScreenState extends State<HomeScreen>
               ctx,
               '🎁',
               'Refer & Earn',
-              'Earn \u20b9100 for every friend you invite',
+              'Earn \u20b950 for every friend you invite',
               const Color(0xFFEA580C),
               () {
                 Navigator.of(ctx).push(

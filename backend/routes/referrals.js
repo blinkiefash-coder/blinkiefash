@@ -59,7 +59,7 @@ router.get("/:userId", async (req, res) => {
     const { rows: rewardRows } = await pool.query(
       `SELECT COALESCE(SUM(value), 0)::float AS available
        FROM user_rewards
-       WHERE user_id = $1 AND type IN ('referral_50', 'referral_100') AND status = 'available'`,
+       WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'`,
       [userId]
     );
 
@@ -68,7 +68,7 @@ router.get("/:userId", async (req, res) => {
       code,
       totalReferrals: countRows[0].total,
       availableReward: rewardRows[0].available,
-      perReferralReward: 100,
+      perReferralReward: 50,
     });
   } catch (err) {
     console.error("GET referrals error:", err);

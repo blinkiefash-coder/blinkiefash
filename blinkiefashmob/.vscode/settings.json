@@ -13,13 +13,30 @@
     }
   ],
   "java.import.exclusions": [
+    "**/.pub-cache/**",
+    "**/third_party/**",
     "**/android",
     "**/android/**"
+  ],
+  "java.project.resourceFilters": [
+    "node_modules",
+    ".git",
+    ".pub-cache"
   ],
   "gradle.autoDetect": "off",
   "gradle.nestedProjects": false,
   "files.exclude": {
+    "**/.pub-cache": true,
+    "**/third_party": true,
     "**/android/.gradle": true,
     "**/android/build": true
+  },
+  "search.exclude": {
+    "**/.pub-cache/**": true,
+    "**/third_party/**": true
+  },
+  "files.watcherExclude": {
+    "**/.pub-cache/**": true,
+    "**/third_party/**": true
   }
 }
