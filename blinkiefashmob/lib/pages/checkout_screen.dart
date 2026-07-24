@@ -28,7 +28,6 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final ApiClient _api = ApiClient();
   bool _authRedirectInFlight = false;
-  static const double _firstOrderDiscountCap = 300.0;
   static const double _defaultDeliveryRangeKm = 45;
   static const double _platformFeeFlat = 9.0;
   static const double _shippingPackagingHandlingPerProduct = 9.0;
@@ -63,7 +62,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int _availableClothingPercent = 0;
   bool _useReferral = false;
   bool _useClothing = false;
-  bool _isFirstOrder = false;
 
   // Earned offers (spin wheel + fashion quest)
   double _spinRewardPct = 0;
@@ -266,14 +264,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
   }
 
-  bool get _hasManualOfferSelected =>
-      _useReferral ||
-      _useClothing ||
-      _useSpinReward ||
-      _useQuestReward ||
-      _couponApplied ||
-      _selectedAutoOffer >= 0;
-
   Future<void> _loadRewards() async {
     final userId = UserSession.instance.userId;
     if (userId == null) return;
@@ -286,7 +276,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _availableClothingItems = (data['clothingItems'] as num?)?.toInt() ?? 0;
         _availableClothingPercent =
             (data['clothingPercent'] as num?)?.toInt() ?? 0;
-        _isFirstOrder = data['isFirstOrder'] == true;
       });
     } catch (_) {}
   }
@@ -550,7 +539,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       isTryOrder: widget.isTryOrder,
       useReferralReward: _useReferral && _availableReferralAmount > 0,
       useClothingReward: _useClothing && _availableClothingItems > 0,
-      useFirstOrderDiscount: _isFirstOrder && !_hasManualOfferSelected,
+      useFirstOrderDiscount: false,
       manualOfferType: manualOfferType,
       manualOfferDiscount: manualOfferDiscount > 0 ? manualOfferDiscount : null,
       deliveryScheduleType: isScheduled ? 'scheduled' : 'asap',
@@ -717,19 +706,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final clothingDiscount = (_useClothing && _availableClothingPercent > 0)
         ? subtotal * _availableClothingPercent / 100
         : 0.0;
-    // First order: 50% off up to ₹300 on the highest-priced item.
-    final firstOrderDiscount =
-        _isFirstOrder && cartItems.isNotEmpty && !_hasManualOfferSelected
-        ? (() {
-            final highestItemPrice = cartItems
-                .map((i) => double.tryParse(i.rawPrice) ?? 0.0)
-                .reduce((a, b) => a > b ? a : b);
-            final discount = highestItemPrice * 0.5;
-            return discount > _firstOrderDiscountCap
-                ? _firstOrderDiscountCap
-                : discount;
-          })()
-        : 0.0;
+    final firstOrderDiscount = 0.0;
     final spinDiscount = (_useSpinReward && _spinRewardPct > 0)
         ? subtotal * _spinRewardPct / 100
         : 0.0;
@@ -780,46 +757,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         children: [
           const StoreClosedBanner(),
           if (isStoreClosed()) const SizedBox(height: 12),
-          if (_isFirstOrder)
-            Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF16A34A), Color(0xFF15803D)],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Row(
-                children: [
-                  Text('🎉', style: TextStyle(fontSize: 20)),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'First Order Offer — 50% OFF up to ₹300!',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 14,
-                          ),
-                        ),
-                        SizedBox(height: 2),
-                        Text(
-                          'Auto-applied on your highest priced item, capped at ₹300.',
-                          style: TextStyle(
-                            color: Color(0xFFDCFCE7),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
           if (_error != null)
             Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -1611,7 +1548,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
                 // ── Delivery ─────────────────────────────────────────────
                 _PriceRow(
-                  label: 'Delivery & Handling',
+                  label: 'Delivery Charges',
                   value: _deliveryFee == 0
                       ? 'FREE'
                       : '₹${_deliveryFee.toStringAsFixed(0)}',
@@ -1624,8 +1561,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   padding: const EdgeInsets.only(left: 12),
                   child: _PriceRow(
                     label: subtotal >= _freeDeliveryThreshold
-                        ? '↳ Free over ₹1299 (distance rule applied)'
-                        : '↳ ₹39 below ₹1299 (+ ₹2/km over 18 km)',
+                        ? '↳ Free over ₹1299 (extra ₹2/km only beyond 18 km)'
+                        : '↳ Free up to 18 km, then ₹39 + ₹2/km beyond 18 km',
                     value: '',
                     labelStyle: const TextStyle(
                       fontSize: 12,

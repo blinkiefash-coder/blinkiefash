@@ -95,10 +95,12 @@ async function calculateBundleDiscount(items, subtotal, client = pool) {
 
 // ── Delivery fee rules (flat policy) ─────────────────────────────────────────
 function calcDeliveryFee(subtotal, distanceKm) {
-  const baseFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
-  if (distanceKm == null || distanceKm <= FREE_DELIVERY_DISTANCE_KM) {
-    return baseFee;
+  if (distanceKm != null && distanceKm <= FREE_DELIVERY_DISTANCE_KM) {
+    return 0;
   }
+
+  const baseFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
+  if (distanceKm == null) return baseFee;
 
   const extraKm = Math.ceil(distanceKm - FREE_DELIVERY_DISTANCE_KM);
   return baseFee + (extraKm * EXTRA_DELIVERY_PER_KM);
@@ -315,7 +317,6 @@ router.post("/orders", async (req, res) => {
     isTryOrder,
     useReferralReward,
     useClothingReward,
-    useFirstOrderDiscount,
     manualOfferType,
     manualOfferDiscount,
   } = req.body;
@@ -387,19 +388,7 @@ router.post("/orders", async (req, res) => {
     const bundleDiscount = await calculateBundleDiscount(items, itemsSubtotal, client);
     const subtotalAfterBundle = itemsSubtotal - bundleDiscount;
 
-    // ── First Order Discount: 50% off highest priced item ───
-    let firstOrderDiscount = 0;
-    if (useFirstOrderDiscount) {
-      // Verify user truly has no prior non-cancelled orders
-      const { rows: priorOrders } = await client.query(
-        `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
-        [userId]
-      );
-      if (priorOrders[0].cnt === 0 && items.length > 0) {
-        const highestPrice = Math.max(...items.map(i => parseFloat(i.price) || 0));
-        firstOrderDiscount = Math.round(highestPrice * 0.5 * 100) / 100;
-      }
-    }
+    const firstOrderDiscount = 0;
 
     const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
 
@@ -408,7 +397,6 @@ router.post("/orders", async (req, res) => {
     const selectedOfferCount = [
       useReferralReward,
       useClothingReward,
-      useFirstOrderDiscount,
       hasManualOffer,
     ]
       .filter(Boolean).length;
