@@ -10,7 +10,9 @@ import '../firebase_options.dart';
 import 'api_client.dart';
 import 'user_session.dart';
 
-const _orderChannelId = 'blinkiefash_orders';
+// v2 channel forces new channel registration on existing devices so that
+// sound/vibration settings take effect even if v1 was created without them.
+const _orderChannelId = 'blinkiefash_orders_v2';
 const _orderChannelName = 'Order updates';
 const _orderChannelDescription =
     'Notifications about your order status — placed, out for delivery, delivered, etc.';
@@ -44,6 +46,8 @@ Future<void> _configureLocalNotifications(
       _orderChannelName,
       description: _orderChannelDescription,
       importance: Importance.high,
+      playSound: true,
+      enableVibration: true,
     ),
   );
   await android?.createNotificationChannel(
@@ -65,13 +69,11 @@ Future<void> _configureLocalNotifications(
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
-  // Background vendor notifications are now delivered by the OS using the
-  // vendor-specific FCM notification channel, which is more reliable while
-  // the phone is asleep or the app process is not active.
-  if (message.notification != null ||
-      message.data['type'] != 'vendor_new_order') {
-    return;
-  }
+  // Vendor new-order messages are sent data-only (no notification block)
+  // so that this handler always runs and can play alarm sound reliably
+  // even while the phone is asleep. All other message types are handled
+  // by the OS notification layer, so we skip them here.
+  if (message.data['type'] != 'vendor_new_order') return;
 
   final local = FlutterLocalNotificationsPlugin();
   await _configureLocalNotifications(local);
@@ -132,6 +134,8 @@ class NotificationService {
         _orderChannelName,
         description: _orderChannelDescription,
         importance: Importance.high,
+        playSound: true,
+        enableVibration: true,
       );
 
   static const AndroidNotificationChannel _vendorOrderChannel =

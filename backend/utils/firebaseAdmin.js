@@ -61,7 +61,7 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
                 tag: `vendor-order-${String(data?.orderId || '')}`,
               }
             : {
-                channelId: 'blinkiefash_orders',
+                channelId: 'blinkiefash_orders_v2',
                 priority: 'max',
                 sound: 'default',
               },
@@ -80,7 +80,10 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
                 },
         },
       },
-      notification: { title, body },
+      // Vendor new-order messages are data-only so the app's background
+      // handler can show them with full alarm sound. Customer messages keep
+      // the notification block so the OS shows them when app is killed.
+      ...(isVendorNewOrder ? {} : { notification: { title, body } }),
     };
 
     await admin.messaging().send(payload);
@@ -140,7 +143,6 @@ export async function notifyVendorOfNewOrder(pool, orderId) {
        JOIN vendors v ON v.id = p.vendor_id
        JOIN users u ON u.id = v.user_id
        WHERE o.id = $1
-         AND v.dark_store_id = o.dark_store_id
          AND u.fcm_token IS NOT NULL
          AND u.fcm_token != ''`,
       [orderId]
