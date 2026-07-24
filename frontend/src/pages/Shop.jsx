@@ -595,7 +595,7 @@ export default function Shop() {
 
                 return (
                   <div
-                    key={p.id}
+                    key={`${p.id}-${p.variant_id || ''}-${p.color || ''}-${p.image || ''}`}
                     className="shop-product-card"
                     onClick={() => navigate(`/product/${p.id}`)}
                     style={{ cursor: "pointer" }}
