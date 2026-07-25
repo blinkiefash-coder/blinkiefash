@@ -754,46 +754,152 @@ class _HomeScreenState extends State<HomeScreen>
       elevation: 0,
       surfaceTintColor: Colors.white,
       titleSpacing: 0,
-      toolbarHeight: 60,
+      centerTitle: true,
+      toolbarHeight: 78,
+      leadingWidth: 150,
       leading: Padding(
-        padding: const EdgeInsets.only(left: 12),
-        child: Builder(
-          builder: (ctx) => IconButton(
-            icon: const Icon(Icons.menu_rounded, color: Color(0xFF0F172A)),
-            onPressed: () => Scaffold.of(ctx).openDrawer(),
-          ),
+        padding: const EdgeInsets.only(left: 10),
+        child: Row(
+          children: [
+            Builder(
+              builder: (ctx) => IconButton(
+                icon: const Icon(Icons.menu_rounded, color: Color(0xFF0F172A)),
+                onPressed: () => Scaffold.of(ctx).openDrawer(),
+              ),
+            ),
+            Expanded(
+              child: GestureDetector(
+                onTap: _openLocationPicker,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Delivering to',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_outlined,
+                          size: 16,
+                          color: _green,
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            _currentLocation,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF111827),
+                            ),
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 16,
+                          color: Color(0xFF111827),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      title: Row(
+      title: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Image.asset('assets/images/logo.png', width: 32, height: 32),
-          const SizedBox(width: 6),
-          Flexible(
-            child: RichText(
-              overflow: TextOverflow.ellipsis,
-              text: const TextSpan(
-                style: TextStyle(
-                  fontFamily: 'Montserrat',
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  letterSpacing: 0,
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Image.asset('assets/images/logo.png', width: 28, height: 28),
+              const SizedBox(width: 6),
+              RichText(
+                overflow: TextOverflow.ellipsis,
+                text: const TextSpan(
+                  style: TextStyle(
+                    fontFamily: 'Montserrat',
+                    fontWeight: FontWeight.w900,
+                    fontSize: 19,
+                    letterSpacing: -0.4,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: 'BLINKIE',
+                      style: TextStyle(color: Color(0xFF0F172A)),
+                    ),
+                    TextSpan(
+                      text: 'FASH',
+                      style: TextStyle(color: _green),
+                    ),
+                  ],
                 ),
-                children: [
-                  TextSpan(
-                    text: 'BLINKIE',
-                    style: TextStyle(color: Color(0xFF0F172A)),
-                  ),
-                  TextSpan(
-                    text: 'FASH',
-                    style: TextStyle(color: _green),
-                  ),
-                ],
               ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          const Text(
+            'FASHION IN 60 MINUTES',
+            style: TextStyle(
+              fontSize: 8.5,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.8,
+              color: Color(0xFF111827),
             ),
           ),
         ],
       ),
       actions: [
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(
+                Icons.notifications_none_rounded,
+                color: Color(0xFF374151),
+              ),
+              onPressed: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Notifications coming soon')),
+                );
+              },
+            ),
+            Positioned(
+              right: 7,
+              top: 8,
+              child: Container(
+                width: 15,
+                height: 15,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEF4444),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    '3',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
         IconButton(
           icon: const Icon(
             Icons.favorite_border_rounded,
@@ -842,11 +948,18 @@ class _HomeScreenState extends State<HomeScreen>
             ],
           ),
         ),
-        const SizedBox(width: 4),
+        IconButton(
+          icon: const Icon(
+            Icons.person_outline_rounded,
+            color: Color(0xFF374151),
+          ),
+          onPressed: () => setState(() => _tab = 4),
+        ),
+        const SizedBox(width: 6),
       ],
       bottom: const PreferredSize(
-        preferredSize: Size.fromHeight(52),
-        child: AnimatedSearchBar(),
+        preferredSize: Size.fromHeight(64),
+        child: AnimatedSearchBar(bottomPadding: 12),
       ),
     );
   }
@@ -864,97 +977,30 @@ class _HomeScreenState extends State<HomeScreen>
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          // ── Premium dark header strip ──────────────────────────────
-          Container(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF052E16), Color(0xFF0F172A)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Hey ${UserSession.instance.name?.split(' ').first ?? 'there'} 👋',
-                        style: const TextStyle(
-                          color: Color(0xFF4ADE80),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      const Text(
-                        'What are you shopping for today?',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF16A34A),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.electric_bolt_rounded,
-                        color: Colors.white,
-                        size: 13,
-                      ),
-                      SizedBox(width: 4),
-                      Text(
-                        '60 MIN',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          _locationBar(),
-          _promoBannerStrip(),
-          _trendingTagsRow(),
           const StoreClosedBanner(),
           if (_outOfServiceArea) ...[
             _serviceAreaGate(),
           ] else ...[
             _heroBanner(),
             _sectionHeader(
-              'EXPLORE',
+              'SHOP BY CATEGORY',
               actionLabel: 'View All',
               onAction: () => setState(() => _tab = 1),
             ),
             _exploreCategories(),
-            _pumaStoreSection(),
+            _featuresRow(),
+            _promoBannerStrip(),
             _sectionHeader(
-              'TRENDING NOW',
+              'DEALS OF THE DAY',
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(builder: (_) => const AllProductsScreen()),
               ),
             ),
             _products.isNotEmpty ? _trendingHorizontal() : _stockOutBanner(),
+            _trendingTagsRow(),
+            _lightBannerStrip(),
+            _pumaStoreSection(),
             _sectionHeader(
               'UNDER ₹999',
               actionLabel: 'View All',
@@ -976,7 +1022,6 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
-            _lightBannerStrip(),
             _sectionHeader(
               'TOP BRANDS',
               actionLabel: 'View All',
@@ -985,9 +1030,8 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             _topBrands(),
-            _sectionHeader('SHOP BY CATEGORY'),
+            _sectionHeader('MORE TO EXPLORE'),
             _shopByCategorySection(),
-            _featuresRow(),
             _newsletterStrip(),
             _downloadBanner(),
             const SizedBox(height: 24),
@@ -1410,106 +1454,11 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  Widget _locationBar() {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A000000),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: GestureDetector(
-              onTap: _openLocationPicker,
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    color: _green,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 6),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Deliver in 60 mins to',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        Row(
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _currentLocation,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                            ),
-                            const Icon(
-                              Icons.keyboard_arrow_down_rounded,
-                              size: 18,
-                              color: _green,
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDCFCE7),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFFBBF7D0)),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.timer_outlined, color: _green, size: 14),
-                SizedBox(width: 4),
-                Text(
-                  '60 MIN DELIVERY',
-                  style: TextStyle(
-                    color: _green,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Hero Banner Slider ────────────────────────────────────────────────────
   Widget _heroBanner() {
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      height: 180,
+      margin: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+      height: 210,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: const [
@@ -1602,7 +1551,6 @@ class _HomeScreenState extends State<HomeScreen>
               },
             ),
           ),
-          // Dot indicators
           Positioned(
             bottom: 10,
             left: 0,
@@ -1943,38 +1891,39 @@ class _HomeScreenState extends State<HomeScreen>
     const items = [
       {
         'icon': Icons.electric_bolt_rounded,
-        'label': '60 MIN\nDELIVERY',
+        'title': '60 MIN',
+        'subtitle': 'DELIVERY',
         'color': Color(0xFF16A34A),
       },
       {
-        'icon': Icons.checkroom_rounded,
-        'label': 'TRENDY\nFASHION',
-        'color': Color(0xFF6366F1),
-      },
-      {
-        'icon': Icons.home_work_rounded,
-        'label': 'TRY & BUY\nAT HOME',
-        'color': Color(0xFFF59E0B),
-      },
-      {
-        'icon': Icons.replay_rounded,
-        'label': 'EASY\nRETURNS',
+        'icon': Icons.shopping_bag_outlined,
+        'title': 'TRY BEFORE',
+        'subtitle': 'YOU BUY',
         'color': Color(0xFFEC4899),
+      },
+      {
+        'icon': Icons.verified_user_outlined,
+        'title': 'EASY',
+        'subtitle': 'RETURNS',
+        'color': Color(0xFF2563EB),
+      },
+      {
+        'icon': Icons.verified_outlined,
+        'title': '100%',
+        'subtitle': 'AUTHENTIC',
+        'color': Color(0xFF7C3AED),
       },
     ];
     return Container(
-      margin: const EdgeInsets.fromLTRB(12, 14, 12, 0),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 2),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0F172A), Color(0xFF1E293B)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x30000000),
+            color: Color(0x12000000),
             blurRadius: 12,
             offset: Offset(0, 4),
           ),
@@ -2002,14 +1951,24 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      f['label']! as String,
+                      f['title']! as String,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                        height: 1.3,
-                        letterSpacing: 0.3,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0F172A),
+                        height: 1.25,
+                      ),
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      f['subtitle']! as String,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                        height: 1.2,
                       ),
                     ),
                   ],
@@ -2625,10 +2584,10 @@ class _HomeScreenState extends State<HomeScreen>
     final items = <Map<String, dynamic>>[...cats];
 
     return SizedBox(
-      height: 105,
+      height: 130,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: items.length,
         itemBuilder: (_, i) {
           final item = items[i];
@@ -2667,30 +2626,31 @@ class _HomeScreenState extends State<HomeScreen>
               }
             },
             child: Container(
-              width: 72,
-              margin: const EdgeInsets.only(right: 10),
+              width: 92,
+              margin: const EdgeInsets.only(right: 12),
               child: Column(
                 children: [
                   Container(
-                    width: 64,
-                    height: 64,
+                    width: 86,
+                    height: 86,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [Color(0xFFDCFCE7), Color(0xFFBBF7D0)],
+                        colors: [Color(0xFFF8FAFC), Color(0xFFE2E8F0)],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFF1F5F9)),
                       boxShadow: const [
                         BoxShadow(
                           color: Color(0x14000000),
-                          blurRadius: 6,
-                          offset: Offset(0, 2),
+                          blurRadius: 10,
+                          offset: Offset(0, 4),
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(19),
+                      borderRadius: BorderRadius.circular(21),
                       child: localImg != null
                           ? Image.asset(localImg, fit: BoxFit.cover)
                           : netImg != null
@@ -2709,11 +2669,11 @@ class _HomeScreenState extends State<HomeScreen>
                   Text(
                     item['name']?.toString() ?? '',
                     textAlign: TextAlign.center,
-                    maxLines: 2,
+                    maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
                       color: Color(0xFF0F172A),
                       height: 1.2,
                     ),

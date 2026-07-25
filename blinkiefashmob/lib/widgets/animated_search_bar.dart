@@ -14,7 +14,7 @@ class AnimatedSearchBar extends StatefulWidget {
 
 class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
   static const _searchHints = [
-    'Search Kurta Sets…',
+    'Search "Kurta Sets, Puma Shoes, Bags & more"',
     'Search Skirts & Dresses…',
     'Search Men\'s T-Shirts…',
     'Search Ethnic Wear…',
@@ -54,17 +54,17 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
         ),
       ),
       child: Container(
-        margin: EdgeInsets.fromLTRB(12, 0, 12, widget.bottomPadding),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        margin: EdgeInsets.fromLTRB(16, 6, 16, widget.bottomPadding),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(18),
           border: Border.all(color: const Color(0xFFE5E7EB)),
           boxShadow: const [
             BoxShadow(
               color: Color(0x08000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
+              blurRadius: 12,
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -97,7 +97,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                   _searchHints[_hintIndex],
                   key: ValueKey(_hintIndex),
                   style: const TextStyle(
-                    fontSize: 13.5,
+                    fontSize: 15,
                     color: Color(0xFFADB5BD),
                     fontWeight: FontWeight.w400,
                   ),
