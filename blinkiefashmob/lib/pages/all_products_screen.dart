@@ -859,6 +859,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     _selectedCategoryName = name;
                     _selectedBrandId = null;
                     _selectedBrandName = null;
+                    _searchCtrl.clear();
                   });
                   _loadProducts(reset: true);
                 },

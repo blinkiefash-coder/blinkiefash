@@ -54,8 +54,8 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
         ),
       ),
       child: Container(
-        margin: EdgeInsets.fromLTRB(16, 6, 16, widget.bottomPadding),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        margin: EdgeInsets.fromLTRB(16, 4, 16, widget.bottomPadding),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
@@ -73,9 +73,9 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
             const Icon(
               Icons.search_rounded,
               color: Color(0xFF9CA3AF),
-              size: 20,
+              size: 18,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             // Animated rotating hint text
             Expanded(
               child: AnimatedSwitcher(
@@ -97,7 +97,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                   _searchHints[_hintIndex],
                   key: ValueKey(_hintIndex),
                   style: const TextStyle(
-                    fontSize: 15,
+                    fontSize: 13,
                     color: Color(0xFFADB5BD),
                     fontWeight: FontWeight.w400,
                   ),
@@ -123,11 +123,11 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                 child: const Icon(
                   Icons.camera_alt_rounded,
                   color: Color(0xFF6B7280),
-                  size: 22,
+                  size: 19,
                 ),
               ),
             ),
-            Container(width: 1, height: 18, color: const Color(0xFFE5E7EB)),
+            Container(width: 1, height: 14, color: const Color(0xFFE5E7EB)),
             // Mic / voice search icon
             GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -144,7 +144,7 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                 child: const Icon(
                   Icons.mic_none_rounded,
                   color: Color(0xFF6B7280),
-                  size: 22,
+                  size: 19,
                 ),
               ),
             ),

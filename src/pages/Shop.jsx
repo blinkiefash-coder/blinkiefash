@@ -698,7 +698,7 @@ export default function Shop() {
                 <div className="footer-col">
                   <h4>Policies</h4>
                   <span>Terms & Conditions</span>
-                  <span>Privacy Policy</span>
+                  <span onClick={() => navigate("/privacy-policy")} style={{ cursor: "pointer" }}>Privacy Policy</span>
                   <span>Cancellation Policy</span>
                   <span>E-Waste Policy</span>
                 </div>

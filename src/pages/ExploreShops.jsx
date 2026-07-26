@@ -872,7 +872,7 @@ function ExploreShops() {
           <div className="explore-footer-col">
             <h3>POLICIES</h3>
             <ul>
-              <li>Privacy Policy</li>
+              <li onClick={() => navigate("/privacy-policy")} style={{ cursor: "pointer" }}>Privacy Policy</li>
               <li>Terms of Service</li>
               <li>Cancellation Policy</li>
               <li>EPR Compliance</li>
