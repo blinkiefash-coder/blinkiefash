@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="info-page policies-page">
-      <header className="info-header" onClick={() => navigate("/home")} style={{ cursor: "pointer" }}>
+      <header className="info-header" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
         <img src={logo} alt="Blinkiefash" />
         <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
       </header>
@@ -63,7 +63,7 @@ export default function PrivacyPolicy() {
 
         <section className="info-banner info-commitment">
           <p><strong>Questions?</strong> Email us anytime at <a href="mailto:support@blinkiefash.in" style={{ color: "#fff", textDecoration: "underline" }}>support@blinkiefash.in</a></p>
-          <button className="info-chat-btn" type="button" onClick={() => navigate("/home")}>Back to Home</button>
+          <button className="info-chat-btn" type="button" onClick={() => navigate("/")}>Back to Home</button>
         </section>
       </main>
     </div>
