@@ -7,7 +7,7 @@ export default function PrivacyPolicy() {
 
   return (
     <div className="info-page policies-page">
-      <header className="info-header" onClick={() => navigate("/home")} style={{ cursor: "pointer" }}>
+      <header className="info-header" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
         <img src={logo} alt="Blinkiefash" />
         <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
       </header>
@@ -17,249 +17,249 @@ export default function PrivacyPolicy() {
           <div className="info-hero-left">
             <h2 className="info-page-title">PRIVACY POLICY</h2>
             <h3 className="info-page-subtitle">Your data. Your rights. Our responsibility.</h3>
-            <p>
-              Effective Date: 7 June 2026 &nbsp;·&nbsp; Last Updated: 7 June 2026
-            </p>
+            <p>Effective Date: 7 June 2026 &nbsp;·&nbsp; Last Updated: 26 July 2026</p>
           </div>
           <div className="info-hero-visual info-policy-visual" aria-hidden="true" />
         </section>
 
         <section className="info-grid" style={{ gridTemplateColumns: "1fr" }}>
 
+          {/* 1 */}
           <article className="info-card info-card-wide">
             <h5>1. Introduction</h5>
             <p>
-              This Privacy Policy explains how <strong>BLINKIEFASH</strong> ("we", "our", "us") collects,
-              uses, stores, shares, and protects information when you use the BlinkieFash mobile
-              application ("App") and the website <strong>blinkiefash.in</strong> ("Website"),
-              collectively referred to as the "Services". By using the Services, you agree to this
-              Privacy Policy. If you do not agree, please do not use the Services.
+              This Privacy Policy explains how <strong>BLINKIEFASH</strong> ("we", "our", "us", "Company"),
+              operated by <strong>BlinkieFash Pvt. Ltd.</strong>, registered in India, collects, uses,
+              stores, shares, and protects personal data when you use the BlinkieFash mobile application
+              ("App") and the website <strong>blinkiefash.in</strong> ("Website"), collectively referred
+              to as the "Services".
             </p>
             <p>
-              BlinkieFash is operated from India and complies with the Information Technology Act,
-              2000, the Information Technology (Reasonable Security Practices and Procedures and
-              Sensitive Personal Data or Information) Rules, 2011, and the Digital Personal Data
-              Protection Act, 2023 (DPDP Act).
+              By accessing or using our Services you confirm that you have read, understood, and agree to
+              this Privacy Policy. If you do not agree, please discontinue use of the Services immediately.
+              This Policy is compliant with the <strong>Digital Personal Data Protection Act, 2023 (DPDPA)</strong>,
+              India's Information Technology Act, 2000, and applicable rules thereunder.
             </p>
           </article>
 
+          {/* 2 */}
           <article className="info-card info-card-wide">
             <h5>2. Information We Collect</h5>
+
             <p className="sub">A. Information You Provide Directly</p>
             <ul>
-              <li><strong>Account Data:</strong> name, email address, mobile number, password (hashed), date of birth, gender (optional).</li>
-              <li><strong>Profile Data:</strong> profile photo (optional), saved addresses, preferred sizes.</li>
-              <li><strong>Order Data:</strong> products purchased, delivery address, billing details, order history, cancellations and returns.</li>
-              <li><strong>Payment Data:</strong> processed by trusted payment gateways (Razorpay / UPI / Card networks). We do <em>not</em> store full card numbers, CVV, or UPI PINs on our servers.</li>
-              <li><strong>Communications:</strong> messages, ratings, reviews, photos uploaded with reviews, customer-support requests.</li>
-              <li><strong>Vendor Data (sellers only):</strong> business name, GSTIN, PAN, bank account, store address, KYC documents.</li>
+              <li><strong>Account / Identity Data:</strong> full name, email address, mobile number, password (stored as a cryptographic hash), date of birth, gender (optional).</li>
+              <li><strong>Profile Data:</strong> profile photo (optional), clothing / shoe size preferences.</li>
+              <li><strong>Address Data:</strong> delivery addresses including flat / house number, street, city, state, PIN code, and landmark.</li>
+              <li><strong>Order &amp; Transaction Data:</strong> items ordered, quantities, prices, discount codes applied, payment method (card type / UPI ID — we do <em>not</em> store full card numbers), transaction reference IDs, order status, returns and refunds history.</li>
+              <li><strong>Communications:</strong> messages sent to our support team via chat, email, or phone; reviews and ratings you submit; referral codes you generate or redeem.</li>
             </ul>
 
-            <p className="sub" style={{ marginTop: 16 }}>B. Information Collected Automatically</p>
+            <p className="sub">B. Information Collected Automatically</p>
             <ul>
-              <li><strong>Device Information:</strong> device model, OS version, unique device identifiers, app version, language, time zone, crash logs.</li>
-              <li><strong>Location Data:</strong> approximate (city/pincode) and precise (GPS) location — only when you grant the permission — to show nearby dark-store inventory and estimated delivery times.</li>
-              <li><strong>Usage Data:</strong> pages viewed, products clicked, searches performed, session duration, referral source.</li>
-              <li><strong>Notification Tokens:</strong> Firebase Cloud Messaging (FCM) token used to deliver push notifications.</li>
-              <li><strong>Cookies & Local Storage:</strong> on the Website to keep you logged in and remember your cart.</li>
+              <li><strong>Device &amp; Technical Data:</strong> device model, operating system version, unique device identifiers, IP address, browser type and version, time zone setting.</li>
+              <li><strong>Usage Data:</strong> pages / screens viewed, search queries, products clicked, time spent, cart events, checkout funnel data, crash reports.</li>
+              <li><strong>Location Data:</strong> precise GPS location (with your permission) to identify the nearest store and estimate delivery time; coarse location derived from IP address as a fallback.</li>
+              <li><strong>Cookies &amp; Similar Technologies:</strong> see Section 6 below.</li>
             </ul>
 
-            <p className="sub" style={{ marginTop: 16 }}>C. Information from Third Parties</p>
+            <p className="sub">C. Information from Third Parties</p>
             <ul>
-              <li><strong>Google Sign-In / Firebase Auth:</strong> if you sign in with Google, we receive your name, email, and profile picture from your Google account.</li>
-              <li><strong>Logistics Partners:</strong> delivery status updates from our courier partners.</li>
+              <li>If you sign in via <strong>Google / Firebase Authentication</strong>, we receive your name, email address, and profile picture from Google, subject to Google's privacy policy.</li>
+              <li>Payment processors (Razorpay / equivalent) may share transaction status and risk signals with us; they retain payment instrument details under their own data protection obligations.</li>
+              <li>Delivery partners share delivery status updates including location of our delivery executive while your order is in transit.</li>
             </ul>
           </article>
 
+          {/* 3 */}
           <article className="info-card info-card-wide">
-            <h5>3. Why We Collect This Information (Purpose)</h5>
+            <h5>3. Legal Basis &amp; Consent (DPDPA 2023)</h5>
+            <p>Under the Digital Personal Data Protection Act, 2023 we process your personal data on the following grounds:</p>
             <ul>
-              <li>Create, secure, and authenticate your account.</li>
-              <li>Process and deliver your orders, including coordinating with vendors and dark-stores.</li>
-              <li>Show you nearby inventory, delivery estimates, and personalised recommendations.</li>
-              <li>Send transactional messages (order confirmation, OTP, delivery, returns) via SMS / email / push notifications.</li>
-              <li>Process payments and prevent fraud.</li>
-              <li>Provide customer support and respond to your requests.</li>
-              <li>Improve our Services through analytics and bug-fixes.</li>
-              <li>Comply with legal, tax, accounting, and regulatory obligations.</li>
-              <li>With your separate consent, send you promotional offers (you can opt out anytime).</li>
+              <li><strong>Consent:</strong> You give explicit, informed consent at account creation. You may withdraw consent at any time (see Section 9).</li>
+              <li><strong>Contractual Necessity:</strong> Processing required to fulfil an order you have placed, process payment, arrange delivery, and manage returns.</li>
+              <li><strong>Legitimate Uses:</strong> Fraud prevention, security monitoring, enforcing our Terms of Service, and defending legal claims.</li>
+              <li><strong>Legal Obligation:</strong> Compliance with applicable Indian law, court orders, or directions from regulators.</li>
             </ul>
+            <p>We will never process <em>sensitive personal data</em> (financial, health, biometric, or religious data) without explicit, separate consent.</p>
           </article>
 
+          {/* 4 */}
           <article className="info-card info-card-wide">
-            <h5>4. App Permissions We Request (Android)</h5>
-            <p>
-              The Android app requests only the permissions strictly required for the features you use.
-              You can revoke any permission at any time from your device's Settings &gt; Apps &gt;
-              BlinkieFash &gt; Permissions.
-            </p>
+            <h5>4. How We Use Your Information</h5>
             <ul>
-              <li><strong>Location (ACCESS_FINE_LOCATION / ACCESS_COARSE_LOCATION):</strong> to detect your delivery area, show nearby dark-stores, and estimated 60-minute delivery eligibility. Used only while the app is in the foreground. We do <em>not</em> use background location.</li>
-              <li><strong>Camera (via image_picker):</strong> only when you choose to take a photo for a product review or profile picture.</li>
-              <li><strong>Photos / Storage (READ_MEDIA_IMAGES):</strong> only when you select an image from your gallery for a review or profile picture.</li>
-              <li><strong>Notifications (POST_NOTIFICATIONS):</strong> to deliver order updates and offers you have subscribed to.</li>
-              <li><strong>Internet:</strong> to communicate with our servers.</li>
+              <li>Create and manage your account and profile.</li>
+              <li>Process orders, payments, and coordinate delivery.</li>
+              <li>Provide real-time order tracking and delivery status notifications.</li>
+              <li>Offer customer support and resolve disputes.</li>
+              <li>Personalise product recommendations, offers, and the home feed.</li>
+              <li>Send transactional communications (order confirmation, shipping updates, OTPs) via SMS, email, and push notification.</li>
+              <li>Send promotional communications — you may opt out at any time via account settings or by replying STOP to SMS.</li>
+              <li>Detect and prevent fraud, misuse, and security incidents.</li>
+              <li>Conduct analytics to improve app performance, catalogue, and user experience.</li>
+              <li>Comply with legal and regulatory obligations.</li>
+              <li>Administer our Refer &amp; Earn, Spin &amp; Win, and Try &amp; Buy programmes.</li>
             </ul>
-            <p className="info-note">
-              We never access your contacts, SMS, call logs, microphone, or files outside the images
-              you explicitly select.
-            </p>
           </article>
 
+          {/* 5 */}
           <article className="info-card info-card-wide">
-            <h5>5. How We Share Your Information</h5>
-            <p>We do <strong>not sell</strong> your personal data. We share it only as described below:</p>
+            <h5>5. Sharing of Your Information</h5>
+            <p>We do <strong>not</strong> sell your personal data. We share data only as described below:</p>
             <ul>
-              <li><strong>Vendors and Dark-Stores:</strong> name, delivery address, contact number, and order details — only to fulfil your order.</li>
-              <li><strong>Delivery Partners:</strong> name, address, phone number for last-mile delivery.</li>
-              <li><strong>Payment Processors:</strong> Razorpay and other RBI-licensed payment aggregators to process transactions.</li>
-              <li><strong>Service Providers:</strong> Google Firebase (authentication, push notifications, crash reporting), Google Maps Platform (geocoding), cloud hosting (Render, Neon PostgreSQL, Cloudflare R2 / image CDN), email/SMS gateways.</li>
-              <li><strong>Legal &amp; Safety:</strong> when required by law, court order, or to protect our rights, users, or the public.</li>
-              <li><strong>Business Transfers:</strong> in case of merger, acquisition, or asset sale, with prior notice to you.</li>
+              <li><strong>Vendor Partners:</strong> We share your name, delivery address, and order details with the vendor fulfilling your order. Vendors are contractually bound to use this data only for order fulfilment.</li>
+              <li><strong>Delivery Partners:</strong> Your name, phone number, and delivery address are shared with the delivery executive assigned to your order.</li>
+              <li><strong>Payment Processors:</strong> Razorpay (or equivalent PCI-DSS compliant gateway) processes payments; we pass the minimum data required.</li>
+              <li><strong>Technology Service Providers:</strong> Firebase (Google) for authentication and cloud messaging; Cloudinary for image hosting; mapping / geocoding APIs for location. All are under data processing agreements.</li>
+              <li><strong>Analytics Providers:</strong> Aggregated, anonymised usage data may be shared with analytics tools (e.g., Google Analytics). This data cannot identify you personally.</li>
+              <li><strong>Legal &amp; Regulatory Authorities:</strong> When required by law, court order, or government directive, we will disclose personal data to the extent legally required.</li>
+              <li><strong>Business Transfers:</strong> In the event of a merger, acquisition, or asset sale, personal data may be transferred; we will provide notice before any such transfer.</li>
             </ul>
-            <p>
-              All third parties are bound by contractual obligations to handle your data securely and
-              only for the purposes we authorise.
-            </p>
           </article>
 
+          {/* 6 */}
           <article className="info-card info-card-wide">
-            <h5>6. Third-Party Services Used by the App</h5>
+            <h5>6. Cookies &amp; Tracking Technologies</h5>
+            <p>Our Website uses cookies and similar technologies to:</p>
             <ul>
-              <li>Google Firebase Authentication — <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Google Firebase Cloud Messaging — <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Google Sign-In — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Google Maps / Geocoding — <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Razorpay (payments) — <a href="https://razorpay.com/privacy/" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Render (hosting) — <a href="https://render.com/privacy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>Neon (PostgreSQL database) — <a href="https://neon.tech/privacy-policy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
-              <li>OpenStreetMap (map tiles) — <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener noreferrer">Privacy</a></li>
+              <li><strong>Essential Cookies:</strong> Keep you logged in, maintain your cart session, and secure the site. These cannot be disabled.</li>
+              <li><strong>Analytics Cookies:</strong> Understand how visitors use the site (page views, click paths). You may opt out via browser settings.</li>
+              <li><strong>Marketing Cookies:</strong> Display relevant ads and measure campaign performance. You may opt out via your browser or device ad-settings.</li>
             </ul>
+            <p>The mobile App does not use browser cookies but may use device identifiers (IDFA / GAID) for analytics, subject to your device's ad-tracking preferences.</p>
           </article>
 
+          {/* 7 */}
           <article className="info-card info-card-wide">
             <h5>7. Data Retention</h5>
             <ul>
-              <li><strong>Active accounts:</strong> we retain your data while your account is active.</li>
-              <li><strong>Order &amp; tax records:</strong> kept for up to 8 years to comply with the Income-Tax Act and GST law.</li>
-              <li><strong>Account deleted by you:</strong> personal identifiers are erased within 30 days, except where retention is required by law (e.g. invoices).</li>
-              <li><strong>Inactive accounts:</strong> we may delete accounts inactive for more than 3 years after notifying you by email.</li>
-              <li><strong>Server logs &amp; crash reports:</strong> automatically deleted after 90 days.</li>
+              <li><strong>Account Data:</strong> Retained for the lifetime of your account and for 3 years after account deletion (for legal compliance).</li>
+              <li><strong>Order &amp; Transaction Data:</strong> Retained for 7 years as required under Indian accounting and tax law.</li>
+              <li><strong>Location Data:</strong> Session-based precise location is not stored beyond order processing. Coarse location logs are retained for up to 90 days.</li>
+              <li><strong>Support Communications:</strong> Retained for 2 years after the ticket is closed.</li>
+              <li><strong>Marketing Data:</strong> Retained until you withdraw consent or opt out.</li>
             </ul>
+            <p>After the applicable retention period, data is securely deleted or irreversibly anonymised.</p>
           </article>
 
+          {/* 8 */}
           <article className="info-card info-card-wide">
-            <h5>8. Your Rights</h5>
-            <p>Subject to applicable law, you have the right to:</p>
+            <h5>8. Data Security</h5>
             <ul>
-              <li><strong>Access</strong> the personal data we hold about you.</li>
-              <li><strong>Correct</strong> inaccurate or outdated data — directly from the app's Profile screen or by emailing us.</li>
-              <li><strong>Delete</strong> your account and personal data (see Section 9).</li>
-              <li><strong>Withdraw consent</strong> for marketing communications at any time.</li>
-              <li><strong>Port</strong> your data — request a downloadable copy.</li>
-              <li><strong>Lodge a grievance</strong> with our Grievance Officer (Section 13) or with the Data Protection Board of India.</li>
+              <li>All data in transit is encrypted using <strong>TLS 1.2 or higher</strong>.</li>
+              <li>Passwords are stored as <strong>bcrypt hashes</strong> — never in plain text.</li>
+              <li>Payment data is processed by PCI-DSS compliant gateways; we do not store card numbers.</li>
+              <li>Access to production databases is restricted to authorised personnel and protected by multi-factor authentication.</li>
+              <li>We conduct periodic security reviews and vulnerability assessments.</li>
+              <li>In the event of a personal data breach that is likely to result in risk to your rights, we will notify you and the Data Protection Board of India as required by the DPDPA.</li>
             </ul>
           </article>
 
-          <article className="info-card info-card-wide" id="account-deletion">
-            <h5>9. Account &amp; Data Deletion</h5>
-            <p>
-              You can delete your BlinkieFash account and the personal data associated with it at any
-              time, using either of the following methods:
-            </p>
-            <ul>
-              <li><strong>From inside the App:</strong> Profile &gt; Settings &gt; Delete My Account &gt; Confirm.</li>
-              <li><strong>By email:</strong> send a request from your registered email to <a href="mailto:support@blinkiefash.in?subject=Account%20Deletion%20Request">support@blinkiefash.in</a> with the subject "Account Deletion Request".</li>
-              <li><strong>Via web form:</strong> visit <a href="/account-deletion">blinkiefash.in/account-deletion</a> and submit the deletion form.</li>
-            </ul>
-            <p>
-              <strong>What gets deleted:</strong> your name, email, phone number, profile photo,
-              addresses, saved cart, wishlist, reviews, push-notification token, and authentication
-              records — within 30 days of verification.
-            </p>
-            <p>
-              <strong>What may be retained:</strong> anonymised order/transaction records required by
-              tax laws (kept for up to 8 years with no personally identifying information linked to
-              you), and any data needed to resolve an open dispute or fraud investigation.
-            </p>
-          </article>
-
+          {/* 9 */}
           <article className="info-card info-card-wide">
-            <h5>10. Data Security</h5>
+            <h5>9. Your Rights (Data Principal Rights — DPDPA 2023)</h5>
+            <p>As a Data Principal under India's DPDPA 2023, you have the following rights:</p>
             <ul>
-              <li>All network traffic between the app/website and our servers is encrypted using HTTPS / TLS.</li>
-              <li>Passwords are stored only as one-way salted hashes (bcrypt).</li>
-              <li>Database access is restricted by IAM, IP allow-listing, and role-based access controls.</li>
-              <li>Payment data is handled by PCI-DSS compliant gateways — we never store card or UPI credentials.</li>
-              <li>Regular security reviews and dependency audits.</li>
+              <li><strong>Right to Access:</strong> Request a summary of the personal data we hold about you and how it is being processed.</li>
+              <li><strong>Right to Correction &amp; Erasure:</strong> Request correction of inaccurate data or erasure of data that is no longer necessary.</li>
+              <li><strong>Right to Withdraw Consent:</strong> Withdraw previously given consent at any time. Withdrawal does not affect the lawfulness of prior processing.</li>
+              <li><strong>Right to Grievance Redressal:</strong> Lodge a complaint with our Grievance Officer (see Section 12) or escalate to the Data Protection Board of India.</li>
+              <li><strong>Right to Nominate:</strong> Nominate another individual to exercise your rights in the event of your death or incapacity.</li>
             </ul>
-            <p className="info-note">
-              No method of transmission over the Internet is 100% secure. We strive to use commercially
-              acceptable means to protect your data but cannot guarantee absolute security.
-            </p>
+            <p>To exercise any of these rights, email <a href="mailto:privacy@blinkiefash.in">privacy@blinkiefash.in</a> with subject "Data Rights Request". We will respond within <strong>30 days</strong>.</p>
           </article>
 
+          {/* 10 */}
+          <article className="info-card info-card-wide">
+            <h5>10. Account &amp; Data Deletion</h5>
+            <p>
+              You may delete your BlinkieFash account at any time from <strong>App → Profile → Settings → Delete Account</strong>,
+              or by emailing <a href="mailto:support@blinkiefash.in">support@blinkiefash.in</a>.
+            </p>
+            <ul>
+              <li>Profile and preferences are deleted within <strong>30 days</strong> of your request.</li>
+              <li>Order, payment, and tax records are retained for 7 years as required by law before permanent deletion.</li>
+              <li>Anonymised, aggregated analytics data may be retained indefinitely as it cannot identify you.</li>
+            </ul>
+          </article>
+
+          {/* 11 */}
           <article className="info-card info-card-wide">
             <h5>11. Children's Privacy</h5>
             <p>
-              BlinkieFash is intended for users aged 18 and above. We do not knowingly collect personal
-              information from children under 18. If you believe a minor has provided us personal data,
-              please contact us and we will promptly delete it.
+              Our Services are not directed at children under 18 years of age. We do not knowingly collect
+              personal data from minors. If you believe a minor has provided us with personal data without
+              parental consent, please contact our Grievance Officer immediately and we will delete it
+              without undue delay.
             </p>
           </article>
 
+          {/* 12 */}
           <article className="info-card info-card-wide">
-            <h5>12. International Data Transfers</h5>
+            <h5>12. Grievance Officer (India — IT Act &amp; DPDPA)</h5>
+            <p>In accordance with the Information Technology Act, 2000 and DPDPA 2023, the details of our Grievance Officer are:</p>
+            <ul>
+              <li><strong>Name:</strong> Satyam Mohanty</li>
+              <li><strong>Designation:</strong> Grievance Officer</li>
+              <li><strong>Company:</strong> BlinkieFash Pvt. Ltd.</li>
+              <li><strong>Email:</strong> <a href="mailto:grievance@blinkiefash.in">grievance@blinkiefash.in</a></li>
+              <li><strong>Address:</strong> Bhubaneswar, Odisha, India</li>
+              <li><strong>Response Time:</strong> Within 30 days of receipt of complaint</li>
+            </ul>
+            <p>If your grievance is not resolved to your satisfaction, you may escalate to the <strong>Data Protection Board of India</strong> once it is constituted under the DPDPA.</p>
+          </article>
+
+          {/* 13 */}
+          <article className="info-card info-card-wide">
+            <h5>13. Third-Party Links</h5>
             <p>
-              Your data is primarily stored on servers located in India and the United States via our
-              cloud providers (Render, Neon, Google Cloud). When data is transferred outside India, we
-              ensure equivalent safeguards through standard contractual clauses or the providers' own
-              certifications.
+              Our Services may contain links to third-party websites or apps (e.g., social media, payment
+              gateways, map services). We are not responsible for the privacy practices of those third
+              parties. We encourage you to read their privacy policies before providing any personal data.
             </p>
           </article>
 
+          {/* 14 */}
           <article className="info-card info-card-wide">
-            <h5>13. Grievance Officer / Contact Us</h5>
+            <h5>14. Cross-Border Data Transfers</h5>
             <p>
-              In accordance with the Information Technology Act, 2000 and rules made thereunder, the
-              name and contact details of the Grievance Officer are provided below:
+              Some of our technology providers (e.g., Google Firebase, Cloudinary) are based outside India.
+              Where personal data is transferred internationally, we ensure appropriate contractual
+              safeguards are in place consistent with applicable Indian law and any rules notified under
+              the DPDPA regarding permitted geographies.
+            </p>
+          </article>
+
+          {/* 15 */}
+          <article className="info-card info-card-wide">
+            <h5>15. Changes to This Privacy Policy</h5>
+            <p>
+              We may update this Privacy Policy from time to time. When we make material changes we will:
             </p>
             <ul>
-              <li><strong>Name:</strong> Grievance Officer, BlinkieFash</li>
-              <li><strong>Email:</strong> <a href="mailto:support@blinkiefash.in">support@blinkiefash.in</a></li>
-              <li><strong>Response time:</strong> we acknowledge within 48 hours and resolve within 30 days.</li>
+              <li>Update the "Last Updated" date at the top of this page.</li>
+              <li>Send an in-app notification and / or email to registered users.</li>
+              <li>Where required by law, seek fresh consent.</li>
             </ul>
-            <p>
-              For all general privacy questions, write to{" "}
-              <a href="mailto:support@blinkiefash.in">support@blinkiefash.in</a>.
-            </p>
+            <p>Continued use of the Services after the effective date of any change constitutes acceptance of the updated policy.</p>
           </article>
 
+          {/* 16 */}
           <article className="info-card info-card-wide">
-            <h5>14. Changes to This Policy</h5>
-            <p>
-              We may update this Privacy Policy from time to time. The "Last Updated" date at the top
-              of this page reflects the latest revision. Material changes will be notified via in-app
-              banner, email, or push notification at least 7 days before they take effect. Continued
-              use of the Services after changes become effective constitutes acceptance of the revised
-              policy.
-            </p>
-          </article>
-
-          <article className="info-card info-card-wide">
-            <h5>15. Consent</h5>
-            <p>
-              By creating an account or using the BlinkieFash Services, you confirm that you have read,
-              understood, and agreed to this Privacy Policy and consent to the collection, use, and
-              disclosure of your personal information as described herein.
-            </p>
+            <h5>16. Contact Us</h5>
+            <ul>
+              <li><strong>General Support:</strong> <a href="mailto:support@blinkiefash.in">support@blinkiefash.in</a></li>
+              <li><strong>Privacy / Data Rights:</strong> <a href="mailto:privacy@blinkiefash.in">privacy@blinkiefash.in</a></li>
+              <li><strong>Grievances:</strong> <a href="mailto:grievance@blinkiefash.in">grievance@blinkiefash.in</a></li>
+              <li><strong>Address:</strong> BlinkieFash Pvt. Ltd., Bhubaneswar, Odisha – 751001, India</li>
+            </ul>
           </article>
 
         </section>
 
         <section className="info-banner info-commitment">
-          <p><strong>Questions?</strong> Email us anytime at <a href="mailto:support@blinkiefash.in" style={{ color: "#fff", textDecoration: "underline" }}>support@blinkiefash.in</a></p>
-          <button className="info-chat-btn" type="button" onClick={() => navigate("/home")}>Back to Home</button>
+          <p><strong>Your privacy matters to us.</strong> For any data-related query email <a href="mailto:privacy@blinkiefash.in" style={{ color: "#fff", textDecoration: "underline" }}>privacy@blinkiefash.in</a></p>
+          <button className="info-chat-btn" type="button" onClick={() => navigate("/")}>Back to Home</button>
         </section>
       </main>
     </div>
