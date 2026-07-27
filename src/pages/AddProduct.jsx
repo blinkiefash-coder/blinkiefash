@@ -47,7 +47,7 @@ export default function AddProduct() {
   });
 
   const [variants, setVariants] = useState([
-    { size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] },
+    { size: "M", color: "Black", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] },
   ]);
 
   const [bundleOffers, setBundleOffers] = useState({
@@ -90,7 +90,7 @@ export default function AddProduct() {
   };
 
   const addVariant = () => setVariants([...variants,
-    { size: "", color: "", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+    { size: "", color: "", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] }]);
 
   const removeVariant = (index) => setVariants(variants.filter((_, i) => i !== index));
 
@@ -146,7 +146,9 @@ export default function AddProduct() {
         variants.map(async (v) => {
           const uploadedImages = await uploadImages(v.imageFiles || []);
           return { size: v.size, color: v.color, mrp: Number(v.mrp || 0),
-            price: Number(v.price || 0), quantity: Number(v.quantity || 0), images: uploadedImages };
+            price: Number(v.price || 0), quantity: Number(v.quantity || 0),
+            barcode: (v.barcode || "").trim() || null,
+            images: uploadedImages };
         })
       );
       const payload = {
@@ -173,7 +175,7 @@ export default function AddProduct() {
       if (!data.success) { alert(`Failed: ${data.message || "Unable to create product"}`); return; }
       alert("Product added successfully!");
       setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", is_try_enabled: true });
-      setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+      setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] }]);
       setBundleOffers({ buy_2_at_999: false, buy_3_at_999: false, buy_4_at_999: false });
       setSelectedParent(""); setSelectedChild("");
       setChildCategories([]); setSubChildCategories([]);
@@ -273,6 +275,25 @@ export default function AddProduct() {
                         onChange={(e) => updateVariant(i, "price", e.target.value)} />
                       <input type="number" min="0" placeholder="Stock Quantity" value={v.quantity}
                         onChange={(e) => updateVariant(i, "quantity", e.target.value)} />
+                    </div>
+                    <div className="barcode-row">
+                      <input
+                        className="barcode-input"
+                        placeholder="Barcode (optional)"
+                        value={v.barcode || ""}
+                        onChange={(e) => updateVariant(i, "barcode", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="barcode-gen-btn"
+                        onClick={() => {
+                          const ts = Date.now().toString(36).toUpperCase();
+                          const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+                          updateVariant(i, "barcode", `BF-${ts}-${rand}`);
+                        }}
+                      >
+                        ⚡ Generate
+                      </button>
                     </div>
                     <div className="variant-image-row">
                       <label className="image-upload-label">

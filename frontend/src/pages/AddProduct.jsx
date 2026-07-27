@@ -3,16 +3,17 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import VendorLayout from "../components/VendorLayout";
+import { fetchVendorProfile } from "../utils/vendorSession";
 
 export default function AddProduct() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
+  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [childrenByParent, setChildrenByParent] = useState({});
-  const [darkStores, setDarkStores] = useState([]);
 
   const [parentCategories, setParentCategories] = useState([]);
   const [childCategories, setChildCategories] = useState([]);
@@ -42,12 +43,11 @@ export default function AddProduct() {
     short_description: "",
     full_description: "",
     category_id: "",
-    store_id: "",
     is_try_enabled: true,
   });
 
   const [variants, setVariants] = useState([
-    { size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] },
+    { size: "M", color: "Black", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] },
   ]);
 
   const [bundleOffers, setBundleOffers] = useState({
@@ -56,29 +56,23 @@ export default function AddProduct() {
     buy_4_at_999: false,
   });
 
-  // Store preview URLs separately to ensure proper cleanup
-  const [variantPreviewUrls, setVariantPreviewUrls] = useState({});
-
-  // Generate preview URLs whenever imageFiles change
-  useEffect(() => {
-    const newUrls = {};
-    variants.forEach((v, vIdx) => {
-      newUrls[vIdx] = (v.imageFiles || []).map((file) => URL.createObjectURL(file));
-    });
-    setVariantPreviewUrls(newUrls);
-
-    // Cleanup function to revoke old URLs
-    return () => {
-      Object.values(variantPreviewUrls).forEach((urlArray) => {
-        urlArray.forEach((url) => URL.revokeObjectURL(url));
-      });
-    };
-  }, [variants.map((v) => v.imageFiles?.length).join(",")]);
 
   useEffect(() => {
     if (!vendorId) { window.location.href = "/vendor"; return; }
+
+    const loadVendor = async () => {
+      const vendor = await fetchVendorProfile(vendorId);
+      if (vendor?.store_name) {
+        setStoreName(vendor.store_name);
+        localStorage.setItem("store_name", vendor.store_name);
+      }
+      if (vendor?.owner_name) {
+        localStorage.setItem("vendor_name", vendor.owner_name);
+      }
+    };
+
+    loadVendor();
     fetch(`${API_API_BASE_URL}/brands`).then(r => r.json()).then(d => setBrands(d));
-    fetch(`${API_API_BASE_URL}/checkout/darkstores`).then(r => r.json()).then(d => setDarkStores(d.stores || []));
     fetch(`${API_API_BASE_URL}/categories`).then(r => r.json()).then(d => {
       setCategories(d);
       const map = buildChildrenMap(d);
@@ -96,7 +90,7 @@ export default function AddProduct() {
   };
 
   const addVariant = () => setVariants([...variants,
-    { size: "", color: "", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+    { size: "", color: "", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] }]);
 
   const removeVariant = (index) => setVariants(variants.filter((_, i) => i !== index));
 
@@ -152,14 +146,16 @@ export default function AddProduct() {
         variants.map(async (v) => {
           const uploadedImages = await uploadImages(v.imageFiles || []);
           return { size: v.size, color: v.color, mrp: Number(v.mrp || 0),
-            price: Number(v.price || 0), quantity: Number(v.quantity || 0), images: uploadedImages };
+            price: Number(v.price || 0), quantity: Number(v.quantity || 0),
+            barcode: (v.barcode || "").trim() || null,
+            images: uploadedImages };
         })
       );
       const payload = {
         product: { vendor_id: vendorId, category_id: form.category_id, brand: form.brand,
           name: form.name, short_description: form.short_description,
           full_description: form.full_description, is_try_enabled: form.is_try_enabled,
-          store_id: form.store_id || null },
+          store_id: null },
         variants: preparedVariants,
         bundleOffers: Object.entries(bundleOffers)
           .filter(([_, enabled]) => enabled)
@@ -178,8 +174,8 @@ export default function AddProduct() {
       const data = await res.json();
       if (!data.success) { alert(`Failed: ${data.message || "Unable to create product"}`); return; }
       alert("Product added successfully!");
-      setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", store_id: "", is_try_enabled: true });
-      setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", images: [], imageFiles: [] }]);
+      setForm({ brand: "", name: "", short_description: "", full_description: "", category_id: "", is_try_enabled: true });
+      setVariants([{ size: "M", color: "Black", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] }]);
       setBundleOffers({ buy_2_at_999: false, buy_3_at_999: false, buy_4_at_999: false });
       setSelectedParent(""); setSelectedChild("");
       setChildCategories([]); setSubChildCategories([]);
@@ -193,6 +189,7 @@ export default function AddProduct() {
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "products") navigate("/vendor/add-product");
+    if (item.key === "orders") navigate("/vendor/orders");
   };
 
   return (
@@ -203,7 +200,7 @@ export default function AddProduct() {
         </div>
       )}
 
-      <VendorLayout activeKey="products" storeName="Trendy Looks" onMenuClick={handleMenuClick}>
+      <VendorLayout activeKey="products" storeName={storeName} onMenuClick={handleMenuClick}>
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
@@ -258,31 +255,9 @@ export default function AddProduct() {
                 </div>
               </section>
 
-              {/* ── 2. Dark Store & Availability ───────────────────────────── */}
+              {/* ── 2. Variants ──────────────────────────────────────── */}
               <section className="form-section">
-                <h4>2. Dark Store &amp; Availability</h4>
-                <div className="input-grid">
-                  <select value={form.store_id} onChange={(e) => updateForm("store_id", e.target.value)}>
-                    <option value="">Select Dark Store (optional)</option>
-                    {darkStores.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name} — {s.city}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="toggle-row">
-                  <label>
-                    <input type="checkbox" checked={form.is_try_enabled}
-                      onChange={(e) => updateForm("is_try_enabled", e.target.checked)} />
-                    Try and Buy Eligible
-                  </label>
-                </div>
-              </section>
-
-              {/* ── 3. Variants ──────────────────────────────────────── */}
-              <section className="form-section">
-                <h4>3. Variants, Pricing &amp; Inventory</h4>
+                <h4>2. Variants, Pricing &amp; Inventory</h4>
                 {variants.map((v, i) => (
                   <div key={i} className="variant-block">
                     <div className="variant-block-header">
@@ -301,6 +276,25 @@ export default function AddProduct() {
                       <input type="number" min="0" placeholder="Stock Quantity" value={v.quantity}
                         onChange={(e) => updateVariant(i, "quantity", e.target.value)} />
                     </div>
+                    <div className="barcode-row">
+                      <input
+                        className="barcode-input"
+                        placeholder="Barcode (optional)"
+                        value={v.barcode || ""}
+                        onChange={(e) => updateVariant(i, "barcode", e.target.value)}
+                      />
+                      <button
+                        type="button"
+                        className="barcode-gen-btn"
+                        onClick={() => {
+                          const ts = Date.now().toString(36).toUpperCase();
+                          const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+                          updateVariant(i, "barcode", `BF-${ts}-${rand}`);
+                        }}
+                      >
+                        ⚡ Generate
+                      </button>
+                    </div>
                     <div className="variant-image-row">
                       <label className="image-upload-label">
                         <input type="file" multiple accept="image/*"
@@ -311,15 +305,9 @@ export default function AddProduct() {
                     </div>
                     {v.imageFiles?.length > 0 && (
                       <div className="variant-preview-row">
-                        {(variantPreviewUrls[i] || []).map((previewUrl, idx) => (
+                        {v.imageFiles.map((img, idx) => (
                           <div key={`${i}-${idx}`} className="preview-thumb">
-                            <img 
-                              src={previewUrl}
-                              width="70"
-                              height="70"
-                              alt={`preview-${idx}`}
-                              style={{ objectFit: "cover" }}
-                            />
+                            <img src={URL.createObjectURL(img)} height="70" alt="preview" />
                             <button type="button" className="remove-img-btn" onClick={() => removeImageFile(i, idx)}>✕</button>
                             {idx === 0 && <span className="primary-badge">Primary</span>}
                           </div>
@@ -331,9 +319,9 @@ export default function AddProduct() {
                 <button type="button" className="add-variant-btn" onClick={addVariant}>+ Add Another Variant</button>
               </section>
 
-              {/* ── 4. Bundle Pricing Offers (Optional) ────────────────────────────── */}
+              {/* ── 3. Bundle Pricing Offers (Optional) ────────────────────────────── */}
               <section className="form-section">
-                <h4>4. Bundle Pricing Offers (Optional) - Buy More, Save More</h4>
+                <h4>3. Bundle Pricing Offers (Optional) - Buy More, Save More</h4>
                 <p style={{ fontSize: "12px", color: "#666", marginBottom: "12px" }}>
                   Enable special bundle pricing for customers who buy multiple items (e.g., Buy 2 at ₹999, Buy 3 at ₹999)
                 </p>
@@ -362,6 +350,10 @@ export default function AddProduct() {
 
               <div className="summary-line">
                 <strong>Final Category:</strong> {finalCategoryName || "Not selected"}
+              </div>
+
+              <div className="summary-line">
+                <strong>Vendor:</strong> {storeName || "My Store"}
               </div>
 
               <button className="submit-btn" type="submit" disabled={loading}>
