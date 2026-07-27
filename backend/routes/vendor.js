@@ -209,7 +209,7 @@ router.get("/:id/products", async (req, res) => {
        WHERE p.vendor_id::text = ANY($1::text[])
          AND p.is_active = true
        ORDER BY p.created_at DESC`,
-      [ownerIds, linkedStoreId]
+      [ownerIds]
     );
 
     const products = productsResult.rows;
