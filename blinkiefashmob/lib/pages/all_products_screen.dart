@@ -1005,24 +1005,30 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         ),
       );
     }
-    return GridView.builder(
-      controller: _scrollCtrl,
-      padding: const EdgeInsets.all(12),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        childAspectRatio: 0.62,
-        crossAxisSpacing: 10,
-        mainAxisSpacing: 10,
+    return RefreshIndicator(
+      color: const Color(0xFF22C55E),
+      backgroundColor: const Color(0xFF0D2015),
+      strokeWidth: 2.5,
+      onRefresh: () => _loadProducts(reset: true),
+      child: GridView.builder(
+        controller: _scrollCtrl,
+        padding: const EdgeInsets.all(12),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          childAspectRatio: 0.62,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+        ),
+        itemCount: _products.length + (_hasMore ? 1 : 0),
+        itemBuilder: (_, i) {
+          if (i == _products.length) {
+            return const Center(
+              child: Padding(padding: EdgeInsets.all(16), child: BfSpinner()),
+            );
+          }
+          return _productCard(_products[i]);
+        },
       ),
-      itemCount: _products.length + (_hasMore ? 1 : 0),
-      itemBuilder: (_, i) {
-        if (i == _products.length) {
-          return const Center(
-            child: Padding(padding: EdgeInsets.all(16), child: BfSpinner()),
-          );
-        }
-        return _productCard(_products[i]);
-      },
     );
   }
 
@@ -1049,6 +1055,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                 builder: (_) => ProductDetailScreen(
                   productId: item['id'].toString(),
                   initialName: name,
+                  initialColor: color.isNotEmpty ? color : null,
+                  initialSize: item['size']?.toString(),
                 ),
               ),
             )

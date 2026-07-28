@@ -20,10 +20,14 @@ class ProductDetailScreen extends StatefulWidget {
     super.key,
     required this.productId,
     this.initialName,
+    this.initialColor,
+    this.initialSize,
   });
 
   final String productId;
   final String? initialName;
+  final String? initialColor;
+  final String? initialSize;
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -69,6 +73,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   void initState() {
     super.initState();
     _isWishlisted = WishlistManager.instance.isWishlisted(widget.productId);
+    // Pre-select the colour/size that was tapped in the listing card.
+    if (widget.initialColor != null && widget.initialColor!.isNotEmpty) {
+      _selectedColor = widget.initialColor;
+    }
+    if (widget.initialSize != null && widget.initialSize!.isNotEmpty) {
+      _selectedSize = widget.initialSize;
+    }
     _detailFuture = _apiClient.fetchProductDetail(widget.productId);
     // Cache data in state so bottomNavigationBar can access it
     _detailFuture.then((d) {

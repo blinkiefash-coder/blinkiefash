@@ -702,6 +702,8 @@ class _HomeScreenState extends State<HomeScreen>
         builder: (_) => ProductDetailScreen(
           productId: id,
           initialName: item['name']?.toString(),
+          initialColor: item['color']?.toString(),
+          initialSize: item['size']?.toString(),
         ),
       ),
     );
@@ -902,50 +904,53 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Stack(
-                          children: [
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Notifications coming soon'),
+                        ValueListenableBuilder<int>(
+                          valueListenable:
+                              NotificationService.instance.unreadCountNotifier,
+                          builder: (context, unread, _) => Stack(
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () {
+                                  NotificationService.instance.clearUnread();
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const OrdersScreen(),
+                                    ),
+                                  );
+                                },
+                                child: const SizedBox(
+                                  width: 26,
+                                  height: 26,
+                                  child: Icon(
+                                    Icons.notifications_none_rounded,
+                                    color: Color(0xFF374151),
+                                    size: 23,
                                   ),
-                                );
-                              },
-                              child: const SizedBox(
-                                width: 26,
-                                height: 26,
-                                child: Icon(
-                                  Icons.notifications_none_rounded,
-                                  color: Color(0xFF374151),
-                                  size: 23,
                                 ),
                               ),
-                            ),
-                            Positioned(
-                              right: 0,
-                              top: 3,
-                              child: Container(
-                                width: 10,
-                                height: 10,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFEF4444),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Center(
-                                  child: Text(
-                                    '3',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 6,
-                                      fontWeight: FontWeight.w800,
+                              if (unread > 0)
+                                Positioned(
+                                  right: 0,
+                                  top: 0,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(2),
+                                    decoration: const BoxDecoration(
+                                      color: Color(0xFFEF4444),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Text(
+                                      unread > 9 ? '9+' : '$unread',
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 6,
+                                        fontWeight: FontWeight.w800,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                         const SizedBox(width: 2),
                         GestureDetector(
@@ -1426,7 +1431,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 128,
+                      height: 160,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -1437,7 +1442,7 @@ class _HomeScreenState extends State<HomeScreen>
                           height: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                                height: 128,
+                                height: 160,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
@@ -1484,7 +1489,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 128,
+                      height: 160,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -1495,7 +1500,7 @@ class _HomeScreenState extends State<HomeScreen>
                           height: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                                height: 128,
+                                height: 160,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [

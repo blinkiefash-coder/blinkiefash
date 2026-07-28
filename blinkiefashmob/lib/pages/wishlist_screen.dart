@@ -96,7 +96,12 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 ],
               ),
             )
-          : ListView(
+          : RefreshIndicator(
+              color: const Color(0xFF22C55E),
+              backgroundColor: const Color(0xFF0D2015),
+              strokeWidth: 2.5,
+              onRefresh: () async => setState(() {}),
+              child: ListView(
               padding: const EdgeInsets.all(14),
               children: [
                 const Text(
@@ -215,6 +220,7 @@ class _WishlistScreenState extends State<WishlistScreen> {
                 ),
               ],
             ),
+          ),
     );
   }
 }
