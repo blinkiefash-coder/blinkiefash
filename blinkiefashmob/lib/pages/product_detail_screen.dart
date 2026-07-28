@@ -167,6 +167,112 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     return '$apiBaseUrl/$raw';
   }
 
+  bool _isPrimaryImage(dynamic value) {
+    if (value is! Map) return false;
+    final raw = value['is_primary'] ?? value['isPrimary'];
+    if (raw is bool) return raw;
+    if (raw is num) return raw != 0;
+    if (raw is String) {
+      final normalized = raw.trim().toLowerCase();
+      return normalized == 'true' || normalized == '1' || normalized == 'yes';
+    }
+    return false;
+  }
+
+  List<String> _collectVariantImageUrls(
+    List<dynamic> images, {
+    required String? variantId,
+  }) {
+    final primaryUrls = <String>[];
+    final fallbackUrls = <String>[];
+
+    for (final raw in images) {
+      final url = raw is Map
+          ? _normalizeImageUrl(raw['url'])
+          : _normalizeImageUrl(raw);
+      if (url == null) continue;
+
+      if (raw is! Map) {
+        fallbackUrls.add(url);
+        continue;
+      }
+
+      final currentVariantId = raw['variant_id']?.toString();
+      final matchesVariant = variantId == null || currentVariantId == variantId;
+      if (!matchesVariant) continue;
+
+      if (_isPrimaryImage(raw)) {
+        primaryUrls.add(url);
+      } else {
+        fallbackUrls.add(url);
+      }
+    }
+
+    return [...primaryUrls, ...fallbackUrls];
+  }
+
+  String? _bestImageForVariant(
+    List<dynamic> images, {
+    required String? variantId,
+    String? fallbackImageUrl,
+  }) {
+    final variantImages = _collectVariantImageUrls(
+      images,
+      variantId: variantId,
+    );
+    if (variantImages.isNotEmpty) return variantImages.first;
+
+    final primaryGeneral = <String>[];
+    final fallbackGeneral = <String>[];
+    for (final raw in images) {
+      final url = raw is Map
+          ? _normalizeImageUrl(raw['url'])
+          : _normalizeImageUrl(raw);
+      if (url == null) continue;
+      if (raw is! Map || raw['variant_id'] == null) {
+        if (raw is Map && _isPrimaryImage(raw)) {
+          primaryGeneral.add(url);
+        } else {
+          fallbackGeneral.add(url);
+        }
+      }
+    }
+
+    if (primaryGeneral.isNotEmpty) return primaryGeneral.first;
+    if (fallbackGeneral.isNotEmpty) return fallbackGeneral.first;
+    return fallbackImageUrl;
+  }
+
+  String? _resolveProductImage(Map<String, dynamic> productData) {
+    final explicit = _normalizeImageUrl(
+      productData['image'] ??
+          productData['image_url'] ??
+          productData['imageUrl'],
+    );
+    if (explicit != null) return explicit;
+
+    final images = productData['images'] is List
+        ? List<dynamic>.from(productData['images'])
+        : <dynamic>[];
+    final primaryImages = <String>[];
+    final fallbackImages = <String>[];
+    for (final raw in images) {
+      final url = raw is Map
+          ? _normalizeImageUrl(raw['url'])
+          : _normalizeImageUrl(raw);
+      if (url == null) continue;
+      if (raw is Map && _isPrimaryImage(raw)) {
+        primaryImages.add(url);
+      } else {
+        fallbackImages.add(url);
+      }
+    }
+
+    if (primaryImages.isNotEmpty) return primaryImages.first;
+    if (fallbackImages.isNotEmpty) return fallbackImages.first;
+    return null;
+  }
+
   void _toggleWishlist({
     required String name,
     required String price,
@@ -1342,37 +1448,46 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           // 1. Exact colour+size match
           final exactImages = exactVariantId != null
-              ? images
-                    .where((img) {
-                      if (img is! Map) return false;
-                      return img['variant_id']?.toString() == exactVariantId;
-                    })
-                    .map((img) => _normalizeImageUrl((img as Map)['url']))
-                    .whereType<String>()
-                    .toList()
+              ? _collectVariantImageUrls(images, variantId: exactVariantId)
               : <String>[];
 
           // 2. Any variant of the selected colour
-          final colorSpecificImages = images
-              .where((img) {
-                if (img is! Map) return false;
-                final vid = img['variant_id']?.toString();
-                return vid != null && colorVariantIds.contains(vid);
-              })
-              .map((img) => _normalizeImageUrl((img as Map)['url']))
-              .whereType<String>()
-              .toList();
+          final colorSpecificImages = <String>[];
+          final colorSpecificPrimaryImages = <String>[];
+          for (final img in images) {
+            if (img is! Map) continue;
+            final vid = img['variant_id']?.toString();
+            if (vid == null || !colorVariantIds.contains(vid)) continue;
+            final url = _normalizeImageUrl(img['url']);
+            if (url == null) continue;
+            if (_isPrimaryImage(img)) {
+              colorSpecificPrimaryImages.add(url);
+            } else {
+              colorSpecificImages.add(url);
+            }
+          }
+          final orderedColorSpecificImages = [
+            ...colorSpecificPrimaryImages,
+            ...colorSpecificImages,
+          ];
 
           // 3-4. General (untagged) images with optional URL colour hint
-          final allGeneralImages = images
-              .where((img) => img is! Map || img['variant_id'] == null)
-              .map(
-                (img) => img is Map
-                    ? _normalizeImageUrl(img['url'])
-                    : _normalizeImageUrl(img),
-              )
-              .whereType<String>()
-              .toList();
+          final allGeneralImages = <String>[];
+          final allGeneralPrimaryImages = <String>[];
+          for (final img in images) {
+            if (img is! Map || img['variant_id'] != null) continue;
+            final url = _normalizeImageUrl(img['url']);
+            if (url == null) continue;
+            if (_isPrimaryImage(img)) {
+              allGeneralPrimaryImages.add(url);
+            } else {
+              allGeneralImages.add(url);
+            }
+          }
+          final orderedAllGeneralImages = [
+            ...allGeneralPrimaryImages,
+            ...allGeneralImages,
+          ];
 
           // ── Build color → first image map from variant.image_url ───────────────
           // This covers products where images are NOT tagged with variant_id.
@@ -1380,10 +1495,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final Map<String, String> variantColorImages = {};
           for (final v in variantMaps) {
             final color = (v['color'] ?? '').toString().trim();
-            final url = _normalizeImageUrl(v['image_url']);
-            if (color.isNotEmpty &&
-                url != null &&
-                !variantColorImages.containsKey(color)) {
+            if (color.isEmpty || variantColorImages.containsKey(color))
+              continue;
+            final variantId = v['id']?.toString();
+            final url = _bestImageForVariant(
+              images,
+              variantId: variantId,
+              fallbackImageUrl: _normalizeImageUrl(v['image_url']),
+            );
+            if (url != null) {
               variantColorImages[color] = url;
             }
           }
@@ -1401,18 +1521,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
           final imageUrls = exactImages.isNotEmpty
               ? exactImages
-              : colorSpecificImages.isNotEmpty
-              ? colorSpecificImages
-              : colorChipImage !=
-                    null // ← NEW: variant's own image_url
+              : orderedColorSpecificImages.isNotEmpty
+              ? orderedColorSpecificImages
+              : colorChipImage != null
               ? [
                   colorChipImage,
-                  ...allGeneralImages.where((u) => u != colorChipImage).take(7),
+                  ...orderedAllGeneralImages
+                      .where((u) => u != colorChipImage)
+                      .take(7),
                 ]
               : hintImages.isNotEmpty
               ? hintImages
-              : allGeneralImages.isNotEmpty
-              ? allGeneralImages.take(8).toList()
+              : orderedAllGeneralImages.isNotEmpty
+              ? orderedAllGeneralImages.take(8).toList()
               : images
                     .map(
                       (img) => img is Map
@@ -2191,32 +2312,24 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       final colorName = colorOptions[index];
                       final active = colorName == effectiveColor;
 
-                      // Get the first image of this color variant
-                      final colorVariantImages = variantMaps
+                      // Get the best image for this color variant
+                      final matchingVariants = variantMaps
                           .where(
                             (v) =>
                                 (v['color'] ?? '').toString().trim() ==
                                 colorName,
                           )
-                          .expand((v) {
-                            final variantId = v['id']?.toString();
-                            return images
-                                .where(
-                                  (img) =>
-                                      img is Map &&
-                                      img['variant_id']?.toString() ==
-                                          variantId,
-                                )
-                                .map(
-                                  (img) =>
-                                      _normalizeImageUrl((img as Map)['url']),
-                                )
-                                .whereType<String>();
-                          })
                           .toList();
 
-                      final imageUrl = colorVariantImages.isNotEmpty
-                          ? colorVariantImages.first
+                      final imageUrl = matchingVariants.isNotEmpty
+                          ? _bestImageForVariant(
+                              images,
+                              variantId: matchingVariants.first['id']
+                                  ?.toString(),
+                              fallbackImageUrl: _normalizeImageUrl(
+                                matchingVariants.first['image_url'],
+                              ),
+                            )
                           : null;
 
                       return GestureDetector(
@@ -3201,9 +3314,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final price = _formatPrice(p['discount_price'] ?? p['price']);
     final originalPrice = _formatPrice(p['price']);
     final offPct = _discountPercent(originalPrice, price);
-    final imageUrl = _normalizeImageUrl(
-      p['image'] ?? p['image_url'] ?? p['imageUrl'],
-    );
+    final imageUrl = _resolveProductImage(p);
 
     return GestureDetector(
       onTap: () => Navigator.of(context).push(

@@ -606,7 +606,7 @@ router.get("/:id", async (req, res) => {
     // ✅ IMAGES (with variant_id for filtering)
     // Include both variant-specific images AND top-level images (variant_id IS NULL)
     const imageRes = await pool.query(
-      `SELECT pm.url, pm.variant_id FROM product_media pm
+      `SELECT pm.url, pm.variant_id, pm.is_primary FROM product_media pm
        WHERE pm.variant_id IS NULL 
           OR pm.variant_id IN (
             SELECT v.id FROM product_variants v WHERE v.product_id = $1
