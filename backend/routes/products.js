@@ -777,24 +777,83 @@ router.get("/", async (req, res) => {
           v.price AS sell_price,
           GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
           COALESCE(
-            -- 1. Variant-specific primary image (ideal case)
-            (SELECT url FROM product_media WHERE variant_id = v.id AND is_primary = true LIMIT 1),
-            -- 2. Any variant-specific image
-            (SELECT url FROM product_media WHERE variant_id = v.id LIMIT 1),
-            -- 3. Pick the Nth product image where N = alphabetical position of this color
-            --    among active variants, so each color gets a visually different image.
-            (SELECT pm.url FROM product_media pm
-             WHERE pm.product_id = p.id
-             ORDER BY pm.is_primary DESC, pm.sort_order ASC, pm.id ASC
-             LIMIT 1 OFFSET LEAST(
-               (SELECT COUNT(*)::int FROM product_variants pv_o
-                WHERE pv_o.product_id = p.id
-                  AND pv_o.is_active = true
-                  AND lower(COALESCE(pv_o.color,'')) < lower(COALESCE(v.color,''))),
-               GREATEST((SELECT COUNT(*)::int FROM product_media pm2
-                         WHERE pm2.product_id = p.id) - 1, 0)
-             )
+
+            -- 1. Current variant primary image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.variant_id = v.id
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 2. Current variant any image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.variant_id = v.id
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 3. Same color variant primary image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                  AND LOWER(TRIM(pv.color)) = LOWER(TRIM(v.color))
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 4. Same color variant any image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                  AND LOWER(TRIM(pv.color)) = LOWER(TRIM(v.color))
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 5. Any variant image of the product
+            (
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 6. Product-level primary image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.product_id = p.id
+                  AND pm.variant_id IS NULL
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 7. Product-level any image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.product_id = p.id
+                  AND pm.variant_id IS NULL
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
             )
+
           ) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
