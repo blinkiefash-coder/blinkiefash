@@ -154,9 +154,17 @@ export default function Shop() {
     setLoading(true);
     fetchAllProducts()
       .then((data) => {
+        console.log('[Shop] Fetched products data:', {
+          isArray: Array.isArray(data),
+          dataLength: Array.isArray(data) ? data.length : 0,
+          firstProduct: Array.isArray(data) && data.length > 0 ? data[0] : null,
+          sampleProducts: Array.isArray(data) ? data.slice(0, 3).map(p => ({ id: p.id, name: p.name, image: p.image, variant_id: p.variant_id })) : []
+        });
         setProducts(Array.isArray(data) ? data : []);
       })
-      .catch((err) => console.error(err))
+      .catch((err) => {
+        console.error('[Shop] Error fetching products:', err);
+      })
       .finally(() => setLoading(false));
   }, []);
 

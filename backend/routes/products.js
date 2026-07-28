@@ -890,6 +890,12 @@ router.get("/", async (req, res) => {
 
     const result = await pool.query(query, values);
 
+    console.log('[GET /products] Result summary:', {
+      rowCount: result.rowCount,
+      firstRow: result.rows.length > 0 ? result.rows[0] : null,
+      sampleRows: result.rows.slice(0, 3).map(r => ({ id: r.id, name: r.name, image: r.image, variant_id: r.variant_id, color: r.color }))
+    });
+
     res.json({
       products: result.rows,
       total: result.rowCount,
