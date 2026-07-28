@@ -89,8 +89,19 @@ export default function AddProduct() {
     setVariants(updated);
   };
 
-  const addVariant = () => setVariants([...variants,
-    { size: "", color: "", mrp: "", price: "", quantity: "", barcode: "", images: [], imageFiles: [] }]);
+  const addVariant = () => {
+    const last = variants[variants.length - 1];
+    setVariants([...variants, {
+      size: last.size || "",
+      color: last.color || "",
+      mrp: last.mrp || "",
+      price: last.price || "",
+      quantity: last.quantity || "",
+      barcode: last.barcode || "",
+      images: [],
+      imageFiles: [],
+    }]);
+  };
 
   const removeVariant = (index) => setVariants(variants.filter((_, i) => i !== index));
 
