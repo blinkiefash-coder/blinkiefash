@@ -127,6 +127,8 @@ class NotificationService {
   bool _initialized = false;
   bool _vendorRingInProgress = false;
   String? _cachedToken;
+  final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+  int _unreadCount = 0;
 
   static const AndroidNotificationChannel _orderChannel =
       AndroidNotificationChannel(
@@ -205,6 +207,17 @@ class NotificationService {
       await FirebaseMessaging.instance.deleteToken();
       _cachedToken = null;
     } catch (_) {}
+  }
+
+  void setUnreadCount(int count) {
+    _unreadCount = count < 0 ? 0 : count;
+    unreadCountNotifier.value = _unreadCount;
+  }
+
+  void clearUnread() {
+    if (_unreadCount == 0) return;
+    _unreadCount = 0;
+    unreadCountNotifier.value = 0;
   }
 
   Future<void> _uploadTokenIfPossible() async {

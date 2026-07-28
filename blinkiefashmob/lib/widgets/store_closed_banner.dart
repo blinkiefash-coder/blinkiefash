@@ -27,15 +27,15 @@ class StoreClosedBanner extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFFFCC02)),
       ),
-      child: Row(
+      child: const Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('🕘', style: TextStyle(fontSize: 18)),
-          const SizedBox(width: 10),
+          Text('🕘', style: TextStyle(fontSize: 18)),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
+              children: [
                 Text(
                   'Service not available right now',
                   style: TextStyle(

@@ -802,9 +802,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Track Order',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w700,
                 fontSize: 16,
                 color: Color(0xFF0F172A),
@@ -1017,7 +1017,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // ── Delivery countdown card ───────────────────────────────────────────────
   Widget _deliveryCountdownCard() {
-    final totalSecs = 60 * 60; // 60-minute base window
+    const totalSecs = 60 * 60; // 60-minute base window
     final displayed = _deliverySecondsLeft + _extraDilationSeconds;
     final elapsed = (totalSecs - _deliverySecondsLeft).clamp(0, totalSecs);
     final progress = (elapsed / totalSecs).clamp(0.0, 1.0);
@@ -1682,9 +1682,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 size: 18,
               ),
               const SizedBox(width: 8),
-              Text(
+              const Text(
                 'Products Ordered',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w700,
                   fontSize: 14,
                   color: Color(0xFF0F172A),

@@ -680,10 +680,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                   children: [
                     Text(
                       widget.categoryName.toUpperCase(),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 30,
                         fontWeight: FontWeight.w900,
-                        color: const Color(0xFF0F172A),
+                        color: Color(0xFF0F172A),
                         letterSpacing: -0.5,
                         height: 1.0,
                       ),

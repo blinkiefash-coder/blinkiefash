@@ -203,7 +203,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       if (res['success'] != true) {
         final msg = res['message']?.toString() ?? '';
-        // New user — redirect to signup with phone pre-filled
         if (msg.toLowerCase().contains('not found') ||
             msg.toLowerCase().contains('register')) {
           final phone = _digits(_phoneCtrl.text.trim());
@@ -223,7 +222,17 @@ class _LoginScreenState extends State<LoginScreen> {
         });
         return;
       }
-      await UserSession.instance.setFromLoginResponse(res);
+      final normalized = <String, dynamic>{...res};
+      if (normalized['user'] is! Map && normalized['user'] is! List) {
+        normalized['user'] = <String, dynamic>{
+          'id': normalized['id'] ?? '',
+          'name': normalized['name'] ?? '',
+          'phone': normalized['phone'] ?? '',
+          'role': normalized['role'] ?? '',
+          'email': normalized['email'] ?? '',
+        };
+      }
+      await UserSession.instance.setFromLoginResponse(normalized);
       NotificationService.instance.registerForCurrentUser();
       _completeAuth();
     } catch (e) {
@@ -865,9 +874,9 @@ class _PasteOtpButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.paste_rounded, size: 18, color: Color(0xFF16A34A)),
             SizedBox(width: 8),
             Text(

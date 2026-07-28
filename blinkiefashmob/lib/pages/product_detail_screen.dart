@@ -1495,8 +1495,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final Map<String, String> variantColorImages = {};
           for (final v in variantMaps) {
             final color = (v['color'] ?? '').toString().trim();
-            if (color.isEmpty || variantColorImages.containsKey(color))
+            if (color.isEmpty || variantColorImages.containsKey(color)) {
               continue;
+            }
             final variantId = v['id']?.toString();
             final url = _bestImageForVariant(
               images,
@@ -2242,10 +2243,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: stock > 0
-                            ? Column(
+                            ? const Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  const Text(
+                                  Text(
                                     '60-Minute Express Delivery',
                                     style: TextStyle(
                                       color: Colors.white,
@@ -2255,7 +2256,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   ),
                                   Text(
                                     'Delivering to your current location',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: Color(0xFFBBF7D0),
                                       fontSize: 11,
                                     ),
@@ -2962,8 +2963,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   .map((r) => _buildReviewCard(r))),
                             const Divider(height: 28),
                             // ── Write a Review ────────────────────────────────
-                            Row(
-                              children: const [
+                            const Row(
+                              children: [
                                 Icon(
                                   Icons.rate_review_outlined,
                                   color: Color(0xFF16A34A),
@@ -3627,8 +3628,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           ],
           if (imageUrl != null && imageUrl.isNotEmpty) ...[
             const SizedBox(height: 6),
-            Row(
-              children: const [
+            const Row(
+              children: [
                 Icon(
                   Icons.verified_rounded,
                   size: 12,

@@ -1663,15 +1663,15 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ),
           const SizedBox(height: 4),
-          Row(
+          const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Text(
+              Text(
                 '✦',
                 style: TextStyle(fontSize: 10, color: Color(0xFF16A34A)),
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 'U N I V E R S E',
                 style: TextStyle(
                   fontSize: 13,
@@ -1680,8 +1680,8 @@ class _HomeScreenState extends State<HomeScreen>
                   letterSpacing: 5,
                 ),
               ),
-              const SizedBox(width: 6),
-              const Text(
+              SizedBox(width: 6),
+              Text(
                 '✦',
                 style: TextStyle(fontSize: 10, color: Color(0xFF16A34A)),
               ),
@@ -2355,10 +2355,10 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Container(
                                   width: 30,
                                   height: 30,
-                                  decoration: BoxDecoration(
+                                  decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
-                                    boxShadow: const [
+                                    boxShadow: [
                                       BoxShadow(
                                         color: Color(0x18000000),
                                         blurRadius: 6,
@@ -2716,7 +2716,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       end: Alignment.centerRight,
                                     ),
                                     borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
+                                    boxShadow: const [
                                       BoxShadow(
                                         color: Color(0x55F59E0B),
                                         blurRadius: 6,
@@ -2796,10 +2796,10 @@ class _HomeScreenState extends State<HomeScreen>
                             child: Container(
                               width: 30,
                               height: 30,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
-                                boxShadow: const [
+                                boxShadow: [
                                   BoxShadow(
                                     color: Color(0x18000000),
                                     blurRadius: 6,
@@ -3046,7 +3046,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       end: Alignment.centerRight,
                                     ),
                                     borderRadius: BorderRadius.circular(20),
-                                    boxShadow: [
+                                    boxShadow: const [
                                       BoxShadow(
                                         color: Color(0x55F59E0B),
                                         blurRadius: 6,
@@ -3126,10 +3126,10 @@ class _HomeScreenState extends State<HomeScreen>
                             child: Container(
                               width: 30,
                               height: 30,
-                              decoration: BoxDecoration(
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
-                                boxShadow: const [
+                                boxShadow: [
                                   BoxShadow(
                                     color: Color(0x18000000),
                                     blurRadius: 6,
@@ -3894,10 +3894,10 @@ class _HomeScreenState extends State<HomeScreen>
                         child: Container(
                           width: 30,
                           height: 30,
-                          decoration: BoxDecoration(
+                          decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: const [
+                            boxShadow: [
                               BoxShadow(
                                 color: Color(0x18000000),
                                 blurRadius: 6,
@@ -4148,7 +4148,7 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             );
           }
-          final fallbackNames = const [
+          const fallbackNames = [
             'Nike',
             'Adidas',
             'Puma',
@@ -4270,8 +4270,8 @@ class _HomeScreenState extends State<HomeScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: const [
+          const Row(
+            children: [
               Icon(Icons.mail_outline_rounded, color: Colors.white, size: 20),
               SizedBox(width: 8),
               Text(
@@ -4647,7 +4647,7 @@ class _HomeScreenState extends State<HomeScreen>
                     const Color(0xFFFFEDD5),
                     const Color(0xFFEA580C),
                     ctx,
-                    AllProductsScreen(
+                    const AllProductsScreen(
                       categoryName: 'Sale & Discounts',
                       initialSort: 'price_asc',
                     ),
@@ -5322,8 +5322,8 @@ class _HomeScreenState extends State<HomeScreen>
                     MaterialPageRoute(builder: (_) => const LoginScreen()),
                   );
                 },
-                child: Row(
-                  children: const [
+                child: const Row(
+                  children: [
                     Icon(
                       Icons.logout_rounded,
                       color: Color(0xFFEF4444),
