@@ -319,7 +319,6 @@ router.get("/bestsellers", async (req, res) => {
         JOIN inventory si ON si.variant_id = sv.id
         WHERE sv.product_id = p.id AND sv.is_active = true
           AND si.store_id = ANY($${index++}::uuid[])
-          AND GREATEST(COALESCE(si.stock, 0) - COALESCE(si.reserved_stock, 0), 0) > 0
       )`;
     }
 
@@ -418,7 +417,6 @@ router.get("/price-range", async (req, res) => {
       query += `
        LEFT JOIN inventory inv ON inv.variant_id = v.id AND (inv.store_id = ANY($4::uuid[]) OR inv.store_id IS NULL)
        WHERE p.id IS NOT NULL
-         AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        GROUP BY p.id, b.name, c.name, p.buy_2, p.buy_3, p.buy_4, p.is_try_enabled, p.is_try_and_buy, p.is_bestseller
        HAVING MIN(v.price) >= $1 AND MIN(v.price) <= $2
        ORDER BY MIN(v.price) ASC, p.id
@@ -491,7 +489,6 @@ router.get("/bulk-offers", async (req, res) => {
          SELECT 1 FROM bulk_offers bo
          WHERE bo.product_id = p.id AND bo.is_active = true
        )
-       AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
        GROUP BY p.id, b.name, c.name
        ORDER BY p.id
        LIMIT $2
@@ -780,50 +777,90 @@ router.get("/", async (req, res) => {
           v.price AS sell_price,
           GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
           COALESCE(
-            -- 1. Variant-specific primary image (preferred for product cards)
+
+            -- 1. Current variant primary image
             (
-              SELECT pm.url
-              FROM product_media pm
-              WHERE pm.variant_id = v.id
-                AND pm.is_primary = true
-              ORDER BY pm.sort_order ASC, pm.id ASC
-              LIMIT 1
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.variant_id = v.id
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
             ),
-            -- 2. Any variant-specific image for this variant
+
+            -- 2. Current variant any image
             (
-              SELECT pm.url
-              FROM product_media pm
-              WHERE pm.variant_id = v.id
-              ORDER BY pm.is_primary DESC, pm.sort_order ASC, pm.id ASC
-              LIMIT 1
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.variant_id = v.id
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
             ),
-            -- 3. Product-level primary image
+
+            -- 3. Same color variant primary image
             (
-              SELECT pm.url
-              FROM product_media pm
-              WHERE pm.product_id = p.id
-                AND pm.variant_id IS NULL
-                AND pm.is_primary = true
-              ORDER BY pm.sort_order ASC, pm.id ASC
-              LIMIT 1
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                  AND LOWER(TRIM(pv.color)) = LOWER(TRIM(v.color))
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
             ),
-            -- 4. Any product-level image
+
+            -- 4. Same color variant any image
             (
-              SELECT pm.url
-              FROM product_media pm
-              WHERE pm.product_id = p.id
-                AND pm.variant_id IS NULL
-              ORDER BY pm.is_primary DESC, pm.sort_order ASC, pm.id ASC
-              LIMIT 1
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                  AND LOWER(TRIM(pv.color)) = LOWER(TRIM(v.color))
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 5. Any variant image of the product
+            (
+                SELECT pm.url
+                FROM product_media pm
+                JOIN product_variants pv
+                    ON pv.id = pm.variant_id
+                WHERE pv.product_id = v.product_id
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 6. Product-level primary image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.product_id = p.id
+                  AND pm.variant_id IS NULL
+                  AND pm.is_primary = true
+                ORDER BY pm.sort_order, pm.id
+                LIMIT 1
+            ),
+
+            -- 7. Product-level any image
+            (
+                SELECT pm.url
+                FROM product_media pm
+                WHERE pm.product_id = p.id
+                  AND pm.variant_id IS NULL
+                ORDER BY pm.is_primary DESC, pm.sort_order, pm.id
+                LIMIT 1
             )
+
           ) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
-        ORDER BY lower(COALESCE(v.color, '')), v.price ASC, v.id ASC
+        ORDER BY lower(COALESCE(v.color, '')), (EXISTS(SELECT 1 FROM product_media WHERE variant_id = v.id)) DESC, v.price ASC, v.id ASC
       ) pv ON true
       WHERE 1=1
         AND pv.variant_id IS NOT NULL
@@ -911,6 +948,12 @@ router.get("/", async (req, res) => {
     values.push(pageLimit, pageOffset);
 
     const result = await pool.query(query, values);
+
+    console.log('[GET /products] Result summary:', {
+      rowCount: result.rowCount,
+      firstRow: result.rows.length > 0 ? result.rows[0] : null,
+      sampleRows: result.rows.slice(0, 3).map(r => ({ id: r.id, name: r.name, image: r.image, variant_id: r.variant_id, color: r.color }))
+    });
 
     res.json({
       products: result.rows,
