@@ -801,7 +801,7 @@ router.get("/", async (req, res) => {
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-        ORDER BY lower(COALESCE(v.color, '')), v.price ASC, v.id ASC
+        ORDER BY lower(COALESCE(v.color, '')), (EXISTS(SELECT 1 FROM product_media WHERE variant_id = v.id)) DESC, v.price ASC, v.id ASC
       ) pv ON true
       WHERE 1=1
         AND pv.variant_id IS NOT NULL
