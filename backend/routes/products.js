@@ -27,7 +27,7 @@ const getProductMediaShape = async (client) => {
   return shape;
 };
 
-const insertProductMediaRows = async ({
+export const insertProductMediaRows = async ({
   client,
   productId,
   variantId,
@@ -35,8 +35,13 @@ const insertProductMediaRows = async ({
   startOrder,
   mediaShape,
   primaryAssignedRef,
+  resetPrimaryState = false,
 }) => {
   let nextOrder = startOrder;
+
+  if (resetPrimaryState && mediaShape?.hasIsPrimary && primaryAssignedRef) {
+    primaryAssignedRef.value = false;
+  }
 
   console.log(`[product_media] inserting ${imageUrls?.length || 0} images for variant ${variantId}, product ${productId}`);
 
@@ -212,6 +217,7 @@ const createProductSimple = async (req, res) => {
         imageUrls: variantImageUrls,
         startOrder: imageOrder,
         mediaShape, primaryAssignedRef,
+        resetPrimaryState: true,
       });
     }
 
@@ -221,6 +227,7 @@ const createProductSimple = async (req, res) => {
         imageUrls: topLevelImages,
         startOrder: imageOrder,
         mediaShape, primaryAssignedRef,
+        resetPrimaryState: true,
       });
     }
 
