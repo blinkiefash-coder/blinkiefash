@@ -278,7 +278,6 @@ router.get("/bestsellers", async (req, res) => {
         JOIN inventory si ON si.variant_id = sv.id
         WHERE sv.product_id = p.id AND sv.is_active = true
           AND si.store_id = $${index++}
-          AND GREATEST(COALESCE(si.stock, 0) - COALESCE(si.reserved_stock, 0), 0) > 0
       )`;
     }
 
@@ -575,7 +574,6 @@ router.get("/", async (req, res) => {
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
         ORDER BY lower(COALESCE(v.color, '')), v.price ASC, v.id ASC
       ) pv ON true
       WHERE 1=1
@@ -610,7 +608,6 @@ router.get("/", async (req, res) => {
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND v.price >= $${index++}
       )`;
       values.push(min_price);
@@ -624,7 +621,6 @@ router.get("/", async (req, res) => {
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND v.price <= $${index++}
       )`;
       values.push(max_price);
@@ -638,7 +634,6 @@ router.get("/", async (req, res) => {
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0
           AND lower(v.color) = lower($${index++})
       )`;
       values.push(color);
