@@ -106,7 +106,7 @@ class ApiClient {
     required String userId,
     required String token,
   }) async {
-    final uri = Uri.parse('$apiApiBaseUrl/users/fcm-token');
+    final uri = Uri.parse('$apiBaseUrl/users/fcm-token');
     return _postJson(uri, {'userId': userId, 'token': token});
   }
 

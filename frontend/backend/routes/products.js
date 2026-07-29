@@ -655,17 +655,39 @@ router.get("/", async (req, res) => {
     }
 
     if (category_id) {
-      // match the category itself + children + grandchildren (3 levels)
+      // Data-driven mirror roots (e.g., Footwear -> Men) so category filtering
+      // includes mapped trees as well.
+      const categoryRootIds = [category_id];
+      try {
+        const mirrorRes = await pool.query(
+          `SELECT target_root_id
+           FROM category_mirror_links
+           WHERE source_root_id = $1
+             AND is_active = true`,
+          [category_id]
+        );
+        for (const row of mirrorRes.rows) {
+          const id = row?.target_root_id?.toString();
+          if (id && !categoryRootIds.includes(id)) {
+            categoryRootIds.push(id);
+          }
+        }
+      } catch (e) {
+        // Mirror table may not exist yet during first boot.
+        if (e?.code !== '42P01') throw e;
+      }
+
+      // match each root category + children + grandchildren (3 levels)
       query += ` AND p.category_id IN (
-        SELECT id FROM categories WHERE id = $${index}
+        SELECT id FROM categories WHERE id = ANY($${index}::uuid[])
         UNION
-        SELECT id FROM categories WHERE parent_id = $${index}
+        SELECT id FROM categories WHERE parent_id = ANY($${index}::uuid[])
         UNION
         SELECT c2.id FROM categories c2
           JOIN categories c1 ON c2.parent_id = c1.id
-          WHERE c1.parent_id = $${index}
+          WHERE c1.parent_id = ANY($${index}::uuid[])
       )`;
-      values.push(category_id);
+      values.push(categoryRootIds);
       index++;
     }
 
