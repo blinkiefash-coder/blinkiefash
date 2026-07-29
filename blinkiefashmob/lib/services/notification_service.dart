@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../firebase_options.dart';
@@ -127,8 +127,6 @@ class NotificationService {
   bool _initialized = false;
   bool _vendorRingInProgress = false;
   String? _cachedToken;
-  final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
-  int _unreadCount = 0;
 
   static const AndroidNotificationChannel _orderChannel =
       AndroidNotificationChannel(
@@ -207,17 +205,6 @@ class NotificationService {
       await FirebaseMessaging.instance.deleteToken();
       _cachedToken = null;
     } catch (_) {}
-  }
-
-  void setUnreadCount(int count) {
-    _unreadCount = count < 0 ? 0 : count;
-    unreadCountNotifier.value = _unreadCount;
-  }
-
-  void clearUnread() {
-    if (_unreadCount == 0) return;
-    _unreadCount = 0;
-    unreadCountNotifier.value = 0;
   }
 
   Future<void> _uploadTokenIfPossible() async {
@@ -318,5 +305,16 @@ class NotificationService {
     } finally {
       _vendorRingInProgress = false;
     }
+  }
+
+  // ── Unread count tracking ─────────────────────────────────────────────────
+  final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+
+  void setUnreadCount(int count) {
+    unreadCountNotifier.value = count;
+  }
+
+  void clearUnread() {
+    unreadCountNotifier.value = 0;
   }
 }

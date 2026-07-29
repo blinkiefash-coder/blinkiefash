@@ -201,7 +201,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                         children: [
                           Container(
                             padding: const EdgeInsets.all(12),
-                            decoration: const BoxDecoration(
+                            decoration: BoxDecoration(
                               color: _green,
                               shape: BoxShape.circle,
                             ),
@@ -212,7 +212,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -224,12 +224,12 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                                     color: _green,
                                   ),
                                 ),
-                                SizedBox(height: 4),
+                                const SizedBox(height: 4),
                                 Text(
                                   'Detect via GPS',
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Color(0xFF64748B),
+                                    color: const Color(0xFF64748B),
                                   ),
                                 ),
                               ],
@@ -242,7 +242,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                               child: BfSpinner(),
                             )
                           else
-                            const Icon(Icons.chevron_right, color: _green),
+                            Icon(Icons.chevron_right, color: _green),
                         ],
                       ),
                     ),
@@ -252,14 +252,14 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                 const SizedBox(height: 24),
 
                 // Address Type Selector
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 16),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Text(
                     'Address Type',
                     style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w800,
-                      color: Color(0xFF0F172A),
+                      color: const Color(0xFF0F172A),
                     ),
                   ),
                 ),
@@ -289,12 +289,12 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                      Text(
                         'Address Details',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
+                          color: const Color(0xFF0F172A),
                         ),
                       ),
                       const SizedBox(height: 12),

@@ -1142,8 +1142,8 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                     child: img != null
                         ? CachedNetworkImage(
                             imageUrl: img,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
                             placeholder: (_, _) =>
                                 Container(color: const Color(0xFFF1F5F9)),
                             errorWidget: (_, _, _) => Container(
@@ -1229,12 +1229,16 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                         ),
                       ),
                     )
-                  else if (!item.containsKey('is_try_and_buy') || item['is_try_and_buy'] != true)
+                  else if (!item.containsKey('is_try_and_buy') ||
+                      item['is_try_and_buy'] != true)
                     Positioned(
                       top: 8,
                       left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color(0xFF16A34A),
                           borderRadius: BorderRadius.circular(20),
@@ -1244,10 +1248,13 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                           children: [
                             Text('⚡', style: TextStyle(fontSize: 7, height: 1)),
                             SizedBox(width: 3),
-                            Text('+ 60 MIN',
+                            Text(
+                              '+ 60 MIN',
                               style: TextStyle(
-                                color: Colors.white, fontSize: 8,
-                                fontWeight: FontWeight.w900, letterSpacing: 0.3,
+                                color: Colors.white,
+                                fontSize: 8,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: 0.3,
                               ),
                             ),
                           ],

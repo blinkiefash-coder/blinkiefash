@@ -32,16 +32,11 @@ class UserSession {
   static const _keyVendorEmail = 'vendorEmail';
 
   Future<void> setFromLoginResponse(Map<String, dynamic> response) async {
-    final userPayload = response['user'];
-    final user = userPayload is Map
-        ? Map<String, dynamic>.from(userPayload)
-        : <String, dynamic>{};
-    userId = (user['id'] ?? response['userId'] ?? response['id'] ?? '')
-        .toString();
-    name = (user['name'] ?? response['name'] ?? '').toString();
-    phone = (user['phone'] ?? response['phone'] ?? '').toString();
-    role = (user['role'] ?? response['role'] ?? '').toString();
-    email = (user['email'] ?? response['email'] ?? '').toString();
+    final user = response['user'] as Map<String, dynamic>? ?? {};
+    userId = (user['id'] ?? '').toString();
+    name = (user['name'] ?? '').toString();
+    phone = (user['phone'] ?? '').toString();
+    role = (user['role'] ?? '').toString();
     token = (response['token'] ?? '').toString();
     await _saveToPrefs();
   }

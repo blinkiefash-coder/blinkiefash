@@ -136,7 +136,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               Flexible(
                 child: RichText(
                   overflow: TextOverflow.ellipsis,
-                  text: const TextSpan(
+                  text: TextSpan(
                     style: TextStyle(
                       fontFamily: 'Montserrat',
                       fontWeight: FontWeight.w900,
@@ -2680,7 +2680,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
               child: Center(child: CircularProgressIndicator()),
             )
           else if (filtered.isEmpty)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 24),
               child: Center(
                 child: Text(

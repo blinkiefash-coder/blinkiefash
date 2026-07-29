@@ -106,7 +106,7 @@ class ApiClient {
     required String userId,
     required String token,
   }) async {
-    final uri = Uri.parse('$apiApiBaseUrl/users/fcm-token');
+    final uri = Uri.parse('$apiBaseUrl/users/fcm-token');
     return _postJson(uri, {'userId': userId, 'token': token});
   }
 
@@ -327,6 +327,15 @@ class ApiClient {
 
   Future<List<dynamic>> fetchCategories() async {
     final uri = Uri.parse('$apiApiBaseUrl/categories');
+    final data = await _getJson(uri);
+    if (data is List<dynamic>) {
+      return data;
+    }
+    return const [];
+  }
+
+  Future<List<dynamic>> fetchCategoryMirrors() async {
+    final uri = Uri.parse('$apiApiBaseUrl/categories/mirrors');
     final data = await _getJson(uri);
     if (data is List<dynamic>) {
       return data;

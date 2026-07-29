@@ -68,6 +68,7 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _products = const [];
   List<Map<String, dynamic>> _categories = const []; // root only
   List<Map<String, dynamic>> _allCategories = const []; // full tree
+  Map<String, Set<String>> _categoryMirrorRootIds = const {};
   List<Map<String, dynamic>> _brands = const [];
   List<Map<String, dynamic>> _under999 = const [];
   List<Map<String, dynamic>> _under1999 = const [];
@@ -89,16 +90,8 @@ class _HomeScreenState extends State<HomeScreen>
   double? _shopMinPrice;
   double? _shopMaxPrice;
 
-  // Hero slider
-  int _heroPage = 0;
-  final PageController _heroPageController = PageController();
-  Timer? _heroTimer;
-
   static const _heroCards = [
-    {
-      'image': 'assets/images/public-images-hero_main.png',
-      'route': 'allProducts',
-    },
+    {'image': 'assets/images/hero_main.jpeg', 'route': 'allProducts'},
     {'image': 'assets/images/accessories.jpeg', 'route': 'accessories'},
     {'image': 'assets/images/mens_hero.jpeg', 'route': 'mens'},
     {'image': 'assets/images/womens_hero.jpeg', 'route': 'women'},
@@ -155,22 +148,6 @@ class _HomeScreenState extends State<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _promptGuestLocationSelection();
     });
-    _heroTimer = Timer.periodic(const Duration(seconds: 12), (_) {
-      if (!mounted) return;
-      if (!_heroPageController.hasClients) return;
-      if (_heroPageController.positions.isEmpty) return;
-      if (!_heroPageController.position.hasViewportDimension) return;
-      final next = (_heroPage + 1) % _heroCards.length;
-      try {
-        _heroPageController.animateToPage(
-          next,
-          duration: const Duration(milliseconds: 600),
-          curve: Curves.easeInOut,
-        );
-      } catch (_) {
-        // Ignore transient detach races when view is rebuilding.
-      }
-    });
   }
 
   Future<void> _promptGuestLocationSelection() async {
@@ -184,7 +161,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
-    _heroTimer?.cancel();
     _deliverLiveTimer?.cancel();
     _deliverPickupDebounce?.cancel();
     _deliverDropDebounce?.cancel();
@@ -192,7 +168,6 @@ class _HomeScreenState extends State<HomeScreen>
     _deliverDropCtrl.dispose();
     _deliverPickupFocus.dispose();
     _deliverDropFocus.dispose();
-    _heroPageController.dispose();
     super.dispose();
   }
 
@@ -350,6 +325,7 @@ class _HomeScreenState extends State<HomeScreen>
           maxPrice: 1999,
           limit: 10,
         ),
+        _api.fetchCategoryMirrors(), // [5]
       ]);
       if (!mounted) return;
 
@@ -358,6 +334,7 @@ class _HomeScreenState extends State<HomeScreen>
       final brs = results[2] as List;
       final under999 = results[3] as List;
       final under1999 = results[4] as List;
+      final mirrorLinks = results[5] as List;
 
       // Find Puma brand ID from loaded brands list
       final pumaBrand = (brs.whereType<Map<String, dynamic>>()).firstWhere(
@@ -403,12 +380,22 @@ class _HomeScreenState extends State<HomeScreen>
             .whereType<Map<String, dynamic>>()
             .take(8)
             .toList();
-        _categories = cats
-            .whereType<Map<String, dynamic>>()
-            .where((c) => c['parent_id'] == null)
-            .take(6)
-            .toList();
+        _categories =
+            cats
+                .whereType<Map<String, dynamic>>()
+                .where((c) => c['parent_id'] == null)
+                .toList()
+              ..sort((a, b) {
+                final an = (a['name'] ?? '').toString().toLowerCase();
+                final bn = (b['name'] ?? '').toString().toLowerCase();
+                const priority = {'men': 0, 'women': 1, 'footwear': 2};
+                final ap = priority[an] ?? 99;
+                final bp = priority[bn] ?? 99;
+                if (ap != bp) return ap.compareTo(bp);
+                return an.compareTo(bn);
+              });
         _allCategories = (cats).whereType<Map<String, dynamic>>().toList();
+        _categoryMirrorRootIds = _buildCategoryMirrorRootIds(mirrorLinks);
         _brands = brs.whereType<Map<String, dynamic>>().take(8).toList();
         _under999 = under999Final.whereType<Map<String, dynamic>>().toList();
         _under1999 = under1999Final.whereType<Map<String, dynamic>>().toList();
@@ -1274,12 +1261,14 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Hero Banner Slider ────────────────────────────────────────────────────
+  // ── Hero Banner (main card only) ─────────────────────────────────────────
   Widget _heroBanner() {
     final heroHeight = (MediaQuery.of(context).size.width * 0.52).clamp(
       184.0,
       228.0,
     );
+    final card = _heroCards.first;
+    final route = card['route'] as String;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -1294,115 +1283,74 @@ class _HomeScreenState extends State<HomeScreen>
           ),
         ],
       ),
-      child: Stack(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(15),
-            clipBehavior: Clip.antiAlias,
-            child: PageView.builder(
-              controller: _heroPageController,
-              itemCount: _heroCards.length,
-              onPageChanged: (i) => setState(() => _heroPage = i),
-              itemBuilder: (_, i) {
-                final card = _heroCards[i];
-                final route = card['route'] as String;
-                return GestureDetector(
-                  onTap: () {
-                    if (route == 'mens') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(
-                            categoryName: 'Men',
-                            initialSort: 'newest',
-                          ),
-                        ),
-                      );
-                    } else if (route == 'women') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(
-                            categoryName: 'Women',
-                            initialSort: 'newest',
-                          ),
-                        ),
-                      );
-                    } else if (route == 'accessories') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(
-                            initialSearch: 'accessories',
-                          ),
-                        ),
-                      );
-                    } else if (route == 'mensFootwear') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(
-                            initialSearch: 'men footwear',
-                          ),
-                        ),
-                      );
-                    } else if (route == 'womensFootwear') {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(
-                            initialSearch: 'women footwear',
-                          ),
-                        ),
-                      );
-                    } else {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => const AllProductsScreen(),
-                        ),
-                      );
-                    }
-                  },
-                  child: Image.asset(
-                    card['image'] as String,
-                    fit: BoxFit.fitWidth,
-                    alignment: Alignment.center,
-                    filterQuality: FilterQuality.high,
-                    width: double.infinity,
-                    errorBuilder: (_, _, _) => Container(
-                      color: const Color(0xFF16A34A),
-                      child: const Center(
-                        child: Icon(
-                          Icons.image_not_supported_outlined,
-                          color: Colors.white,
-                          size: 40,
-                        ),
-                      ),
-                    ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        clipBehavior: Clip.antiAlias,
+        child: GestureDetector(
+          onTap: () {
+            if (route == 'mens') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Men',
+                    initialSort: 'newest',
                   ),
-                );
-              },
-            ),
-          ),
-          Positioned(
-            bottom: 10,
-            left: 0,
-            right: 0,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(
-                _heroCards.length,
-                (i) => AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  margin: const EdgeInsets.symmetric(horizontal: 3),
-                  width: _heroPage == i ? 20 : 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: _heroPage == i
-                        ? Colors.white
-                        : Colors.white.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            } else if (route == 'women') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Women',
+                    initialSort: 'newest',
                   ),
+                ),
+              );
+            } else if (route == 'accessories') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AllProductsScreen(initialSearch: 'accessories'),
+                ),
+              );
+            } else if (route == 'mensFootwear') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AllProductsScreen(initialSearch: 'men footwear'),
+                ),
+              );
+            } else if (route == 'womensFootwear') {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      const AllProductsScreen(initialSearch: 'women footwear'),
+                ),
+              );
+            } else {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+              );
+            }
+          },
+          child: Image.asset(
+            card['image'] as String,
+            fit: BoxFit.fitWidth,
+            alignment: Alignment.center,
+            filterQuality: FilterQuality.high,
+            width: double.infinity,
+            errorBuilder: (_, _, _) => Container(
+              color: const Color(0xFF16A34A),
+              child: const Center(
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Colors.white,
+                  size: 40,
                 ),
               ),
             ),
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1411,7 +1359,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _spinGameReferContainer() {
     return Container(
       margin: const EdgeInsets.fromLTRB(10, 0, 10, 0),
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 12),
+      padding: const EdgeInsets.fromLTRB(10, 4, 10, 4),
       decoration: BoxDecoration(
         color: const Color(0xFFF0FDF4),
         borderRadius: BorderRadius.circular(18),
@@ -1431,12 +1379,12 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 160,
+                      height: 150,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
-                          'assets/images/public-image-Spin.png',
-                          fit: BoxFit.contain,
+                          'assets/images/Spin.png',
+                          fit: BoxFit.fill,
                           alignment: Alignment.center,
                           width: double.infinity,
                           height: double.infinity,
@@ -1489,12 +1437,12 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 160,
+                      height: 150,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
-                          'assets/images/public-image-game.png',
-                          fit: BoxFit.contain,
+                          'assets/images/game.png',
+                          fit: BoxFit.fill,
                           alignment: Alignment.center,
                           width: double.infinity,
                           height: double.infinity,
@@ -1541,7 +1489,7 @@ class _HomeScreenState extends State<HomeScreen>
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
           // Row 2 – Refer & Earn (full width)
           GestureDetector(
             onTap: () => Navigator.of(
@@ -2307,8 +2255,8 @@ class _HomeScreenState extends State<HomeScreen>
                               child: img != null
                                   ? CachedNetworkImage(
                                       imageUrl: img,
-                                      fit: BoxFit.cover,
-                                      alignment: Alignment.topCenter,
+                                      fit: BoxFit.contain,
+                                      alignment: Alignment.center,
                                       width: double.infinity,
                                       height: double.infinity,
                                       placeholder: (context, url) => Container(
@@ -2648,8 +2596,8 @@ class _HomeScreenState extends State<HomeScreen>
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.center,
                                   width: double.infinity,
                                   height: double.infinity,
                                   placeholder: (context, url) =>
@@ -2979,8 +2927,8 @@ class _HomeScreenState extends State<HomeScreen>
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
-                                  fit: BoxFit.cover,
-                                  alignment: Alignment.topCenter,
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.center,
                                   width: double.infinity,
                                   height: double.infinity,
                                   placeholder: (context, url) =>
@@ -3847,8 +3795,8 @@ class _HomeScreenState extends State<HomeScreen>
                       child: img != null
                           ? CachedNetworkImage(
                               imageUrl: img,
-                              fit: BoxFit.cover,
-                              alignment: Alignment.topCenter,
+                              fit: BoxFit.contain,
+                              alignment: Alignment.center,
                               width: double.infinity,
                               height: double.infinity,
                               placeholder: (ctx, url) =>
@@ -4920,12 +4868,9 @@ class _HomeScreenState extends State<HomeScreen>
                                 final c = entry.value;
                                 final catId = c['id']?.toString() ?? '';
                                 final catName = c['name']?.toString() ?? '';
-                                final children = _allCategories
-                                    .where(
-                                      (x) =>
-                                          x['parent_id']?.toString() == catId,
-                                    )
-                                    .toList();
+                                final children = _displaySubCategoriesForRoot(
+                                  c,
+                                );
                                 final expanded =
                                     _drawerExpandedCats[catId] == true;
                                 if (children.isEmpty) {
@@ -5348,6 +5293,111 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  String _catNameKey(dynamic value) {
+    return (value ?? '').toString().trim().toLowerCase();
+  }
+
+  bool _isMenRootCategory(Map<String, dynamic> c) {
+    final n = _catNameKey(c['name']);
+    return n == 'men' || n == 'mens' || n == "men's";
+  }
+
+  bool _isFootwearRootCategory(Map<String, dynamic> c) {
+    final n = _catNameKey(c['name']);
+    return n.contains('footwear') || n == 'shoes' || n == 'shoe';
+  }
+
+  bool _isShoeLikeSubCategory(Map<String, dynamic> c) {
+    final n = _catNameKey(c['name']);
+    const keywords = [
+      'shoe',
+      'shoes',
+      'footwear',
+      'sneaker',
+      'loafer',
+      'sandal',
+      'slipper',
+      'flip',
+      'heel',
+      'boot',
+      'mule',
+      'clog',
+    ];
+    return keywords.any((k) => n.contains(k));
+  }
+
+  Map<String, Set<String>> _buildCategoryMirrorRootIds(List<dynamic> rows) {
+    final map = <String, Set<String>>{};
+    for (final raw in rows) {
+      if (raw is! Map) continue;
+      final row = Map<String, dynamic>.from(raw);
+      final source = (row['source_root_id'] ?? row['sourceRootId'] ?? '')
+          .toString()
+          .trim();
+      final target = (row['target_root_id'] ?? row['targetRootId'] ?? '')
+          .toString()
+          .trim();
+      if (source.isEmpty || target.isEmpty) continue;
+      map.putIfAbsent(source, () => <String>{}).add(target);
+    }
+    return map;
+  }
+
+  List<Map<String, dynamic>> _displaySubCategoriesForRoot(
+    Map<String, dynamic> root,
+  ) {
+    final rootId = root['id']?.toString() ?? '';
+    var subs = _allCategories
+        .where((c) => c['parent_id']?.toString() == rootId)
+        .map((c) => Map<String, dynamic>.from(c))
+        .toList();
+
+    // Men and Footwear should mirror shoe-like navigation items.
+    if (_isMenRootCategory(root) || _isFootwearRootCategory(root)) {
+      final mirroredRootIds =
+          _categoryMirrorRootIds[rootId] ?? const <String>{};
+
+      final counterpartRoots = _categories.where((c) {
+        final id = c['id']?.toString() ?? '';
+        if (id.isNotEmpty && mirroredRootIds.contains(id)) return true;
+
+        // Keep keyword relation as fallback even without explicit mapping row.
+        if (_isMenRootCategory(root)) return _isFootwearRootCategory(c);
+        if (_isFootwearRootCategory(root)) return _isMenRootCategory(c);
+        return false;
+      }).toList();
+
+      final merged = <String, Map<String, dynamic>>{
+        for (final s in subs) (s['id']?.toString() ?? ''): s,
+      };
+
+      for (final counterpart in counterpartRoots) {
+        final counterpartId = counterpart['id']?.toString();
+        if (counterpartId == null || counterpartId.isEmpty) continue;
+        final counterpartSubs = _allCategories
+            .where((c) => c['parent_id']?.toString() == counterpartId)
+            .where((c) => _isShoeLikeSubCategory(c))
+            .map((c) => Map<String, dynamic>.from(c));
+
+        for (final s in counterpartSubs) {
+          final id = s['id']?.toString() ?? '';
+          if (id.isEmpty || merged.containsKey(id)) continue;
+          merged[id] = s;
+        }
+      }
+
+      subs = merged.values.toList();
+    }
+
+    subs.sort((a, b) {
+      final an = _catNameKey(a['name']);
+      final bn = _catNameKey(b['name']);
+      return an.compareTo(bn);
+    });
+
+    return subs;
+  }
+
   // ── Other Tabs ────────────────────────────────────────────────────────────
   Widget _categoriesBody() {
     // All root categories — use DB data or fallback
@@ -5371,10 +5421,8 @@ class _HomeScreenState extends State<HomeScreen>
     final selectedRoot = roots[selIdx];
     final selectedId = selectedRoot['id']?.toString() ?? '';
 
-    // Sub-categories of selected root
-    final subs = _allCategories
-        .where((c) => c['parent_id']?.toString() == selectedId)
-        .toList();
+    // Sub-categories of selected root (with Men <-> Footwear shoe mirroring)
+    final subs = _displaySubCategoriesForRoot(selectedRoot);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,

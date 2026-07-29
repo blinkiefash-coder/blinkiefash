@@ -118,9 +118,9 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                   ),
                 );
               },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: const Icon(
                   Icons.camera_alt_rounded,
                   color: Color(0xFF6B7280),
                   size: 19,
@@ -139,9 +139,9 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
                   ),
                 );
               },
-              child: const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: const Icon(
                   Icons.mic_none_rounded,
                   color: Color(0xFF6B7280),
                   size: 19,

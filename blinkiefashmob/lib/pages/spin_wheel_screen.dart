@@ -532,12 +532,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
         actions: [
           if (_carUnlocked)
             Padding(
-              padding: const EdgeInsets.only(right: 16),
+              padding: EdgeInsets.only(right: 16),
               child: Center(
                 child: Text(
                   '🚗 UNLOCKED!',
                   style: GoogleFonts.orbitron(
-                    color: const Color(0xFFFFD700),
+                    color: Color(0xFFFFD700),
                     fontWeight: FontWeight.w800,
                     fontSize: 12,
                     letterSpacing: 0.6,
@@ -621,7 +621,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                     ? 'You\'ve spun today — see you tomorrow!'
                                     : 'Your daily luck window is open. Spin now!',
                                 style: GoogleFonts.inter(
-                                  color: const Color(0xFFC7D2FE),
+                                  color: Color(0xFFC7D2FE),
                                   fontSize: 12.8,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.15,

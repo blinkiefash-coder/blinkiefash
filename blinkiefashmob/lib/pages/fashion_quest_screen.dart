@@ -764,12 +764,12 @@ class _FashionQuestScreenState extends State<FashionQuestScreen>
 
   Widget _buildBody() {
     if (_userId == null) {
-      return const Center(
+      return Center(
         child: Padding(
-          padding: EdgeInsets.all(28),
+          padding: const EdgeInsets.all(28),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: [
+            children: const [
               Text('🔒', style: TextStyle(fontSize: 64)),
               SizedBox(height: 14),
               Text(

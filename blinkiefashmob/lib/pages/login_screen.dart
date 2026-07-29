@@ -193,16 +193,40 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithFirebase(PhoneAuthCredential credential) async {
+    String? idToken;
     try {
       final userCred = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
-      final idToken = await userCred.user?.getIdToken();
+      idToken = await userCred.user?.getIdToken();
+    } catch (e) {
+      // Known firebase_auth_android Pigeon bug: native sign-in may succeed
+      // but Dart parsing throws 'List<Object?> is not a subtype of PigeonUserDetails'.
+      final errStr = e.toString();
+      if (errStr.contains('PigeonUserDetails') ||
+          errStr.contains('List<Object?>')) {
+        final fallbackUser = FirebaseAuth.instance.currentUser;
+        if (fallbackUser != null) {
+          idToken = await fallbackUser.getIdToken(true);
+        }
+      }
+      if (idToken == null) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Sign in failed: ${errStr.split("\n").first}';
+          });
+        }
+        return;
+      }
+    }
+    try {
       if (idToken == null) throw Exception('No ID token');
       final res = await _api.verifyWithFirebaseToken(idToken: idToken);
       if (!mounted) return;
       if (res['success'] != true) {
         final msg = res['message']?.toString() ?? '';
+        // New user — redirect to signup with phone pre-filled
         if (msg.toLowerCase().contains('not found') ||
             msg.toLowerCase().contains('register')) {
           final phone = _digits(_phoneCtrl.text.trim());
@@ -222,17 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
         });
         return;
       }
-      final normalized = <String, dynamic>{...res};
-      if (normalized['user'] is! Map && normalized['user'] is! List) {
-        normalized['user'] = <String, dynamic>{
-          'id': normalized['id'] ?? '',
-          'name': normalized['name'] ?? '',
-          'phone': normalized['phone'] ?? '',
-          'role': normalized['role'] ?? '',
-          'email': normalized['email'] ?? '',
-        };
-      }
-      await UserSession.instance.setFromLoginResponse(normalized);
+      await UserSession.instance.setFromLoginResponse(res);
       NotificationService.instance.registerForCurrentUser();
       _completeAuth();
     } catch (e) {
@@ -874,9 +888,9 @@ class _PasteOtpButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
         ),
-        child: const Row(
+        child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+          children: const [
             Icon(Icons.paste_rounded, size: 18, color: Color(0xFF16A34A)),
             SizedBox(width: 8),
             Text(

@@ -148,15 +148,15 @@ class _OrdersScreenState extends State<OrdersScreen> {
     }
     if (_orders.isEmpty) {
       return ListView(
-        children: const [
-          SizedBox(height: 80),
-          Icon(
+        children: [
+          const SizedBox(height: 80),
+          const Icon(
             Icons.receipt_long_outlined,
             size: 72,
             color: Color(0xFFD1D5DB),
           ),
-          SizedBox(height: 16),
-          Text(
+          const SizedBox(height: 16),
+          const Text(
             'No orders yet',
             textAlign: TextAlign.center,
             style: TextStyle(
@@ -165,8 +165,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
               color: Color(0xFF374151),
             ),
           ),
-          SizedBox(height: 8),
-          Text(
+          const SizedBox(height: 8),
+          const Text(
             'Your placed orders will appear here',
             textAlign: TextAlign.center,
             style: TextStyle(color: Color(0xFF6B7280)),

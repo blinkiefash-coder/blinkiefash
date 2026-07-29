@@ -177,10 +177,10 @@ class _SupportTab extends StatelessWidget {
             ),
             borderRadius: BorderRadius.circular(18),
           ),
-          child: const Column(
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Contact Support',
                 style: TextStyle(
                   fontSize: 18,
@@ -188,19 +188,19 @@ class _SupportTab extends StatelessWidget {
                   color: Colors.white,
                 ),
               ),
-              SizedBox(height: 12),
+              const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.phone_outlined,
                     color: Colors.white70,
                     size: 16,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: SelectableText(
                       '+91 9827901891',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -209,19 +209,19 @@ class _SupportTab extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.email_outlined,
                     color: Colors.white70,
                     size: 16,
                   ),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: SelectableText(
                       'support@blinkiefash.in',
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
@@ -230,8 +230,8 @@ class _SupportTab extends StatelessWidget {
                   ),
                 ],
               ),
-              SizedBox(height: 6),
-              Row(
+              const SizedBox(height: 6),
+              const Row(
                 children: [
                   Icon(
                     Icons.access_time_rounded,

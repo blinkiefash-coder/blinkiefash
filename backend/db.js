@@ -18,6 +18,63 @@ export const pool = new Pool({
 });
 
 export const ensureDatabaseTables = async () => {
+  // Data-driven mirrored category navigation (e.g., Men <-> Footwear)
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS category_mirror_links (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      source_root_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+      target_root_id UUID REFERENCES categories(id) ON DELETE CASCADE,
+      mirror_mode VARCHAR(32) NOT NULL DEFAULT 'shoe_like',
+      is_active BOOLEAN NOT NULL DEFAULT true,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(source_root_id, target_root_id, mirror_mode)
+    );
+  `).catch(() => {});
+
+  await pool.query(`
+    DO $$
+    DECLARE
+      men_id UUID;
+      footwear_id UUID;
+    BEGIN
+      SELECT id INTO men_id
+      FROM categories
+      WHERE parent_id IS NULL
+        AND lower(name) IN ('men', 'mens', 'men''s')
+      ORDER BY name
+      LIMIT 1;
+
+      SELECT id INTO footwear_id
+      FROM categories
+      WHERE parent_id IS NULL
+        AND (
+          lower(name) LIKE '%footwear%'
+          OR lower(name) IN ('shoe', 'shoes')
+        )
+      ORDER BY name
+      LIMIT 1;
+
+      IF men_id IS NOT NULL AND footwear_id IS NOT NULL THEN
+        INSERT INTO category_mirror_links (
+          source_root_id,
+          target_root_id,
+          mirror_mode,
+          is_active
+        ) VALUES (men_id, footwear_id, 'shoe_like', true)
+        ON CONFLICT (source_root_id, target_root_id, mirror_mode) DO NOTHING;
+
+        INSERT INTO category_mirror_links (
+          source_root_id,
+          target_root_id,
+          mirror_mode,
+          is_active
+        ) VALUES (footwear_id, men_id, 'shoe_like', true)
+        ON CONFLICT (source_root_id, target_root_id, mirror_mode) DO NOTHING;
+      END IF;
+    END $$;
+  `).catch(() => {});
+
   // Add google_uid to users if not already present (safe ALTER IF NOT EXISTS)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_uid VARCHAR(255)`).catch(() => {});
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_google_uid_idx ON users(google_uid) WHERE google_uid IS NOT NULL`).catch(() => {});
