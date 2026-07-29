@@ -12,6 +12,13 @@ if (keyPropertiesFile.exists()) {
     keyPropertiesFile.inputStream().use { keyProperties.load(it) }
 }
 
+val hasReleaseSigningConfig =
+    keyPropertiesFile.exists() &&
+    !keyProperties.getProperty("storeFile").isNullOrBlank() &&
+    !keyProperties.getProperty("storePassword").isNullOrBlank() &&
+    !keyProperties.getProperty("keyAlias").isNullOrBlank() &&
+    !keyProperties.getProperty("keyPassword").isNullOrBlank()
+
 android {
     namespace = "com.blinkiefash.app"
     compileSdk = flutter.compileSdkVersion
@@ -32,22 +39,29 @@ android {
         applicationId = "com.blinkiefash.app"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
-        versionCode = 11464
+        versionCode = 11465
         versionName = "2.0.3"
     }
 
     signingConfigs {
-        create("release") {
-            keyAlias = keyProperties["keyAlias"] as String?
-            keyPassword = keyProperties["keyPassword"] as String?
-            storeFile = keyProperties["storeFile"]?.let { file(it) }
-            storePassword = keyProperties["storePassword"] as String?
+        if (hasReleaseSigningConfig) {
+            create("release") {
+                keyAlias = keyProperties.getProperty("keyAlias")
+                keyPassword = keyProperties.getProperty("keyPassword")
+                storeFile = rootProject.file(keyProperties.getProperty("storeFile"))
+                storePassword = keyProperties.getProperty("storePassword")
+            }
         }
     }
 
     buildTypes {
         named("release") {
-            signingConfig = signingConfigs.getByName("release")
+            signingConfig = if (hasReleaseSigningConfig) {
+                signingConfigs.getByName("release")
+            } else {
+                println("[blinkiefash] key.properties missing/incomplete; using debug signing for release bundle.")
+                signingConfigs.getByName("debug")
+            }
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(
@@ -77,7 +91,10 @@ dependencies {
 
 // Suppress deprecation and unchecked warnings from third-party plugins
 tasks.withType<JavaCompile>().configureEach {
+    options.isWarnings = false
     options.compilerArgs.addAll(listOf(
+        "-nowarn",
+        "-Xlint:none",
         "-Xlint:-deprecation",
         "-Xlint:-unchecked"
     ))

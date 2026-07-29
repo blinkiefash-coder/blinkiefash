@@ -6,7 +6,10 @@ allprojects {
 
     // Suppress deprecation warnings from third-party plugin dependencies
     tasks.withType<JavaCompile>().configureEach {
+        options.isWarnings = false
         options.compilerArgs.addAll(listOf(
+            "-nowarn",
+            "-Xlint:none",
             "-Xlint:-deprecation",
             "-Xlint:-unchecked"
         ))

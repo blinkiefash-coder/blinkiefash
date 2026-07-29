@@ -209,9 +209,9 @@ class _BfPageLoaderState extends State<BfPageLoader>
       child: Stack(
         children: [
           // ── Sky gradient ──────────────────────────────────────
-          Positioned.fill(
+          const Positioned.fill(
             child: DecoratedBox(
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -363,9 +363,9 @@ class _BfPageLoaderState extends State<BfPageLoader>
                 final t = _dotsCtrl.value;
                 return Column(
                   children: [
-                    Text(
+                    const Text(
                       'FASHION DELIVERED IN A BLINK',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Color(0xFF15803D),
                         fontSize: 14,
                         letterSpacing: 2.0,

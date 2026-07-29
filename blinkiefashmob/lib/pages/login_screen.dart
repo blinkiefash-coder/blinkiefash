@@ -888,9 +888,9 @@ class _PasteOtpButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
         ),
-        child: Row(
+        child: const Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
+          children: [
             Icon(Icons.paste_rounded, size: 18, color: Color(0xFF16A34A)),
             SizedBox(width: 8),
             Text(

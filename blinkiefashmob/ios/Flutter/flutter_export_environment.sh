@@ -1,8 +1,8 @@
 #!/bin/sh
 # This is a generated file; do not edit or check into version control.
 export "FLUTTER_ROOT=/opt/homebrew/share/flutter"
-export "FLUTTER_APPLICATION_PATH=/Users/sa40091223/Downloads/SatyXAlka/blinkiefashmob"
-export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/sa40091223/Downloads/SatyXAlka/blinkiefashmob/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
+export "FLUTTER_APPLICATION_PATH=/Users/sa40091223/Downloads/SatyXAlka/blinkiefash/blinkiefashmob"
+export "FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/sa40091223/Downloads/SatyXAlka/blinkiefash/blinkiefashmob/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework"
 export "COCOAPODS_PARALLEL_CODE_SIGN=true"
 export "FLUTTER_TARGET=lib/main.dart"
 export "FLUTTER_BUILD_DIR=build"

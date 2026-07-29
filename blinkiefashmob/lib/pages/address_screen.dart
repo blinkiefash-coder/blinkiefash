@@ -157,8 +157,8 @@ class _AddressListSheetState extends State<_AddressListSheet> {
                 children: [
                   Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFECFDF5),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFECFDF5),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(

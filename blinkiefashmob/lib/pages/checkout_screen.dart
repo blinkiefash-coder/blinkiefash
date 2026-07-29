@@ -693,7 +693,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final mrpDiscount = (listingTotal - subtotal).clamp(0.0, listingTotal);
 
     final productUnits = cartItems.fold<int>(0, (sum, i) => sum + i.quantity);
-    final platformFee = _platformFeeFlat;
+    const platformFee = _platformFeeFlat;
     final shippingPackagingHandlingFee =
         productUnits * _shippingPackagingHandlingPerProduct;
 
@@ -705,7 +705,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final clothingDiscount = (_useClothing && _availableClothingPercent > 0)
         ? subtotal * _availableClothingPercent / 100
         : 0.0;
-    final firstOrderDiscount = 0.0;
+    const firstOrderDiscount = 0.0;
     final spinDiscount = (_useSpinReward && _spinRewardPct > 0)
         ? subtotal * _spinRewardPct / 100
         : 0.0;
@@ -948,15 +948,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
+                  const Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.recycling_rounded,
                         color: Color(0xFF16A34A),
                         size: 20,
                       ),
-                      const SizedBox(width: 10),
-                      const Expanded(
+                      SizedBox(width: 10),
+                      Expanded(
                         child: Text(
                           'Are you willing to donate clothes?',
                           style: TextStyle(
@@ -1411,17 +1411,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 if (_spinRewardPct == 0 &&
                     _questRewardPct == 0 &&
                     !_couponApplied)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
                     child: Row(
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.lightbulb_outline,
                           color: Color(0xFF9CA3AF),
                           size: 16,
                         ),
-                        const SizedBox(width: 6),
-                        const Expanded(
+                        SizedBox(width: 6),
+                        Expanded(
                           child: Text(
                             'Play Spin & Win or Fashion Quest to earn discount rewards!',
                             style: TextStyle(
@@ -1546,10 +1546,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Divider(height: 1, color: Color(0xFFF3F4F6)),
                 ),
                 // ── Delivery ─────────────────────────────────────────────
-                _PriceRow(
+                const _PriceRow(
                   label: 'Delivery Charges',
                   value: 'FREE',
-                  valueColor: const Color(0xFF16A34A),
+                  valueColor: Color(0xFF16A34A),
                 ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
@@ -1839,7 +1839,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: const Color(0xFFFFCC02)),
                   ),
-                  child: Text(
+                  child: const Text(
                     '🕘 Store closed — choose tomorrow delivery between 7:30 AM and 9:00 PM',
                     style: TextStyle(
                       fontSize: 12,
