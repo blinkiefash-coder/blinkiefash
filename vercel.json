@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/backend-proxy/(.*)",
+      "destination": "https://blinkiefash.onrender.com/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
