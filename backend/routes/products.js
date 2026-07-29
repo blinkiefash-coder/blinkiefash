@@ -872,40 +872,68 @@ router.get("/", async (req, res) => {
     }
 
     if (category_id) {
-      // Data-driven mirror roots (e.g., Footwear -> Men) so category filtering
-      // includes mapped trees as well.
-      const categoryRootIds = [category_id];
+      // Always include selected root tree. If selected root is Footwear-like,
+      // also include Men/Women footwear subcategory trees.
+      const linkedFootwearRootIds = [];
+      const footwearPattern = '(footwear|shoe|shoes|sneaker|loafer|sandal|slipper|flip|heel|boot|mule|clog)';
+
       try {
-        const mirrorRes = await pool.query(
-          `SELECT target_root_id
-           FROM category_mirror_links
-           WHERE source_root_id = $1
-             AND is_active = true`,
+        const selectedRootRes = await pool.query(
+          `SELECT lower(name) AS name FROM categories WHERE id = $1 LIMIT 1`,
           [category_id]
         );
-        for (const row of mirrorRes.rows) {
-          const id = row?.target_root_id?.toString();
-          if (id && !categoryRootIds.includes(id)) {
-            categoryRootIds.push(id);
+
+        const selectedRootName = selectedRootRes.rows[0]?.name || '';
+        const isFootwearRoot = new RegExp(footwearPattern).test(selectedRootName);
+
+        if (isFootwearRoot) {
+          const linkedRootsRes = await pool.query(
+            `SELECT c.id
+             FROM categories c
+             JOIN categories parent ON parent.id = c.parent_id
+             WHERE lower(parent.name) IN ('men', 'women')
+               AND lower(c.name) ~ $1`,
+            [footwearPattern]
+          );
+
+          for (const row of linkedRootsRes.rows) {
+            const id = row?.id?.toString();
+            if (id && !linkedFootwearRootIds.includes(id)) {
+              linkedFootwearRootIds.push(id);
+            }
           }
         }
       } catch (e) {
-        // Mirror table may not exist yet during first boot.
-        if (e?.code !== '42P01') throw e;
+        // If category lookup fails, continue with selected root only.
+        console.warn('Footwear linked category lookup skipped:', e?.message || e);
       }
 
-      // match each root category + children + grandchildren (3 levels)
+      // selected root: full tree (root + children + grandchildren)
+      // linkedFootwearRootIds: Men/Women footwear roots + their descendants
       query += ` AND p.category_id IN (
-        SELECT id FROM categories WHERE id = ANY($${index}::uuid[])
+        SELECT id FROM categories WHERE id = $${index}
         UNION
-        SELECT id FROM categories WHERE parent_id = ANY($${index}::uuid[])
+        SELECT id FROM categories WHERE parent_id = $${index}
         UNION
         SELECT c2.id FROM categories c2
           JOIN categories c1 ON c2.parent_id = c1.id
-          WHERE c1.parent_id = ANY($${index}::uuid[])
+          WHERE c1.parent_id = $${index}
+
+        UNION
+        SELECT id FROM categories
+          WHERE id = ANY($${index + 1}::uuid[])
+
+        UNION
+        SELECT id FROM categories
+          WHERE parent_id = ANY($${index + 1}::uuid[])
+
+        UNION
+        SELECT c2.id FROM categories c2
+          JOIN categories c1 ON c2.parent_id = c1.id
+          WHERE c1.parent_id = ANY($${index + 1}::uuid[])
       )`;
-      values.push(categoryRootIds);
-      index++;
+      values.push(category_id, linkedFootwearRootIds);
+      index += 2;
     }
 
     if (min_price) {

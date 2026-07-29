@@ -45,6 +45,9 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
+  static const String _prefDeliveryCity = 'home_delivery_city';
+  static const String _prefDeliveryLat = 'home_delivery_lat';
+  static const String _prefDeliveryLng = 'home_delivery_lng';
   static const String _googleMapsApiKeyUpper = String.fromEnvironment(
     'GOOGLE_MAPS_API_KEY',
     defaultValue: '',
@@ -59,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen>
   final ApiClient _api = ApiClient();
   int _tab = 0;
   bool _guestStartupLocationPromptShown = false;
+  bool _isLocationSheetOpen = false;
 
   bool _isLoading = true;
   bool _outOfServiceArea = false; // true when nearest store exceeds DB radius
@@ -76,6 +80,7 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _womensProducts = const [];
   List<Map<String, dynamic>> _kidsProducts = const [];
   List<Map<String, dynamic>> _electronicsProducts = const [];
+  List<Map<String, dynamic>> _trendyShoesProducts = const [];
   String? _pumaBrandId;
 
   // Shop By Category section
@@ -143,20 +148,77 @@ class _HomeScreenState extends State<HomeScreen>
   void initState() {
     super.initState();
     _loadSelectedAvatar();
+    _restoreSavedLocation();
     _loadHomeData();
-    _tryLoadLocationSilently();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _promptGuestLocationSelection();
+      _bootstrapLocationPromptFlow();
     });
+  }
+
+  Future<void> _bootstrapLocationPromptFlow() async {
+    await _tryLoadLocationSilently();
+    if (!mounted) return;
+    await _promptGuestLocationSelection();
   }
 
   Future<void> _promptGuestLocationSelection() async {
     if (_guestStartupLocationPromptShown || !mounted) return;
     if (UserSession.instance.isLoggedIn) return;
+    if (_hasResolvedLocation()) return;
     _guestStartupLocationPromptShown = true;
-    await Future<void>.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
     await _openLocationPicker();
+  }
+
+  bool _hasResolvedLocation() {
+    if (_lastKnownLat != null && _lastKnownLng != null) return true;
+    final text = _currentLocation.trim().toLowerCase();
+    if (text.isEmpty) return false;
+    const unresolved = {
+      'detecting location...',
+      'set location',
+      'location denied',
+      'selected location',
+    };
+    return !unresolved.contains(text);
+  }
+
+  Future<void> _restoreSavedLocation() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedCity = (prefs.getString(_prefDeliveryCity) ?? '').trim();
+      final savedLat = prefs.getDouble(_prefDeliveryLat);
+      final savedLng = prefs.getDouble(_prefDeliveryLng);
+
+      if (!mounted) return;
+      if (savedCity.isEmpty && (savedLat == null || savedLng == null)) return;
+
+      setState(() {
+        if (savedCity.isNotEmpty) {
+          _currentLocation = savedCity;
+        }
+        _lastKnownLat = savedLat;
+        _lastKnownLng = savedLng;
+      });
+
+      if (savedLat != null && savedLng != null) {
+        _loadHomeData(lat: savedLat, lng: savedLng);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _persistResolvedLocation({
+    required String city,
+    required double lat,
+    required double lng,
+  }) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (city.trim().isNotEmpty) {
+        await prefs.setString(_prefDeliveryCity, city.trim());
+      }
+      await prefs.setDouble(_prefDeliveryLat, lat);
+      await prefs.setDouble(_prefDeliveryLng, lng);
+    } catch (_) {}
   }
 
   @override
@@ -408,6 +470,7 @@ class _HomeScreenState extends State<HomeScreen>
       unawaited(_loadWomensProducts());
       unawaited(_loadKidsProducts());
       unawaited(_loadElectronicsProducts());
+      unawaited(_loadTrendyShoesProducts());
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -469,6 +532,14 @@ class _HomeScreenState extends State<HomeScreen>
       rootCategoryName: 'Electronics',
       fallbackSearch: 'electronics',
       assign: (products) => _electronicsProducts = products,
+    );
+  }
+
+  Future<void> _loadTrendyShoesProducts() async {
+    await _loadCollectionProducts(
+      rootCategoryName: 'Footwear',
+      fallbackSearch: 'shoes sneakers sandals footwear',
+      assign: (products) => _trendyShoesProducts = products,
     );
   }
 
@@ -588,30 +659,44 @@ class _HomeScreenState extends State<HomeScreen>
           _lastKnownLat = pos.latitude;
           _lastKnownLng = pos.longitude;
         });
+        _persistResolvedLocation(
+          city: city,
+          lat: pos.latitude,
+          lng: pos.longitude,
+        );
+        if (_isLocationSheetOpen && mounted) {
+          Navigator.of(context).maybePop();
+        }
         _loadHomeData(lat: pos.latitude, lng: pos.longitude);
       }
     } catch (_) {}
   }
 
   Future<void> _openLocationPicker() async {
+    if (_isLocationSheetOpen || !mounted) return;
+    _isLocationSheetOpen = true;
     final userId = UserSession.instance.userId;
-    await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) => _LocationSheet(
-        api: _api,
-        userId: userId,
-        onCurrentLocation: () {
-          Navigator.pop(ctx);
-          _requestAndDetectCurrentLocation();
-        },
-        onAddressSelected: _selectAddress,
-      ),
-    );
+    try {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        builder: (ctx) => _LocationSheet(
+          api: _api,
+          userId: userId,
+          onCurrentLocation: () {
+            Navigator.pop(ctx);
+            _requestAndDetectCurrentLocation();
+          },
+          onAddressSelected: _selectAddress,
+        ),
+      );
+    } finally {
+      _isLocationSheetOpen = false;
+    }
   }
 
   Future<void> _selectAddress(Map<String, dynamic> addr) async {
@@ -642,13 +727,15 @@ class _HomeScreenState extends State<HomeScreen>
     ApiClient.currentStoreId = null; // will be refreshed by _loadHomeData
     ApiClient.currentStoreIds = const [];
     if (mounted) {
+      final resolvedCity = city.isNotEmpty
+          ? city
+          : (line.isNotEmpty ? line : 'Selected Location');
       setState(() {
-        _currentLocation = city.isNotEmpty
-            ? city
-            : (line.isNotEmpty ? line : 'Selected Location');
+        _currentLocation = resolvedCity;
         _lastKnownLat = lat;
         _lastKnownLng = lng;
       });
+      _persistResolvedLocation(city: resolvedCity, lat: lat, lng: lng);
     }
     _loadHomeData(lat: lat, lng: lng);
   }
@@ -1128,6 +1215,25 @@ class _HomeScreenState extends State<HomeScreen>
                     audienceLabel: 'Electronics',
                     products: _electronicsProducts,
                     categoryChips: _electronicsCats,
+                  )
+                : _stockOutBanner(),
+            _sectionHeader(
+              'TRENDY SHOES',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Footwear',
+                    initialSort: 'newest',
+                  ),
+                ),
+              ),
+            ),
+            _trendyShoesProducts.isNotEmpty
+                ? _collectionCreativeSection(
+                    audienceLabel: 'Trendy Shoes',
+                    products: _trendyShoesProducts,
+                    categoryChips: _trendyShoesCats,
                   )
                 : _stockOutBanner(),
             _sectionHeader(
@@ -2125,6 +2231,17 @@ class _HomeScreenState extends State<HomeScreen>
     {'emoji': '📷', 'label': 'Camera'},
   ];
 
+  static const _trendyShoesCats = [
+    {'emoji': '👟', 'label': 'Sneakers'},
+    {'emoji': '👞', 'label': 'Loafers'},
+    {'emoji': '🥾', 'label': 'Boots'},
+    {'emoji': '👠', 'label': 'Heels'},
+    {'emoji': '🩴', 'label': 'Slides'},
+    {'emoji': '🥿', 'label': 'Flats'},
+    {'emoji': '👡', 'label': 'Sandals'},
+    {'emoji': '👟', 'label': 'Sports Shoes'},
+  ];
+
   Widget _mensCreativeSection() {
     return _collectionCreativeSection(
       audienceLabel: 'Men',
@@ -2151,8 +2268,10 @@ class _HomeScreenState extends State<HomeScreen>
             itemBuilder: (_, i) {
               final cat = categoryChips[i];
               final label = cat['label'] ?? '';
-              final query = (audienceLabel == 'Electronics')
+              final query = audienceLabel == 'Electronics'
                   ? label
+                  : audienceLabel == 'Trendy Shoes'
+                  ? 'footwear $label'
                   : '$audienceLabel $label';
               return GestureDetector(
                 onTap: () => Navigator.of(context).push(
