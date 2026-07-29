@@ -44,37 +44,40 @@ const allowedOrigins = [
     : []),
 ];
 
+const localhostOriginPattern = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i;
+const secureWebOriginPattern = /^https:\/\/[a-z0-9-]+(?:\.[a-z0-9-]+)+$/i;
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+
+  const normalizedOrigin = origin.replace(/\/$/, "");
+
+  return (
+    allowedOrigins.includes(normalizedOrigin) ||
+    localhostOriginPattern.test(normalizedOrigin) ||
+    secureWebOriginPattern.test(normalizedOrigin)
+  );
+};
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (isAllowedOrigin(origin)) {
+      callback(null, true);
+      return;
+    }
+
+    console.warn(`CORS rejected: ${origin}`);
+    callback(new Error("Not allowed by CORS"));
+  },
+  methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 204,
+};
+
 app.use(
-  cors({
-    origin(origin, callback) {
-      if (!origin) {
-        callback(null, true);
-        return;
-      }
-
-      const normalizedOrigin = origin.replace(/\/$/, "");
-
-      const isBlinkieDomain =
-        /^https:\/\/([a-z0-9-]+\.)*blinkiefash\.(in|com)$/i.test(
-          normalizedOrigin
-        );
-      const isVercelPreview =
-        /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(normalizedOrigin);
-
-      if (
-        allowedOrigins.includes(normalizedOrigin) ||
-        isBlinkieDomain ||
-        isVercelPreview
-      ) {
-        callback(null, true);
-        return;
-      }
-      
-      console.warn(`CORS rejected: ${origin}`);
-      callback(new Error("Not allowed by CORS"));
-    },
-  })
+  cors(corsOptions)
 );
+app.options(/.*/, cors(corsOptions));
 app.use(express.json());
 
 // Health check endpoint
