@@ -193,11 +193,34 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _signInWithFirebase(PhoneAuthCredential credential) async {
+    String? idToken;
     try {
       final userCred = await FirebaseAuth.instance.signInWithCredential(
         credential,
       );
-      final idToken = await userCred.user?.getIdToken();
+      idToken = await userCred.user?.getIdToken();
+    } catch (e) {
+      // Known firebase_auth_android Pigeon bug: native sign-in may succeed
+      // but Dart parsing throws 'List<Object?> is not a subtype of PigeonUserDetails'.
+      final errStr = e.toString();
+      if (errStr.contains('PigeonUserDetails') ||
+          errStr.contains('List<Object?>')) {
+        final fallbackUser = FirebaseAuth.instance.currentUser;
+        if (fallbackUser != null) {
+          idToken = await fallbackUser.getIdToken(true);
+        }
+      }
+      if (idToken == null) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Sign in failed: ${errStr.split("\n").first}';
+          });
+        }
+        return;
+      }
+    }
+    try {
       if (idToken == null) throw Exception('No ID token');
       final res = await _api.verifyWithFirebaseToken(idToken: idToken);
       if (!mounted) return;

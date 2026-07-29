@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import '../firebase_options.dart';
@@ -305,5 +305,16 @@ class NotificationService {
     } finally {
       _vendorRingInProgress = false;
     }
+  }
+
+  // ── Unread count tracking ─────────────────────────────────────────────────
+  final ValueNotifier<int> unreadCountNotifier = ValueNotifier<int>(0);
+
+  void setUnreadCount(int count) {
+    unreadCountNotifier.value = count;
+  }
+
+  void clearUnread() {
+    unreadCountNotifier.value = 0;
   }
 }

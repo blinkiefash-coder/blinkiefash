@@ -334,6 +334,15 @@ class ApiClient {
     return const [];
   }
 
+  Future<List<dynamic>> fetchCategoryMirrors() async {
+    final uri = Uri.parse('$apiApiBaseUrl/categories/mirrors');
+    final data = await _getJson(uri);
+    if (data is List<dynamic>) {
+      return data;
+    }
+    return const [];
+  }
+
   Future<Map<String, dynamic>> fetchAllProducts({
     String? categoryId,
     String? brandId,

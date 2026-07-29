@@ -1088,8 +1088,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     child: img != null
                         ? CachedNetworkImage(
                             imageUrl: img,
-                            fit: BoxFit.cover,
-                            alignment: Alignment.topCenter,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
                             fadeInDuration: const Duration(milliseconds: 200),
                             placeholder: (_, _) =>
                                 Container(color: const Color(0xFFF1F5F9)),

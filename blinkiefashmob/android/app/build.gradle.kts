@@ -56,6 +56,13 @@ android {
             )
         }
     }
+
+    lint {
+        disable.addAll(listOf(
+            "MissingDimensionAndroidApi",
+            "GradleCompatible"
+        ))
+    }
 }
 
 flutter {
@@ -66,4 +73,12 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.media:media:1.0.1")
+}
+
+// Suppress deprecation and unchecked warnings from third-party plugins
+tasks.withType<JavaCompile>().configureEach {
+    options.compilerArgs.addAll(listOf(
+        "-Xlint:-deprecation",
+        "-Xlint:-unchecked"
+    ))
 }
