@@ -5,7 +5,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import { clearVendorPasswordAuth, markVendorPasswordAuth } from "../utils/vendorSession";
 
-const ADMIN_EMAIL = "satyxalka@blinkiefash.in";
+const ADMIN_EMAIL = "superadminsatyam@blinkiefash.in";
 
 export default function VendorAuth() {
 
@@ -39,6 +39,7 @@ export default function VendorAuth() {
         }
         localStorage.setItem("is_admin", "true");
         localStorage.setItem("admin_email", ADMIN_EMAIL);
+        if (data.user_id) localStorage.setItem("user_id", data.user_id);
         localStorage.setItem("store_name", "Admin — All Vendors");
         localStorage.setItem("vendor_name", data.admin_name || "Admin");
         localStorage.removeItem("vendor_id");
@@ -89,7 +90,7 @@ export default function VendorAuth() {
       <div className="vendor-page">
         <div className="vendor-card">
 
-          <h2>Vendor Login</h2>
+          <h2>Super Admin Login</h2>
 
           <form onSubmit={handleSubmit}>
 

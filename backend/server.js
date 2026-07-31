@@ -70,7 +70,7 @@ const corsOptions = {
     callback(new Error("Not allowed by CORS"));
   },
   methods: ["GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Admin-Email"],
   optionsSuccessStatus: 204,
 };
 
@@ -129,8 +129,18 @@ const listenOnAvailablePort = (startPort) => {
 };
 
 const startServer = async () => {
-  await ensureDatabaseTables();
-  await ensureGamificationTables();
+  try {
+    await ensureDatabaseTables();
+  } catch (error) {
+    console.warn("[server] continuing without DB initialization:", error.message);
+  }
+
+  try {
+    await ensureGamificationTables();
+  } catch (error) {
+    console.warn("[server] continuing without gamification init:", error.message);
+  }
+
   const { port } = await listenOnAvailablePort(DEFAULT_PORT);
   console.log(`✅ Backend running on port ${port}`);
 

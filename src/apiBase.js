@@ -2,9 +2,9 @@
 const getAPIBase = () => {
   const envURL = import.meta.env.VITE_API_BASE_URL?.trim();
 
-  // In development
+  // In development, use the same hostname dynamically (works for both localhost and 127.0.0.1)
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return envURL || 'http://localhost:5000';
+    return envURL || `http://${window.location.hostname}:5000`;
   }
 
   if (envURL) {

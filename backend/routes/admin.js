@@ -3,24 +3,78 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
-// ── Admin credentials (override via env vars) ─────────────────────────────────
-const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "satyxalka@blinkiefash.in";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "SatyamloveAlka";
+const isDatabaseUnavailableError = (error) => {
+  const message = String(error?.message || "");
+  return (
+    message.includes("SASL") ||
+    message.includes("password must be a string") ||
+    message.includes("ECONNREFUSED") ||
+    message.includes("ENOTFOUND") ||
+    message.includes("timeout")
+  );
+};
+
+// ── Super-admin credentials (override via env vars) ───────────────────────
+const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "superadminsatyam@blinkiefash.in";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "satyxalka@13987";
 
 // ── POST /api/admin/login  Body: { email, password } ─────────────────────────
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
   const { email = "", password = "" } = req.body || {};
+  const normalizedEmail = String(email).trim().toLowerCase();
+  const normalizedPassword = String(password);
+
   if (
-    String(email).trim().toLowerCase() === ADMIN_EMAIL.toLowerCase() &&
-    String(password) === ADMIN_PASSWORD
+    normalizedEmail === ADMIN_EMAIL.toLowerCase() &&
+    normalizedPassword === ADMIN_PASSWORD
   ) {
-    return res.json({
-      success: true,
-      is_admin: true,
-      admin_name: "SatyXAlka Admin",
-      admin_email: ADMIN_EMAIL,
-    });
+    try {
+      let userId = null;
+
+      try {
+        const existingUser = await pool.query(
+          `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
+          [normalizedEmail]
+        );
+
+        userId = existingUser.rows[0]?.id;
+
+        if (!userId) {
+          const insertedUser = await pool.query(
+            `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, true, NOW(), NOW())
+             RETURNING id`,
+            ["SatyXAlka Admin", "0000000000", normalizedEmail, "admin"]
+          );
+          userId = insertedUser.rows[0]?.id;
+        } else {
+          await pool.query(
+            `UPDATE users
+             SET name = COALESCE(name, $1), role = $2, is_active = true, updated_at = NOW()
+             WHERE id = $3`,
+            ["SatyXAlka Admin", "admin", userId]
+          );
+        }
+      } catch (dbError) {
+        console.warn("[admin/login] DB unavailable; continuing with fallback admin login.", dbError.message);
+      }
+
+      return res.json({
+        success: true,
+        is_admin: true,
+        admin_name: "SatyXAlka Admin",
+        admin_email: ADMIN_EMAIL,
+        user_id: userId,
+      });
+    } catch (error) {
+      console.error("[admin/login] error:", error.message);
+      return res.status(500).json({
+        success: false,
+        message: "Unable to create admin user session",
+      });
+    }
   }
+
   return res.status(401).json({ success: false, message: "Invalid admin credentials" });
 });
 
@@ -95,6 +149,11 @@ router.get("/orders", adminGuard, async (req, res) => {
 
     res.json({ success: true, orders: rows, total: rows.length });
   } catch (err) {
+    if (isDatabaseUnavailableError(err)) {
+      console.warn("[admin/orders] DB unavailable; returning empty fallback payload.");
+      return res.json({ success: true, orders: [], total: 0 });
+    }
+
     console.error("[admin/orders] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -181,6 +240,26 @@ router.get("/insights", adminGuard, async (req, res) => {
       revenueByDay: revenueByDay.rows,
     });
   } catch (err) {
+    if (isDatabaseUnavailableError(err)) {
+      console.warn("[admin/insights] DB unavailable; returning empty fallback payload.");
+      return res.json({
+        success: true,
+        summary: {
+          total_orders: 0,
+          new_orders: 0,
+          confirmed_orders: 0,
+          delivered_orders: 0,
+          cancelled_orders: 0,
+          total_revenue: 0,
+          revenue_last_30d: 0,
+          revenue_today: 0,
+        },
+        vendors: [],
+        topProducts: [],
+        revenueByDay: [],
+      });
+    }
+
     console.error("[admin/insights] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
@@ -202,6 +281,11 @@ router.get("/vendors", adminGuard, async (req, res) => {
     `);
     res.json({ success: true, vendors: rows });
   } catch (err) {
+    if (isDatabaseUnavailableError(err)) {
+      console.warn("[admin/vendors] DB unavailable; returning empty fallback payload.");
+      return res.json({ success: true, vendors: [] });
+    }
+
     console.error("[admin/vendors] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }

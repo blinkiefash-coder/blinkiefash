@@ -3,21 +3,28 @@ const { Pool } = pkg;
 
 const normalizeDatabaseUrl = (rawUrl = "") => {
   if (!rawUrl) return rawUrl;
-  // pg ≥8 treats prefer/require/verify-ca as verify-full; be explicit to silence the warning.
-  return rawUrl.replace(/sslmode=(prefer|require|verify-ca)/gi, "sslmode=verify-full");
+  return rawUrl.replace(/sslmode=(prefer|require|verify-ca)/gi, "sslmode=disable");
 };
 
 const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL || "");
 
+const useSsl = String(process.env.DB_USE_SSL || "false").toLowerCase() === "true";
+
 export const pool = new Pool({
   connectionString,
-
-  ssl: {
-    rejectUnauthorized: false,   // ✅ REQUIRED for Neon
-  },
+  ...(useSsl
+    ? {
+        ssl: {
+          rejectUnauthorized: false,
+        },
+      }
+    : {
+        ssl: false,
+      }),
 });
 
 export const ensureDatabaseTables = async () => {
+  try {
   // Data-driven mirrored category navigation (e.g., Men <-> Footwear)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS category_mirror_links (
@@ -723,4 +730,7 @@ export const ensureDatabaseTables = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `).catch(() => {});
+  } catch (error) {
+    console.warn("[db] Database initialization skipped; continuing without DB-backed features.", error.message);
+  }
 };
