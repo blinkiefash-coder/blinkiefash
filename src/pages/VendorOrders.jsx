@@ -54,6 +54,30 @@ function showBrowserNotification(title, body) {
   }
 }
 
+function getItemImageUrl(item) {
+  const candidates = [
+    item?.product_image,
+    item?.image_url,
+    item?.imageUrl,
+    item?.image,
+    item?.product_image_url,
+    item?.product?.image_url,
+    item?.product?.imageUrl,
+    item?.product?.image,
+    item?.images?.[0],
+    item?.image_urls?.[0],
+  ];
+
+  return candidates.find((value) => typeof value === "string" && value.trim());
+}
+
+function formatLastUpdated(date = new Date()) {
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
 export default function VendorOrders() {
   const navigate = useNavigate();
   const [storeName, setStoreName] = useState(
@@ -65,6 +89,8 @@ export default function VendorOrders() {
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState("placed");
   const [actionLoading, setActionLoading] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const knownOrderIds = useRef(new Set());
   const isFirstPoll = useRef(true);
 
@@ -85,6 +111,7 @@ export default function VendorOrders() {
 
   const fetchOrders = useCallback(async () => {
     if (!vendorId && !isAdmin()) return;
+    setRefreshing(true);
     try {
       let list = [];
       if (isAdmin()) {
@@ -124,13 +151,15 @@ export default function VendorOrders() {
 
       setOrders(list);
       setError("");
+      setLastUpdatedAt(formatLastUpdated());
     } catch (err) {
       setError("Could not load orders. Retrying...");
       console.error("[VendorOrders] poll error:", err.message);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  }, [vendorId]);
+  }, [vendorId, statusFilter]);
 
   useEffect(() => {
     if (!vendorId && !isAdmin()) {
@@ -151,7 +180,7 @@ export default function VendorOrders() {
     fetchOrders();
     const timer = setInterval(fetchOrders, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [vendorId, fetchOrders]);
+  }, [vendorId, statusFilter, fetchOrders]);
 
   const updateStatus = async (orderId, newStatus, cancelReason = "") => {
     setActionLoading(orderId + newStatus);
@@ -198,9 +227,9 @@ export default function VendorOrders() {
       onMenuClick={handleMenuClick}
     >
       <div className="vo-page">
-        {/* Header */}
-        <div className="vo-header">
-          <div>
+        <div className="vo-hero">
+          <div className="vo-hero-copy">
+            <p className="vo-eyebrow">Vendor dashboard</p>
             <h2 className="vo-title">
               Orders
               {newCount > 0 && (
@@ -208,16 +237,22 @@ export default function VendorOrders() {
               )}
             </h2>
             <p className="vo-subtitle">
-              Auto-refreshes every {POLL_INTERVAL_MS / 1000}s
+              Incoming orders stay synced live, so you can move through requests without leaving the page.
             </p>
           </div>
-          <button
-            className="vo-refresh-btn"
-            onClick={fetchOrders}
-            disabled={loading}
-          >
-            🔄 Refresh
-          </button>
+          <div className="vo-hero-actions">
+            <div className={`vo-live-pill ${refreshing ? "busy" : "online"}`}>
+              <span className="vo-live-dot" />
+              {refreshing ? "Syncing…" : `Updated ${lastUpdatedAt || "just now"}`}
+            </div>
+            <button
+              className="vo-refresh-btn"
+              onClick={() => fetchOrders()}
+              disabled={loading || refreshing}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
         </div>
 
         {/* Status filter tabs */}
@@ -308,14 +343,28 @@ export default function VendorOrders() {
 
                   {/* Items */}
                   <div className="vo-items">
-                    {(order.items || []).map((item, idx) => (
-                      <div key={idx} className="vo-item">
-                        <span className="vo-item-name">{item.product_name}</span>
-                        <span className="vo-item-detail">
-                          {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
-                        </span>
-                      </div>
-                    ))}
+                    {(order.items || []).map((item, idx) => {
+                      const imageUrl = getItemImageUrl(item);
+                      return (
+                        <div key={idx} className="vo-item">
+                          <div className="vo-item-main">
+                            <div className="vo-item-media">
+                              {imageUrl ? (
+                                <img src={imageUrl} alt={item.product_name || "Product"} />
+                              ) : (
+                                <span>🛍️</span>
+                              )}
+                            </div>
+                            <div className="vo-item-copy">
+                              <span className="vo-item-name">{item.product_name}</span>
+                              <span className="vo-item-detail">
+                                {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Actions */}

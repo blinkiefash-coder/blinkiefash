@@ -58,6 +58,19 @@ export default function VendorLayout({
     navigate("/vendor");
   };
 
+  const pageTitle =
+    activeKey === "orders"
+      ? "Orders"
+      : activeKey === "products"
+      ? "Add Product"
+      : activeKey === "edit"
+      ? "Edit Products"
+      : activeKey === "stock"
+      ? "Stock Monitoring"
+      : activeKey === "analytics"
+      ? "Product Analytics"
+      : "Vendor Portal";
+
   return (
     <div className={`vendor-product-shell ${isSidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded"}`}>
       <aside className={`vendor-left-panel ${isSidebarCollapsed ? "collapsed" : "expanded"}`}>
@@ -106,14 +119,26 @@ export default function VendorLayout({
         </nav>
 
         <div className="vendor-sidebar-footer">
-          <button type="button" className="vendor-logout-btn" onClick={handleLogout} title="Logout">
-            <span className="vendor-nav-icon">↵</span>
-            {!isSidebarCollapsed && <span className="vendor-nav-text">Logout</span>}
-          </button>
+          <div className="vendor-status-card">
+            <span className="vendor-status-label">Store status</span>
+            <strong>{resolvedVendorId && isOperational !== null ? (isOperational ? "Open for business" : "Paused for now") : "Checking status"}</strong>
+          </div>
         </div>
       </aside>
 
-      <main className="vendor-content">{children}</main>
+      <main className="vendor-content">
+        <div className="vendor-topbar">
+          <div>
+            <div className="vendor-topbar-title">{pageTitle}</div>
+            <div className="vendor-topbar-subtitle">{storeName}</div>
+          </div>
+          <button type="button" className="vendor-topbar-logout" onClick={handleLogout} title="Logout">
+            <span>↵</span>
+            Logout
+          </button>
+        </div>
+        <div className="vendor-content-body">{children}</div>
+      </main>
     </div>
   );
 }
