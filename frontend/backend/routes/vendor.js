@@ -229,7 +229,7 @@ router.get("/:id/products", async (req, res) => {
            ) i ON i.variant_id = pv.id
            WHERE pv.product_id = $1 AND pv.is_active = true
            ORDER BY pv.id ASC`,
-                   [product.id, linkedStoreId]
+                   [product.id]
         );
 
         return {
