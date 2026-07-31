@@ -151,6 +151,13 @@
   color: #1a1a1a;
 }
 
+.barcode-tag {
+  font-weight: 400;
+  font-size: 11px;
+  color: #6b7280;
+  font-family: monospace;
+}
+
 .total-stock {
   font-size: 14px;
   font-weight: 600;

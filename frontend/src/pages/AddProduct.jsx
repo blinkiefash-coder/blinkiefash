@@ -10,6 +10,7 @@ export default function AddProduct() {
   const [loading, setLoading] = useState(false);
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
   const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
+  const [vendorStoreId, setVendorStoreId] = useState(() => localStorage.getItem("vendor_store_id") || null);
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -68,6 +69,10 @@ export default function AddProduct() {
       }
       if (vendor?.owner_name) {
         localStorage.setItem("vendor_name", vendor.owner_name);
+      }
+      if (vendor?.dark_store_id) {
+        setVendorStoreId(vendor.dark_store_id);
+        localStorage.setItem("vendor_store_id", String(vendor.dark_store_id));
       }
     };
 
@@ -166,7 +171,7 @@ export default function AddProduct() {
         product: { vendor_id: vendorId, category_id: form.category_id, brand: form.brand,
           name: form.name, short_description: form.short_description,
           full_description: form.full_description, is_try_enabled: form.is_try_enabled,
-          store_id: null },
+          store_id: vendorStoreId },
         variants: preparedVariants,
         bundleOffers: Object.entries(bundleOffers)
           .filter(([_, enabled]) => enabled)
