@@ -110,6 +110,16 @@
 }
 .ep-stock-input:focus { outline: none; border-color: #16a34a; }
 
+.ep-price-input {
+  width: 92px;
+  padding: 5px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 13px;
+  text-align: center;
+}
+.ep-price-input:focus { outline: none; border-color: #16a34a; }
+
 .ep-row-actions { display: flex; gap: 6px; align-items: center; white-space: nowrap; }
 
 .ep-save-btn {

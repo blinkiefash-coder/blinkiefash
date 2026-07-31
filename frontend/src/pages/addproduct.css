@@ -85,7 +85,14 @@
 }
 
 .variant-box-extended {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.price-help {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
 }
 
 /* Barcode row under the variant inputs */

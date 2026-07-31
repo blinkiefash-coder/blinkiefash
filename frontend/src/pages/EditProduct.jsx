@@ -17,6 +17,7 @@ export default function EditProduct() {
   const [searchTerm, setSearchTerm] = useState("");
   const [expandedId, setExpandedId] = useState(null);
   const [stockEdits, setStockEdits] = useState({});
+  const [priceEdits, setPriceEdits] = useState({});
   const [saving, setSaving] = useState(null);
   const [addingTo, setAddingTo] = useState(null);
   const [newVariant, setNewVariant] = useState(EMPTY_VARIANT);
@@ -50,6 +51,22 @@ export default function EditProduct() {
     loadProducts();
   }, [vendorId]);
 
+  const resolveVariantPrice = (rawValue, mrpValue) => {
+    const text = String(rawValue ?? "").trim();
+    if (!text) return null;
+
+    const percentMatch = text.match(/^(-?\d+(?:\.\d+)?)\s*%$/);
+    if (percentMatch) {
+      const percent = Number(percentMatch[1]);
+      const baseMrp = Number(mrpValue ?? 0);
+      if (!Number.isFinite(baseMrp) || baseMrp <= 0) return null;
+      return Math.round(baseMrp * (1 - percent / 100));
+    }
+
+    const numericValue = Number(text.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(numericValue) ? Math.round(numericValue) : null;
+  };
+
   const loadProducts = async () => {
     setLoading(true);
     try {
@@ -57,9 +74,14 @@ export default function EditProduct() {
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       setProducts(list);
-      const edits = {};
-      list.forEach((p) => (p.variants || []).forEach((v) => { edits[v.id] = v.quantity ?? 0; }));
-      setStockEdits(edits);
+      const stockMap = {};
+      const priceMap = {};
+      list.forEach((p) => (p.variants || []).forEach((v) => {
+        stockMap[v.id] = v.quantity ?? 0;
+        priceMap[v.id] = v.price ?? "";
+      }));
+      setStockEdits(stockMap);
+      setPriceEdits(priceMap);
     } catch (err) {
       console.error(err);
     } finally {
@@ -73,16 +95,24 @@ export default function EditProduct() {
     (p.variants || []).some((v) => (v.barcode?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
   );
 
-  const saveStock = async (variantId) => {
+  const saveVariant = async (variantId, variantMeta) => {
     setSaving(variantId);
     try {
+      const resolvedPrice = resolveVariantPrice(priceEdits[variantId] ?? variantMeta.price, variantMeta.mrp);
+      const body = {
+        stock: Number(stockEdits[variantId] ?? 0),
+        store_id: vendorStoreId,
+      };
+      if (resolvedPrice !== null) body.price = resolvedPrice;
+
       const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/variants/${variantId}/stock`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stock: Number(stockEdits[variantId] ?? 0), store_id: vendorStoreId }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
+      await loadProducts();
     } catch (err) {
       alert(`Save failed: ${err.message}`);
     } finally {
@@ -115,14 +145,15 @@ export default function EditProduct() {
 
   const addVariant = async (productId) => {
     if (!newVariant.size.trim() || !newVariant.color.trim()) { alert("Size and Color are required"); return; }
-    if (!newVariant.price) { alert("Price is required"); return; }
+    const resolvedPrice = resolveVariantPrice(newVariant.price, newVariant.mrp);
+    if (resolvedPrice === null) { alert("Price is required. Enter a value like 499 or a percentage such as 40%."); return; }
     setAddSaving(true);
     try {
       const uploadedImages = await uploadImages(newVariant.imageFiles || []);
       const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products/${productId}/variants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newVariant, images: uploadedImages, store_id: vendorStoreId }),
+        body: JSON.stringify({ ...newVariant, price: resolvedPrice, images: uploadedImages, store_id: vendorStoreId }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
@@ -204,7 +235,15 @@ export default function EditProduct() {
                                 <td>{v.size}</td>
                                 <td>{v.color}</td>
                                 <td className="ep-mono">{v.barcode || "—"}</td>
-                                <td>₹{v.price}</td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="ep-price-input"
+                                    value={priceEdits[v.id] ?? v.price ?? ""}
+                                    onChange={(e) => setPriceEdits((s) => ({ ...s, [v.id]: e.target.value }))}
+                                    placeholder="499 or 40%"
+                                  />
+                                </td>
                                 <td>₹{v.mrp}</td>
                                 <td>
                                   <input
@@ -221,7 +260,7 @@ export default function EditProduct() {
                                   <button
                                     className="ep-save-btn"
                                     disabled={saving === v.id}
-                                    onClick={() => saveStock(v.id)}
+                                    onClick={() => saveVariant(v.id, v)}
                                   >
                                     {saving === v.id ? "…" : "Save"}
                                   </button>
@@ -256,8 +295,8 @@ export default function EditProduct() {
                               <input placeholder="optional" value={newVariant.barcode} onChange={(e) => setNewVariant((s) => ({ ...s, barcode: e.target.value }))} />
                             </label>
                             <label>
-                              Price ₹ *
-                              <input type="number" min="0" value={newVariant.price} onChange={(e) => setNewVariant((s) => ({ ...s, price: e.target.value }))} />
+                              Price / % *
+                              <input type="text" value={newVariant.price} onChange={(e) => setNewVariant((s) => ({ ...s, price: e.target.value }))} placeholder="499 or 40%" />
                             </label>
                             <label>
                               MRP ₹

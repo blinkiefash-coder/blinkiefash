@@ -122,6 +122,22 @@ export default function AddProduct() {
     setVariants(updated);
   };
 
+  const resolveVariantPrice = (rawValue, mrpValue) => {
+    const text = String(rawValue ?? "").trim();
+    if (!text) return null;
+
+    const percentMatch = text.match(/^(-?\d+(?:\.\d+)?)\s*%$/);
+    if (percentMatch) {
+      const percent = Number(percentMatch[1]);
+      const baseMrp = Number(mrpValue ?? 0);
+      if (!Number.isFinite(baseMrp) || baseMrp <= 0) return null;
+      return Math.round(baseMrp * (1 - percent / 100));
+    }
+
+    const numericValue = Number(text.replace(/[^\d.-]/g, ""));
+    return Number.isFinite(numericValue) ? Math.round(numericValue) : null;
+  };
+
   const uploadImages = async (files = []) => {
     if (!files.length) return [];
     const formData = new FormData();
@@ -156,13 +172,19 @@ export default function AddProduct() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.category_id) { alert("Please select a final category"); return; }
+    const invalidVariant = variants.find((v) => resolveVariantPrice(v.price, v.mrp) === null);
+    if (invalidVariant) {
+      alert("Please enter a selling price or a percentage such as 40% for each variant.");
+      return;
+    }
     setLoading(true);
     try {
       const preparedVariants = await Promise.all(
         variants.map(async (v) => {
           const uploadedImages = await uploadImages(v.imageFiles || []);
+          const resolvedPrice = resolveVariantPrice(v.price, v.mrp);
           return { size: v.size, color: v.color, mrp: Number(v.mrp || 0),
-            price: Number(v.price || 0), quantity: Number(v.quantity || 0),
+            price: resolvedPrice ?? 0, quantity: Number(v.quantity || 0),
             barcode: (v.barcode || "").trim() || null,
             images: uploadedImages };
         })
@@ -288,11 +310,12 @@ export default function AddProduct() {
                       <input placeholder="Color *" value={v.color} onChange={(e) => updateVariant(i, "color", e.target.value)} />
                       <input type="number" min="0" placeholder="MRP (original price)" value={v.mrp}
                         onChange={(e) => updateVariant(i, "mrp", e.target.value)} />
-                      <input type="number" min="0" placeholder="Selling Price *" value={v.price}
+                      <input type="text" inputMode="decimal" placeholder="Selling Price or 40%" value={v.price}
                         onChange={(e) => updateVariant(i, "price", e.target.value)} />
                       <input type="number" min="0" placeholder="Stock Quantity" value={v.quantity}
                         onChange={(e) => updateVariant(i, "quantity", e.target.value)} />
                     </div>
+                    <small className="price-help">Use a value like 499 or a percentage like 40% to auto-calculate the selling price from MRP.</small>
                     <div className="barcode-row">
                       <input
                         className="barcode-input"

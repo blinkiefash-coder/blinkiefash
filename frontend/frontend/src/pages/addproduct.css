@@ -85,7 +85,57 @@
 }
 
 .variant-box-extended {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.price-help {
+  display: block;
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+/* Barcode row under the variant inputs */
+.barcode-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.barcode-input {
+  flex: 1;
+  padding: 7px 10px;
+  border: 1px solid #d0ddd1;
+  border-radius: 7px;
+  font-size: 13px;
+  font-family: monospace;
+  background: #f8fbf8;
+  color: #1a2e1b;
+}
+
+.barcode-input:focus {
+  outline: none;
+  border-color: #22c55e;
+  background: #fff;
+}
+
+.barcode-gen-btn {
+  white-space: nowrap;
+  padding: 7px 13px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.barcode-gen-btn:hover {
+  background: #15803d;
 }
 
 .variant-block {

@@ -210,7 +210,7 @@ router.get("/:id/products", async (req, res) => {
        WHERE p.vendor_id::text = ANY($1::text[])
          AND p.is_active = true
        ORDER BY p.created_at DESC`,
-      [ownerIds, linkedStoreId]
+      [ownerIds]
     );
 
     const products = productsResult.rows;
@@ -1045,9 +1045,10 @@ router.post(
 router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
   try {
     const { vendorId, variantId } = req.params;
-    const { stock, store_id } = req.body || {};
+    const { stock, store_id, price, mrp } = req.body || {};
     if (stock === undefined || stock === null) return res.status(400).json({ success: false, message: "stock is required" });
 
+    // Verify the variant belongs to this vendor
     const check = await pool.query(
       `SELECT pv.id FROM product_variants pv
        JOIN products p ON p.id = pv.product_id
@@ -1056,6 +1057,18 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
       [variantId, vendorId]
     );
     if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
+
+    if (price !== undefined && price !== null) {
+      const nextPrice = Number(price);
+      if (!Number.isFinite(nextPrice) || nextPrice < 0) return res.status(400).json({ success: false, message: "price must be a non-negative number" });
+      await pool.query(`UPDATE product_variants SET price = $2 WHERE id = $1`, [variantId, nextPrice]);
+    }
+
+    if (mrp !== undefined && mrp !== null) {
+      const nextMrp = Number(mrp);
+      if (!Number.isFinite(nextMrp) || nextMrp < 0) return res.status(400).json({ success: false, message: "mrp must be a non-negative number" });
+      await pool.query(`UPDATE product_variants SET mrp = $2 WHERE id = $1`, [variantId, nextMrp]);
+    }
 
     await pool.query(
       `UPDATE inventory SET stock = $2 WHERE variant_id = $1`,
