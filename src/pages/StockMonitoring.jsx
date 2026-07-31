@@ -104,11 +104,17 @@ export default function StockMonitoring() {
   const filteredProducts = products.filter(
     (product) =>
       (product.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      (product.brand_name?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+      (product.brand_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      (product.variants || []).some((v) =>
+        (v.barcode?.toLowerCase() || "").includes(searchTerm.toLowerCase())
+      )
   );
 
   const getTotalStock = (product) => {
-    return (product.variants || []).reduce((sum, v) => sum + (v.quantity || 0), 0);
+    return (product.variants || []).reduce(
+      (sum, v) => sum + (Number(v.quantity) || Number(v.stock) || 0),
+      0
+    );
   };
 
   const getStockStatus = (quantity) => {
@@ -167,7 +173,7 @@ export default function StockMonitoring() {
           <div className="search-box">
             <input
               type="text"
-              placeholder="Search products by name or brand..."
+              placeholder="Search by name, brand or barcode..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -216,7 +222,12 @@ export default function StockMonitoring() {
                     const status = getStockStatus(totalStock);
                     return (
                       <tr key={idx} className={`stock-row ${status}`}>
-                        <td className="product-name" data-label="Product">{product.name || "N/A"}</td>
+                        <td className="product-name" data-label="Product">
+                          {product.name || "N/A"}
+                          {product.variants?.[0]?.barcode && (
+                            <span className="barcode-tag"> ({product.variants[0].barcode})</span>
+                          )}
+                        </td>
                         <td data-label="Brand">{product.brand_name || "N/A"}</td>
                         <td data-label="Category">{product.category_name || "N/A"}</td>
                         <td data-label="Price">₹{product.price || "0"}</td>
@@ -225,10 +236,10 @@ export default function StockMonitoring() {
                         </td>
                         <td data-label="Variants">
                           <div className="variants-list">
-                            {(product.variants || []).filter(v => v.quantity > 0).map((variant, vidx) => (
+                            {(product.variants || []).map((variant, vidx) => (
                               <div key={vidx} className="variant-item">
                                 <span>{variant.size} / {variant.color}</span>
-                                <span className="qty">×{variant.quantity}</span>
+                                <span className="qty">×{Number(variant.quantity) || Number(variant.stock) || 0}</span>
                               </div>
                             ))}
                           </div>

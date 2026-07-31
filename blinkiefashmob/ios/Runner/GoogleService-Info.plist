@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyC8MYijybqhqCOLtGyfIIPyCqT4CcLswb8</string>
+	<key>GCM_SENDER_ID</key>
+	<string>492570746016</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.blinkiefash.app</string>
+	<key>PROJECT_ID</key>
+	<string>blinkiefash-18d9f</string>
+	<key>STORAGE_BUCKET</key>
+	<string>blinkiefash-18d9f.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:492570746016:ios:b3c29ff6c6738bb5edbdc5</string>
+</dict>
+</plist>

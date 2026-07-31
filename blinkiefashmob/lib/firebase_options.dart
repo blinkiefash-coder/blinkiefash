@@ -45,7 +45,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyBtDSqUmXgko2b9wn6aLnd6DjsLL3TiLeg',
-    appId: '1:492570746016:android:849c6d5e49a0972dedbdc5',
+    appId: '1:492570746016:android:4516a69667338913edbdc5',
     messagingSenderId: '492570746016',
     projectId: 'blinkiefash-18d9f',
     storageBucket: 'blinkiefash-18d9f.firebasestorage.app',

@@ -9,6 +9,7 @@ import 'pages/signup_screen.dart';
 import 'pages/home_screen.dart';
 import 'pages/product_detail_screen.dart';
 import 'services/notification_service.dart';
+import 'services/firebase_app_check_config.dart';
 import 'firebase_options.dart';
 import 'api_base.dart';
 
@@ -35,6 +36,7 @@ Future<void> main() async {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    await FirebaseAppCheckConfig.initialize();
     await NotificationService.instance.init();
   } catch (e) {
     debugPrint('Firebase init failed: $e');

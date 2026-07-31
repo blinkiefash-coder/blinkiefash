@@ -207,4 +207,25 @@ router.get("/vendors", adminGuard, async (req, res) => {
   }
 });
 
+// POST /api/admin/fix-inventory-store-ids  — one-time migration for null store_id records
+router.post("/fix-inventory-store-ids", adminGuard, async (req, res) => {
+  try {
+    const result = await pool.query(`
+      UPDATE inventory i
+      SET store_id = v.dark_store_id
+      FROM product_variants pv
+      JOIN products p ON p.id = pv.product_id
+      JOIN vendors v ON v.id::text = p.vendor_id::text
+      WHERE i.variant_id = pv.id
+        AND i.store_id IS NULL
+        AND v.dark_store_id IS NOT NULL
+      RETURNING i.variant_id
+    `);
+    res.json({ success: true, fixed: result.rowCount });
+  } catch (err) {
+    console.error("[fix-inventory-store-ids]", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;
