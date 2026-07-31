@@ -222,7 +222,11 @@ router.get("/:id/products", async (req, res) => {
                       COALESCE(i.stock, 0) as quantity,
                   i.store_id
            FROM product_variants pv
-           LEFT JOIN inventory i ON i.variant_id = pv.id AND (i.store_id = $2 OR i.store_id IS NULL)
+           LEFT JOIN (
+             SELECT DISTINCT ON (variant_id) variant_id, stock, store_id
+             FROM inventory
+             ORDER BY variant_id, CASE WHEN store_id IS NOT NULL THEN 0 ELSE 1 END
+           ) i ON i.variant_id = pv.id
            WHERE pv.product_id = $1 AND pv.is_active = true
            ORDER BY pv.id ASC`,
                    [product.id, linkedStoreId]
@@ -1054,10 +1058,13 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
     if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
 
     await pool.query(
+      `UPDATE inventory SET stock = $2 WHERE variant_id = $1`,
+      [variantId, Number(stock)]
+    );
+    // Insert only if no inventory row exists yet
+    await pool.query(
       `INSERT INTO inventory (variant_id, stock, store_id)
-       VALUES ($1, $2, $3)
-       ON CONFLICT (variant_id, store_id) DO UPDATE SET stock = EXCLUDED.stock
-       `,
+       SELECT $1, $2, $3 WHERE NOT EXISTS (SELECT 1 FROM inventory WHERE variant_id = $1)`,
       [variantId, Number(stock), store_id || null]
     );
     res.json({ success: true });
