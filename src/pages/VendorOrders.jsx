@@ -218,6 +218,15 @@ export default function VendorOrders() {
   );
 
   const newCount = orders.filter((o) => o.status === "placed").length;
+  const inProgressCount = orders.filter((o) => ["confirmed", "packed", "out_for_delivery"].includes(o.status)).length;
+  const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+  const totalRevenue = orders.reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0);
+  const metrics = [
+    { label: "New orders", value: newCount, tone: "accent" },
+    { label: "In progress", value: inProgressCount, tone: "blue" },
+    { label: "Delivered", value: deliveredCount, tone: "green" },
+    { label: "Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, tone: "neutral" },
+  ];
 
   return (
     <VendorLayout
@@ -255,7 +264,15 @@ export default function VendorOrders() {
           </div>
         </div>
 
-        {/* Status filter tabs */}
+        <div className="vo-metrics">
+          {metrics.map((metric) => (
+            <div key={metric.label} className={`vo-metric-card ${metric.tone}`}>
+              <span className="vo-metric-label">{metric.label}</span>
+              <strong className="vo-metric-value">{metric.value}</strong>
+            </div>
+          ))}
+        </div>
+
         <div className="vo-tabs">
           {["placed", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled", "all"].map(
             (s) => (
