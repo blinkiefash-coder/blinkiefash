@@ -8,7 +8,7 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
-const getProductMediaShape = async (client) => {
+export const getProductMediaShape = async (client) => {
   const result = await client.query(
     `SELECT column_name FROM information_schema.columns
      WHERE table_schema = 'public' AND table_name = 'product_media'`
