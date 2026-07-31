@@ -22,7 +22,7 @@ const getProductMediaShape = async (client) => {
   };
 };
 
-const insertProductMediaRows = async ({
+export const insertProductMediaRows = async ({
   client,
   productId,
   variantId,

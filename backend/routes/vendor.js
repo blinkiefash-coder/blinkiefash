@@ -3,6 +3,7 @@ import multer from "multer";
 import crypto from "crypto";
 import { pool } from "../db.js";
 import cloudinary from "../utils/cloudinary.js";
+import { insertProductMediaRows, getProductMediaShape } from "./products.js";
 import {
   notifyAvailableRiders,
   notifyCustomerOfStatus,
@@ -1079,7 +1080,7 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
   const client = await pool.connect();
   try {
     const { vendorId, productId } = req.params;
-    const { size, color, price, mrp, barcode, quantity, store_id } = req.body || {};
+    const { size, color, price, mrp, barcode, quantity, store_id, images } = req.body || {};
     if (!size || !color) return res.status(400).json({ success: false, message: "size and color are required" });
 
     const check = await pool.query(
@@ -1096,12 +1097,23 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
       [productId, sku, size, color, barcode || null, Number(price || 0), Number(mrp || price || 0)]
     );
+    const newVariantId = variantRes.rows[0].id;
     await client.query(
       `INSERT INTO inventory (variant_id, stock, store_id) VALUES ($1, $2, $3)`,
-      [variantRes.rows[0].id, Number(quantity || 0), store_id || null]
+      [newVariantId, Number(quantity || 0), store_id || null]
     );
+    const imageUrls = Array.isArray(images) ? images.filter(Boolean) : [];
+    if (imageUrls.length > 0) {
+      const mediaShape = await getProductMediaShape(client);
+      const primaryRef = { value: false };
+      await insertProductMediaRows({
+        client, productId, variantId: newVariantId,
+        imageUrls, startOrder: 0, mediaShape,
+        primaryAssignedRef: primaryRef, resetPrimaryState: true,
+      });
+    }
     await client.query("COMMIT");
-    res.json({ success: true, variant_id: variantRes.rows[0].id });
+    res.json({ success: true, variant_id: newVariantId });
   } catch (err) {
     await client.query("ROLLBACK");
     console.error("[add variant]", err.message);

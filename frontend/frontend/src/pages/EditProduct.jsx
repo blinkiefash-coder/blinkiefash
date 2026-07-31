@@ -5,7 +5,7 @@ import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
 import "./editProduct.css";
 
-const EMPTY_VARIANT = { size: "", color: "", price: "", mrp: "", barcode: "", quantity: "" };
+const EMPTY_VARIANT = { size: "", color: "", price: "", mrp: "", barcode: "", quantity: "", imageFiles: [] };
 
 export default function EditProduct() {
   const navigate = useNavigate();
@@ -101,15 +101,27 @@ export default function EditProduct() {
     }
   };
 
+  const uploadImages = async (files) => {
+    if (!files.length) return [];
+    const fd = new FormData();
+    files.forEach((f) => fd.append("image", f));
+    try {
+      const res = await fetch(`${API_API_BASE_URL}/upload`, { method: "POST", body: fd });
+      const data = await res.json();
+      return data.image_urls || [];
+    } catch { return []; }
+  };
+
   const addVariant = async (productId) => {
     if (!newVariant.size.trim() || !newVariant.color.trim()) { alert("Size and Color are required"); return; }
     if (!newVariant.price) { alert("Price is required"); return; }
     setAddSaving(true);
     try {
+      const uploadedImages = await uploadImages(newVariant.imageFiles || []);
       const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products/${productId}/variants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newVariant, store_id: vendorStoreId }),
+        body: JSON.stringify({ ...newVariant, images: uploadedImages, store_id: vendorStoreId }),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
@@ -253,6 +265,35 @@ export default function EditProduct() {
                               Stock qty
                               <input type="number" min="0" value={newVariant.quantity} onChange={(e) => setNewVariant((s) => ({ ...s, quantity: e.target.value }))} />
                             </label>
+                          </div>
+                          <div className="ep-add-images">
+                            <label className="ep-add-images-label">
+                              Images
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || []);
+                                  setNewVariant((s) => ({ ...s, imageFiles: [...(s.imageFiles || []), ...files] }));
+                                  e.target.value = "";
+                                }}
+                              />
+                            </label>
+                            {(newVariant.imageFiles || []).length > 0 && (
+                              <div className="ep-img-previews">
+                                {newVariant.imageFiles.map((f, i) => (
+                                  <div key={i} className="ep-img-thumb">
+                                    <img src={URL.createObjectURL(f)} alt="preview" />
+                                    <button
+                                      type="button"
+                                      className="ep-img-remove"
+                                      onClick={() => setNewVariant((s) => ({ ...s, imageFiles: s.imageFiles.filter((_, idx) => idx !== i) }))}
+                                    >✕</button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="ep-add-actions">
                             <button className="ep-confirm-btn" disabled={addSaving} onClick={() => addVariant(product.id)}>

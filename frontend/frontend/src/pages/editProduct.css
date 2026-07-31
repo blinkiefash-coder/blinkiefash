@@ -197,3 +197,52 @@
   cursor: pointer;
 }
 .ep-cancel-btn:hover { background: #e2e8f0; }
+
+.ep-add-images { margin-top: 10px; }
+.ep-add-images-label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}
+.ep-add-images-label input[type="file"] {
+  margin-top: 4px;
+  font-size: 12px;
+}
+.ep-img-previews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.ep-img-thumb {
+  position: relative;
+  width: 64px;
+  height: 64px;
+}
+.ep-img-thumb img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+}
+.ep-img-remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #fff;
+  border: none;
+  font-size: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
