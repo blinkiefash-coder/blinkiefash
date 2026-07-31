@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
+import { adminHeaders, isAdmin } from "../utils/adminSession";
 import "./editProduct.css";
 
 const EMPTY_VARIANT = { size: "", color: "", price: "", mrp: "", barcode: "", quantity: "", imageFiles: [] };
 
 export default function EditProduct() {
   const navigate = useNavigate();
+  const adminMode = isAdmin();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
   const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [vendorStoreId, setVendorStoreId] = useState(() => localStorage.getItem("vendor_store_id") || null);
@@ -40,7 +42,11 @@ export default function EditProduct() {
   };
 
   useEffect(() => {
-    if (!vendorId) { window.location.href = "/vendor"; return; }
+    if (!adminMode && !vendorId) { window.location.href = "/vendor"; return; }
+    if (adminMode) {
+      loadAllProducts();
+      return;
+    }
     fetchVendorProfile(vendorId).then((v) => {
       if (v?.store_name) { setStoreName(v.store_name); localStorage.setItem("store_name", v.store_name); }
       if (v?.dark_store_id) {
@@ -49,7 +55,7 @@ export default function EditProduct() {
       }
     });
     loadProducts();
-  }, [vendorId]);
+  }, [adminMode, vendorId]);
 
   const resolveVariantPrice = (rawValue, mrpValue) => {
     const text = String(rawValue ?? "").trim();
@@ -84,6 +90,31 @@ export default function EditProduct() {
       setPriceEdits(priceMap);
     } catch (err) {
       console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadAllProducts = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_API_BASE_URL}/products`, {
+        headers: adminHeaders(),
+      });
+      const data = await res.json();
+      const list = Array.isArray(data) ? data : [];
+      setProducts(list);
+      const stockMap = {};
+      const priceMap = {};
+      list.forEach((p) => (p.variants || []).forEach((v) => {
+        stockMap[v.id] = v.quantity ?? 0;
+        priceMap[v.id] = v.price ?? "";
+      }));
+      setStockEdits(stockMap);
+      setPriceEdits(priceMap);
+    } catch (err) {
+      console.error("Failed to load all products:", err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }

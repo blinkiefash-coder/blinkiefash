@@ -182,6 +182,14 @@ export default function StockMonitoring() {
 
         {loading ? (
           <div className="stock-loading">Loading products...</div>
+        ) : adminMode && darkStores.length === 0 ? (
+          <div className="stock-loading" style={{ color: "#d97706", padding: "20px" }}>
+            ⚠️ No active dark stores found. Please check with administrators or add stores to the system.
+          </div>
+        ) : !adminMode && products.length === 0 ? (
+          <div className="stock-loading" style={{ color: "#7c3aed", padding: "20px" }}>
+            No products found for your vendor store.
+          </div>
         ) : (
           <>
             <div className="stock-summary">
