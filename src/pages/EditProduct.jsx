@@ -23,14 +23,15 @@ export default function EditProduct() {
   const [addSaving, setAddSaving] = useState(false);
 
   const menuItems = [
-    { key: "products", label: "Add Product",       icon: "＋" },
-    { key: "edit",     label: "Edit Products",      icon: "✏" },
-    { key: "stock",    label: "Stock Monitoring",   icon: "📦" },
-    { key: "analytics",label: "Product Analytics",  icon: "📊" },
-    { key: "orders",   label: "Orders",             icon: "◍" },
+    { key: "orders",   label: "Orders",             icon: "\u25cd" },
+    { key: "products", label: "Add Product",       icon: "\u25a1" },
+    { key: "edit",     label: "Edit Products",      icon: "\u270f" },
+    { key: "stock",    label: "Stock Monitoring",   icon: "\ud83d\udce6" },
+    { key: "analytics",label: "Product Analytics",  icon: "\ud83d\udcca" },
   ];
 
   const handleMenuClick = (item) => {
+    if (item.key === "orders")   navigate("/vendor/orders");
     if (item.key === "products")  navigate("/vendor/add-product");
     if (item.key === "stock")     navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
@@ -170,8 +171,9 @@ export default function EditProduct() {
                     className="ep-card-header"
                     onClick={() => setExpandedId(isOpen ? null : product.id)}
                   >
-                    <div className="ep-card-meta">
-                      <span className="ep-product-name">{product.name}</span>
+                    <div className="ep-card-meta">                    {product.image_url && (
+                      <img src={product.image_url} alt="" className="ep-product-thumb" />
+                    )}                      <span className="ep-product-name">{product.name}</span>
                       {product.brand_name && <span className="ep-brand">{product.brand_name}</span>}
                     </div>
                     <div className="ep-card-summary">

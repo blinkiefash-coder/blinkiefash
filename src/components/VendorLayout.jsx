@@ -1,26 +1,62 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import "./vendorLayout.css";
+import { API_API_BASE_URL } from "../apiBase";
+import { clearVendorPasswordAuth } from "../utils/vendorSession";
 
 const DEFAULT_MENU = [
-  { key: "dashboard", label: "Dashboard", icon: "⌂" },
-  { key: "products", label: "Products", icon: "□" },
-  { key: "stock", label: "Stock Monitoring", icon: "📦" },
-  { key: "analytics", label: "Product Analytics", icon: "📊" },
-  { key: "orders", label: "Orders", icon: "◍" },
-  { key: "customers", label: "Customers", icon: "◎" },
-  { key: "reservations", label: "Store Visit & Reservations", icon: "◈" },
-  { key: "profile", label: "Store Profile", icon: "◉" },
-  { key: "settings", label: "Settings", icon: "⚙" },
+  { key: "orders",    label: "Orders",           icon: "\u25cd" },
+  { key: "products",  label: "Add Product",       icon: "\u25a1" },
+  { key: "edit",      label: "Edit Products",     icon: "\u270f" },
+  { key: "stock",     label: "Stock Monitoring",  icon: "\ud83d\udce6" },
+  { key: "analytics", label: "Product Analytics", icon: "\ud83d\udcca" },
 ];
 
 export default function VendorLayout({
-  activeKey = "products",
+  activeKey = "orders",
   storeName = "Trendy Looks",
+  vendorId = "",
   menuItems = DEFAULT_MENU,
   onMenuClick,
   children,
 }) {
+  const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isOperational, setIsOperational] = useState(null);
+  const [togglingOp, setTogglingOp] = useState(false);
+
+  const resolvedVendorId = vendorId || localStorage.getItem("vendor_id") || "";
+
+  useEffect(() => {
+    if (!resolvedVendorId) return;
+    fetch(`${API_API_BASE_URL}/vendor/${resolvedVendorId}`)
+      .then((r) => r.json())
+      .then((d) => { if (typeof d.is_operational === "boolean") setIsOperational(d.is_operational); })
+      .catch(() => {});
+  }, [resolvedVendorId]);
+
+  const toggleOperational = async () => {
+    if (!resolvedVendorId || togglingOp) return;
+    const next = !isOperational;
+    setTogglingOp(true);
+    try {
+      const res = await fetch(`${API_API_BASE_URL}/vendor/${resolvedVendorId}/operational-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_operational: next }),
+      });
+      const data = await res.json();
+      if (data.success) setIsOperational(next);
+    } catch { }
+    finally { setTogglingOp(false); }
+  };
+
+  const handleLogout = () => {
+    clearVendorPasswordAuth();
+    ["vendor_id","user_id","store_name","vendor_name","vendor_store_id","is_admin","admin_email"]
+      .forEach((k) => localStorage.removeItem(k));
+    navigate("/vendor");
+  };
 
   return (
     <div className={`vendor-product-shell ${isSidebarCollapsed ? "sidebar-collapsed" : "sidebar-expanded"}`}>
@@ -32,7 +68,6 @@ export default function VendorLayout({
             className="vendor-sidebar-toggle"
             onClick={() => setIsSidebarCollapsed((prev) => !prev)}
             aria-label={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            title={isSidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             {isSidebarCollapsed ? ">" : "<"}
           </button>
@@ -41,6 +76,18 @@ export default function VendorLayout({
         <div className="vendor-store-card">
           <strong>My Store</strong>
           <span>{storeName}</span>
+          {resolvedVendorId && isOperational !== null && (
+            <button
+              type="button"
+              className={`vendor-op-toggle ${isOperational ? "op-on" : "op-off"}`}
+              onClick={toggleOperational}
+              disabled={togglingOp}
+              title={isOperational ? "Store is OPEN — click to close" : "Store is CLOSED — click to open"}
+            >
+              <span className="op-dot" />
+              {isSidebarCollapsed ? "" : (togglingOp ? "…" : isOperational ? "Store Open" : "Store Closed")}
+            </button>
+          )}
         </div>
 
         <nav className="vendor-nav-links">
@@ -58,7 +105,12 @@ export default function VendorLayout({
           ))}
         </nav>
 
-        <div className="vendor-help-card">Need help? Contact Support</div>
+        <div className="vendor-sidebar-footer">
+          <button type="button" className="vendor-logout-btn" onClick={handleLogout} title="Logout">
+            <span className="vendor-nav-icon">↵</span>
+            {!isSidebarCollapsed && <span className="vendor-nav-text">Logout</span>}
+          </button>
+        </div>
       </aside>
 
       <main className="vendor-content">{children}</main>

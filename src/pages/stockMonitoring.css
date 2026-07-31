@@ -151,6 +151,21 @@
   color: #1a1a1a;
 }
 
+.stock-product-img {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  display: block;
+}
+.stock-product-img-placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 6px;
+  background: #f1f5f9;
+}
+
 .barcode-tag {
   font-weight: 400;
   font-size: 11px;

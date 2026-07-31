@@ -71,7 +71,7 @@ export default function VendorAuth() {
         if (data.store_name) localStorage.setItem("store_name", data.store_name);
         if (data.owner_name) localStorage.setItem("vendor_name", data.owner_name);
         markVendorPasswordAuth();
-        navigate("/vendor/add-product");
+        navigate("/vendor/orders");
       } else {
         setError(data.message || "Verification failed");
       }

@@ -57,6 +57,14 @@
 .ep-card-header:hover { background: #f8fafc; }
 
 .ep-card-meta { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.ep-product-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
 .ep-product-name { font-weight: 600; font-size: 15px; color: #0f172a; }
 .ep-brand {
   font-size: 12px;

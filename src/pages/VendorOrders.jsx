@@ -69,11 +69,11 @@ export default function VendorOrders() {
   const isFirstPoll = useRef(true);
 
   const menuItems = [
-    { key: "products",  label: "Add Product",       icon: "□" },
-    { key: "edit",      label: "Edit Products",      icon: "✏" },
-    { key: "stock",     label: "Stock Monitoring",  icon: "📦" },
-    { key: "analytics", label: "Product Analytics", icon: "📊" },
-    { key: "orders",    label: "Orders",            icon: "◍" },
+    { key: "orders",    label: "Orders",            icon: "\u25cd" },
+    { key: "products",  label: "Add Product",       icon: "\u25a1" },
+    { key: "edit",      label: "Edit Products",      icon: "\u270f" },
+    { key: "stock",     label: "Stock Monitoring",  icon: "\ud83d\udce6" },
+    { key: "analytics", label: "Product Analytics", icon: "\ud83d\udcca" },
   ];
 
   const handleMenuClick = (item) => {

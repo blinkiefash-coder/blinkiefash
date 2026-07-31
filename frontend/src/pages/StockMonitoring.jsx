@@ -125,19 +125,19 @@ export default function StockMonitoring() {
   };
 
   const menuItems = [
+    { key: "orders",   label: "Orders",             icon: "\u25cd" },
     { key: "products", label: "Add Product",       icon: "\u25a1" },
     { key: "edit",     label: "Edit Products",      icon: "\u270f" },
     { key: "stock",    label: "Stock Monitoring",   icon: "\ud83d\udce6" },
     { key: "analytics",label: "Product Analytics",  icon: "\ud83d\udcca" },
-    { key: "orders",   label: "Orders",             icon: "\u25cd" },
   ];
 
   const handleMenuClick = (item) => {
+    if (item.key === "orders")   navigate("/vendor/orders");
     if (item.key === "products") navigate("/vendor/add-product");
     if (item.key === "edit")     navigate("/vendor/edit-product");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
-    if (item.key === "orders") navigate("/vendor/orders");
   };
 
   const selectedStore = darkStores.find((store) => String(store.id) === String(selectedStoreId));
@@ -207,6 +207,7 @@ export default function StockMonitoring() {
               <table className="stock-table">
                 <thead>
                   <tr>
+                    <th>Image</th>
                     <th>Product Name</th>
                     <th>Brand</th>
                     <th>Category</th>
@@ -222,6 +223,11 @@ export default function StockMonitoring() {
                     const status = getStockStatus(totalStock);
                     return (
                       <tr key={idx} className={`stock-row ${status}`}>
+                        <td data-label="Image">
+                          {product.image_url
+                            ? <img src={product.image_url} alt="" className="stock-product-img" />
+                            : <div className="stock-product-img-placeholder" />}
+                        </td>
                         <td className="product-name" data-label="Product">
                           {product.name || "N/A"}
                           {product.variants?.[0]?.barcode && (

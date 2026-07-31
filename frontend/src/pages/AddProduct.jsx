@@ -202,10 +202,11 @@ export default function AddProduct() {
   const finalCategoryName = categories.find((c) => c.id === form.category_id)?.name || "";
 
   const handleMenuClick = (item) => {
-    if (item.key === "stock") navigate("/vendor/stock-monitoring");
-    if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "orders")   navigate("/vendor/orders");
     if (item.key === "products") navigate("/vendor/add-product");
-    if (item.key === "orders") navigate("/vendor/orders");
+    if (item.key === "edit")     navigate("/vendor/edit-product");
+    if (item.key === "stock")    navigate("/vendor/stock-monitoring");
+    if (item.key === "analytics") navigate("/vendor/product-analytics");
   };
 
   return (

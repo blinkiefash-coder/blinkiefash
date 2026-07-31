@@ -69,14 +69,54 @@
   font-size: 13px;
 }
 
-.vendor-store-card strong {
-  color: #0f1720;
+.vendor-store-card strong { color: #0f1720; }
+.vendor-store-card span { color: #55616c; }
+
+.vendor-op-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+.vendor-op-toggle.op-on  { background: #dcfce7; color: #16a34a; }
+.vendor-op-toggle.op-off { background: #fee2e2; color: #dc2626; }
+.vendor-op-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
+.op-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.op-on  .op-dot { background: #16a34a; }
+.op-off .op-dot { background: #dc2626; }
+
+.vendor-sidebar-footer {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid #e8ece9;
 }
 
-.vendor-store-card span,
-.vendor-help-card {
-  color: #55616c;
+.vendor-logout-btn {
+  width: 100%;
+  text-align: left;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #dc2626;
+  padding: 9px 10px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+.vendor-logout-btn:hover { background: #fee2e2; border-color: #fecaca; }
 
 .vendor-nav-links {
   display: flex;
