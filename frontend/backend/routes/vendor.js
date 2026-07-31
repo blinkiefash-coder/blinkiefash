@@ -222,7 +222,7 @@ router.get("/:id/products", async (req, res) => {
                       COALESCE(i.stock, 0) as quantity,
                   i.store_id
            FROM product_variants pv
-                    LEFT JOIN inventory i ON i.variant_id = pv.id AND i.store_id = $2
+                    LEFT JOIN inventory i ON i.variant_id = pv.id AND (i.store_id = $2 OR i.store_id IS NULL)
            WHERE pv.product_id = $1 AND pv.is_active = true
            ORDER BY pv.id ASC`,
                    [product.id, linkedStoreId]
