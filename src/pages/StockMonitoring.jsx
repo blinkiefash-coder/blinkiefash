@@ -125,16 +125,16 @@ export default function StockMonitoring() {
   };
 
   const menuItems = [
-    { key: "dashboard", label: "Dashboard", icon: "⌂" },
-    { key: "products", label: "Products", icon: "□" },
-    { key: "stock", label: "Stock Monitoring", icon: "📦" },
-    { key: "analytics", label: "Product Analytics", icon: "📊" },
-    { key: "orders", label: "Orders", icon: "◍" },
-    { key: "settings", label: "Settings", icon: "⚙" },
+    { key: "products", label: "Add Product",       icon: "\u25a1" },
+    { key: "edit",     label: "Edit Products",      icon: "\u270f" },
+    { key: "stock",    label: "Stock Monitoring",   icon: "\ud83d\udce6" },
+    { key: "analytics",label: "Product Analytics",  icon: "\ud83d\udcca" },
+    { key: "orders",   label: "Orders",             icon: "\u25cd" },
   ];
 
   const handleMenuClick = (item) => {
     if (item.key === "products") navigate("/vendor/add-product");
+    if (item.key === "edit")     navigate("/vendor/edit-product");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "orders") navigate("/vendor/orders");

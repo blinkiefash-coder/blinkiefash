@@ -1036,4 +1036,92 @@ router.post(
   }
 );
 
+// PATCH /vendor/:vendorId/variants/:variantId/stock
+router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
+  try {
+    const { vendorId, variantId } = req.params;
+    const { stock, store_id } = req.body || {};
+    if (stock === undefined || stock === null) return res.status(400).json({ success: false, message: "stock is required" });
+
+    // Verify the variant belongs to this vendor
+    const check = await pool.query(
+      `SELECT pv.id FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       JOIN vendors v ON v.id::text = p.vendor_id::text
+       WHERE pv.id = $1 AND v.id::text = $2 LIMIT 1`,
+      [variantId, vendorId]
+    );
+    if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
+
+    await pool.query(
+      `INSERT INTO inventory (variant_id, stock, store_id)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (variant_id, store_id) DO UPDATE SET stock = EXCLUDED.stock
+       `,
+      [variantId, Number(stock), store_id || null]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[patch stock]", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// POST /vendor/:vendorId/products/:productId/variants
+router.post("/:vendorId/products/:productId/variants", async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { vendorId, productId } = req.params;
+    const { size, color, price, mrp, barcode, quantity, store_id } = req.body || {};
+    if (!size || !color) return res.status(400).json({ success: false, message: "size and color are required" });
+
+    const check = await pool.query(
+      `SELECT p.id FROM products p JOIN vendors v ON v.id::text = p.vendor_id::text
+       WHERE p.id = $1 AND v.id::text = $2 LIMIT 1`,
+      [productId, vendorId]
+    );
+    if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
+
+    await client.query("BEGIN");
+    const sku = `${productId}-${color}-${size}`.replace(/\s+/g, "-").toUpperCase();
+    const variantRes = await client.query(
+      `INSERT INTO product_variants (product_id, sku, size, color, barcode, price, mrp)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [productId, sku, size, color, barcode || null, Number(price || 0), Number(mrp || price || 0)]
+    );
+    await client.query(
+      `INSERT INTO inventory (variant_id, stock, store_id) VALUES ($1, $2, $3)`,
+      [variantRes.rows[0].id, Number(quantity || 0), store_id || null]
+    );
+    await client.query("COMMIT");
+    res.json({ success: true, variant_id: variantRes.rows[0].id });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("[add variant]", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  } finally {
+    client.release();
+  }
+});
+
+// DELETE /vendor/:vendorId/variants/:variantId
+router.delete("/:vendorId/variants/:variantId", async (req, res) => {
+  try {
+    const { vendorId, variantId } = req.params;
+    const check = await pool.query(
+      `SELECT pv.id FROM product_variants pv
+       JOIN products p ON p.id = pv.product_id
+       JOIN vendors v ON v.id::text = p.vendor_id::text
+       WHERE pv.id = $1 AND v.id::text = $2 LIMIT 1`,
+      [variantId, vendorId]
+    );
+    if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
+    await pool.query(`UPDATE product_variants SET is_active = false WHERE id = $1`, [variantId]);
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[delete variant]", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 export default router;

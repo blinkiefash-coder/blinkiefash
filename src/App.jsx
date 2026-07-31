@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import VendorAuth from "./pages/VendorAuth";
 import VendorOrders from "./pages/VendorOrders";
+import EditProduct from "./pages/EditProduct";
 import AdminInsights from "./pages/AdminInsights";
 import AddProduct from "./pages/AddProduct";
 import VendorStore from "./pages/VendorStore";
@@ -49,6 +50,7 @@ function App() {
         <Route path="/vendor/stock-monitoring" element={<RequireVendorOrAdmin><StockMonitoring /></RequireVendorOrAdmin>} />
         <Route path="/vendor/product-analytics" element={<RequireVendorOrAdmin><ProductAnalytics /></RequireVendorOrAdmin>} />
         <Route path="/vendor/orders" element={<RequireVendorOrAdmin><VendorOrders /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/edit-product" element={<RequireVendorOrAdmin><EditProduct /></RequireVendorOrAdmin>} />
         <Route path="/vendor/insights" element={<RequireAdmin><AdminInsights /></RequireAdmin>} />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
 
