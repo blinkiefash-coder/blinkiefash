@@ -24,6 +24,15 @@ router.post("/login", async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase();
   const normalizedPassword = String(password);
 
+  console.log("[admin/login] attempt:", {
+    providedEmail: normalizedEmail,
+    expectedEmail: ADMIN_EMAIL.toLowerCase(),
+    emailMatch: normalizedEmail === ADMIN_EMAIL.toLowerCase(),
+    providedPassword: normalizedPassword,
+    expectedPassword: ADMIN_PASSWORD,
+    passwordMatch: normalizedPassword === ADMIN_PASSWORD,
+  });
+
   if (
     normalizedEmail === ADMIN_EMAIL.toLowerCase() &&
     normalizedPassword === ADMIN_PASSWORD
