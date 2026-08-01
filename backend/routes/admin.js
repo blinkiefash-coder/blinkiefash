@@ -297,8 +297,23 @@ router.get("/vendors", adminGuard, async (req, res) => {
     res.json({ success: true, vendors: rows });
   } catch (err) {
     console.warn("[admin/vendors] Error (fallback to empty data):", err.message);
-    // Return valid fallback response to keep UI functional
     return res.json({ success: true, vendors: [] });
+  }
+});
+
+// PATCH /api/admin/vendor/:vendorId/dark-store — link a vendor to a dark store
+router.patch("/vendor/:vendorId/dark-store", adminGuard, async (req, res) => {
+  const { vendorId } = req.params;
+  const { dark_store_id } = req.body;
+  try {
+    await pool.query(
+      `UPDATE vendors SET dark_store_id = $1, updated_at = NOW() WHERE id = $2`,
+      [dark_store_id || null, vendorId]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[admin/vendor/dark-store] error:", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
