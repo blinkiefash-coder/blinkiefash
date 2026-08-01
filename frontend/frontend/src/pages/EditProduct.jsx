@@ -51,13 +51,9 @@ export default function EditProduct() {
         .then((d) => {
           const list = Array.isArray(d.vendors) ? d.vendors : [];
           setAdminVendors(list);
-          if (list.length > 0) {
-            const firstId = String(list[0].id);
-            setSelectedAdminVendorId(firstId);
-            loadProducts(firstId);
-          } else {
-            setLoading(false);
-          }
+          // Default to "all" so admin sees everything at once
+          setSelectedAdminVendorId("all");
+          loadProducts("all", list);
         })
         .catch(() => setLoading(false));
       return;
@@ -95,13 +91,23 @@ export default function EditProduct() {
     return Number.isFinite(numericValue) ? Math.round(numericValue) : null;
   };
 
-  const loadProducts = async (vid) => {
+  const loadProducts = async (vid, vendorList) => {
     if (!vid) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vid}/products`);
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
+      let list = [];
+      if (vid === "all") {
+        // Fetch all vendors' products in parallel and merge
+        const vendors = vendorList || adminVendors;
+        const results = await Promise.all(
+          vendors.map(v => fetch(`${API_API_BASE_URL}/vendor/${v.id}/products`).then(r => r.json()).catch(() => []))
+        );
+        list = results.flat().filter(p => p?.id);
+      } else {
+        const res = await fetch(`${API_API_BASE_URL}/vendor/${vid}/products`);
+        const data = await res.json();
+        list = Array.isArray(data) ? data : [];
+      }
       setProducts(list);
       const stockMap = {};
       const priceMap = {};
@@ -124,8 +130,14 @@ export default function EditProduct() {
     (p.variants || []).some((v) => (v.barcode?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
   );
 
+  const getVendorIdForProduct = (productId) => {
+    if (!adminMode || selectedAdminVendorId !== "all") return adminMode ? selectedAdminVendorId : vendorId;
+    const p = products.find(x => x.id === productId);
+    return p?.vendor_id || selectedAdminVendorId;
+  };
+
   const saveVariant = async (variantId, variantMeta) => {
-    const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
+    const activeVendorId = getVendorIdForProduct(variantMeta.product_id);
     setSaving(variantId);
     try {
       const resolvedPrice = resolveVariantPrice(priceEdits[variantId] ?? variantMeta.price, variantMeta.mrp);
@@ -142,7 +154,7 @@ export default function EditProduct() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-      await loadProducts(activeVendorId);
+      await loadProducts(selectedAdminVendorId || vendorId);
     } catch (err) {
       alert(`Save failed: ${err.message}`);
     } finally {
@@ -150,14 +162,14 @@ export default function EditProduct() {
     }
   };
 
-  const removeVariant = async (variantId) => {
-    const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
+  const removeVariant = async (variantId, productId) => {
+    const activeVendorId = getVendorIdForProduct(productId);
     if (!window.confirm("Remove this variant? It will be hidden from the store.")) return;
     try {
       const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/variants/${variantId}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-      await loadProducts(activeVendorId);
+      await loadProducts(selectedAdminVendorId || vendorId);
     } catch (err) {
       alert(`Remove failed: ${err.message}`);
     }
@@ -214,7 +226,8 @@ export default function EditProduct() {
               onChange={(e) => setSelectedAdminVendorId(e.target.value)}
               style={{ padding: "8px 12px", borderRadius: 6, fontSize: 14, minWidth: 240 }}
             >
-              {adminVendors.length === 0 && <option value="">No vendors found</option>}
+              <option value="all">All Vendors</option>
+              {adminVendors.length === 0 && <option value="" disabled>No vendors found</option>}
               {adminVendors.map((v) => (
                 <option key={v.id} value={String(v.id)}>{v.store_name || v.name || v.id}</option>
               ))}
@@ -314,7 +327,7 @@ export default function EditProduct() {
                                   <button
                                     className="ep-remove-btn"
                                     title="Remove variant"
-                                    onClick={() => removeVariant(v.id)}
+                                    onClick={() => removeVariant(v.id, product.id)}
                                   >
                                     ✕
                                   </button>
