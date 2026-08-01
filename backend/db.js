@@ -1,7 +1,15 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
-const connectionString = process.env.DATABASE_URL || "";
+// Ensure SSL is always enabled for Neon — replace any sslmode value with "require"
+const normalizeUrl = (url = "") =>
+  url.replace(/sslmode=\w+/i, "sslmode=require").replace(/^(?!.*sslmode)(.+)$/, "$1");
+
+const rawUrl = process.env.DATABASE_URL || "";
+// If the URL has no sslmode param at all, append it
+const connectionString = rawUrl.includes("sslmode=")
+  ? rawUrl.replace(/sslmode=\w+/i, "sslmode=require")
+  : rawUrl + (rawUrl.includes("?") ? "&" : "?") + "sslmode=require";
 
 export const pool = new Pool({
   connectionString,
