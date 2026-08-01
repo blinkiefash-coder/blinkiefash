@@ -946,12 +946,12 @@ router.get("/darkstores", async (req, res) => {
 });
 
 // ── GET /api/checkout/darkstore/:id/products ──────────────────────────────────
-// Returns ALL active products from vendors linked to this dark store (for stock monitoring).
+// Returns ALL active products for a dark store:
+// vendor-linked products (shows 0-stock too) UNION products with any inventory record here
 router.get("/darkstore/:storeId/products", async (req, res) => {
   try {
     const { storeId } = req.params;
 
-    // Include ALL products from vendors linked to this dark store, not just stocked ones
     const result = await pool.query(
       `SELECT DISTINCT
          p.id, p.name, p.vendor_id, p.category_id, p.brand_id,
@@ -968,15 +968,20 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
        WHERE p.is_active = true
-         AND p.vendor_id IN (
-           SELECT id FROM vendors WHERE dark_store_id = $1
+         AND (
+           p.vendor_id IN (SELECT id FROM vendors WHERE dark_store_id = $1)
+           OR p.id IN (
+             SELECT DISTINCT pv2.product_id
+             FROM product_variants pv2
+             JOIN inventory i ON i.variant_id = pv2.id
+             WHERE i.store_id = $1
+           )
          )`,
       [storeId]
     );
 
     const products = result.rows;
 
-    // For each product, fetch its variants with COALESCE inventory (0 if not stocked here)
     const productsWithVariants = await Promise.all(
       products.map(async (product) => {
         const variantsResult = await pool.query(
@@ -988,11 +993,7 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
            WHERE pv.product_id = $2 AND pv.is_active = true`,
           [storeId, product.id]
         );
-
-        return {
-          ...product,
-          variants: variantsResult.rows || []
-        };
+        return { ...product, variants: variantsResult.rows || [] };
       })
     );
 
