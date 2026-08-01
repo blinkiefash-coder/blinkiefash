@@ -1,26 +1,11 @@
 import pkg from "pg";
 const { Pool } = pkg;
 
-const normalizeDatabaseUrl = (rawUrl = "") => {
-  if (!rawUrl) return rawUrl;
-  return rawUrl.replace(/sslmode=(prefer|require|verify-ca)/gi, "sslmode=disable");
-};
-
-const connectionString = normalizeDatabaseUrl(process.env.DATABASE_URL || "");
-
-const useSsl = String(process.env.DB_USE_SSL || "false").toLowerCase() === "true";
+const connectionString = process.env.DATABASE_URL || "";
 
 export const pool = new Pool({
   connectionString,
-  ...(useSsl
-    ? {
-        ssl: {
-          rejectUnauthorized: false,
-        },
-      }
-    : {
-        ssl: false,
-      }),
+  ssl: { rejectUnauthorized: false },
 });
 
 export const ensureDatabaseTables = async () => {
