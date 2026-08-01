@@ -749,9 +749,17 @@ class ApiClient {
     required String vendorId,
     required String variantId,
     required int quantity,
+    double? price,
+    double? mrp,
   }) async {
-    final uri = Uri.parse('$apiApiBaseUrl/vendor/$vendorId/stock');
-    return _postJson(uri, {'variantId': variantId, 'quantity': quantity});
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/vendor/$vendorId/variants/$variantId/stock',
+    );
+    return _patchJson(uri, {
+      'stock': quantity,
+      if (price != null) 'price': price,
+      if (mrp != null) 'mrp': mrp,
+    });
   }
 
   Future<Map<String, dynamic>> fetchVariantAvailability(

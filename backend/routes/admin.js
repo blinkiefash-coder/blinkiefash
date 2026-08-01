@@ -3,34 +3,9 @@ import { pool } from "../db.js";
 
 const router = express.Router();
 
-const isDatabaseUnavailableError = (error) => {
-  const message = String(error?.message || "").toLowerCase();
-  return (
-    message.includes("sasl") ||
-    message.includes("password must be a string") ||
-    message.includes("econnrefused") ||
-    message.includes("enotfound") ||
-    message.includes("timeout") ||
-    message.includes("connect econnrefused") ||
-    message.includes("invalid password") ||
-    message.includes("pg") ||
-    message.includes("pool") ||
-    message.includes("database") ||
-    message.includes("connection")
-  );
-};
-
-// ── Super-admin credentials ─────────────────────────────────────────────────
-// Accept both the env-var email and the hardcoded default so the app works
-// even if Render has a different ADMIN_EMAIL configured.
-const ADMIN_EMAIL_PRIMARY = "superadminsatyam@blinkiefash.in";
-const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || ADMIN_EMAIL_PRIMARY;
+// ── Super-admin credentials (override via env vars) ───────────────────────
+const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "superadminsatyam@blinkiefash.in";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "satyxalka@13987";
-
-const isAdminEmail = (email) => {
-  const e = String(email).toLowerCase();
-  return e === ADMIN_EMAIL.toLowerCase() || e === ADMIN_EMAIL_PRIMARY.toLowerCase();
-};
 
 // ── POST /api/admin/login  Body: { email, password } ─────────────────────────
 router.post("/login", async (req, res) => {
@@ -38,48 +13,33 @@ router.post("/login", async (req, res) => {
   const normalizedEmail = String(email).trim().toLowerCase();
   const normalizedPassword = String(password);
 
-  console.log("[admin/login] attempt:", {
-    providedEmail: normalizedEmail,
-    expectedEmail: ADMIN_EMAIL.toLowerCase(),
-    emailMatch: normalizedEmail === ADMIN_EMAIL.toLowerCase(),
-    providedPassword: normalizedPassword,
-    expectedPassword: ADMIN_PASSWORD,
-    passwordMatch: normalizedPassword === ADMIN_PASSWORD,
-  });
-
   if (
-    isAdminEmail(normalizedEmail) &&
+    normalizedEmail === ADMIN_EMAIL.toLowerCase() &&
     normalizedPassword === ADMIN_PASSWORD
   ) {
     try {
-      let userId = null;
+      const existingUser = await pool.query(
+        `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
+        [normalizedEmail]
+      );
 
-      try {
-        const existingUser = await pool.query(
-          `SELECT id FROM users WHERE lower(email) = $1 LIMIT 1`,
-          [normalizedEmail]
+      let userId = existingUser.rows[0]?.id;
+
+      if (!userId) {
+        const insertedUser = await pool.query(
+          `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, true, NOW(), NOW())
+           RETURNING id`,
+          ["SatyXAlka Admin", "0000000000", normalizedEmail, "admin"]
         );
-
-        userId = existingUser.rows[0]?.id;
-
-        if (!userId) {
-          const insertedUser = await pool.query(
-            `INSERT INTO users (name, phone, email, role, is_active, created_at, updated_at)
-             VALUES ($1, $2, $3, $4, true, NOW(), NOW())
-             RETURNING id`,
-            ["SatyXAlka Admin", "0000000000", normalizedEmail, "admin"]
-          );
-          userId = insertedUser.rows[0]?.id;
-        } else {
-          await pool.query(
-            `UPDATE users
-             SET name = COALESCE(name, $1), role = $2, is_active = true, updated_at = NOW()
-             WHERE id = $3`,
-            ["SatyXAlka Admin", "admin", userId]
-          );
-        }
-      } catch (dbError) {
-        console.warn("[admin/login] DB unavailable; continuing with fallback admin login.", dbError.message);
+        userId = insertedUser.rows[0]?.id;
+      } else {
+        await pool.query(
+          `UPDATE users
+           SET name = COALESCE(name, $1), role = $2, is_active = true, updated_at = NOW()
+           WHERE id = $3`,
+          ["SatyXAlka Admin", "admin", userId]
+        );
       }
 
       return res.json({
@@ -105,7 +65,7 @@ router.post("/login", async (req, res) => {
 // This is a lightweight guard for internal dashboards only.
 function adminGuard(req, res, next) {
   const adminEmail = req.headers["x-admin-email"] || "";
-  if (!isAdminEmail(adminEmail)) {
+  if (String(adminEmail).toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
     return res.status(403).json({ success: false, message: "Admin access required" });
   }
   next();
@@ -172,9 +132,8 @@ router.get("/orders", adminGuard, async (req, res) => {
 
     res.json({ success: true, orders: rows, total: rows.length });
   } catch (err) {
-    console.warn("[admin/orders] Error (fallback to empty data):", err.message);
-    // Return empty but valid response to keep UI functional
-    return res.json({ success: true, orders: [], total: 0 });
+    console.error("[admin/orders] error:", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -259,24 +218,8 @@ router.get("/insights", adminGuard, async (req, res) => {
       revenueByDay: revenueByDay.rows,
     });
   } catch (err) {
-    console.warn("[admin/insights] Error (fallback to empty data):", err.message);
-    // Return valid fallback response to keep UI functional
-    return res.json({
-      success: true,
-      summary: {
-        total_orders: 0,
-        new_orders: 0,
-        confirmed_orders: 0,
-        delivered_orders: 0,
-        cancelled_orders: 0,
-        total_revenue: 0,
-        revenue_last_30d: 0,
-        revenue_today: 0,
-      },
-      vendors: [],
-      topProducts: [],
-      revenueByDay: [],
-    });
+    console.error("[admin/insights] error:", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 
@@ -296,23 +239,7 @@ router.get("/vendors", adminGuard, async (req, res) => {
     `);
     res.json({ success: true, vendors: rows });
   } catch (err) {
-    console.warn("[admin/vendors] Error (fallback to empty data):", err.message);
-    return res.json({ success: true, vendors: [] });
-  }
-});
-
-// POST /api/admin/link-vendor-store — link a vendor to a dark store
-router.post("/link-vendor-store", adminGuard, async (req, res) => {
-  const { vendor_id, dark_store_id } = req.body;
-  if (!vendor_id) return res.status(400).json({ success: false, message: "vendor_id required" });
-  try {
-    await pool.query(
-      `UPDATE vendors SET dark_store_id = $1, updated_at = NOW() WHERE id = $2`,
-      [dark_store_id || null, vendor_id]
-    );
-    res.json({ success: true });
-  } catch (err) {
-    console.error("[admin/link-vendor-store] error:", err.message);
+    console.error("[admin/vendors] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });

@@ -232,6 +232,7 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               fallbackStoreLabel: widget.storeName,
             ),
             _VendorStockMonitoringTab(vendorId: widget.vendorId),
+            _VendorEditProductsTab(vendorId: widget.vendorId),
             _VendorStockUpdateTab(vendorId: widget.vendorId),
             _VendorOrdersTab(vendorId: widget.vendorId),
             _VendorDeliverTab(vendorId: widget.vendorId),
@@ -260,6 +261,11 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               icon: Icon(Icons.inventory_2_outlined),
               activeIcon: Icon(Icons.inventory_2_rounded),
               label: 'Insights',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.edit_outlined),
+              activeIcon: Icon(Icons.edit_rounded),
+              label: 'Edit',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.tune_outlined),
@@ -1580,6 +1586,24 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   }
 }
 
+double? _resolvePriceValue(String rawText, double? mrp) {
+  final text = rawText.trim();
+  if (text.isEmpty) return null;
+
+  final percentMatch = RegExp(r'^(-?\d+(?:\.\d+)?)\s*%$').firstMatch(text);
+  if (percentMatch != null) {
+    final percent = double.tryParse(percentMatch.group(1)!);
+    if (percent == null || mrp == null || mrp <= 0) return null;
+    return (mrp * (1 - percent / 100)).round().toDouble();
+  }
+
+  final numericValue = double.tryParse(
+    text.replaceAll(RegExp(r'[^0-9.-]'), ''),
+  );
+  if (numericValue == null) return null;
+  return numericValue.round().toDouble();
+}
+
 class _VendorAddProductTab extends StatefulWidget {
   const _VendorAddProductTab({
     required this.vendorId,
@@ -1847,11 +1871,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
     try {
       final variantPayload = <Map<String, dynamic>>[];
       for (final v in _variants) {
-        final price = double.tryParse(v.priceCtrl.text.trim());
         final mrp = double.tryParse(v.mrpCtrl.text.trim());
+        final resolvedPrice = _resolvePriceValue(v.priceCtrl.text.trim(), mrp);
         final qty = int.tryParse(v.stockCtrl.text.trim());
-        if (price == null ||
-            price <= 0 ||
+        if (resolvedPrice == null ||
+            resolvedPrice <= 0 ||
             mrp == null ||
             mrp <= 0 ||
             qty == null ||
@@ -1859,7 +1883,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
           messenger.showSnackBar(
             const SnackBar(
               content: Text(
-                'Please enter valid variant price/MRP/stock values',
+                'Please enter valid variant price/MRP/stock values. You can use a direct number or a percentage like 40%.',
               ),
             ),
           );
@@ -1876,7 +1900,7 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
               ? null
               : v.barcodeCtrl.text.trim(),
           'mrp': mrp,
-          'price': price,
+          'price': resolvedPrice,
           'quantity': qty,
           'images': uploaded,
         });
@@ -2301,12 +2325,10 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
                               Expanded(
                                 child: TextField(
                                   controller: v.priceCtrl,
-                                  keyboardType:
-                                      const TextInputType.numberWithOptions(
-                                        decimal: true,
-                                      ),
+                                  keyboardType: TextInputType.text,
                                   decoration: const InputDecoration(
-                                    labelText: 'Selling Price',
+                                    labelText: 'Selling Price / %',
+                                    hintText: '499 or 40%',
                                     border: OutlineInputBorder(),
                                   ),
                                 ),
@@ -2510,6 +2532,7 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
   final TextEditingController _searchController = TextEditingController();
   bool _loading = true;
   bool _showLowStockOnly = false;
+  bool _updating = false;
   String _search = '';
   String? _storeLabel;
   List<Map<String, dynamic>> _products = const [];
@@ -2561,6 +2584,115 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
       total += quantity.round();
     }
     return total;
+  }
+
+  Future<void> _setVariantPrice({
+    required String variantId,
+    required int qty,
+    required String rawValue,
+    required double? mrp,
+  }) async {
+    final resolvedPrice = _resolvePriceValue(rawValue, mrp);
+    if (resolvedPrice == null || resolvedPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid selling price or percentage'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _updating = true);
+    try {
+      final res = await _api.updateVendorVariantStock(
+        vendorId: widget.vendorId,
+        variantId: variantId,
+        quantity: qty,
+        price: resolvedPrice,
+        mrp: mrp,
+      );
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        setState(() {
+          for (final p in _products) {
+            final variants = (p['variants'] as List?) ?? const [];
+            for (final v in variants.whereType<Map>()) {
+              if (v['id']?.toString() == variantId) {
+                v['price'] = resolvedPrice;
+                if (mrp != null) v['mrp'] = mrp;
+              }
+            }
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Price updated for this variant')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (res['error'] ?? res['message'] ?? 'Price update failed')
+                  .toString(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _openSetPriceDialog({
+    required String variantId,
+    required double currentPrice,
+    required double? mrp,
+  }) async {
+    final ctrl = TextEditingController(
+      text: currentPrice > 0 ? currentPrice.toStringAsFixed(0) : '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Set Selling Price'),
+          content: TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.text,
+            decoration: const InputDecoration(
+              labelText: 'Price or %',
+              hintText: '499 or 40%',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = ctrl.text.trim();
+                if (value.isNotEmpty) {
+                  Navigator.of(ctx).pop(value);
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+    ctrl.dispose();
+
+    if (result != null && result.isNotEmpty) {
+      await _setVariantPrice(
+        variantId: variantId,
+        qty: 0,
+        rawValue: result,
+        mrp: mrp,
+      );
+    }
   }
 
   @override
@@ -2757,6 +2889,9 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
                       runSpacing: 8,
                       children: variants.whereType<Map>().map((v) {
                         final qty = int.tryParse('${v['quantity'] ?? 0}') ?? 0;
+                        final price =
+                            double.tryParse('${v['price'] ?? 0}') ?? 0;
+                        final mrp = double.tryParse('${v['mrp'] ?? 0}');
                         final size = (v['size'] ?? '-').toString();
                         final color = (v['color'] ?? '-').toString();
                         final barcode = (v['barcode'] ?? '').toString().trim();
@@ -2773,13 +2908,357 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: const Color(0xFFE2E8F0)),
                           ),
-                          child: Text(
-                            '$size • $color • Qty: $qty • $barcodeLabel',
-                            style: const TextStyle(fontSize: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  '$size • $color • Qty: $qty • $barcodeLabel',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              TextButton(
+                                onPressed: _updating
+                                    ? null
+                                    : () => _openSetPriceDialog(
+                                        variantId: v['id']?.toString() ?? '',
+                                        currentPrice: price,
+                                        mrp: mrp,
+                                      ),
+                                child: Text(
+                                  'Price: ₹${price.toStringAsFixed(0)}',
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }).toList(),
                     ),
+                  ],
+                ),
+              );
+            }),
+        ],
+      ),
+    );
+  }
+}
+
+class _VendorEditProductsTab extends StatefulWidget {
+  const _VendorEditProductsTab({required this.vendorId});
+
+  final String vendorId;
+
+  @override
+  State<_VendorEditProductsTab> createState() => _VendorEditProductsTabState();
+}
+
+class _VendorEditProductsTabState extends State<_VendorEditProductsTab> {
+  final ApiClient _api = ApiClient();
+  final TextEditingController _searchController = TextEditingController();
+
+  bool _loading = true;
+  bool _saving = false;
+  String _search = '';
+  String? _storeLabel;
+  List<Map<String, dynamic>> _products = const [];
+  final Map<String, TextEditingController> _priceControllers = {};
+  final Map<String, TextEditingController> _stockControllers = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    for (final controller in _priceControllers.values) {
+      controller.dispose();
+    }
+    for (final controller in _stockControllers.values) {
+      controller.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final linkedStoreRes = await _api.fetchVendorLinkedStore(widget.vendorId);
+      final store = linkedStoreRes['store'];
+      final storeMap = store is Map ? Map<String, dynamic>.from(store) : null;
+      final data = await _api.fetchVendorProducts(widget.vendorId);
+      final products = data
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      if (!mounted) return;
+      setState(() {
+        _storeLabel = storeMap == null
+            ? 'Not linked'
+            : '${storeMap['name'] ?? ''} - ${storeMap['city'] ?? ''}'.trim();
+        _products = products;
+      });
+
+      for (final controller in _priceControllers.values) {
+        controller.dispose();
+      }
+      for (final controller in _stockControllers.values) {
+        controller.dispose();
+      }
+      _priceControllers.clear();
+      _stockControllers.clear();
+
+      for (final product in products) {
+        final variants = (product['variants'] as List?) ?? const [];
+        for (final rawVariant in variants.whereType<Map>()) {
+          final variantId = rawVariant['id']?.toString() ?? '';
+          if (variantId.isEmpty) continue;
+          _priceControllers[variantId] = TextEditingController(
+            text: '${rawVariant['price'] ?? ''}',
+          );
+          _stockControllers[variantId] = TextEditingController(
+            text: '${rawVariant['quantity'] ?? 0}',
+          );
+        }
+      }
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _saveVariant({
+    required String variantId,
+    required double? mrp,
+  }) async {
+    final priceCtrl = _priceControllers[variantId];
+    final stockCtrl = _stockControllers[variantId];
+    if (priceCtrl == null || stockCtrl == null) return;
+
+    final resolvedPrice = _resolvePriceValue(priceCtrl.text.trim(), mrp);
+    final qty = int.tryParse(stockCtrl.text.trim());
+    if (resolvedPrice == null || resolvedPrice <= 0 || qty == null || qty < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter a valid price and stock value')),
+      );
+      return;
+    }
+
+    setState(() => _saving = true);
+    try {
+      final res = await _api.updateVendorVariantStock(
+        vendorId: widget.vendorId,
+        variantId: variantId,
+        quantity: qty,
+        price: resolvedPrice,
+        mrp: mrp,
+      );
+      if (!mounted) return;
+      if (res['success'] == true) {
+        setState(() {
+          for (final product in _products) {
+            final variants = (product['variants'] as List?) ?? const [];
+            for (final rawVariant in variants.whereType<Map>()) {
+              if (rawVariant['id']?.toString() == variantId) {
+                rawVariant['price'] = resolvedPrice;
+                rawVariant['quantity'] = qty;
+                if (mrp != null) rawVariant['mrp'] = mrp;
+              }
+            }
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Variant updated successfully')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (res['error'] ?? res['message'] ?? 'Unable to update variant')
+                  .toString(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredProducts = _products.where((p) {
+      if (_search.trim().isEmpty) return true;
+      final q = _search.toLowerCase().trim();
+      final name = (p['name'] ?? '').toString().toLowerCase();
+      final brand = (p['brand_name'] ?? '').toString().toLowerCase();
+      final category = (p['category_name'] ?? '').toString().toLowerCase();
+      return name.contains(q) || brand.contains(q) || category.contains(q);
+    }).toList();
+
+    return RefreshIndicator(
+      onRefresh: _load,
+      child: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          const Text(
+            'Edit Products',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Adjust selling price and stock directly for each variant.',
+            style: TextStyle(color: Color(0xFF64748B)),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Store: ${_storeLabel ?? 'Loading...'}',
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _searchController,
+            onChanged: (v) => setState(() => _search = v),
+            decoration: InputDecoration(
+              hintText: 'Search by product or brand',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: _searchController.text.isEmpty
+                  ? null
+                  : IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _search = '');
+                      },
+                      icon: const Icon(Icons.close_rounded),
+                    ),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              filled: true,
+              fillColor: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_loading)
+            const Padding(
+              padding: EdgeInsets.only(top: 24),
+              child: Center(child: CircularProgressIndicator()),
+            )
+          else if (filteredProducts.isEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 24),
+              child: Center(child: Text('No products found for this search.')),
+            )
+          else
+            ...filteredProducts.map((product) {
+              final variants = (product['variants'] as List?) ?? const [];
+              return Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      (product['name'] ?? 'Unnamed Product').toString(),
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${product['category_name'] ?? ''} • ${product['brand_name'] ?? ''}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    ...variants.whereType<Map>().map((variant) {
+                      final variantId = variant['id']?.toString() ?? '';
+                      final priceCtrl = _priceControllers[variantId];
+                      final stockCtrl = _stockControllers[variantId];
+                      if (priceCtrl == null || stockCtrl == null) {
+                        return const SizedBox.shrink();
+                      }
+                      final mrp = double.tryParse('${variant['mrp'] ?? 0}');
+                      final size = (variant['size'] ?? '-').toString();
+                      final color = (variant['color'] ?? '-').toString();
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 8),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '$size • $color',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: TextField(
+                                    controller: priceCtrl,
+                                    keyboardType: TextInputType.text,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Price / %',
+                                      hintText: '499 or 40%',
+                                      isDense: true,
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: TextField(
+                                    controller: stockCtrl,
+                                    keyboardType: TextInputType.number,
+                                    decoration: const InputDecoration(
+                                      labelText: 'Stock',
+                                      isDense: true,
+                                      border: OutlineInputBorder(),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: FilledButton(
+                                onPressed: _saving || variantId.isEmpty
+                                    ? null
+                                    : () => _saveVariant(
+                                        variantId: variantId,
+                                        mrp: mrp,
+                                      ),
+                                child: const Text('Save'),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
                   ],
                 ),
               );
@@ -2907,6 +3386,116 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
       }
     } finally {
       if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _setVariantPrice({
+    required String variantId,
+    required int qty,
+    required String rawValue,
+    required double? mrp,
+  }) async {
+    final resolvedPrice = _resolvePriceValue(rawValue, mrp);
+    if (resolvedPrice == null || resolvedPrice <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter a valid selling price or percentage'),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _updating = true);
+    try {
+      final res = await _api.updateVendorVariantStock(
+        vendorId: widget.vendorId,
+        variantId: variantId,
+        quantity: qty,
+        price: resolvedPrice,
+        mrp: mrp,
+      );
+      if (!mounted) return;
+
+      if (res['success'] == true) {
+        setState(() {
+          for (final p in _products) {
+            final variants = (p['variants'] as List?) ?? const [];
+            for (final v in variants.whereType<Map>()) {
+              if (v['id']?.toString() == variantId) {
+                v['price'] = resolvedPrice;
+                if (mrp != null) v['mrp'] = mrp;
+              }
+            }
+          }
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Price updated for this variant')),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (res['error'] ?? res['message'] ?? 'Price update failed')
+                  .toString(),
+            ),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _updating = false);
+    }
+  }
+
+  Future<void> _openSetPriceDialog({
+    required String variantId,
+    required int currentQty,
+    required double currentPrice,
+    required double? mrp,
+  }) async {
+    final ctrl = TextEditingController(
+      text: currentPrice > 0 ? currentPrice.toStringAsFixed(0) : '',
+    );
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Set Selling Price'),
+          content: TextField(
+            controller: ctrl,
+            keyboardType: TextInputType.text,
+            decoration: const InputDecoration(
+              labelText: 'Price or %',
+              hintText: '499 or 40%',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () {
+                final value = ctrl.text.trim();
+                if (value.isNotEmpty) {
+                  Navigator.of(ctx).pop(value);
+                }
+              },
+              child: const Text('Update'),
+            ),
+          ],
+        );
+      },
+    );
+    ctrl.dispose();
+
+    if (result != null && result.isNotEmpty) {
+      await _setVariantPrice(
+        variantId: variantId,
+        qty: currentQty,
+        rawValue: result,
+        mrp: mrp,
+      );
     }
   }
 
@@ -3097,6 +3686,8 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
                     ...variants.whereType<Map>().map((v) {
                       final variantId = v['id']?.toString() ?? '';
                       final qty = int.tryParse('${v['quantity'] ?? 0}') ?? 0;
+                      final price = double.tryParse('${v['price'] ?? 0}') ?? 0;
+                      final mrp = double.tryParse('${v['mrp'] ?? 0}');
                       final size = (v['size'] ?? '-').toString();
                       final color = (v['color'] ?? '-').toString();
                       final barcode = (v['barcode'] ?? '').toString().trim();
@@ -3118,6 +3709,14 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
                                     '$size • $color',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'Price: ₹${price.toStringAsFixed(0)}',
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: Color(0xFF0F766E),
                                     ),
                                   ),
                                   if (barcode.isNotEmpty)
@@ -3160,6 +3759,18 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
                               icon: const Icon(
                                 Icons.add_circle_outline_rounded,
                               ),
+                            ),
+                            const SizedBox(width: 4),
+                            OutlinedButton(
+                              onPressed: _updating || variantId.isEmpty
+                                  ? null
+                                  : () => _openSetPriceDialog(
+                                      variantId: variantId,
+                                      currentQty: qty,
+                                      currentPrice: price,
+                                      mrp: mrp,
+                                    ),
+                              child: const Text('Price'),
                             ),
                             const SizedBox(width: 4),
                             OutlinedButton(
