@@ -1,12 +1,18 @@
 // Determine API base URL based on environment
 const getAPIBase = () => {
-  // In development
+  const envURL = import.meta.env.VITE_API_BASE_URL?.trim();
+
+  // In development, use the same hostname dynamically (works for both localhost and 127.0.0.1)
   if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-    return 'http://localhost:5000';
+    return envURL || `http://${window.location.hostname}:5000`;
   }
-  
-  // In production - use the deployed backend URL
-  return 'https://blinkiefash.onrender.com';
+
+  if (envURL) {
+    return envURL.replace(/\/$/, '');
+  }
+
+  // In production, route backend traffic through the same-origin Vercel rewrite.
+  return '/backend-proxy';
 };
 
 const API_BASE = getAPIBase();

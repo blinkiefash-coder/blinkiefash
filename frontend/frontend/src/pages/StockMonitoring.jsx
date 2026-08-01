@@ -190,6 +190,10 @@ export default function StockMonitoring() {
                 <p>Products in Store</p>
               </div>
               <div className="summary-card">
+                <h3>{filteredProducts.reduce((sum, p) => sum + (p.variants || []).length, 0)}</h3>
+                <p>Total Variants</p>
+              </div>
+              <div className="summary-card">
                 <h3>{filteredProducts.reduce((sum, p) => sum + getTotalStock(p), 0)}</h3>
                 <p>Total Stock Units</p>
               </div>

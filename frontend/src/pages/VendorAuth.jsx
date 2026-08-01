@@ -91,6 +91,9 @@ export default function VendorAuth() {
         <div className="vendor-card">
 
           <h2>Super Admin Login</h2>
+          <p className="vendor-register-link" style={{ marginTop: 8, marginBottom: 12, color: "#0f766e" }}>
+            Access all vendor orders, stock monitoring, and admin tools from one dashboard.
+          </p>
 
           <form onSubmit={handleSubmit}>
 
