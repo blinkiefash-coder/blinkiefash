@@ -4,13 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import VendorLayout from "../components/VendorLayout";
 import { fetchVendorProfile } from "../utils/vendorSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
 
 export default function AddProduct() {
   const navigate = useNavigate();
+  const adminMode = isAdmin();
   const [loading, setLoading] = useState(false);
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
   const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [vendorStoreId, setVendorStoreId] = useState(() => localStorage.getItem("vendor_store_id") || null);
+  // Admin mode: pick which vendor to add a product for
+  const [adminVendors, setAdminVendors] = useState([]);
+  const [selectedAdminVendorId, setSelectedAdminVendorId] = useState("");
 
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -59,6 +64,26 @@ export default function AddProduct() {
 
 
   useEffect(() => {
+    if (adminMode) {
+      fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() })
+        .then((r) => r.json())
+        .then((d) => {
+          const list = Array.isArray(d.vendors) ? d.vendors : [];
+          setAdminVendors(list);
+          if (list.length > 0) {
+            setSelectedAdminVendorId(String(list[0].id));
+            setVendorStoreId(list[0].dark_store_id || null);
+          }
+        })
+        .catch(() => {});
+      fetch(`${API_API_BASE_URL}/brands`).then(r => r.json()).then(d => setBrands(d));
+      fetch(`${API_API_BASE_URL}/categories`).then(r => r.json()).then(d => {
+        const map = buildChildrenMap(d);
+        setChildrenByParent(map);
+        setParentCategories(map.ROOT || []);
+      });
+      return;
+    }
     if (!vendorId) { window.location.href = "/vendor"; return; }
 
     const loadVendor = async () => {
@@ -190,7 +215,7 @@ export default function AddProduct() {
         })
       );
       const payload = {
-        product: { vendor_id: vendorId, category_id: form.category_id, brand: form.brand,
+        product: { vendor_id: adminMode ? selectedAdminVendorId : vendorId, category_id: form.category_id, brand: form.brand,
           name: form.name, short_description: form.short_description,
           full_description: form.full_description, is_try_enabled: form.is_try_enabled,
           store_id: vendorStoreId },
@@ -243,8 +268,27 @@ export default function AddProduct() {
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
-              <div><h2>Add New Product</h2><p>Fill the details to list your product</p></div>
+              <div><h2>Add New Product</h2><p>{adminMode ? "Admin: adding product for selected vendor" : "Fill the details to list your product"}</p></div>
             </div>
+
+            {adminMode && (
+              <div style={{ padding: "0 0 16px" }}>
+                <label style={{ fontWeight: 600, marginRight: 8 }}>Vendor:</label>
+                <select
+                  value={selectedAdminVendorId}
+                  onChange={(e) => {
+                    const v = adminVendors.find((x) => String(x.id) === e.target.value);
+                    setSelectedAdminVendorId(e.target.value);
+                    setVendorStoreId(v?.dark_store_id || null);
+                  }}
+                  style={{ padding: "6px 12px", borderRadius: 6, fontSize: 14 }}
+                >
+                  {adminVendors.map((v) => (
+                    <option key={v.id} value={String(v.id)}>{v.store_name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit}>
               {/* ── 1. Basic Details ──────────────────────────────────── */}

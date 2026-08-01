@@ -946,12 +946,12 @@ router.get("/darkstores", async (req, res) => {
 });
 
 // ── GET /api/checkout/darkstore/:id/products ──────────────────────────────────
-// Get all products available in a specific dark store with inventory
+// Returns ALL active products from vendors linked to this dark store (for stock monitoring).
 router.get("/darkstore/:storeId/products", async (req, res) => {
   try {
     const { storeId } = req.params;
 
-    // Get all products with variants that have inventory in this dark store
+    // Include ALL products from vendors linked to this dark store, not just stocked ones
     const result = await pool.query(
       `SELECT DISTINCT
          p.id, p.name, p.vendor_id, p.category_id, p.brand_id,
@@ -967,15 +967,16 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
-       JOIN product_variants pv ON pv.product_id = p.id
-       JOIN inventory i ON i.variant_id = pv.id
-       WHERE p.is_active = true AND i.store_id = $1 AND i.stock > 0`,
+       WHERE p.is_active = true
+         AND p.vendor_id IN (
+           SELECT id FROM vendors WHERE dark_store_id = $1
+         )`,
       [storeId]
     );
 
     const products = result.rows;
 
-    // For each product, fetch its variants with inventory in this store
+    // For each product, fetch its variants with COALESCE inventory (0 if not stocked here)
     const productsWithVariants = await Promise.all(
       products.map(async (product) => {
         const variantsResult = await pool.query(

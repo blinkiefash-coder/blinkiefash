@@ -46,14 +46,18 @@ export default function EditProduct() {
 
   useEffect(() => {
     if (adminMode) {
-      // Load vendor list so admin can pick which vendor's products to edit
       fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() })
         .then((r) => r.json())
         .then((d) => {
           const list = Array.isArray(d.vendors) ? d.vendors : [];
           setAdminVendors(list);
-          if (list.length > 0) setSelectedAdminVendorId(String(list[0].id));
-          else setLoading(false);
+          if (list.length > 0) {
+            const firstId = String(list[0].id);
+            setSelectedAdminVendorId(firstId);
+            loadProducts(firstId);
+          } else {
+            setLoading(false);
+          }
         })
         .catch(() => setLoading(false));
       return;
@@ -73,7 +77,7 @@ export default function EditProduct() {
     if (adminMode && selectedAdminVendorId) {
       loadProducts(selectedAdminVendorId);
     }
-  }, [adminMode, selectedAdminVendorId]);
+  }, [selectedAdminVendorId]);
 
   const resolveVariantPrice = (rawValue, mrpValue) => {
     const text = String(rawValue ?? "").trim();
