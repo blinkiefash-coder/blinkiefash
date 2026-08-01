@@ -20,9 +20,17 @@ const isDatabaseUnavailableError = (error) => {
   );
 };
 
-// ── Super-admin credentials (override via env vars) ───────────────────────
-const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "superadminsatyam@blinkiefash.in";
+// ── Super-admin credentials ─────────────────────────────────────────────────
+// Accept both the env-var email and the hardcoded default so the app works
+// even if Render has a different ADMIN_EMAIL configured.
+const ADMIN_EMAIL_PRIMARY = "superadminsatyam@blinkiefash.in";
+const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || ADMIN_EMAIL_PRIMARY;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "satyxalka@13987";
+
+const isAdminEmail = (email) => {
+  const e = String(email).toLowerCase();
+  return e === ADMIN_EMAIL.toLowerCase() || e === ADMIN_EMAIL_PRIMARY.toLowerCase();
+};
 
 // ── POST /api/admin/login  Body: { email, password } ─────────────────────────
 router.post("/login", async (req, res) => {
@@ -40,7 +48,7 @@ router.post("/login", async (req, res) => {
   });
 
   if (
-    normalizedEmail === ADMIN_EMAIL.toLowerCase() &&
+    isAdminEmail(normalizedEmail) &&
     normalizedPassword === ADMIN_PASSWORD
   ) {
     try {
@@ -97,7 +105,7 @@ router.post("/login", async (req, res) => {
 // This is a lightweight guard for internal dashboards only.
 function adminGuard(req, res, next) {
   const adminEmail = req.headers["x-admin-email"] || "";
-  if (String(adminEmail).toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+  if (!isAdminEmail(adminEmail)) {
     return res.status(403).json({ success: false, message: "Admin access required" });
   }
   next();

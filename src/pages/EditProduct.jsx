@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
-import { adminHeaders, isAdmin } from "../utils/adminSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
 import "./editProduct.css";
 
 const EMPTY_VARIANT = { size: "", color: "", price: "", mrp: "", barcode: "", quantity: "", imageFiles: [] };
@@ -24,6 +24,9 @@ export default function EditProduct() {
   const [addingTo, setAddingTo] = useState(null);
   const [newVariant, setNewVariant] = useState(EMPTY_VARIANT);
   const [addSaving, setAddSaving] = useState(false);
+  // Admin mode: vendor picker
+  const [adminVendors, setAdminVendors] = useState([]);
+  const [selectedAdminVendorId, setSelectedAdminVendorId] = useState("");
 
   const menuItems = [
     { key: "orders",   label: "Orders",             icon: "\u25cd" },
@@ -42,11 +45,20 @@ export default function EditProduct() {
   };
 
   useEffect(() => {
-    if (!adminMode && !vendorId) { window.location.href = "/vendor"; return; }
     if (adminMode) {
-      loadAllProducts();
+      // Load vendor list so admin can pick which vendor's products to edit
+      fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() })
+        .then((r) => r.json())
+        .then((d) => {
+          const list = Array.isArray(d.vendors) ? d.vendors : [];
+          setAdminVendors(list);
+          if (list.length > 0) setSelectedAdminVendorId(String(list[0].id));
+          else setLoading(false);
+        })
+        .catch(() => setLoading(false));
       return;
     }
+    if (!vendorId) { window.location.href = "/vendor"; return; }
     fetchVendorProfile(vendorId).then((v) => {
       if (v?.store_name) { setStoreName(v.store_name); localStorage.setItem("store_name", v.store_name); }
       if (v?.dark_store_id) {
@@ -54,8 +66,14 @@ export default function EditProduct() {
         localStorage.setItem("vendor_store_id", String(v.dark_store_id));
       }
     });
-    loadProducts();
-  }, [adminMode, vendorId]);
+    loadProducts(vendorId);
+  }, [vendorId, adminMode]);
+
+  useEffect(() => {
+    if (adminMode && selectedAdminVendorId) {
+      loadProducts(selectedAdminVendorId);
+    }
+  }, [adminMode, selectedAdminVendorId]);
 
   const resolveVariantPrice = (rawValue, mrpValue) => {
     const text = String(rawValue ?? "").trim();
@@ -73,10 +91,11 @@ export default function EditProduct() {
     return Number.isFinite(numericValue) ? Math.round(numericValue) : null;
   };
 
-  const loadProducts = async () => {
+  const loadProducts = async (vid) => {
+    if (!vid) return;
     setLoading(true);
     try {
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`);
+      const res = await fetch(`${API_API_BASE_URL}/vendor/${vid}/products`);
       const data = await res.json();
       const list = Array.isArray(data) ? data : [];
       setProducts(list);
@@ -95,31 +114,6 @@ export default function EditProduct() {
     }
   };
 
-  const loadAllProducts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_API_BASE_URL}/products`, {
-        headers: adminHeaders(),
-      });
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      setProducts(list);
-      const stockMap = {};
-      const priceMap = {};
-      list.forEach((p) => (p.variants || []).forEach((v) => {
-        stockMap[v.id] = v.quantity ?? 0;
-        priceMap[v.id] = v.price ?? "";
-      }));
-      setStockEdits(stockMap);
-      setPriceEdits(priceMap);
-    } catch (err) {
-      console.error("Failed to load all products:", err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const filtered = products.filter((p) =>
     (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
     (p.brand_name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
@@ -127,6 +121,7 @@ export default function EditProduct() {
   );
 
   const saveVariant = async (variantId, variantMeta) => {
+    const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
     setSaving(variantId);
     try {
       const resolvedPrice = resolveVariantPrice(priceEdits[variantId] ?? variantMeta.price, variantMeta.mrp);
@@ -136,14 +131,14 @@ export default function EditProduct() {
       };
       if (resolvedPrice !== null) body.price = resolvedPrice;
 
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/variants/${variantId}/stock`, {
+      const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/variants/${variantId}/stock`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-      await loadProducts();
+      await loadProducts(activeVendorId);
     } catch (err) {
       alert(`Save failed: ${err.message}`);
     } finally {
@@ -152,12 +147,13 @@ export default function EditProduct() {
   };
 
   const removeVariant = async (variantId) => {
+    const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
     if (!window.confirm("Remove this variant? It will be hidden from the store.")) return;
     try {
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/variants/${variantId}`, { method: "DELETE" });
+      const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/variants/${variantId}`, { method: "DELETE" });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-      await loadProducts();
+      await loadProducts(activeVendorId);
     } catch (err) {
       alert(`Remove failed: ${err.message}`);
     }
@@ -175,13 +171,14 @@ export default function EditProduct() {
   };
 
   const addVariant = async (productId) => {
+    const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
     if (!newVariant.size.trim() || !newVariant.color.trim()) { alert("Size and Color are required"); return; }
     const resolvedPrice = resolveVariantPrice(newVariant.price, newVariant.mrp);
     if (resolvedPrice === null) { alert("Price is required. Enter a value like 499 or a percentage such as 40%."); return; }
     setAddSaving(true);
     try {
       const uploadedImages = await uploadImages(newVariant.imageFiles || []);
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products/${productId}/variants`, {
+      const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/products/${productId}/variants`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...newVariant, price: resolvedPrice, images: uploadedImages, store_id: vendorStoreId }),
@@ -190,7 +187,7 @@ export default function EditProduct() {
       if (!data.success) throw new Error(data.message || "Failed");
       setAddingTo(null);
       setNewVariant(EMPTY_VARIANT);
-      await loadProducts();
+      await loadProducts(activeVendorId);
     } catch (err) {
       alert(`Add variant failed: ${err.message}`);
     } finally {
@@ -203,8 +200,23 @@ export default function EditProduct() {
       <div className="ep-container">
         <div className="ep-header">
           <h1>✏ Edit Products</h1>
-          <p>Search, update stock, add or remove variants for your store</p>
+          <p>{adminMode ? "Admin view: select a vendor to edit their products" : "Search, update stock, add or remove variants for your store"}</p>
         </div>
+
+        {adminMode && (
+          <div className="ep-search" style={{ marginBottom: 8 }}>
+            <select
+              value={selectedAdminVendorId}
+              onChange={(e) => setSelectedAdminVendorId(e.target.value)}
+              style={{ padding: "8px 12px", borderRadius: 6, fontSize: 14, minWidth: 240 }}
+            >
+              {adminVendors.length === 0 && <option value="">No vendors found</option>}
+              {adminVendors.map((v) => (
+                <option key={v.id} value={String(v.id)}>{v.store_name || v.name || v.id}</option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div className="ep-search">
           <input

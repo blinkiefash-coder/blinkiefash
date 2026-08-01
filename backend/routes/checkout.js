@@ -939,8 +939,9 @@ router.get("/darkstores", async (req, res) => {
       `SELECT id, name, city, address FROM dark_stores WHERE is_active = true ORDER BY name`
     );
     res.json({ success: true, stores: rows });
-  } catch {
-    res.status(500).json({ success: false, message: "Server error" });
+  } catch (err) {
+    console.warn("[checkout/darkstores] DB error, returning empty list:", err.message);
+    res.json({ success: true, stores: [] });
   }
 });
 
@@ -996,8 +997,8 @@ router.get("/darkstore/:storeId/products", async (req, res) => {
 
     res.json(productsWithVariants);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.warn("[checkout/darkstore/products] DB error, returning empty list:", err.message);
+    res.json([]);
   }
 });
 
