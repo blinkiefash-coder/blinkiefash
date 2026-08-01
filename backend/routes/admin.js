@@ -301,18 +301,18 @@ router.get("/vendors", adminGuard, async (req, res) => {
   }
 });
 
-// PATCH /api/admin/vendor/:vendorId/dark-store — link a vendor to a dark store
-router.patch("/vendor/:vendorId/dark-store", adminGuard, async (req, res) => {
-  const { vendorId } = req.params;
-  const { dark_store_id } = req.body;
+// POST /api/admin/link-vendor-store — link a vendor to a dark store
+router.post("/link-vendor-store", adminGuard, async (req, res) => {
+  const { vendor_id, dark_store_id } = req.body;
+  if (!vendor_id) return res.status(400).json({ success: false, message: "vendor_id required" });
   try {
     await pool.query(
       `UPDATE vendors SET dark_store_id = $1, updated_at = NOW() WHERE id = $2`,
-      [dark_store_id || null, vendorId]
+      [dark_store_id || null, vendor_id]
     );
     res.json({ success: true });
   } catch (err) {
-    console.error("[admin/vendor/dark-store] error:", err.message);
+    console.error("[admin/link-vendor-store] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
