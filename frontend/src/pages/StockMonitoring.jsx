@@ -59,7 +59,7 @@ export default function StockMonitoring() {
       return;
     }
     loadProductsForStore(selectedStoreId);
-  }, [adminMode, selectedStoreId]);
+  }, [adminMode, selectedStoreId, darkStores.length]);
 
   const loadDarkStores = async () => {
     try {
@@ -70,11 +70,8 @@ export default function StockMonitoring() {
       const data = await res.json();
       const stores = Array.isArray(data?.stores) ? data.stores : [];
       setDarkStores(stores);
-      if (stores.length > 0) {
-        setSelectedStoreId(String(stores[0].id));
-      } else {
-        setProducts([]);
-      }
+      // Default to "All" so admin sees everything at once
+      setSelectedStoreId("all");
     } catch (err) {
       console.error("Failed to load dark stores:", err);
       setDarkStores([]);
@@ -87,12 +84,29 @@ export default function StockMonitoring() {
   const loadProductsForStore = async (storeId) => {
     try {
       setLoading(true);
-      const res = await fetch(
-        `${API_API_BASE_URL}/checkout/darkstore/${storeId}/products`,
-        { headers: adminHeaders() }
-      );
-      const productsData = await res.json();
-      setProducts(Array.isArray(productsData) ? productsData : []);
+      if (storeId === "all") {
+        // Fetch all stores in parallel and merge products
+        const allStoreIds = darkStores.map(s => s.id);
+        const results = await Promise.all(
+          allStoreIds.map(id =>
+            fetch(`${API_API_BASE_URL}/checkout/darkstore/${id}/products`, { headers: adminHeaders() })
+              .then(r => r.json()).catch(() => [])
+          )
+        );
+        const seen = new Set();
+        const merged = [];
+        results.flat().forEach(p => {
+          if (!seen.has(p.id)) { seen.add(p.id); merged.push(p); }
+        });
+        setProducts(merged);
+      } else {
+        const res = await fetch(
+          `${API_API_BASE_URL}/checkout/darkstore/${storeId}/products`,
+          { headers: adminHeaders() }
+        );
+        const productsData = await res.json();
+        setProducts(Array.isArray(productsData) ? productsData : []);
+      }
     } catch (err) {
       console.error("Failed to load products for dark store:", err);
       setProducts([]);
@@ -159,6 +173,7 @@ export default function StockMonitoring() {
                 onChange={(e) => setSelectedStoreId(e.target.value)}
                 disabled={darkStores.length === 0}
               >
+                <option value="all">All Stores</option>
                 {darkStores.map((store) => (
                   <option key={store.id} value={String(store.id)}>
                     {store.name}{store.city ? ` - ${store.city}` : ""}

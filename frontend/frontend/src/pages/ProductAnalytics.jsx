@@ -3,11 +3,14 @@ import { useNavigate } from "react-router-dom";
 import "./productAnalytics.css";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
+import { fetchVendorProfile } from "../utils/vendorSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
 
 export default function ProductAnalytics() {
   const navigate = useNavigate();
+  const adminMode = isAdmin();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
-  const [storeName] = useState(() => localStorage.getItem("store_name") || "My Store");
+  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -15,10 +18,32 @@ export default function ProductAnalytics() {
   const [timeFilter, setTimeFilter] = useState("month");
 
   useEffect(() => {
+    if (adminMode) {
+      // Admin: load all products across all vendors via admin orders/insights
+      fetch(`${API_API_BASE_URL}/admin/insights`, { headers: adminHeaders() })
+        .then(r => r.json())
+        .then(d => {
+          const top = Array.isArray(d.topProducts) ? d.topProducts : [];
+          setProducts(top.map(p => ({ ...p, totalSales: p.units_sold || 0, totalRevenue: p.revenue || 0, variants: [] })));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
     if (!vendorId) {
       window.location.href = "/vendor";
       return;
     }
+
+    const loadVendor = async () => {
+      const vendor = await fetchVendorProfile(vendorId);
+      if (vendor?.store_name) {
+        setStoreName(vendor.store_name);
+        localStorage.setItem("store_name", vendor.store_name);
+      }
+    };
+
+    loadVendor();
     loadAnalyticsData();
   }, [vendorId]);
 
@@ -141,6 +166,8 @@ export default function ProductAnalytics() {
     if (item.key === "products") navigate("/vendor/add-product");
     if (item.key === "stock") navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "orders") navigate("/vendor/orders");
+    if (item.key === "insights") navigate("/vendor/insights");
   };
 
   if (loading) {

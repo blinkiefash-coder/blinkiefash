@@ -4,9 +4,11 @@ import "./productAnalytics.css";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
 
 export default function ProductAnalytics() {
   const navigate = useNavigate();
+  const adminMode = isAdmin();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
   const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
   const [products, setProducts] = useState([]);
@@ -16,6 +18,18 @@ export default function ProductAnalytics() {
   const [timeFilter, setTimeFilter] = useState("month");
 
   useEffect(() => {
+    if (adminMode) {
+      // Admin: load all products across all vendors via admin orders/insights
+      fetch(`${API_API_BASE_URL}/admin/insights`, { headers: adminHeaders() })
+        .then(r => r.json())
+        .then(d => {
+          const top = Array.isArray(d.topProducts) ? d.topProducts : [];
+          setProducts(top.map(p => ({ ...p, totalSales: p.units_sold || 0, totalRevenue: p.revenue || 0, variants: [] })));
+        })
+        .catch(() => {})
+        .finally(() => setLoading(false));
+      return;
+    }
     if (!vendorId) {
       window.location.href = "/vendor";
       return;
