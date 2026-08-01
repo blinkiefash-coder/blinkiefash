@@ -156,12 +156,53 @@ export default function StockMonitoring() {
 
   const selectedStore = darkStores.find((store) => String(store.id) === String(selectedStoreId));
 
+  const downloadExcel = () => {
+    const storeName_ = selectedStoreId === "all" ? "All Stores" : (selectedStore?.name || "Store");
+    const rows = [
+      ["Product Name", "Brand", "Category", "Price (₹)", "Total Stock", "Size", "Color", "Barcode", "Variant Stock"],
+    ];
+    filteredProducts.forEach((p) => {
+      const variants = p.variants || [];
+      if (variants.length === 0) {
+        rows.push([p.name, p.brand_name || "", p.category_name || "", p.price || "", getTotalStock(p), "", "", "", ""]);
+      } else {
+        variants.forEach((v, i) => {
+          rows.push([
+            i === 0 ? p.name : "",
+            i === 0 ? (p.brand_name || "") : "",
+            i === 0 ? (p.category_name || "") : "",
+            i === 0 ? (p.price || "") : "",
+            i === 0 ? getTotalStock(p) : "",
+            v.size || "", v.color || "", v.barcode || "",
+            Number(v.quantity) || 0,
+          ]);
+        });
+      }
+    });
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `stock_${storeName_.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <VendorLayout activeKey="stock" storeName={storeName} menuItems={menuItems} onMenuClick={handleMenuClick}>
       <div className="stock-container">
         <div className="stock-header">
           <h1>📦 Stock Monitoring</h1>
           <p>{adminMode ? "Admin view: monitor stock by dark store" : "View inventory for your vendor store only"}</p>
+          {!loading && filteredProducts.length > 0 && (
+            <button
+              onClick={downloadExcel}
+              style={{ marginTop: 8, padding: "6px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+            >
+              ⬇ Download Excel
+            </button>
+          )}
         </div>
 
         <div className="stock-controls">

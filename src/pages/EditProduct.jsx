@@ -103,6 +103,9 @@ export default function EditProduct() {
           vendors.map(v => fetch(`${API_API_BASE_URL}/vendor/${v.id}/products`).then(r => r.json()).catch(() => []))
         );
         list = results.flat().filter(p => p?.id);
+        // Deduplicate by product id
+        const seen = new Set();
+        list = list.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
       } else {
         const res = await fetch(`${API_API_BASE_URL}/vendor/${vid}/products`);
         const data = await res.json();
@@ -398,7 +401,7 @@ export default function EditProduct() {
                           </div>
                           <div className="ep-add-actions">
                             <button className="ep-confirm-btn" disabled={addSaving} onClick={() => addVariant(product.id)}>
-                              {addSaving ? "Adding…" : "Add Variant"}
+                              {addSaving ? "Saving…" : "✓ Save Variant"}
                             </button>
                             <button className="ep-cancel-btn" onClick={() => { setAddingTo(null); setNewVariant(EMPTY_VARIANT); }}>
                               Cancel
@@ -406,7 +409,16 @@ export default function EditProduct() {
                           </div>
                         </div>
                       ) : (
-                        <button className="ep-add-variant-btn" onClick={() => setAddingTo(product.id)}>
+                        <button className="ep-add-variant-btn" onClick={() => {
+                          // Pre-fill from last existing variant so user only changes what's different
+                          const last = (product.variants || []).slice(-1)[0];
+                          setNewVariant(last ? {
+                            size: "", color: last.color || "",
+                            price: String(last.price || ""), mrp: String(last.mrp || ""),
+                            barcode: "", quantity: "", imageFiles: []
+                          } : EMPTY_VARIANT);
+                          setAddingTo(product.id);
+                        }}>
                           + Add Variant
                         </button>
                       )}
