@@ -454,7 +454,7 @@ class ApiClient {
     required double dropLat,
     required double dropLng,
     String? city,
-    String distanceProvider = 'google',
+    String distanceProvider = 'auto',
   }) async {
     final params = <String, String>{
       'pickupLat': pickupLat.toStringAsFixed(7),
@@ -481,7 +481,7 @@ class ApiClient {
     required double dropLat,
     required double dropLng,
     String? city,
-    String distanceProvider = 'google',
+    String distanceProvider = 'auto',
     String? receiverName,
     String? receiverPhone,
     String? note,
