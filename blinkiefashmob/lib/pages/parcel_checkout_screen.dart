@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/user_session.dart';
 
@@ -44,6 +45,34 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
   final _api = ApiClient();
 
   static const _green = Color(0xFF16A34A);
+
+  Future<void> _pickContact() async {
+    try {
+      // native.showPicker is permissionless on Android and iOS
+      final contact = await FlutterContacts.native.showPicker(
+        properties: {ContactProperty.phone, ContactProperty.name},
+      );
+      if (contact == null || !mounted) return;
+      final phone = contact.phones.isNotEmpty
+          ? (contact.phones.first.normalizedNumber ?? '')
+                .replaceAll(RegExp(r'[^\d]'), '')
+                .replaceAll(RegExp(r'^91'), '')
+          : '';
+      final name = contact.displayName ?? '';
+      setState(() {
+        if (name.isNotEmpty) {
+          _receiverNameCtrl.text = name;
+        }
+        if (phone.isNotEmpty) {
+          _receiverPhoneCtrl.text = phone.length > 10
+              ? phone.substring(phone.length - 10)
+              : phone;
+        }
+      });
+    } catch (e) {
+      debugPrint('Contact pick error: $e');
+    }
+  }
 
   @override
   void dispose() {
@@ -131,7 +160,28 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
             const SizedBox(height: 16),
 
             // ── Receiver details ──
-            _SectionLabel('Receiver Details'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const _SectionLabel('Receiver Details'),
+                TextButton.icon(
+                  onPressed: _pickContact,
+                  icon: const Icon(Icons.contacts_rounded, size: 16),
+                  label: const Text(
+                    'From Contacts',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFF16A34A),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
             _field(
               controller: _receiverNameCtrl,
@@ -165,7 +215,7 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
             const SizedBox(height: 16),
 
             // ── Who pays ──
-            _SectionLabel('Payment'),
+            const _SectionLabel('Payment'),
             const SizedBox(height: 8),
             _WhoPaysSelector(
               value: _whoPays,

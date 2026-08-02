@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -53,6 +54,7 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   // ── Map pin (Step 1) ──────────────────────────────────────────────────────
   final MapController _mapController = MapController();
+  gmaps.GoogleMapController? _googleMapController;
   LatLng _pinCenter = const LatLng(20.2961, 85.8245); // default: Bhubaneswar
   bool _reverseGeocoding = false;
 
@@ -74,9 +76,11 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _searchCtrl.dispose();
     _searchFocus.dispose();
     _debounce?.cancel();
+    _reverseDebounce?.cancel();
     _flatCtrl.dispose();
     _landmarkCtrl.dispose();
     _mapController.dispose();
+    _googleMapController?.dispose();
     super.dispose();
   }
 
@@ -249,16 +253,61 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       }
       _step = 1;
     });
-    // Move map after frame renders
+    // Move map after frame renders — Google Maps or OSM
     if (lat != null && lng != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _mapController.move(LatLng(lat, lng), 16);
+        _googleMapController?.animateCamera(
+          gmaps.CameraUpdate.newLatLngZoom(gmaps.LatLng(lat, lng), 16),
+        );
+        try {
+          _mapController.move(LatLng(lat, lng), 16);
+        } catch (_) {}
       });
     }
   }
 
-  // ── Reverse geocode when pin moves on map ────────────────────────────────
+  // ── Google Maps camera idle → reverse geocode ────────────────────────────
+  void _onMapMovedIdle() {
+    _reverseDebounce?.cancel();
+    _reverseDebounce = Timer(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
+      setState(() => _reverseGeocoding = true);
+      try {
+        final place = await _reverseGeocode(
+          _pinCenter.latitude,
+          _pinCenter.longitude,
+        );
+        if (!mounted) return;
+        final label = place['area']!.isNotEmpty
+            ? place['area']!
+            : place['city']!;
+        setState(() {
+          if (place['area']!.isNotEmpty || place['city']!.isNotEmpty) {
+            _confirmedArea = place['area']!;
+            _confirmedCity = place['city']!.isNotEmpty
+                ? place['city']!
+                : _confirmedCity;
+            _confirmedPincode = place['pincode']!.isNotEmpty
+                ? place['pincode']!
+                : _confirmedPincode;
+          }
+          _confirmedLat = _pinCenter.latitude;
+          _confirmedLng = _pinCenter.longitude;
+          if (!_searchFocus.hasFocus && label.isNotEmpty) {
+            _searchCtrl.text = label;
+            _suggestions = [];
+          }
+        });
+      } catch (_) {
+      } finally {
+        if (mounted) setState(() => _reverseGeocoding = false);
+      }
+    });
+  }
+
+  // ── Reverse geocode when pin moves on map (OSM fallback kept for details step) ──
   Timer? _reverseDebounce;
+  // ignore: unused_element
   void _onMapMoved(MapCamera camera, bool hasGesture) {
     if (!hasGesture) return;
     _pinCenter = camera.center;
@@ -385,24 +434,27 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     );
   }
 
-  // ── Step 1: Map pin confirmation ──────────────────────────────────────────
+  // ── Step 1: Map pin confirmation (Google Maps) ───────────────────────────
   Widget _buildMapPinStep() {
+    final initialPos = gmaps.CameraPosition(
+      target: gmaps.LatLng(_pinCenter.latitude, _pinCenter.longitude),
+      zoom: 16,
+    );
     return Stack(
       children: [
-        FlutterMap(
-          mapController: _mapController,
-          options: MapOptions(
-            initialCenter: _pinCenter,
-            initialZoom: 16,
-            onPositionChanged: (camera, hasGesture) =>
-                _onMapMoved(camera, hasGesture),
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'com.blinkiefash.mob',
-            ),
-          ],
+        gmaps.GoogleMap(
+          initialCameraPosition: initialPos,
+          onMapCreated: (controller) => _googleMapController = controller,
+          myLocationEnabled: true,
+          myLocationButtonEnabled: false,
+          zoomControlsEnabled: false,
+          mapToolbarEnabled: false,
+          onCameraMove: (pos) {
+            _pinCenter = LatLng(pos.target.latitude, pos.target.longitude);
+          },
+          onCameraIdle: () {
+            _onMapMovedIdle();
+          },
         ),
         // Fixed center pin
         const Center(
