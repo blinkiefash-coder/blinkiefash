@@ -6488,9 +6488,7 @@ class _HomeScreenState extends State<HomeScreen>
 
     if (!mounted) return;
     setState(() {
-      _deliverGoogleSearchStatus = _googleMapsApiKey.isEmpty
-          ? 'Missing API key'
-          : 'Checking...';
+      _deliverGoogleSearchStatus = 'Checking...';
       if (pickup) {
         _deliverPickupSearching = true;
       } else {

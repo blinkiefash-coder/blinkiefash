@@ -861,9 +861,7 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     }
 
     setState(() {
-      _googleSearchStatus = _googleMapsApiKey.isEmpty
-          ? 'Missing API key'
-          : 'Checking...';
+      _googleSearchStatus = 'Checking...';
       if (pickup) {
         _pickupSearching = true;
       } else {
