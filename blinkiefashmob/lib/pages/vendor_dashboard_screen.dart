@@ -613,7 +613,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
   Future<void> _pickLocationFromMap({required bool pickup}) async {
     final picked = await Navigator.of(context).push<PickedAddress>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+      MaterialPageRoute(
+        builder: (_) => const LocationPickerScreen(skipAddressForm: true),
+      ),
     );
     if (!mounted || picked == null) return;
 

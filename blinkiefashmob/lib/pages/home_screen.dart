@@ -5929,7 +5929,7 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _deliverPickupDebounce;
   Timer? _deliverDropDebounce;
   bool _deliverEstimating = false;
-  bool _deliverSubmitting = false;
+  final bool _deliverSubmitting = false;
   bool _deliverPickupSearching = false;
   bool _deliverDropSearching = false;
   List<Map<String, dynamic>> _deliverPickupSuggestions = const [];
@@ -6536,7 +6536,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _pickDeliverLocationFromMap({required bool pickup}) async {
     final picked = await Navigator.of(context).push<PickedAddress>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+      MaterialPageRoute(
+        builder: (_) => const LocationPickerScreen(skipAddressForm: true),
+      ),
     );
     if (!mounted || picked == null) return;
 

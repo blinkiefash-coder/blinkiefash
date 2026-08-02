@@ -27,7 +27,9 @@ class PickedAddress {
 
 /// Blinkit-style address picker.
 class LocationPickerScreen extends StatefulWidget {
-  const LocationPickerScreen({super.key});
+  // When true, skip the address-detail form and return after map pin confirmation.
+  final bool skipAddressForm;
+  const LocationPickerScreen({super.key, this.skipAddressForm = false});
 
   @override
   State<LocationPickerScreen> createState() => _LocationPickerScreenState();
@@ -299,6 +301,20 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   }
 
   void _confirmMapPin() {
+    if (widget.skipAddressForm) {
+      // Return immediately with the pinned location — no address form needed
+      final area = _confirmedArea.isNotEmpty ? _confirmedArea : _confirmedCity;
+      Navigator.of(context).pop(
+        PickedAddress(
+          addressLine: area,
+          city: _confirmedCity,
+          pincode: _confirmedPincode,
+          lat: _pinCenter.latitude,
+          lng: _pinCenter.longitude,
+        ),
+      );
+      return;
+    }
     setState(() {
       _confirmedLat = _pinCenter.latitude;
       _confirmedLng = _pinCenter.longitude;
