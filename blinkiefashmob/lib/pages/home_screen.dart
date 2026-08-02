@@ -637,30 +637,59 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _detectCurrentLocation() async {
     try {
-      debugPrint('[LOC] Starting GPS detection (15s timeout)...');
+      // Step 1: Show last known position instantly (no GPS wait)
+      final lastKnown = await Geolocator.getLastKnownPosition();
+      if (lastKnown != null && mounted) {
+        debugPrint(
+          '[LOC] Last known position: ${lastKnown.latitude}, ${lastKnown.longitude}',
+        );
+        await _reverseGeocodeAndUpdate(
+          lastKnown.latitude,
+          lastKnown.longitude,
+          persist: false,
+        );
+      }
 
+      // Step 2: Get fresh GPS position in background and update
+      debugPrint('[LOC] Starting fresh GPS detection (15s timeout)...');
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
         timeLimit: const Duration(seconds: 15),
       );
-
       debugPrint('[LOC] GPS success: ${pos.latitude}, ${pos.longitude}');
+      await _reverseGeocodeAndUpdate(
+        pos.latitude,
+        pos.longitude,
+        persist: true,
+      );
+    } on TimeoutException {
+      debugPrint('[LOC] GPS timeout after 15s');
+      if (mounted && _lastKnownLat == null) {
+        setState(() => _currentLocation = 'Set location');
+      }
+    } catch (e) {
+      debugPrint('[LOC] Error detecting location: $e');
+      if (mounted && _lastKnownLat == null) {
+        setState(() => _currentLocation = 'Set location');
+      }
+    }
+  }
 
-      // Use Nominatim reverse geocoding (no API key, works on all devices)
+  Future<void> _reverseGeocodeAndUpdate(
+    double lat,
+    double lng, {
+    required bool persist,
+  }) async {
+    try {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse'
-        '?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
+        '?lat=$lat&lon=$lng&format=json&addressdetails=1',
       );
-
-      debugPrint('[LOC] Reverse geocoding: ${uri.toString()}');
-
       final res = await http
           .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
           .timeout(const Duration(seconds: 8));
-
       final data = jsonDecode(res.body) as Map<String, dynamic>;
       final addr = data['address'] as Map<String, dynamic>? ?? {};
-
       final city =
           (addr['city'] ??
                   addr['town'] ??
@@ -670,36 +699,22 @@ class _HomeScreenState extends State<HomeScreen>
                   '')
               .toString()
               .trim();
-
       debugPrint('[LOC] Reverse geocoding result: $city');
-
       if (city.isNotEmpty && mounted) {
         setState(() {
           _currentLocation = city;
-          _lastKnownLat = pos.latitude;
-          _lastKnownLng = pos.longitude;
+          _lastKnownLat = lat;
+          _lastKnownLng = lng;
         });
-        _persistResolvedLocation(
-          city: city,
-          lat: pos.latitude,
-          lng: pos.longitude,
-        );
+        if (persist) {
+          _persistResolvedLocation(city: city, lat: lat, lng: lng);
+        }
         if (_isLocationSheetOpen && mounted) {
           Navigator.of(context).maybePop();
         }
-        _loadHomeData(lat: pos.latitude, lng: pos.longitude);
-      } else {
-        debugPrint('[LOC] No city found in reverse geocode response');
+        _loadHomeData(lat: lat, lng: lng);
       }
-    } on TimeoutException {
-      debugPrint('[LOC] GPS timeout after 15s');
-      if (mounted) {
-        setState(() => _currentLocation = 'GPS timeout - Set location');
-      }
-    } catch (e) {
-      debugPrint('[LOC] Error detecting location: $e');
-      if (mounted) setState(() => _currentLocation = 'Set location');
-    }
+    } catch (_) {}
   }
 
   Future<void> _openLocationPicker() async {
