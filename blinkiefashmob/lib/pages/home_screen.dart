@@ -7004,6 +7004,13 @@ class _HomeScreenState extends State<HomeScreen>
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     onPressed: _deliverSubmitting
                         ? null
                         : _submitDeliverRequest,
@@ -7011,13 +7018,24 @@ class _HomeScreenState extends State<HomeScreen>
                         ? const SizedBox(
                             width: 14,
                             height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Colors.white,
+                            ),
                           )
-                        : const Icon(Icons.local_shipping_rounded),
+                        : const Icon(
+                            Icons.local_shipping_rounded,
+                            color: Colors.white,
+                          ),
                     label: Text(
                       _deliverSubmitting
-                          ? 'Submitting...'
-                          : 'Book Parcel Pickup',
+                          ? 'Booking...'
+                          : 'Book Now — ₹$fare  •  $distance km',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ),
