@@ -56,8 +56,7 @@ android {
 
     buildTypes {
         named("debug") {
-            applicationIdSuffix = ".debug"
-            versionNameSuffix = "-debug"
+            // No applicationIdSuffix so Firebase google-services.json matches com.blinkiefash.app
         }
 
         named("release") {
