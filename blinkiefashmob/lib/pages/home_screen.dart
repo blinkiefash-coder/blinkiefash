@@ -634,26 +634,42 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _detectCurrentLocation() async {
     try {
+      debugPrint('[LOC] Starting GPS detection (15s timeout)...');
+      
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 6),
+        timeLimit: const Duration(seconds: 15),
       );
-      final placemarks = await placemarkFromCoordinates(
-        pos.latitude,
-        pos.longitude,
+      
+      debugPrint('[LOC] GPS success: ${pos.latitude}, ${pos.longitude}');
+      
+      // Use Nominatim reverse geocoding (no API key, works on all devices)
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
       );
-      if (!mounted || placemarks.isEmpty) return;
-      final place = placemarks.first;
-      final city =
-          [
-                place.locality,
-                place.subLocality,
-                place.subAdministrativeArea,
-                place.administrativeArea,
-              ]
-              .map((v) => (v ?? '').trim())
-              .firstWhere((v) => v.isNotEmpty, orElse: () => '');
-      if (city.isNotEmpty) {
+      
+      debugPrint('[LOC] Reverse geocoding: ${uri.toString()}');
+      
+      final res = await http
+          .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
+          .timeout(const Duration(seconds: 8));
+      
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
+      
+      final city = (addr['city'] ??
+              addr['town'] ??
+              addr['state_district'] ??
+              addr['county'] ??
+              addr['state'] ??
+              '')
+          .toString()
+          .trim();
+      
+      debugPrint('[LOC] Reverse geocoding result: $city');
+      
+      if (city.isNotEmpty && mounted) {
         setState(() {
           _currentLocation = city;
           _lastKnownLat = pos.latitude;
@@ -668,8 +684,16 @@ class _HomeScreenState extends State<HomeScreen>
           Navigator.of(context).maybePop();
         }
         _loadHomeData(lat: pos.latitude, lng: pos.longitude);
+      } else {
+        debugPrint('[LOC] No city found in reverse geocode response');
       }
-    } catch (_) {}
+    } on TimeoutException {
+      debugPrint('[LOC] GPS timeout after 15s');
+      if (mounted) setState(() => _currentLocation = 'GPS timeout - Set location');
+    } catch (e) {
+      debugPrint('[LOC] Error detecting location: $e');
+      if (mounted) setState(() => _currentLocation = 'Set location');
+    }
   }
 
   Future<void> _openLocationPicker() async {
