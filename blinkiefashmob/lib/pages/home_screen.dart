@@ -31,6 +31,7 @@ import 'support_chat_screen.dart';
 import 'wishlist_screen.dart';
 import 'address_screen.dart';
 import 'location_picker_screen.dart';
+import 'parcel_checkout_screen.dart';
 import 'spin_wheel_screen.dart';
 import 'fashion_quest_screen.dart';
 import '../widgets/animated_search_bar.dart';
@@ -715,6 +716,41 @@ class _HomeScreenState extends State<HomeScreen>
         _loadHomeData(lat: lat, lng: lng);
       }
     } catch (_) {}
+  }
+
+  Future<void> _openParcelCheckout(Map<String, dynamic> estimate) async {
+    final booked = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => ParcelCheckoutScreen(
+          pickupText: _deliverPickupCtrl.text.trim(),
+          dropText: _deliverDropCtrl.text.trim(),
+          pickupLat: _deliverPickupLat!,
+          pickupLng: _deliverPickupLng!,
+          dropLat: _deliverDropLat!,
+          dropLng: _deliverDropLng!,
+          city: _currentLocation,
+          estimatedFare: (estimate['estimatedFare'] as num?) ?? 0,
+          distanceKm: (estimate['distanceKm'] as num?) ?? 0,
+        ),
+      ),
+    );
+
+    if (booked == true && mounted) {
+      setState(() {
+        _deliverPickupCtrl.clear();
+        _deliverDropCtrl.clear();
+        _deliverEstimate = null;
+        _deliverPickupLat = null;
+        _deliverPickupLng = null;
+        _deliverDropLat = null;
+        _deliverDropLng = null;
+        _deliverPickupSuggestions = const [];
+        _deliverDropSuggestions = const [];
+        _deliverRoutePoints = const [];
+        _deliverPickupAutoInitialized = false;
+      });
+      _stopDeliverLiveTracking();
+    }
   }
 
   Future<void> _openLocationPicker() async {
@@ -6832,76 +6868,65 @@ class _HomeScreenState extends State<HomeScreen>
         if (estimate != null) ...[
           const SizedBox(height: 10),
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: const Color(0xFFF0FDF4),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: const Color(0xFFBBF7D0)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Text(
-                  'Zone: $cityZone',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                const Icon(
+                  Icons.route_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
                 ),
-                const SizedBox(height: 4),
-                Text('Distance: $distance km'),
-                if (routeLabel.isNotEmpty)
-                  Text(
-                    'Route source: $routeLabel',
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '$distance km  •  Zone: $cityZone',
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFF475569),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF166534),
                     ),
-                  ),
-                Text(
-                  'Estimated Fare: ₹$fare',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF166534),
                   ),
                 ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    onPressed: _deliverSubmitting
-                        ? null
-                        : _submitDeliverRequest,
-                    icon: _deliverSubmitting
-                        ? const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(
-                            Icons.local_shipping_rounded,
-                            color: Colors.white,
-                          ),
-                    label: Text(
-                      _deliverSubmitting
-                          ? 'Booking...'
-                          : 'Book Now — ₹$fare  •  $distance km',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
+                Text(
+                  '₹$fare',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF16A34A),
                   ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFF16A34A),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              onPressed: () => _openParcelCheckout(estimate),
+              icon: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+              ),
+              label: Text(
+                'Continue — ₹$fare  •  $distance km',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
             ),
           ),
         ],

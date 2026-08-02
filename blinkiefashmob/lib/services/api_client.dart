@@ -482,6 +482,10 @@ class ApiClient {
     required double dropLng,
     String? city,
     String distanceProvider = 'google',
+    String? receiverName,
+    String? receiverPhone,
+    String? note,
+    String whoPays = 'sender',
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/deliver/request');
     return _postJson(uri, {
@@ -494,6 +498,12 @@ class ApiClient {
       'dropLng': dropLng,
       'distanceProvider': distanceProvider,
       if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+      if (receiverName != null && receiverName.isNotEmpty)
+        'receiverName': receiverName,
+      if (receiverPhone != null && receiverPhone.isNotEmpty)
+        'receiverPhone': receiverPhone,
+      if (note != null && note.isNotEmpty) 'note': note,
+      'whoPays': whoPays,
     });
   }
 
