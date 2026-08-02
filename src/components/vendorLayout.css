@@ -85,7 +85,7 @@
   font-weight: 600;
 }
 .vendor-op-label.op-live   { color: #16a34a; }
-.vendor-op-label.vendor-op-label.op-paused { color: #dc2626; }
+.vendor-op-label.op-paused { color: #dc2626; }
 
 /* iOS-style toggle switch */
 .vendor-toggle-switch {
