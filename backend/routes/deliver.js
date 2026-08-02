@@ -99,7 +99,7 @@ const normalizeDistanceProvider = (value) => {
   const v = String(value || "").trim().toLowerCase();
   if (v === "google") return "google";
   if (v === "auto") return "auto";
-  return "google";
+  return "auto"; // default to auto so OSRM/haversine fallback always works
 };
 
 const getRouteMetrics = async ({
