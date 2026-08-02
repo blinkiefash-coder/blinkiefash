@@ -982,40 +982,49 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     final rows = pickup ? _pickupSuggestions : _dropSuggestions;
     if (rows.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.only(top: 6, bottom: 4),
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: ListView.separated(
-        padding: EdgeInsets.zero,
-        shrinkWrap: true,
-        itemCount: rows.length,
-        separatorBuilder: (_, index) => const Divider(height: 1),
-        itemBuilder: (_, i) {
-          final s = rows[i];
-          return ListTile(
-            dense: true,
-            leading: Icon(
-              pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
-              color: pickup ? const Color(0xFF16A34A) : const Color(0xFFEF4444),
-            ),
-            title: Text(
-              (s['title'] ?? '').toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            subtitle: Text(
-              (s['subtitle'] ?? '').toString(),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            onTap: () => _selectVendorSuggestion(s, pickup: pickup),
-          );
-        },
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        margin: const EdgeInsets.only(top: 6, bottom: 4),
+        constraints: const BoxConstraints(maxHeight: 180),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: ListView.separated(
+            padding: EdgeInsets.zero,
+            shrinkWrap: true,
+            itemCount: rows.length,
+            separatorBuilder: (_, index) => const Divider(height: 1),
+            itemBuilder: (_, i) {
+              final s = rows[i];
+              return ListTile(
+                dense: true,
+                leading: Icon(
+                  pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
+                  color: pickup
+                      ? const Color(0xFF16A34A)
+                      : const Color(0xFFEF4444),
+                ),
+                title: Text(
+                  (s['title'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: Text(
+                  (s['subtitle'] ?? '').toString(),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                onTap: () => _selectVendorSuggestion(s, pickup: pickup),
+              );
+            },
+          ),
+        ),
       ),
     );
   }

@@ -6572,36 +6572,43 @@ class _HomeScreenState extends State<HomeScreen>
         : _deliverDropSuggestions;
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
-    return Container(
-      margin: const EdgeInsets.only(top: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-      ),
-      child: Column(
-        children: [
-          for (final s in suggestions)
-            ListTile(
-              dense: true,
-              leading: Icon(
-                pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
-                color: const Color(0xFF0EA5E9),
-                size: 18,
-              ),
-              title: Text(
-                (s['title'] ?? '').toString(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              subtitle: Text(
-                (s['subtitle'] ?? '').toString(),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              onTap: () => _selectDeliverSuggestion(s, pickup: pickup),
-            ),
-        ],
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        margin: const EdgeInsets.only(top: 8),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            children: [
+              for (final s in suggestions)
+                ListTile(
+                  dense: true,
+                  leading: Icon(
+                    pickup ? Icons.trip_origin_rounded : Icons.place_outlined,
+                    color: const Color(0xFF0EA5E9),
+                    size: 18,
+                  ),
+                  title: Text(
+                    (s['title'] ?? '').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  subtitle: Text(
+                    (s['subtitle'] ?? '').toString(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onTap: () => _selectDeliverSuggestion(s, pickup: pickup),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
