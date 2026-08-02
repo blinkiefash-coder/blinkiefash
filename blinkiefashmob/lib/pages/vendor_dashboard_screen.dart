@@ -4,7 +4,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_map/flutter_map.dart';
+
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -326,10 +326,13 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
   double? _dropLng;
   Map<String, dynamic>? _estimate;
   List<LatLng> _routePoints = const [];
+  // ignore: unused_field
   List<LatLng> _nearbyRiders = const [];
   Timer? _liveTimer;
   int _liveTick = 0;
+  // ignore: unused_field
   int? _etaMinutes;
+  // ignore: unused_field
   bool _routeLoading = false;
   String _cityHint = '';
   final FocusNode _pickupFocus = FocusNode();

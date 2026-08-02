@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter_map/flutter_map.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
@@ -5941,11 +5940,14 @@ class _HomeScreenState extends State<HomeScreen>
   String? _deliverLastGoogleApiStatus;
   bool _shownDeliverGoogleSearchConfigWarning = false;
   bool _deliverPickupAutoInitialized = false;
+  // ignore: unused_field
   bool _deliverRouteLoading = false;
   List<LatLng> _deliverRoutePoints = const [];
+  // ignore: unused_field
   List<LatLng> _deliverNearbyRiders = const [];
   Timer? _deliverLiveTimer;
   int _deliverLiveTick = 0;
+  // ignore: unused_field
   int? _deliverEtaMinutes;
   Map<String, dynamic>? _deliverEstimate;
 
@@ -6651,58 +6653,6 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
-  Future<void> _submitDeliverRequest() async {
-    if (_deliverEstimate == null ||
-        _deliverPickupLat == null ||
-        _deliverPickupLng == null ||
-        _deliverDropLat == null ||
-        _deliverDropLng == null) {
-      _snack('Please estimate fare first');
-      return;
-    }
-
-    setState(() => _deliverSubmitting = true);
-    try {
-      final res = await _api.createDeliverRequest(
-        userId: UserSession.instance.userId,
-        pickupText: _deliverPickupCtrl.text.trim(),
-        dropText: _deliverDropCtrl.text.trim(),
-        pickupLat: _deliverPickupLat!,
-        pickupLng: _deliverPickupLng!,
-        dropLat: _deliverDropLat!,
-        dropLng: _deliverDropLng!,
-        city: _currentLocation,
-      );
-
-      if (!mounted) return;
-      if (res['success'] == true) {
-        _snack('Parcel request created successfully');
-        setState(() {
-          _deliverPickupCtrl.clear();
-          _deliverDropCtrl.clear();
-          _deliverEstimate = null;
-          _deliverPickupLat = null;
-          _deliverPickupLng = null;
-          _deliverDropLat = null;
-          _deliverDropLng = null;
-          _deliverPickupSuggestions = const [];
-          _deliverDropSuggestions = const [];
-          _deliverNearbyRiders = const [];
-          _deliverRoutePoints = const [];
-          _deliverEtaMinutes = null;
-          _deliverPickupAutoInitialized = false;
-        });
-        _stopDeliverLiveTracking();
-      } else {
-        _snack((res['message'] ?? res['error'] ?? 'Request failed').toString());
-      }
-    } catch (_) {
-      _snack('Request failed. Please try again.');
-    } finally {
-      if (mounted) setState(() => _deliverSubmitting = false);
-    }
-  }
-
   Widget _deliverBody() {
     if (!_deliverPickupAutoInitialized) {
       Future.microtask(_setDeliverPickupFromCurrentLocation);
@@ -6712,14 +6662,6 @@ class _HomeScreenState extends State<HomeScreen>
     final fare = (estimate?['estimatedFare'] ?? 0).toString();
     final distance = (estimate?['distanceKm'] ?? 0).toString();
     final cityZone = (estimate?['cityZone'] ?? '').toString();
-    final routeSource = (estimate?['routeSource'] ?? '').toString();
-    final routeLabel = routeSource == 'google-directions'
-        ? 'Google'
-        : routeSource == 'osrm'
-        ? 'OSRM'
-        : routeSource == 'haversine-fallback'
-        ? 'Fallback (approx)'
-        : '';
 
     return ListView(
       padding: const EdgeInsets.all(16),
