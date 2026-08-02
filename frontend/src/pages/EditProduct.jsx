@@ -347,16 +347,6 @@ export default function EditProduct() {
                                 </td>
                                 <td className="ep-row-actions">
                                   <button
-                                    className="ep-save-btn"
-                                    disabled={saving === v.id || savingAll}
-                                    onClick={async () => {
-                                      try { await saveVariant(v.id, v); await loadProducts(selectedAdminVendorId || vendorId); }
-                                      catch (e) { alert(`Save failed: ${e.message}`); }
-                                    }}
-                                  >
-                                    {saving === v.id ? "…" : "Save"}
-                                  </button>
-                                  <button
                                     className="ep-remove-btn"
                                     title="Remove variant"
                                     onClick={() => removeVariant(v.id, product.id)}
