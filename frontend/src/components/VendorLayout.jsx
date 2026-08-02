@@ -90,16 +90,22 @@ export default function VendorLayout({
           <strong>My Store</strong>
           <span>{storeName}</span>
           {resolvedVendorId && isOperational !== null && (
-            <button
-              type="button"
-              className={`vendor-op-toggle ${isOperational ? "op-on" : "op-off"}`}
-              onClick={toggleOperational}
-              disabled={togglingOp}
-              title={isOperational ? "Store is OPEN — click to close" : "Store is CLOSED — click to open"}
-            >
-              <span className="op-dot" />
-              {isSidebarCollapsed ? "" : (togglingOp ? "…" : isOperational ? "Store Open" : "Store Closed")}
-            </button>
+            <div className="vendor-op-toggle-row">
+              <span className={`vendor-op-label ${isOperational ? "op-live" : "op-paused"}`}>
+                {togglingOp ? "Updating…" : isOperational ? "🟢 Store Live" : "🔴 Store Paused"}
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isOperational}
+                disabled={togglingOp}
+                onClick={toggleOperational}
+                className={`vendor-toggle-switch ${isOperational ? "toggle-on" : "toggle-off"}`}
+                title={isOperational ? "Click to pause store" : "Click to go live"}
+              >
+                <span className="vendor-toggle-knob" />
+              </button>
+            </div>
           )}
         </div>
 

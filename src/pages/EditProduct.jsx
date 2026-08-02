@@ -21,6 +21,7 @@ export default function EditProduct() {
   const [stockEdits, setStockEdits] = useState({});
   const [priceEdits, setPriceEdits] = useState({});
   const [saving, setSaving] = useState(null);
+  const [savingAll, setSavingAll] = useState(false);
   const [addingTo, setAddingTo] = useState(null);
   const [newVariant, setNewVariant] = useState(EMPTY_VARIANT);
   const [addSaving, setAddSaving] = useState(false);
@@ -157,12 +158,28 @@ export default function EditProduct() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-      await loadProducts(selectedAdminVendorId || vendorId);
     } catch (err) {
-      alert(`Save failed: ${err.message}`);
+      throw err;
     } finally {
       setSaving(null);
     }
+  };
+
+  // Collect all variants from currently visible products and save in one shot
+  const saveAll = async () => {
+    setSavingAll(true);
+    const allVariants = filtered.flatMap(p =>
+      (p.variants || []).map(v => ({ ...v, product_id: v.product_id || p.id }))
+    );
+    const errors = [];
+    for (const v of allVariants) {
+      try { await saveVariant(v.id, v); }
+      catch (e) { errors.push(`${v.size}/${v.color}: ${e.message}`); }
+    }
+    await loadProducts(selectedAdminVendorId || vendorId);
+    setSavingAll(false);
+    if (errors.length) alert(`Some variants failed to save:\n${errors.join("\n")}`);
+    else alert("All variants saved successfully!");
   };
 
   const removeVariant = async (variantId, productId) => {
@@ -246,6 +263,15 @@ export default function EditProduct() {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
           <span className="ep-count">{filtered.length} product{filtered.length !== 1 ? "s" : ""}</span>
+          {!loading && filtered.length > 0 && (
+            <button
+              className="ep-save-all-btn"
+              disabled={savingAll}
+              onClick={saveAll}
+            >
+              {savingAll ? "Saving all…" : "✓ Save All Changes"}
+            </button>
+          )}
         </div>
 
         {loading ? (
@@ -322,8 +348,11 @@ export default function EditProduct() {
                                 <td className="ep-row-actions">
                                   <button
                                     className="ep-save-btn"
-                                    disabled={saving === v.id}
-                                    onClick={() => saveVariant(v.id, v)}
+                                    disabled={saving === v.id || savingAll}
+                                    onClick={async () => {
+                                      try { await saveVariant(v.id, v); await loadProducts(selectedAdminVendorId || vendorId); }
+                                      catch (e) { alert(`Save failed: ${e.message}`); }
+                                    }}
                                   >
                                     {saving === v.id ? "…" : "Save"}
                                   </button>

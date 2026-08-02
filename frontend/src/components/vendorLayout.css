@@ -72,29 +72,50 @@
 .vendor-store-card strong { color: #0f1720; }
 .vendor-store-card span { color: #55616c; }
 
-.vendor-op-toggle {
+/* Toggle row: label + switch side by side */
+.vendor-op-toggle-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-top: 6px;
-  padding: 5px 10px;
-  border-radius: 20px;
-  border: none;
-  cursor: pointer;
+  justify-content: space-between;
+  margin-top: 8px;
+  gap: 8px;
+}
+.vendor-op-label {
   font-size: 12px;
   font-weight: 600;
-  transition: background 0.2s;
 }
-.vendor-op-toggle.op-on  { background: #dcfce7; color: #16a34a; }
-.vendor-op-toggle.op-off { background: #fee2e2; color: #dc2626; }
-.vendor-op-toggle:disabled { opacity: 0.6; cursor: not-allowed; }
-.op-dot {
-  width: 8px; height: 8px;
-  border-radius: 50%;
+.vendor-op-label.op-live   { color: #16a34a; }
+.vendor-op-label.vendor-op-label.op-paused { color: #dc2626; }
+
+/* iOS-style toggle switch */
+.vendor-toggle-switch {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.25s;
   flex-shrink: 0;
+  padding: 0;
+  background: #d1d5db;
 }
-.op-on  .op-dot { background: #16a34a; }
-.op-off .op-dot { background: #dc2626; }
+.vendor-toggle-switch.toggle-on  { background: #16a34a; }
+.vendor-toggle-switch.toggle-off { background: #d1d5db; }
+.vendor-toggle-switch:disabled    { opacity: 0.55; cursor: not-allowed; }
+.vendor-toggle-knob {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.3);
+  transition: transform 0.25s;
+}
+.toggle-on  .vendor-toggle-knob { transform: translateX(20px); }
+.toggle-off .vendor-toggle-knob { transform: translateX(0); }
 
 .vendor-sidebar-footer {
   margin-top: auto;

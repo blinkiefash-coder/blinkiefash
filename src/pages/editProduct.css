@@ -24,6 +24,21 @@
 .ep-search input:focus { border-color: #16a34a; }
 .ep-count { font-size: 13px; color: #64748b; white-space: nowrap; }
 
+.ep-save-all-btn {
+  padding: 8px 16px;
+  background: #16a34a;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.ep-save-all-btn:hover:not(:disabled) { background: #15803d; }
+.ep-save-all-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+
 .ep-loading, .ep-empty {
   text-align: center;
   color: #64748b;
