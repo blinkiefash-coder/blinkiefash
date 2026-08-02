@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -68,24 +69,28 @@ class LocationService extends ChangeNotifier {
       }
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.low,
-        timeLimit: const Duration(seconds: 6),
+        timeLimit: const Duration(seconds: 10),
       );
-      final placemarks = await placemarkFromCoordinates(
-        pos.latitude,
-        pos.longitude,
+      // Use Nominatim reverse geocoding (no API key, works on all devices)
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=${pos.latitude}&lon=${pos.longitude}&format=json&addressdetails=1',
       );
-      if (placemarks.isEmpty) return;
-      final p = placemarks.first;
+      final res = await http
+          .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
+          .timeout(const Duration(seconds: 8));
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
       final city =
-          [
-                p.locality,
-                p.subLocality,
-                p.subAdministrativeArea,
-                p.administrativeArea,
-              ]
-              .map((v) => (v ?? '').trim())
-              .firstWhere((v) => v.isNotEmpty, orElse: () => '');
-      final pincode = (p.postalCode ?? '').trim();
+          (addr['city'] ??
+                  addr['town'] ??
+                  addr['state_district'] ??
+                  addr['county'] ??
+                  addr['state'] ??
+                  '')
+              .toString()
+              .trim();
+      final pincode = (addr['postcode'] ?? '').toString().trim();
       await setLocation(
         city: city.isNotEmpty ? city : null,
         pincode: pincode.isNotEmpty ? pincode : null,

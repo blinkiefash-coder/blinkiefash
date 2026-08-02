@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:http/http.dart' as http;
 import '../widgets/bf_loader.dart';
 
@@ -112,6 +111,39 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     });
   }
 
+  // ── Nominatim reverse geocode ─────────────────────────────────────────────
+  Future<Map<String, String>> _reverseGeocode(double lat, double lng) async {
+    try {
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse'
+        '?lat=$lat&lon=$lng&format=json&addressdetails=1',
+      );
+      final res = await http
+          .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
+          .timeout(const Duration(seconds: 8));
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
+      final area = [
+        addr['neighbourhood'],
+        addr['suburb'],
+        addr['quarter'],
+        addr['road'],
+      ].whereType<String>().where((s) => s.isNotEmpty).take(2).join(', ');
+      final city =
+          (addr['city'] ??
+                  addr['town'] ??
+                  addr['state_district'] ??
+                  addr['county'] ??
+                  addr['state'] ??
+                  '')
+              .toString();
+      final pincode = (addr['postcode'] ?? '').toString();
+      return {'area': area, 'city': city, 'pincode': pincode};
+    } catch (_) {
+      return {'area': '', 'city': '', 'pincode': ''};
+    }
+  }
+
   // ── GPS detect ───────────────────────────────────────────────────────────
   Future<void> _detectCurrentLocation() async {
     setState(() {
@@ -141,21 +173,24 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       }
       final pos = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
-      final placemarks = await placemarkFromCoordinates(
-        pos.latitude,
-        pos.longitude,
-      );
+      final place = await _reverseGeocode(pos.latitude, pos.longitude);
       if (!mounted) return;
-      if (placemarks.isNotEmpty) {
-        final p = placemarks.first;
+      if (place['city']!.isNotEmpty || place['area']!.isNotEmpty) {
         _setLocation(
-          area: [
-            p.subLocality,
-            p.locality,
-          ].where((s) => s != null && s.isNotEmpty).join(', '),
-          city: p.administrativeArea ?? p.locality ?? '',
-          pincode: p.postalCode ?? '',
+          area: place['area']!,
+          city: place['city']!,
+          pincode: place['pincode']!,
+          lat: pos.latitude,
+          lng: pos.longitude,
+        );
+      } else {
+        // Coordinates found but reverse geocode failed — still move map to position
+        _setLocation(
+          area: '',
+          city: '',
+          pincode: '',
           lat: pos.latitude,
           lng: pos.longitude,
         );
@@ -230,31 +265,31 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
       if (!mounted) return;
       setState(() => _reverseGeocoding = true);
       try {
-        final placemarks = await placemarkFromCoordinates(
+        final place = await _reverseGeocode(
           _pinCenter.latitude,
           _pinCenter.longitude,
         );
         if (!mounted) return;
-        if (placemarks.isNotEmpty) {
-          final p = placemarks.first;
-          final label = [
-            p.subLocality,
-            p.locality,
-          ].where((s) => s != null && s.isNotEmpty).join(', ');
-          setState(() {
-            _confirmedArea = label;
-            _confirmedCity =
-                p.administrativeArea ?? p.locality ?? _confirmedCity;
-            _confirmedPincode = p.postalCode ?? _confirmedPincode;
-            _confirmedLat = _pinCenter.latitude;
-            _confirmedLng = _pinCenter.longitude;
-            // Keep search bar in sync with the dragged pin location
-            if (!_searchFocus.hasFocus) {
-              _searchCtrl.text = label;
-              _suggestions = [];
-            }
-          });
-        }
+        final label = place['area']!.isNotEmpty
+            ? place['area']!
+            : place['city']!;
+        setState(() {
+          if (place['area']!.isNotEmpty || place['city']!.isNotEmpty) {
+            _confirmedArea = place['area']!;
+            _confirmedCity = place['city']!.isNotEmpty
+                ? place['city']!
+                : _confirmedCity;
+            _confirmedPincode = place['pincode']!.isNotEmpty
+                ? place['pincode']!
+                : _confirmedPincode;
+          }
+          _confirmedLat = _pinCenter.latitude;
+          _confirmedLng = _pinCenter.longitude;
+          if (!_searchFocus.hasFocus && label.isNotEmpty) {
+            _searchCtrl.text = label;
+            _suggestions = [];
+          }
+        });
       } catch (_) {
         // keep previous label
       } finally {

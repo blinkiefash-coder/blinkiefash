@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:geocoding/geocoding.dart';
+import 'package:http/http.dart' as http;
 
 import '../services/api_client.dart';
 import '../widgets/bf_loader.dart';
@@ -44,18 +45,26 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
   Future<void> _detectCurrentLocation() async {
     setState(() => _detectingLocation = true);
-
     try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) throw Exception('Location services disabled');
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        throw Exception('Location permission denied');
+      }
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 15),
       );
-
       if (mounted) {
         setState(() {
           _selectedLat = position.latitude;
           _selectedLng = position.longitude;
         });
-
         await _reverseGeocodeLocation(position.latitude, position.longitude);
       }
     } catch (e) {
@@ -71,19 +80,35 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
   Future<void> _reverseGeocodeLocation(double lat, double lng) async {
     try {
-      final placemarks = await placemarkFromCoordinates(lat, lng);
-      if (placemarks.isNotEmpty && mounted) {
-        final place = placemarks.first;
-        setState(() {
-          _addressController.text =
-              '${place.street ?? ''}, ${place.subLocality ?? ''}'.trim();
-          _cityController.text =
-              place.locality ?? place.administrativeArea ?? '';
-          _pincodeController.text = place.postalCode ?? '';
-        });
-      }
+      final uri = Uri.parse(
+        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1',
+      );
+      final res = await http
+          .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
+          .timeout(const Duration(seconds: 8));
+      if (!mounted) return;
+      final data = jsonDecode(res.body) as Map<String, dynamic>;
+      final addr = data['address'] as Map<String, dynamic>? ?? {};
+      final street = [
+        addr['road'],
+        addr['neighbourhood'],
+        addr['suburb'],
+      ].whereType<String>().where((s) => s.isNotEmpty).take(2).join(', ');
+      final city =
+          (addr['city'] ??
+                  addr['town'] ??
+                  addr['state_district'] ??
+                  addr['state'] ??
+                  '')
+              .toString();
+      final pincode = (addr['postcode'] ?? '').toString();
+      setState(() {
+        if (street.isNotEmpty) _addressController.text = street;
+        if (city.isNotEmpty) _cityController.text = city;
+        if (pincode.isNotEmpty) _pincodeController.text = pincode;
+      });
     } catch (e) {
-      debugPrint('Error reverse geocoding: $e');
+      debugPrint('Reverse geocode failed: $e');
     }
   }
 
@@ -381,11 +406,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
               ),
               onPressed: _loading ? null : _saveAddress,
               child: _loading
-                  ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: BfSpinner(),
-                    )
+                  ? const SizedBox(height: 20, width: 20, child: BfSpinner())
                   : const Text(
                       'Save Address',
                       style: TextStyle(
