@@ -1136,129 +1136,6 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
     }
   }
 
-  Widget _vendorParcelMap() {
-    if (_pickupLat == null || _pickupLng == null) {
-      return const SizedBox.shrink();
-    }
-
-    final center = LatLng(_pickupLat!, _pickupLng!);
-    final markers = <Marker>[
-      Marker(
-        point: center,
-        width: 40,
-        height: 40,
-        child: const Icon(
-          Icons.trip_origin_rounded,
-          color: Color(0xFF16A34A),
-          size: 26,
-        ),
-      ),
-      for (final rider in _nearbyRiders)
-        Marker(
-          point: rider,
-          width: 28,
-          height: 28,
-          child: Container(
-            decoration: const BoxDecoration(
-              color: Color(0xFF0284C7),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.delivery_dining_rounded,
-              size: 15,
-              color: Colors.white,
-            ),
-          ),
-        ),
-    ];
-
-    if (_dropLat != null && _dropLng != null) {
-      markers.add(
-        Marker(
-          point: LatLng(_dropLat!, _dropLng!),
-          width: 40,
-          height: 40,
-          child: const Icon(
-            Icons.place_rounded,
-            color: Color(0xFFEF4444),
-            size: 30,
-          ),
-        ),
-      );
-    }
-
-    return SizedBox(
-      height: 210,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Stack(
-          children: [
-            FlutterMap(
-              options: MapOptions(initialCenter: center, initialZoom: 13),
-              children: [
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'com.blinkiefash.app',
-                ),
-                if (_routePoints.length >= 2)
-                  PolylineLayer(
-                    polylines: [
-                      Polyline(
-                        points: _routePoints,
-                        color: const Color(0xFF2563EB),
-                        strokeWidth: 4,
-                      ),
-                    ],
-                  ),
-                MarkerLayer(markers: markers),
-              ],
-            ),
-            Positioned(
-              top: 8,
-              left: 8,
-              child: DecoratedBox(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.all(Radius.circular(18)),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    _etaMinutes == null
-                        ? 'Set destination for ETA'
-                        : 'ETA ~ $_etaMinutes min • $_nearbyRiders.length riders',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            if (_routeLoading)
-              const Positioned(
-                top: 8,
-                right: 8,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.all(Radius.circular(18)),
-                  ),
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
-                    child: Text('Route...', style: TextStyle(fontSize: 11)),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
   Widget _sendParcelCard() {
     final fare = (_estimate?['estimatedFare'] ?? 0).toString();
     final dist = (_estimate?['distanceKm'] ?? 0).toString();
@@ -1374,7 +1251,6 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
               label: const Text('Set Destination on map'),
             ),
           ),
-          _vendorParcelMap(),
           const SizedBox(height: 8),
           if (_estimating)
             const Align(
