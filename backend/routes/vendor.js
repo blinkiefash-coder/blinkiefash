@@ -1045,7 +1045,7 @@ router.post(
 router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
   try {
     const { vendorId, variantId } = req.params;
-    const { stock, store_id, price, mrp } = req.body || {};
+    const { stock, store_id, price, mrp, size, color, barcode } = req.body || {};
     if (stock === undefined || stock === null) return res.status(400).json({ success: false, message: "stock is required" });
 
     // Verify the variant belongs to this vendor
@@ -1068,6 +1068,18 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
       const nextMrp = Number(mrp);
       if (!Number.isFinite(nextMrp) || nextMrp < 0) return res.status(400).json({ success: false, message: "mrp must be a non-negative number" });
       await pool.query(`UPDATE product_variants SET mrp = $2 WHERE id = $1`, [variantId, nextMrp]);
+    }
+
+    if (size && String(size).trim()) {
+      await pool.query(`UPDATE product_variants SET size = $2 WHERE id = $1`, [variantId, String(size).trim()]);
+    }
+
+    if (color && String(color).trim()) {
+      await pool.query(`UPDATE product_variants SET color = $2 WHERE id = $1`, [variantId, String(color).trim()]);
+    }
+
+    if (barcode !== undefined) {
+      await pool.query(`UPDATE product_variants SET barcode = $2 WHERE id = $1`, [variantId, barcode ? String(barcode).trim() : null]);
     }
 
     await pool.query(

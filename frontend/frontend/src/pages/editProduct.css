@@ -46,6 +46,18 @@
 }
 .ep-add-more-btn:hover { background: #dcfce7; }
 
+/* Compact editable input for size, color, barcode columns */
+.ep-size-input {
+  width: 80px;
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 5px;
+  font-size: 13px;
+  outline: none;
+  background: #fff;
+}
+.ep-size-input:focus { border-color: #16a34a; }
+
 .ep-save-all-btn {
   padding: 8px 16px;
   background: #16a34a;

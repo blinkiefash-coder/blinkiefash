@@ -20,6 +20,9 @@ export default function EditProduct() {
   const [expandedId, setExpandedId] = useState(null);
   const [stockEdits, setStockEdits] = useState({});
   const [priceEdits, setPriceEdits] = useState({});
+  const [sizeEdits, setSizeEdits] = useState({});
+  const [colorEdits, setColorEdits] = useState({});
+  const [barcodeEdits, setBarcodeEdits] = useState({});
   const [saving, setSaving] = useState(null);
   const [savingAll, setSavingAll] = useState(false);
   const [addingTo, setAddingTo] = useState(null);
@@ -115,12 +118,21 @@ export default function EditProduct() {
       setProducts(list);
       const stockMap = {};
       const priceMap = {};
+      const sizeMap = {};
+      const colorMap = {};
+      const barcodeMap = {};
       list.forEach((p) => (p.variants || []).forEach((v) => {
         stockMap[v.id] = v.quantity ?? 0;
         priceMap[v.id] = v.price ?? "";
+        sizeMap[v.id] = v.size ?? "";
+        colorMap[v.id] = v.color ?? "";
+        barcodeMap[v.id] = v.barcode ?? "";
       }));
       setStockEdits(stockMap);
       setPriceEdits(priceMap);
+      setSizeEdits(sizeMap);
+      setColorEdits(colorMap);
+      setBarcodeEdits(barcodeMap);
     } catch (err) {
       console.error(err);
     } finally {
@@ -148,6 +160,9 @@ export default function EditProduct() {
       const body = {
         stock: Number(stockEdits[variantId] ?? 0),
         store_id: vendorStoreId,
+        size: sizeEdits[variantId] ?? variantMeta.size ?? "",
+        color: colorEdits[variantId] ?? variantMeta.color ?? "",
+        barcode: barcodeEdits[variantId] ?? variantMeta.barcode ?? "",
       };
       if (resolvedPrice !== null) body.price = resolvedPrice;
 
@@ -330,9 +345,33 @@ export default function EditProduct() {
                           <tbody>
                             {(product.variants || []).map((v) => (
                               <tr key={v.id}>
-                                <td>{v.size}</td>
-                                <td>{v.color}</td>
-                                <td className="ep-mono">{v.barcode || "—"}</td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="ep-size-input"
+                                    value={sizeEdits[v.id] ?? v.size ?? ""}
+                                    onChange={(e) => setSizeEdits((s) => ({ ...s, [v.id]: e.target.value }))}
+                                    placeholder="e.g. M"
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="ep-size-input"
+                                    value={colorEdits[v.id] ?? v.color ?? ""}
+                                    onChange={(e) => setColorEdits((s) => ({ ...s, [v.id]: e.target.value }))}
+                                    placeholder="e.g. Black"
+                                  />
+                                </td>
+                                <td className="ep-mono">
+                                  <input
+                                    type="text"
+                                    className="ep-size-input ep-mono"
+                                    value={barcodeEdits[v.id] ?? v.barcode ?? ""}
+                                    onChange={(e) => setBarcodeEdits((s) => ({ ...s, [v.id]: e.target.value }))}
+                                    placeholder="—"
+                                  />
+                                </td>
                                 <td>
                                   <input
                                     type="text"
