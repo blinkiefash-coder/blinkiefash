@@ -515,10 +515,10 @@ router.get("/bulk-offers", async (req, res) => {
 });
 
 // POST /variants/availability
-// Body: { variantIds: string[], storeId?: string, store_id?: string }
+// Body: { variantIds: string[], storeIds?: string[], storeId?: string, store_id?: string }
 router.post("/variants/availability", async (req, res) => {
   try {
-    const { variantIds, storeId, store_id } = req.body || {};
+    const { variantIds, storeId, store_id, storeIds, store_ids } = req.body || {};
     const ids = Array.isArray(variantIds)
       ? variantIds.map((v) => String(v || "").trim()).filter(Boolean)
       : [];
@@ -530,7 +530,17 @@ router.post("/variants/availability", async (req, res) => {
       });
     }
 
-    const effectiveStoreId = String(storeId || store_id || "").trim() || null;
+    // Accept either a single store id or a list (e.g. all nearby dark stores),
+    // matching the same nearby-stores logic used by the products listing endpoint.
+    const rawStoreIds = [
+      ...(Array.isArray(storeIds) ? storeIds : []),
+      ...(Array.isArray(store_ids) ? store_ids : []),
+      storeId,
+      store_id,
+    ]
+      .map((v) => String(v || "").trim())
+      .filter(Boolean);
+    const effectiveStoreIds = rawStoreIds.length ? [...new Set(rawStoreIds)] : null;
 
     const { rows } = await pool.query(
       `SELECT
@@ -540,7 +550,7 @@ router.post("/variants/availability", async (req, res) => {
              SUM(
                CASE
                  WHEN vd.is_operational = true
-                  AND ($2::uuid IS NULL OR inv.store_id = $2::uuid OR inv.store_id IS NULL)
+                  AND ($2::uuid[] IS NULL OR inv.store_id = ANY($2::uuid[]) OR inv.store_id IS NULL)
                    THEN COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0)
                  ELSE 0
                END
@@ -556,7 +566,7 @@ router.post("/variants/availability", async (req, res) => {
        WHERE pv.id = ANY($1::uuid[])
          AND pv.is_active = true
        GROUP BY pv.id`,
-      [ids, effectiveStoreId]
+      [ids, effectiveStoreIds]
     );
 
     const byId = new Map(rows.map((r) => [String(r.variant_id), Number(r.available_stock) || 0]));

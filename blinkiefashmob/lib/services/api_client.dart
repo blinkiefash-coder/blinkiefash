@@ -785,7 +785,13 @@ class ApiClient {
     final uri = Uri.parse('$apiApiBaseUrl/products/variants/availability');
     return _postJson(uri, {
       'variantIds': ids,
-      if (ApiClient.currentStoreId != null) 'storeId': ApiClient.currentStoreId,
+      // Match against all nearby stores (same as product listing), not just the
+      // single nearest one, so vendors tied to a specific nearby dark store
+      // aren't wrongly marked unavailable at checkout.
+      if (ApiClient.currentStoreIds.isNotEmpty)
+        'storeIds': ApiClient.currentStoreIds
+      else if (ApiClient.currentStoreId != null)
+        'storeId': ApiClient.currentStoreId,
     });
   }
 
