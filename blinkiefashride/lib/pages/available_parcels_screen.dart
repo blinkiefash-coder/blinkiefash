@@ -136,14 +136,14 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   'Pickup: ${parcel['pickup_text'] ?? 'N/A'}',
-                  style: TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 4),
-                const Text(
+                Text(
                   'Dropoff: ${parcel['drop_text'] ?? 'N/A'}',
-                  style: TextStyle(fontSize: 12),
+                  style: const TextStyle(fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Text(

@@ -257,6 +257,8 @@ const ensureTables = async () => {
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS receiver_phone TEXT`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS note TEXT`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS who_pays VARCHAR(20) DEFAULT 'sender'`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6)`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_verified BOOLEAN DEFAULT FALSE`);
 };
 
 router.get("/estimate", async (req, res) => {
@@ -395,6 +397,48 @@ router.post("/request", async (req, res) => {
   }
 });
 
+// ── GET /api/deliver/available — rider polls for nearby unassigned parcels ────
+router.get("/available", async (req, res) => {
+  try {
+    await ensureTables();
+
+    const riderLat = toNumber(req.query.riderLat);
+    const riderLng = toNumber(req.query.riderLng);
+    const radiusKm = toNumber(req.query.radiusKm) ?? 10;
+
+    const { rows } = await pool.query(
+      `SELECT id, pickup_text, drop_text, pickup_lat, pickup_lng, drop_lat, drop_lng,
+              distance_km, estimated_fare, city_zone, status, created_at,
+              receiver_name, receiver_phone, note, who_pays
+       FROM deliver_requests
+       WHERE status = 'pending' AND rider_id IS NULL
+       ORDER BY created_at DESC
+       LIMIT 100`
+    );
+
+    let requests = rows;
+    if (riderLat != null && riderLng != null) {
+      requests = rows
+        .map((r) => {
+          const pLat = r.pickup_lat != null ? Number(r.pickup_lat) : null;
+          const pLng = r.pickup_lng != null ? Number(r.pickup_lng) : null;
+          const distanceFromRider =
+            pLat != null && pLng != null
+              ? haversineKm(riderLat, riderLng, pLat, pLng)
+              : null;
+          return { ...r, distance_from_rider_km: distanceFromRider };
+        })
+        .filter((r) => r.distance_from_rider_km == null || r.distance_from_rider_km <= radiusKm)
+        .sort((a, b) => (a.distance_from_rider_km ?? 0) - (b.distance_from_rider_km ?? 0));
+    }
+
+    return res.json({ success: true, requests });
+  } catch (err) {
+    console.error("deliver available error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 router.get("/vendor/:vendorId/requests", async (req, res) => {
   try {
     const { vendorId } = req.params;
@@ -459,7 +503,8 @@ router.get("/request/:id", async (req, res) => {
               drop_lat, drop_lng, distance_km, estimated_fare, city_zone,
               created_at, accepted_at, completed_at,
               rider_id, rider_name, rider_phone, rider_lat, rider_lng,
-              receiver_name, receiver_phone, note, who_pays
+              receiver_name, receiver_phone, note, who_pays,
+              otp_code, otp_verified
        FROM deliver_requests WHERE id = $1 LIMIT 1`,
       [id]
     );
@@ -467,6 +512,53 @@ router.get("/request/:id", async (req, res) => {
     return res.json({ success: true, request: rows[0] });
   } catch (err) {
     console.error("deliver get request error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── PATCH /api/deliver/request/:id/accept — rider accepts a parcel request ─────
+router.patch("/request/:id/accept", async (req, res) => {
+  try {
+    await ensureTables();
+    const { id } = req.params;
+    const { riderId, riderName, riderPhone, riderLat, riderLng } = req.body || {};
+
+    const otp = String(Math.floor(1000 + Math.random() * 9000));
+
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests
+       SET status = 'accepted',
+           rider_id = $2,
+           rider_name = $3,
+           rider_phone = $4,
+           rider_lat = $5,
+           rider_lng = $6,
+           otp_code = $7,
+           accepted_at = NOW()
+       WHERE id = $1 AND status = 'pending' AND rider_id IS NULL
+       RETURNING id, status, pickup_text, drop_text, distance_km, estimated_fare,
+                 city_zone, rider_id, rider_name, rider_phone, accepted_at, otp_code`,
+      [
+        id,
+        riderId || null,
+        riderName || null,
+        riderPhone || null,
+        riderLat != null ? Number(riderLat) : null,
+        riderLng != null ? Number(riderLng) : null,
+        otp,
+      ]
+    );
+
+    if (!rows.length) {
+      return res.status(409).json({
+        success: false,
+        message: "Parcel already accepted by another rider or no longer available",
+      });
+    }
+
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver accept error", err.message);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });
