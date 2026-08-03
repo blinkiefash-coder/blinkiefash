@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/user_session.dart';
+import 'parcel_tracking_screen.dart';
 
 class ParcelCheckoutScreen extends StatefulWidget {
   final String pickupText;
@@ -138,10 +139,22 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
       if (!mounted) return;
       if (res['success'] == true) {
-        Navigator.of(context).pop(true); // true = success
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Parcel booked successfully!')),
-        );
+        final requestId = res['request']?['id'];
+        if (requestId != null) {
+          // Navigate to tracking screen instead of popping
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ParcelTrackingScreen(
+                requestId: requestId,
+                pickupText: widget.pickupText,
+                dropText: widget.dropText,
+                estimatedFare: widget.estimatedFare,
+              ),
+            ),
+          );
+        } else {
+          Navigator.of(context).pop(true);
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

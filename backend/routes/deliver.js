@@ -247,6 +247,16 @@ const ensureTables = async () => {
       completed_at TIMESTAMPTZ
     )
   `);
+  // Add tracking columns if they don't exist yet
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_id UUID`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_name TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_phone TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_lat DECIMAL(10,7)`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_lng DECIMAL(10,7)`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS receiver_name TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS receiver_phone TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS note TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS who_pays VARCHAR(20) DEFAULT 'sender'`);
 };
 
 router.get("/estimate", async (req, res) => {
@@ -436,6 +446,52 @@ router.patch("/vendor/:vendorId/requests/:id", async (req, res) => {
     return res.json({ success: true, request: rows[0] });
   } catch (err) {
     console.error("deliver vendor update error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── GET /api/deliver/request/:id — customer polls for tracking status ──────────
+router.get("/request/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `SELECT id, status, pickup_text, drop_text, pickup_lat, pickup_lng,
+              drop_lat, drop_lng, distance_km, estimated_fare, city_zone,
+              created_at, accepted_at, completed_at,
+              rider_id, rider_name, rider_phone, rider_lat, rider_lng,
+              receiver_name, receiver_phone, note, who_pays
+       FROM deliver_requests WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver get request error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── PATCH /api/deliver/request/:id/rider-location — rider updates their GPS ────
+router.patch("/request/:id/rider-location", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lat, lng, rider_name, rider_phone, rider_id } = req.body || {};
+    if (lat == null || lng == null) return res.status(400).json({ success: false, message: "lat and lng required" });
+    await pool.query(
+      `UPDATE deliver_requests SET rider_lat = $2, rider_lng = $3
+       ${rider_name ? ", rider_name = $4" : ""}
+       ${rider_phone ? ", rider_phone = $5" : ""}
+       ${rider_id ? ", rider_id = $6" : ""}
+       WHERE id = $1`,
+      [id, Number(lat), Number(lng),
+        ...(rider_name ? [String(rider_name)] : []),
+        ...(rider_phone ? [String(rider_phone)] : []),
+        ...(rider_id ? [String(rider_id)] : []),
+      ]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("deliver rider-location error", err.message);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });
