@@ -38,3 +38,4 @@ dist-ssr
 **/ios/Pods/
 **/macos/Pods/
 **/*.hprof
+blinkiefash-rider-backend/
