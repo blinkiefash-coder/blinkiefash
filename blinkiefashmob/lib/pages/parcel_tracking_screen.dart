@@ -403,6 +403,10 @@ class _BottomCard extends StatelessWidget {
   });
 
   int _calculateExpectedMinutes() {
+    // If rider not yet assigned, show 5 min connection timer
+    if (!isAssigned) return 5;
+
+    // If rider assigned, calculate based on distance
     final distValue = data['distance_km'];
     double distanceKm = 0;
     if (distValue is num) {
@@ -420,6 +424,7 @@ class _BottomCard extends StatelessWidget {
     final riderName = data['rider_name'] as String?;
     final riderPhone = data['rider_phone'] as String?;
     final expectedMin = _calculateExpectedMinutes();
+    final timerLabel = isAssigned ? 'Expected: $expectedMin min' : 'Connecting to rider in $expectedMin min';
 
     return Container(
       decoration: const BoxDecoration(
@@ -544,7 +549,7 @@ class _BottomCard extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Expected: $expectedMin min',
+                        timerLabel,
                         style: const TextStyle(
                           color: Color(0xFFEA580C),
                           fontWeight: FontWeight.w600,
