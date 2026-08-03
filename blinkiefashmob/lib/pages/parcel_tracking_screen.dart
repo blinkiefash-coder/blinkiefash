@@ -33,6 +33,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
   Map<String, dynamic>? _data;
   bool _loading = true;
   String? _error;
+  bool _cancelling = false;
   final MapController _mapCtrl = MapController();
 
   @override
@@ -84,6 +85,58 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
       }
     } catch (_) {
       if (mounted && _loading) setState(() => _error = 'Network error');
+    }
+  }
+
+  Future<void> _cancelRequest() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Cancel Parcel?'),
+        content: const Text('Are you sure you want to cancel this delivery?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep it')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Cancel', style: TextStyle(color: Color(0xFFEF4444))),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _cancelling = true);
+    try {
+      final res = await http
+          .patch(
+            Uri.parse('$apiApiBaseUrl/deliver/request/${widget.requestId}/cancel'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'status': 'cancelled'}),
+          )
+          .timeout(const Duration(seconds: 10));
+      if (!mounted) return;
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (body['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Delivery cancelled successfully')),
+        );
+        _timer?.cancel();
+        setState(() => _cancelling = false);
+        await Future.delayed(const Duration(seconds: 1));
+        if (mounted) Navigator.of(context).pop();
+      } else {
+        setState(() => _cancelling = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(body['message'] ?? 'Cancellation failed')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _cancelling = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString().substring(0, 50)}')),
+        );
+      }
     }
   }
 
@@ -241,6 +294,8 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                     isDone: isDone,
                     onBookAnother: () =>
                         Navigator.of(context).popUntil((r) => r.isFirst),
+                    onCancel: isDone ? null : _cancelRequest,
+                    cancelling: _cancelling,
                   ),
                 ],
               ),
@@ -324,6 +379,8 @@ class _BottomCard extends StatelessWidget {
   final bool isAssigned;
   final bool isDone;
   final VoidCallback onBookAnother;
+  final VoidCallback? onCancel;
+  final bool cancelling;
 
   const _BottomCard({
     required this.data,
@@ -333,12 +390,22 @@ class _BottomCard extends StatelessWidget {
     required this.isAssigned,
     required this.isDone,
     required this.onBookAnother,
+    this.onCancel,
+    this.cancelling = false,
   });
+
+  int _calculateExpectedMinutes() {
+    final distanceKm = data['distance_km'] as num? ?? 0;
+    // Assume average speed of 30 km/h
+    final minutes = (distanceKm / 30 * 60).ceil();
+    return minutes > 0 ? minutes : 5;
+  }
 
   @override
   Widget build(BuildContext context) {
     final riderName = data['rider_name'] as String?;
     final riderPhone = data['rider_phone'] as String?;
+    final expectedMin = _calculateExpectedMinutes();
 
     return Container(
       decoration: const BoxDecoration(
@@ -442,8 +509,43 @@ class _BottomCard extends StatelessWidget {
             ),
           ],
 
+          // Expected time + Cancel button
+          if (!isDone) ...[const SizedBox(height: 14), Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.schedule_rounded, color: Color(0xFFEA580C), size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Expected: $expectedMin min',
+                        style: const TextStyle(
+                          color: Color(0xFFEA580C),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (cancelling)
+                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  else
+                    TextButton(
+                      onPressed: onCancel,
+                      child: const Text('Cancel', style: TextStyle(color: Color(0xFFEF4444), fontSize: 12, fontWeight: FontWeight.w600)),
+                    ),
+                ],
+              ),
+            )],
+
           // Book another button
-          if (isDone) ...[
+          if (isDone) ..[
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,

@@ -496,4 +496,22 @@ router.patch("/request/:id/rider-location", async (req, res) => {
   }
 });
 
+router.patch("/request/:id/cancel", async (req, res) => {
+  try {
+    await ensureTables();
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests SET status = 'cancelled' WHERE id = $1 AND status NOT IN ('completed', 'delivered') RETURNING id, status`,
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: "Cannot cancel completed or delivered parcel" });
+    }
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver cancel error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 export default router;
