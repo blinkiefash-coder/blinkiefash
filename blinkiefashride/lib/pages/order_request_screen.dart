@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 class OrderRequestScreen extends StatefulWidget {
   const OrderRequestScreen({super.key, this.delivery});
@@ -15,14 +18,14 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _timerController;
   int _seconds = 25;
+  Timer? _vibrateTimer;
 
   @override
   void initState() {
     super.initState();
-    // Play Uber-like alarm when order request arrives
-    // FlutterRingtonePlayer API requires investigation for v4.0.0
-    // Temporarily disabled to get app running
-    HapticFeedback.vibrate();
+    // Uber/Swiggy-style alert: loud looping alarm (plays on the alarm stream so
+    // it cuts through silent/vibrate mode) plus a repeating vibration pattern.
+    _startAlert();
     _timerController =
         AnimationController(vsync: this, duration: const Duration(seconds: 25))
           ..addListener(() {
@@ -40,9 +43,28 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
           ..forward();
   }
 
+  void _startAlert() {
+    try {
+      FlutterRingtonePlayer().playAlarm(volume: 1.0, looping: true, asAlarm: true);
+    } catch (_) {}
+    HapticFeedback.vibrate();
+    _vibrateTimer = Timer.periodic(
+      const Duration(milliseconds: 800),
+      (_) => HapticFeedback.vibrate(),
+    );
+  }
+
+  void _stopAlert() {
+    try {
+      FlutterRingtonePlayer().stop();
+    } catch (_) {}
+    _vibrateTimer?.cancel();
+    _vibrateTimer = null;
+  }
+
   @override
   void dispose() {
-    // FlutterRingtonePlayer.stop();
+    _stopAlert();
     _timerController.dispose();
     super.dispose();
   }

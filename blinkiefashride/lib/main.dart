@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -26,7 +28,29 @@ final FlutterLocalNotificationsPlugin localNotifications =
 @pragma('vm:entry-point')
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  // Data-only messages can be processed here if needed.
+  final data = message.data;
+  if (data['type'] == 'order_assigned' || data['type'] == 'order_available') {
+    final notification = message.notification;
+    await FlutterLocalNotificationsPlugin().show(
+      notification.hashCode,
+      notification?.title ?? 'New Order Alert',
+      notification?.body ?? 'You have a new delivery request!',
+      NotificationDetails(
+        android: AndroidNotificationDetails(
+          androidChannel.id,
+          androidChannel.name,
+          channelDescription: androidChannel.description,
+          importance: Importance.max,
+          priority: Priority.high,
+          icon: '@mipmap/ic_launcher',
+          fullScreenIntent: true,
+          category: AndroidNotificationCategory.call,
+          enableVibration: true,
+          vibrationPattern: Int64List.fromList([0, 800, 400, 800, 400, 800]),
+        ),
+      ),
+    );
+  }
 }
 
 Future<void> main() async {

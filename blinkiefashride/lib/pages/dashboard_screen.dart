@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
@@ -110,6 +111,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             importance: Importance.max,
             priority: Priority.high,
             icon: '@mipmap/ic_launcher',
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.call,
+            enableVibration: true,
+            vibrationPattern: Int64List.fromList([0, 800, 400, 800, 400, 800]),
           ),
           iOS: const DarwinNotificationDetails(
             presentAlert: true,

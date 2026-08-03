@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../api_service.dart';
 import 'order_request_screen.dart';
@@ -88,23 +87,13 @@ class _DutyScreenState extends State<DutyScreen> {
     _showingRequest = true;
     _seenOrderIds.add(id);
     try {
-      // Play alarm (wrapped so a ringtone failure doesn't kill the dialog)
-      try {
-        // FlutterRingtonePlayer API requires investigation for v4.0.0
-        // Temporarily disabled to get app running
-        HapticFeedback.vibrate();
-      } catch (_) {}
-
+      // OrderRequestScreen owns the alarm sound/vibration for its own lifecycle.
       final accepted = await Navigator.of(context).push<bool>(
         MaterialPageRoute(
           fullscreenDialog: true,
           builder: (_) => OrderRequestScreen(delivery: order),
         ),
       );
-
-      try {
-        // FlutterRingtonePlayer.stop();
-      } catch (_) {}
 
       if (accepted == true) {
         final result = await _api.acceptOrder(order['id'] as String);
