@@ -48,17 +48,17 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
   Future<void> _pickContact() async {
     try {
-      final contact = await FlutterContacts.native.showPicker(
-        properties: {ContactProperty.phone, ContactProperty.name},
-      );
+      // showPicker() without properties = permissionless; we fetch full contact after
+      final contact = await FlutterContacts.native.showPicker();
       if (contact == null || !mounted) return;
 
       Contact full = contact;
 
-      // Native picker may return contact without phone data — refetch by ID if needed
-      if (contact.phones.isEmpty && (contact.id?.isNotEmpty ?? false)) {
-        final status =
-            await FlutterContacts.permissions.request(PermissionType.read);
+      // Native picker only returns ID without properties — always fetch full contact
+      if (contact.id?.isNotEmpty ?? false) {
+        final status = await FlutterContacts.permissions.request(
+          PermissionType.read,
+        );
         if (status == PermissionStatus.granted ||
             status == PermissionStatus.limited) {
           final fetched = await FlutterContacts.get(
@@ -82,8 +82,10 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
       final firstName = full.name?.first ?? '';
       final lastName = full.name?.last ?? '';
-      final composed =
-          [firstName, lastName].where((s) => s.isNotEmpty).join(' ').trim();
+      final composed = [
+        firstName,
+        lastName,
+      ].where((s) => s.isNotEmpty).join(' ').trim();
       final displayName = full.displayName ?? '';
       final name = displayName.isNotEmpty ? displayName : composed;
 
@@ -95,7 +97,8 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
       if (phone.isEmpty && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Phone not found — please type it manually.')),
+            content: Text('Phone not found — please type it manually.'),
+          ),
         );
       }
     } on PlatformException catch (e) {
