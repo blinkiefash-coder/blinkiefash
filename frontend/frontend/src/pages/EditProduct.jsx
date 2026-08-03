@@ -23,7 +23,7 @@ export default function EditProduct() {
   const [saving, setSaving] = useState(null);
   const [savingAll, setSavingAll] = useState(false);
   const [addingTo, setAddingTo] = useState(null);
-  const [newVariant, setNewVariant] = useState(EMPTY_VARIANT);
+  const [pendingVariants, setPendingVariants] = useState([{ ...EMPTY_VARIANT }]);
   const [addSaving, setAddSaving] = useState(false);
   // Admin mode: vendor picker
   const [adminVendors, setAdminVendors] = useState([]);
@@ -208,26 +208,35 @@ export default function EditProduct() {
 
   const addVariant = async (productId) => {
     const activeVendorId = adminMode ? selectedAdminVendorId : vendorId;
-    if (!newVariant.size.trim() || !newVariant.color.trim()) { alert("Size and Color are required"); return; }
-    const resolvedPrice = resolveVariantPrice(newVariant.price, newVariant.mrp);
-    if (resolvedPrice === null) { alert("Price is required. Enter a value like 499 or a percentage such as 40%."); return; }
+    // Validate all rows before submitting
+    for (const v of pendingVariants) {
+      if (!v.size.trim() || !v.color.trim()) { alert("Size and Color are required for every variant"); return; }
+      if (resolveVariantPrice(v.price, v.mrp) === null) { alert("Price is required for every variant (e.g. 499 or 40%)"); return; }
+    }
     setAddSaving(true);
-    try {
-      const uploadedImages = await uploadImages(newVariant.imageFiles || []);
-      const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/products/${productId}/variants`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...newVariant, price: resolvedPrice, images: uploadedImages, store_id: vendorStoreId }),
-      });
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message || "Failed");
+    const errors = [];
+    for (const v of pendingVariants) {
+      try {
+        const resolvedPrice = resolveVariantPrice(v.price, v.mrp);
+        const uploadedImages = await uploadImages(v.imageFiles || []);
+        const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/products/${productId}/variants`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ ...v, price: resolvedPrice, images: uploadedImages, store_id: vendorStoreId }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message || "Failed");
+      } catch (err) {
+        errors.push(`${v.size}/${v.color}: ${err.message}`);
+      }
+    }
+    setAddSaving(false);
+    if (errors.length) {
+      alert(`Some variants failed:\n${errors.join("\n")}`);
+    } else {
       setAddingTo(null);
-      setNewVariant(EMPTY_VARIANT);
+      setPendingVariants([{ ...EMPTY_VARIANT }]);
       await loadProducts(activeVendorId);
-    } catch (err) {
-      alert(`Add variant failed: ${err.message}`);
-    } finally {
-      setAddSaving(false);
     }
   };
 
@@ -362,67 +371,66 @@ export default function EditProduct() {
 
                       {addingTo === product.id ? (
                         <div className="ep-add-form">
-                          <h4>Add New Variant</h4>
-                          <div className="ep-add-grid">
-                            <label>
-                              Size *
-                              <input placeholder="e.g. M" value={newVariant.size} onChange={(e) => setNewVariant((s) => ({ ...s, size: e.target.value }))} />
-                            </label>
-                            <label>
-                              Color *
-                              <input placeholder="e.g. Black" value={newVariant.color} onChange={(e) => setNewVariant((s) => ({ ...s, color: e.target.value }))} />
-                            </label>
-                            <label>
-                              Barcode
-                              <input placeholder="optional" value={newVariant.barcode} onChange={(e) => setNewVariant((s) => ({ ...s, barcode: e.target.value }))} />
-                            </label>
-                            <label>
-                              Price / % *
-                              <input type="text" value={newVariant.price} onChange={(e) => setNewVariant((s) => ({ ...s, price: e.target.value }))} placeholder="499 or 40%" />
-                            </label>
-                            <label>
-                              MRP ₹
-                              <input type="number" min="0" value={newVariant.mrp} onChange={(e) => setNewVariant((s) => ({ ...s, mrp: e.target.value }))} />
-                            </label>
-                            <label>
-                              Stock qty
-                              <input type="number" min="0" value={newVariant.quantity} onChange={(e) => setNewVariant((s) => ({ ...s, quantity: e.target.value }))} />
-                            </label>
-                          </div>
-                          <div className="ep-add-images">
-                            <label className="ep-add-images-label">
-                              Images
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(e) => {
-                                  const files = Array.from(e.target.files || []);
-                                  setNewVariant((s) => ({ ...s, imageFiles: [...(s.imageFiles || []), ...files] }));
-                                  e.target.value = "";
-                                }}
-                              />
-                            </label>
-                            {(newVariant.imageFiles || []).length > 0 && (
-                              <div className="ep-img-previews">
-                                {newVariant.imageFiles.map((f, i) => (
-                                  <div key={i} className="ep-img-thumb">
-                                    <img src={URL.createObjectURL(f)} alt="preview" />
-                                    <button
-                                      type="button"
-                                      className="ep-img-remove"
-                                      onClick={() => setNewVariant((s) => ({ ...s, imageFiles: s.imageFiles.filter((_, idx) => idx !== i) }))}
-                                    >✕</button>
-                                  </div>
-                                ))}
+                          <h4>Add New Variants ({pendingVariants.length})</h4>
+
+                          {pendingVariants.map((pv, idx) => (
+                            <div key={idx} className="ep-pending-row">
+                              <div className="ep-pending-row-header">
+                                <span>Variant {idx + 1}</span>
+                                {pendingVariants.length > 1 && (
+                                  <button type="button" className="ep-img-remove"
+                                    onClick={() => setPendingVariants(s => s.filter((_, i) => i !== idx))}>✕</button>
+                                )}
                               </div>
-                            )}
-                          </div>
+                              <div className="ep-add-grid">
+                                <label>Size *<input placeholder="e.g. M" value={pv.size}
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, size: e.target.value } : r))} /></label>
+                                <label>Color *<input placeholder="e.g. Black" value={pv.color}
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, color: e.target.value } : r))} /></label>
+                                <label>Barcode<input placeholder="optional" value={pv.barcode}
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, barcode: e.target.value } : r))} /></label>
+                                <label>Price / % *<input type="text" value={pv.price} placeholder="499 or 40%"
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, price: e.target.value } : r))} /></label>
+                                <label>MRP ₹<input type="number" min="0" value={pv.mrp}
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, mrp: e.target.value } : r))} /></label>
+                                <label>Stock qty<input type="number" min="0" value={pv.quantity}
+                                  onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, quantity: e.target.value } : r))} /></label>
+                              </div>
+                              <div className="ep-add-images">
+                                <label className="ep-add-images-label">Images
+                                  <input type="file" accept="image/*" multiple onChange={(e) => {
+                                    const files = Array.from(e.target.files || []);
+                                    setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, imageFiles: [...(r.imageFiles || []), ...files] } : r));
+                                    e.target.value = "";
+                                  }} />
+                                </label>
+                                {(pv.imageFiles || []).length > 0 && (
+                                  <div className="ep-img-previews">
+                                    {pv.imageFiles.map((f, fi) => (
+                                      <div key={fi} className="ep-img-thumb">
+                                        <img src={URL.createObjectURL(f)} alt="preview" />
+                                        <button type="button" className="ep-img-remove"
+                                          onClick={() => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, imageFiles: r.imageFiles.filter((_, k) => k !== fi) } : r))}>✕</button>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+
+                          <button type="button" className="ep-add-more-btn" onClick={() => {
+                            const last = pendingVariants[pendingVariants.length - 1];
+                            setPendingVariants(s => [...s, { ...EMPTY_VARIANT, color: last.color || "", price: last.price || "", mrp: last.mrp || "" }]);
+                          }}>
+                            + Add Another Variant
+                          </button>
+
                           <div className="ep-add-actions">
                             <button className="ep-confirm-btn" disabled={addSaving} onClick={() => addVariant(product.id)}>
-                              {addSaving ? "Saving…" : "✓ Save Variant"}
+                              {addSaving ? "Saving…" : `✓ Save ${pendingVariants.length} Variant${pendingVariants.length > 1 ? "s" : ""}`}
                             </button>
-                            <button className="ep-cancel-btn" onClick={() => { setAddingTo(null); setNewVariant(EMPTY_VARIANT); }}>
+                            <button className="ep-cancel-btn" onClick={() => { setAddingTo(null); setPendingVariants([{ ...EMPTY_VARIANT }]); }}>
                               Cancel
                             </button>
                           </div>
@@ -431,11 +439,11 @@ export default function EditProduct() {
                         <button className="ep-add-variant-btn" onClick={() => {
                           // Pre-fill from last existing variant so user only changes what's different
                           const last = (product.variants || []).slice(-1)[0];
-                          setNewVariant(last ? {
+                          setPendingVariants([last ? {
                             size: "", color: last.color || "",
                             price: String(last.price || ""), mrp: String(last.mrp || ""),
                             barcode: "", quantity: "", imageFiles: []
-                          } : EMPTY_VARIANT);
+                          } : { ...EMPTY_VARIANT }]);
                           setAddingTo(product.id);
                         }}>
                           + Add Variant
