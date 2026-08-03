@@ -355,7 +355,7 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
                                 backgroundColor: const Color(0xFF0284C7),
                                 disabledBackgroundColor: const Color(
                                   0xFF0284C7,
-                                ).withOpacity(0.6),
+                                ).withValues(alpha: 0.6),
                               ),
                               onPressed: isAccepting
                                   ? null
