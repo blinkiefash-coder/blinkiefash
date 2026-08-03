@@ -255,8 +255,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                                   LatLng(dropLat, dropLng),
                                 ],
                                 color: const Color(0xFFEA580C),
-                                strokeWidth: 3,
-                                isDotted: false,
+                                strokeWidth: 3.5,
                               ),
                             // Rider to Dropoff remaining route
                             if (hasRiderLocation &&
@@ -269,7 +268,6 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                                 ],
                                 color: const Color(0xFF0284C7),
                                 strokeWidth: 2.5,
-                                isDotted: true,
                               ),
                           ],
                         ),
