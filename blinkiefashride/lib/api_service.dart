@@ -29,6 +29,13 @@ class ApiService {
   Future<void> saveFcmToken(String token) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('fcm_token', token);
+    try {
+      await http.patch(
+        Uri.parse('$baseUrl/rider/fcm-token'),
+        headers: _headers,
+        body: jsonEncode({'fcm_token': token}),
+      );
+    } catch (_) {}
   }
 
   Future<void> logout() async {
