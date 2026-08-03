@@ -95,10 +95,16 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
         title: const Text('Cancel Parcel?'),
         content: const Text('Are you sure you want to cancel this delivery?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Keep it')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Keep it'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Cancel', style: TextStyle(color: Color(0xFFEF4444))),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: Color(0xFFEF4444)),
+            ),
           ),
         ],
       ),
@@ -109,7 +115,9 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
     try {
       final res = await http
           .patch(
-            Uri.parse('$apiApiBaseUrl/deliver/request/${widget.requestId}/cancel'),
+            Uri.parse(
+              '$apiApiBaseUrl/deliver/request/${widget.requestId}/cancel',
+            ),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({'status': 'cancelled'}),
           )
@@ -395,9 +403,15 @@ class _BottomCard extends StatelessWidget {
   });
 
   int _calculateExpectedMinutes() {
-    final distanceKm = data['distance_km'] as num? ?? 0;
-    // Assume average speed of 30 km/h
-    final minutes = (distanceKm / 30 * 60).ceil();
+    final distValue = data['distance_km'];
+    double distanceKm = 0;
+    if (distValue is num) {
+      distanceKm = distValue.toDouble();
+    } else if (distValue is String) {
+      distanceKm = double.tryParse(distValue) ?? 0;
+    }
+    // Assume average speed of 30 km/h, minimum 5 minutes
+    final minutes = distanceKm > 0 ? (distanceKm / 30 * 60).ceil() : 5;
     return minutes > 0 ? minutes : 5;
   }
 
@@ -510,7 +524,9 @@ class _BottomCard extends StatelessWidget {
           ],
 
           // Expected time + Cancel button
-          if (!isDone) ...[const SizedBox(height: 14), Container(
+          if (!isDone) ...[
+            const SizedBox(height: 14),
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFF7ED),
@@ -521,7 +537,11 @@ class _BottomCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      const Icon(Icons.schedule_rounded, color: Color(0xFFEA580C), size: 20),
+                      const Icon(
+                        Icons.schedule_rounded,
+                        color: Color(0xFFEA580C),
+                        size: 20,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         'Expected: $expectedMin min',
@@ -534,18 +554,30 @@ class _BottomCard extends StatelessWidget {
                     ],
                   ),
                   if (cancelling)
-                    const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                    const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
                   else
                     TextButton(
                       onPressed: onCancel,
-                      child: const Text('Cancel', style: TextStyle(color: Color(0xFFEF4444), fontSize: 12, fontWeight: FontWeight.w600)),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Color(0xFFEF4444),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                 ],
               ),
-            )],
+            ),
+          ],
 
           // Book another button
-          if (isDone) ..[
+          if (isDone) ...[
             const SizedBox(height: 14),
             SizedBox(
               width: double.infinity,
