@@ -1070,16 +1070,22 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
       await pool.query(`UPDATE product_variants SET mrp = $2 WHERE id = $1`, [variantId, nextMrp]);
     }
 
-    if (size && String(size).trim()) {
-      await pool.query(`UPDATE product_variants SET size = $2 WHERE id = $1`, [variantId, String(size).trim()]);
-    }
-
-    if (color && String(color).trim()) {
-      await pool.query(`UPDATE product_variants SET color = $2 WHERE id = $1`, [variantId, String(color).trim()]);
-    }
-
-    if (barcode !== undefined) {
-      await pool.query(`UPDATE product_variants SET barcode = $2 WHERE id = $1`, [variantId, barcode ? String(barcode).trim() : null]);
+    // Update size, color, barcode + regenerate SKU atomically to avoid unique constraint violation
+    if ((size && String(size).trim()) || (color && String(color).trim()) || barcode !== undefined) {
+      const pv = await pool.query(`SELECT product_id, size, color FROM product_variants WHERE id = $1`, [variantId]);
+      if (pv.rows.length) {
+        const { product_id, size: curSize, color: curColor } = pv.rows[0];
+        const newSize = (size && String(size).trim()) ? String(size).trim() : curSize;
+        const newColor = (color && String(color).trim()) ? String(color).trim() : curColor;
+        const newSku = `${product_id}-${newColor}-${newSize}`.replace(/\s+/g, "-").toUpperCase();
+        const sets = ['size = $2', 'color = $3', 'sku = $4'];
+        const vals = [variantId, newSize, newColor, newSku];
+        if (barcode !== undefined) {
+          sets.push(`barcode = $${vals.length + 1}`);
+          vals.push(barcode ? String(barcode).trim() : null);
+        }
+        await pool.query(`UPDATE product_variants SET ${sets.join(', ')} WHERE id = $1`, vals);
+      }
     }
 
     await pool.query(
