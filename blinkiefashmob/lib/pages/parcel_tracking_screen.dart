@@ -424,7 +424,9 @@ class _BottomCard extends StatelessWidget {
     final riderName = data['rider_name'] as String?;
     final riderPhone = data['rider_phone'] as String?;
     final expectedMin = _calculateExpectedMinutes();
-    final timerLabel = isAssigned ? 'Expected: $expectedMin min' : 'Connecting to rider in $expectedMin min';
+    final timerLabel = isAssigned
+        ? 'Expected: $expectedMin min'
+        : 'Connecting to rider in $expectedMin min';
 
     return Container(
       decoration: const BoxDecoration(
@@ -525,6 +527,81 @@ class _BottomCard extends StatelessWidget {
                   ),
                 ),
               ],
+            ),
+          ],
+
+          // OTP Box - Show when rider accepts
+          if (isAssigned && data['otp_code'] != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                border: Border.all(color: const Color(0xFF0284C7), width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Delivery OTP',
+                    style: TextStyle(
+                      color: Color(0xFF0284C7),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        data['otp_code'] ?? '---',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0284C7),
+                          letterSpacing: 4,
+                        ),
+                      ),
+                      if (data['otp_verified'] == true)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF0FDF4),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.check_circle_rounded,
+                                  color: Color(0xFF16A34A), size: 16),
+                              SizedBox(width: 6),
+                              Text(
+                                'Verified',
+                                style: TextStyle(
+                                  color: Color(0xFF16A34A),
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Share this code with your rider at pickup',
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
 
