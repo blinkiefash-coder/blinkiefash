@@ -119,7 +119,6 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
               '$apiApiBaseUrl/deliver/request/${widget.requestId}/cancel',
             ),
             headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'status': 'cancelled'}),
           )
           .timeout(const Duration(seconds: 10));
       if (!mounted) return;
@@ -180,7 +179,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
         : null;
 
     final mapCenter = hasRiderLocation
-        ? LatLng(riderLat!, riderLng!)
+        ? LatLng(riderLat, riderLng)
         : (pickupLat != null && pickupLng != null
               ? LatLng(pickupLat, pickupLng)
               : const LatLng(20.4625, 85.883));
@@ -271,7 +270,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                             // Rider pin
                             if (hasRiderLocation)
                               Marker(
-                                point: LatLng(riderLat!, riderLng!),
+                                point: LatLng(riderLat, riderLng),
                                 width: 44,
                                 height: 44,
                                 child: Container(
@@ -576,8 +575,11 @@ class _BottomCard extends StatelessWidget {
                           ),
                           child: const Row(
                             children: [
-                              Icon(Icons.check_circle_rounded,
-                                  color: Color(0xFF16A34A), size: 16),
+                              Icon(
+                                Icons.check_circle_rounded,
+                                color: Color(0xFF16A34A),
+                                size: 16,
+                              ),
                               SizedBox(width: 6),
                               Text(
                                 'Verified',
@@ -595,10 +597,7 @@ class _BottomCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   const Text(
                     'Share this code with your rider at pickup',
-                    style: TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 11,
-                    ),
+                    style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
                   ),
                 ],
               ),

@@ -1,551 +1,517 @@
-import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import express from "express";
+import { pool } from "../db.js";
 
-class ApiService {
-  static const String baseUrl = 'https://blinkiefashrider.onrender.com';
-  String? _token;
+const router = express.Router();
 
-  Future<void> loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString('jwt_token');
+const CITY_ZONE = {
+  cuttack: {
+    label: "Cuttack",
+    centerLat: 20.4625,
+    centerLng: 85.883,
+    radiusKm: 30,
+    baseFare: 20,
+    perKm: 5,
+    minFare: 35,
+  },
+  bhubaneswar: {
+    label: "Bhubaneswar",
+    centerLat: 20.2961,
+    centerLng: 85.8245,
+    radiusKm: 30,
+    baseFare: 20,
+    perKm: 5,
+    minFare: 35,
+  },
+};
+
+const toNumber = (value) => {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+};
+
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+      Math.cos((lat2 * Math.PI) / 180) *
+      Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const fetchGoogleRouteMetrics = async ({ pickupLat, pickupLng, dropLat, dropLng }) => {
+  const key = process.env.GOOGLE_MAPS_API_KEY;
+  if (!key) return null;
+
+  const url = new URL("https://maps.googleapis.com/maps/api/directions/json");
+  url.searchParams.set("origin", `${pickupLat},${pickupLng}`);
+  url.searchParams.set("destination", `${dropLat},${dropLng}`);
+  url.searchParams.set("mode", "driving");
+  url.searchParams.set("key", key);
+
+  const res = await fetch(url);
+  if (!res.ok) return null;
+  const data = await res.json();
+  if (data?.status !== "OK") return null;
+
+  const leg = data?.routes?.[0]?.legs?.[0];
+  const distanceM = Number(leg?.distance?.value);
+  const durationS = Number(leg?.duration?.value);
+  if (!Number.isFinite(distanceM) || distanceM <= 0) return null;
+
+  return {
+    distanceKm: Number((distanceM / 1000).toFixed(2)),
+    durationMins: Number.isFinite(durationS)
+      ? Math.max(1, Math.round(durationS / 60))
+      : null,
+    source: "google-directions",
+  };
+};
+
+const fetchOsrmRouteMetrics = async ({ pickupLat, pickupLng, dropLat, dropLng }) => {
+  const url =
+    `https://router.project-osrm.org/route/v1/driving/` +
+    `${pickupLng.toFixed(6)},${pickupLat.toFixed(6)};` +
+    `${dropLng.toFixed(6)},${dropLat.toFixed(6)}?overview=false`;
+
+  const res = await fetch(url, {
+    headers: { "User-Agent": "BlinkieFashBackend/1.0" },
+  });
+  if (!res.ok) return null;
+  const data = await res.json();
+  const route = data?.routes?.[0];
+  const distanceM = Number(route?.distance);
+  const durationS = Number(route?.duration);
+  if (!Number.isFinite(distanceM) || distanceM <= 0) return null;
+
+  return {
+    distanceKm: Number((distanceM / 1000).toFixed(2)),
+    durationMins: Number.isFinite(durationS)
+      ? Math.max(1, Math.round(durationS / 60))
+      : null,
+    source: "osrm",
+  };
+};
+
+const normalizeDistanceProvider = (value) => {
+  const v = String(value || "").trim().toLowerCase();
+  if (v === "google") return "google";
+  if (v === "auto") return "auto";
+  return "auto"; // default to auto so OSRM/haversine fallback always works
+};
+
+const getRouteMetrics = async ({
+  pickupLat,
+  pickupLng,
+  dropLat,
+  dropLng,
+  distanceProvider = "google",
+}) => {
+  const provider = normalizeDistanceProvider(distanceProvider);
+
+  try {
+    const google = await fetchGoogleRouteMetrics({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+    });
+    if (google) return google;
+  } catch {}
+
+  if (provider === "google") {
+    return null;
   }
 
-  Future<void> saveToken(String token, {String? name}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('jwt_token', token);
-    if (name case final n?) await prefs.setString('rider_name', n);
-    _token = token;
+  try {
+    const osrm = await fetchOsrmRouteMetrics({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+    });
+    if (osrm) return osrm;
+  } catch {}
+
+  const airKm = haversineKm(pickupLat, pickupLng, dropLat, dropLng);
+  const distanceKm = Number(Math.max(airKm * 1.25, 0.5).toFixed(2));
+  return {
+    distanceKm,
+    durationMins: Math.max(1, Math.round((distanceKm / 24) * 60)),
+    source: "haversine-fallback",
+  };
+};
+
+const resolveZone = (city, lat, lng) => {
+  const cityKey = String(city || "").trim().toLowerCase();
+  if (CITY_ZONE[cityKey]) {
+    return CITY_ZONE[cityKey];
   }
 
-  Future<String?> getSavedName() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('rider_name');
-  }
+  if (lat == null || lng == null) return null;
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('jwt_token');
-    await prefs.remove('rider_name');
-    _token = null;
-  }
-
-  Map<String, String> get _headers {
-    final h = <String, String>{'Content-Type': 'application/json'};
-    if (_token != null) h['Authorization'] = _token!;
-    return h;
-  }
-
-  Future<Map<String, dynamic>?> register({
-    required String name,
-    required String phone,
-    required String password,
-    required String vehicleType,
-    required String vehicleNumber,
-    required String licenseNumber,
-  }) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/rider/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'name': name,
-          'phone': phone,
-          'password': password,
-          'vehicle_type': vehicleType,
-          'vehicle_number': vehicleNumber,
-          'license_number': licenseNumber,
-        }),
-      );
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (res.statusCode == 200) {
-        await saveToken(
-          body['token'] as String,
-          name: (body['name'] ?? name) as String?,
-        );
-        return body;
-      }
-      return {'error': body['message'] ?? 'Registration failed'};
-    } catch (e) {
-      return {'error': 'Connection failed: $e'};
+  let nearest = null;
+  let best = Number.POSITIVE_INFINITY;
+  for (const zone of Object.values(CITY_ZONE)) {
+    const dist = haversineKm(lat, lng, zone.centerLat, zone.centerLng);
+    if (dist < best) {
+      best = dist;
+      nearest = zone;
     }
   }
+  return nearest;
+};
 
-  Future<Map<String, dynamic>?> login(String phone, String password) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/rider/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'phone': phone, 'password': password}),
-      );
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (res.statusCode == 200) {
-        await saveToken(body['token'] as String, name: body['name'] as String?);
-        return body;
-      }
-      return {'error': body['message'] ?? 'Login failed'};
-    } catch (e) {
-      return {'error': 'Connection failed: $e'};
+const computeEstimate = async ({
+  pickupLat,
+  pickupLng,
+  dropLat,
+  dropLng,
+  city,
+  distanceProvider = "google",
+}) => {
+  const zone = resolveZone(city, pickupLat, pickupLng);
+  if (!zone) {
+    return {
+      ok: false,
+      message: "Service available in Cuttack and Bhubaneswar only",
+    };
+  }
+
+  const fromCenter = haversineKm(
+    pickupLat,
+    pickupLng,
+    zone.centerLat,
+    zone.centerLng
+  );
+
+  if (fromCenter > zone.radiusKm) {
+    return {
+      ok: false,
+      message: `Pickup location is outside ${zone.label} service range`,
+    };
+  }
+
+  const metrics = await getRouteMetrics({
+    pickupLat,
+    pickupLng,
+    dropLat,
+    dropLng,
+    distanceProvider,
+  });
+  if (!metrics) {
+    return {
+      ok: false,
+      message: "Google distance is unavailable. Please verify GOOGLE_MAPS_API_KEY and Directions API.",
+    };
+  }
+  const roundedDistance = Math.max(Number(metrics.distanceKm.toFixed(2)), 0.5);
+  const rawFare = zone.baseFare + roundedDistance * zone.perKm;
+  const fare = Math.max(zone.minFare, Math.round(rawFare));
+
+  return {
+    ok: true,
+    cityZone: zone.label,
+    distanceKm: roundedDistance,
+    etaMinutes: metrics.durationMins,
+    routeSource: metrics.source,
+    estimatedFare: fare,
+    fareBreakup: {
+      baseFare: zone.baseFare,
+      perKm: zone.perKm,
+      minimumFare: zone.minFare,
+    },
+  };
+};
+
+const ensureTables = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS deliver_requests (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID,
+      vendor_id UUID,
+      pickup_text TEXT NOT NULL,
+      drop_text TEXT NOT NULL,
+      pickup_lat DECIMAL(10, 7),
+      pickup_lng DECIMAL(10, 7),
+      drop_lat DECIMAL(10, 7),
+      drop_lng DECIMAL(10, 7),
+      distance_km DECIMAL(10, 2) NOT NULL,
+      estimated_fare DECIMAL(12, 2) NOT NULL,
+      city_zone VARCHAR(40) NOT NULL,
+      status VARCHAR(20) NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMPTZ DEFAULT now(),
+      accepted_at TIMESTAMPTZ,
+      completed_at TIMESTAMPTZ
+    )
+  `);
+  // Add tracking columns if they don't exist yet
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_id UUID`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_name TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_phone TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_lat DECIMAL(10,7)`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS rider_lng DECIMAL(10,7)`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS receiver_name TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS receiver_phone TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS note TEXT`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS who_pays VARCHAR(20) DEFAULT 'sender'`);
+};
+
+router.get("/estimate", async (req, res) => {
+  try {
+    const pickupLat = toNumber(req.query.pickupLat);
+    const pickupLng = toNumber(req.query.pickupLng);
+    const dropLat = toNumber(req.query.dropLat);
+    const dropLng = toNumber(req.query.dropLng);
+    const city = req.query.city;
+    const distanceProvider = normalizeDistanceProvider(
+      req.query.distanceProvider
+    );
+
+    if (
+      pickupLat == null ||
+      pickupLng == null ||
+      dropLat == null ||
+      dropLng == null
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "pickupLat, pickupLng, dropLat, dropLng are required",
+      });
     }
-  }
 
-  Future<Map<String, dynamic>?> firebaseLogin(String idToken) async {
-    try {
-      final res = await http
-          .post(
-            Uri.parse('$baseUrl/rider/firebase-login'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode({'idToken': idToken}),
-          )
-          .timeout(const Duration(seconds: 15));
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (_) {
-      return null;
+    const estimate = await computeEstimate({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+      city,
+      distanceProvider,
+    });
+
+    if (!estimate.ok) {
+      return res.status(400).json({
+        success: false,
+        message: estimate.message,
+      });
     }
-  }
 
-  Future<Map<String, dynamic>?> getProfile() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/profile'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
-      }
-      return null;
-    } catch (e) {
-      return null;
+    return res.json({
+      success: true,
+      cityZone: estimate.cityZone,
+      distanceKm: estimate.distanceKm,
+      etaMinutes: estimate.etaMinutes,
+      routeSource: estimate.routeSource,
+      estimatedFare: estimate.estimatedFare,
+      fareBreakup: estimate.fareBreakup,
+    });
+  } catch (err) {
+    console.error("deliver estimate error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.post("/request", async (req, res) => {
+  try {
+    await ensureTables();
+
+    const {
+      userId,
+      pickupText,
+      dropText,
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+      city,
+      distanceProvider,
+    } = req.body || {};
+
+    if (
+      !pickupText ||
+      !dropText ||
+      pickupLat == null ||
+      pickupLng == null ||
+      dropLat == null ||
+      dropLng == null
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "pickup/drop details with coordinates are required",
+      });
     }
-  }
 
-  Future<bool> toggleAvailability(bool isAvailable) async {
-    try {
-      final res = await http.patch(
-        Uri.parse('$baseUrl/rider/availability'),
-        headers: _headers,
-        body: jsonEncode({'is_available': isAvailable}),
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
+    const estimate = await computeEstimate({
+      pickupLat: Number(pickupLat),
+      pickupLng: Number(pickupLng),
+      dropLat: Number(dropLat),
+      dropLng: Number(dropLng),
+      city,
+      distanceProvider,
+    });
+    if (!estimate.ok) {
+      return res.status(400).json({
+        success: false,
+        message: estimate.message || "Unable to estimate delivery",
+      });
     }
-  }
 
-  Future<List<dynamic>> getDeliveries() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/delivery'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (e) {
-      return [];
+    const insert = await pool.query(
+      `INSERT INTO deliver_requests (
+        user_id,
+        pickup_text,
+        drop_text,
+        pickup_lat,
+        pickup_lng,
+        drop_lat,
+        drop_lng,
+        distance_km,
+        estimated_fare,
+        city_zone,
+        status
+      ) VALUES (
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending'
+      ) RETURNING id, status, distance_km, estimated_fare, city_zone, created_at`,
+      [
+        userId || null,
+        String(pickupText),
+        String(dropText),
+        Number(pickupLat),
+        Number(pickupLng),
+        Number(dropLat),
+        Number(dropLng),
+        Number(estimate.distanceKm),
+        Number(estimate.estimatedFare),
+        String(estimate.cityZone),
+      ]
+    );
+
+    return res.json({ success: true, request: insert.rows[0] });
+  } catch (err) {
+    console.error("deliver request error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.get("/vendor/:vendorId/requests", async (req, res) => {
+  try {
+    const { vendorId } = req.params;
+    const status = String(req.query.status || "pending").toLowerCase();
+    const validStatus = new Set(["pending", "accepted", "completed", "cancelled"]);
+    const filter = validStatus.has(status) ? status : "pending";
+
+    const { rows } = await pool.query(
+      `SELECT id, pickup_text, drop_text, distance_km, estimated_fare,
+              city_zone, status, created_at, accepted_at, completed_at
+       FROM deliver_requests
+       WHERE status = $1
+       ORDER BY created_at DESC
+       LIMIT 100`,
+      [filter]
+    );
+
+    return res.json({ success: true, vendorId, requests: rows });
+  } catch (err) {
+    console.error("deliver vendor requests error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.patch("/vendor/:vendorId/requests/:id", async (req, res) => {
+  try {
+    const { vendorId, id } = req.params;
+    const status = String(req.body?.status || "").toLowerCase();
+    const allowed = new Set(["accepted", "completed", "cancelled"]);
+    if (!allowed.has(status)) {
+      return res.status(400).json({ success: false, message: "Invalid status" });
     }
-  }
 
-  Future<bool> updateDeliveryStatus(String deliveryId, String status) async {
-    try {
-      final res = await http.patch(
-        Uri.parse('$baseUrl/delivery/$deliveryId/status'),
-        headers: _headers,
-        body: jsonEncode({'status': status}),
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests
+       SET vendor_id = CASE WHEN $1::text <> '' THEN $1::uuid ELSE vendor_id END,
+           status = $2,
+           accepted_at = CASE WHEN $2 = 'accepted' THEN NOW() ELSE accepted_at END,
+           completed_at = CASE WHEN $2 = 'completed' THEN NOW() ELSE completed_at END
+       WHERE id = $3
+       RETURNING id, status, vendor_id, accepted_at, completed_at`,
+      [vendorId, status, id]
+    );
+
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Request not found" });
     }
-  }
 
-  Future<Map<String, dynamic>> getEarnings() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/earnings'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
-      }
-      return {'payouts': [], 'balance': 0};
-    } catch (e) {
-      return {'payouts': [], 'balance': 0};
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver vendor update error", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── GET /api/deliver/request/:id — customer polls for tracking status ──────────
+router.get("/request/:id", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `SELECT id, status, pickup_text, drop_text, pickup_lat, pickup_lng,
+              drop_lat, drop_lng, distance_km, estimated_fare, city_zone,
+              created_at, accepted_at, completed_at,
+              rider_id, rider_name, rider_phone, rider_lat, rider_lng,
+              receiver_name, receiver_phone, note, who_pays
+       FROM deliver_requests WHERE id = $1 LIMIT 1`,
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver get request error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── PATCH /api/deliver/request/:id/rider-location — rider updates their GPS ────
+router.patch("/request/:id/rider-location", async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { lat, lng, rider_name, rider_phone, rider_id } = req.body || {};
+    if (lat == null || lng == null) return res.status(400).json({ success: false, message: "lat and lng required" });
+    await pool.query(
+      `UPDATE deliver_requests SET rider_lat = $2, rider_lng = $3
+       ${rider_name ? ", rider_name = $4" : ""}
+       ${rider_phone ? ", rider_phone = $5" : ""}
+       ${rider_id ? ", rider_id = $6" : ""}
+       WHERE id = $1`,
+      [id, Number(lat), Number(lng),
+        ...(rider_name ? [String(rider_name)] : []),
+        ...(rider_phone ? [String(rider_phone)] : []),
+        ...(rider_id ? [String(rider_id)] : []),
+      ]
+    );
+    return res.json({ success: true });
+  } catch (err) {
+    console.error("deliver rider-location error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+router.patch("/request/:id/cancel", async (req, res) => {
+  try {
+    await ensureTables();
+    const { id } = req.params;
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests SET status = 'cancelled' WHERE id = $1 AND status NOT IN ('completed', 'delivered') RETURNING id, status`,
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ success: false, message: "Cannot cancel completed or delivered parcel" });
     }
+    return res.json({ success: true, request: rows[0] });
+  } catch (err) {
+    console.error("deliver cancel error", err.message);
+    return res.status(500).json({ success: false, message: "Server error" });
   }
+});
 
-  Future<bool> requestPayout(double amount) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/payout/request'),
-        headers: _headers,
-        body: jsonEncode({'amount': amount}),
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<List<dynamic>> getShifts() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/shifts'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  Future<Map<String, dynamic>?> startShift() async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/shift/start'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
-      }
-      return null;
-    } catch (e) {
-      return null;
-    }
-  }
-
-  Future<bool> endShift(String shiftId) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/shift/end'),
-        headers: _headers,
-        body: jsonEncode({'shiftId': shiftId}),
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  Future<List<dynamic>> getNotifications() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/notifications'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  Future<List<dynamic>> getReviews() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/reviews'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  Future<List<dynamic>> getSupportTickets() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/rider/support'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) return jsonDecode(res.body) as List<dynamic>;
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  Future<bool> createSupportTicket(String subject, String description) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/support/create'),
-        headers: _headers,
-        body: jsonEncode({'subject': subject, 'description': description}),
-      );
-      return res.statusCode == 200;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // ── Available orders for riders ───────────────────────────────────────────
-  Future<List<dynamic>> getAvailableOrders() async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/delivery/available'),
-        headers: _headers,
-      );
-      if (res.statusCode == 200) {
-        final body = jsonDecode(res.body) as Map<String, dynamic>;
-        return (body['orders'] as List?) ?? [];
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
-
-  // ── Accept an order (atomic) ──────────────────────────────────────────────
-  Future<Map<String, dynamic>> acceptOrder(String orderId) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/accept/$orderId'),
-        headers: _headers,
-      );
-      final body = jsonDecode(res.body) as Map<String, dynamic>;
-      return body;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  // ── Send rider GPS location (tied to a delivery) ─────────────────────────
-  Future<void> updateLocation(String deliveryId, double lat, double lng) async {
-    try {
-      await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/location'),
-        headers: _headers,
-        body: jsonEncode({'lat': lat, 'lng': lng}),
-      );
-    } catch (_) {}
-  }
-
-  // ── Update rider's general duty location (no delivery required) ───────────
-  Future<void> updateRiderLocation(double lat, double lng) async {
-    try {
-      await http.patch(
-        Uri.parse('$baseUrl/rider/location'),
-        headers: _headers,
-        body: jsonEncode({'lat': lat, 'lng': lng}),
-      );
-    } catch (_) {}
-  }
-
-  // ── Send rider location to parcel delivery system ─────────────────────────
-  Future<void> updateParcelDeliveryLocation(
-    String requestId,
-    double lat,
-    double lng, {
-    String? riderName,
-    String? riderPhone,
-    String? riderId,
-  }) async {
-    try {
-      final body = {'lat': lat, 'lng': lng};
-      if (riderName != null) body['rider_name'] = riderName;
-      if (riderPhone != null) body['rider_phone'] = riderPhone;
-      if (riderId != null) body['rider_id'] = riderId;
-      await http.patch(
-        Uri.parse(
-            'https://blinkiefash.onrender.com/api/deliver/request/$requestId/rider-location'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-    } catch (_) {}
-  }
-
-  // ── Get available parcel delivery requests nearby ──────────────────────────
-  Future<List<Map<String, dynamic>>> getAvailableParcelRequests(
-    double riderLat,
-    double riderLng, {
-    double radiusKm = 10,
-  }) async {
-    try {
-      final res = await http.get(
-        Uri.parse(
-          'https://blinkiefash.onrender.com/api/deliver/available?riderLat=$riderLat&riderLng=$riderLng&radiusKm=$radiusKm',
-        ),
-      );
-      if (res.statusCode == 200) {
-        final body = jsonDecode(res.body) as Map<String, dynamic>;
-        if (body['success'] == true && body['requests'] is List) {
-          return (body['requests'] as List)
-              .map((e) => e as Map<String, dynamic>)
-              .toList();
-        }
-      }
-      return [];
-    } catch (_) {
-      return [];
-    }
-  }
-
-  // ── Accept a parcel delivery request (generates OTP) ──────────────────────
-  Future<Map<String, dynamic>?> acceptParcelRequest(
-    String requestId, {
-    required String riderId,
-    required String riderName,
-    required String riderPhone,
-    double? riderLat,
-    double? riderLng,
-  }) async {
-    try {
-      final body = {
-        'riderId': riderId,
-        'riderName': riderName,
-        'riderPhone': riderPhone,
-      };
-      if (riderLat != null) body['riderLat'] = riderLat;
-      if (riderLng != null) body['riderLng'] = riderLng;
-
-      final res = await http.patch(
-        Uri.parse(
-          'https://blinkiefash.onrender.com/api/deliver/request/$requestId/accept',
-        ),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(body),
-      );
-
-      if (res.statusCode == 200) {
-        return jsonDecode(res.body) as Map<String, dynamic>;
-      }
-      return jsonDecode(res.body) as Map<String, dynamic>?;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  /// Submit OTP entered by rider; returns {success, is_try_order}
-  Future<Map<String, dynamic>> verifyOtp(String deliveryId, String otp) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/verify-otp'),
-        headers: _headers,
-        body: jsonEncode({'otp': otp}),
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  /// Rider selects "try" or "buy"; returns {success, mode, deadline?}
-  Future<Map<String, dynamic>> tryBuySelect(
-    String deliveryId,
-    String mode,
-  ) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/try-buy-select'),
-        headers: _headers,
-        body: jsonEncode({'mode': mode}),
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  /// Record try-buy final decision: "kept" or "returned"
-  Future<Map<String, dynamic>> tryBuyComplete(
-    String deliveryId,
-    String decision,
-  ) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/try-buy-complete'),
-        headers: _headers,
-        body: jsonEncode({'decision': decision}),
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  // ── Store pickup OTP ──────────────────────────────────────────────────────
-
-  /// Rider arrived at dark store — triggers store OTP generation
-  Future<Map<String, dynamic>> storeArrived(String deliveryId) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/store-arrived'),
-        headers: _headers,
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  /// Verify the 4-digit OTP given by store staff
-  Future<Map<String, dynamic>> verifyStoreOtp(
-    String deliveryId,
-    String otp,
-  ) async {
-    try {
-      final res = await http.post(
-        Uri.parse('$baseUrl/delivery/$deliveryId/verify-store-otp'),
-        headers: _headers,
-        body: jsonEncode({'otp': otp}),
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  /// Fetch the current detail of a delivery (to restore phase on re-open)
-  Future<Map<String, dynamic>> getDeliveryDetail(String deliveryId) async {
-    try {
-      final res = await http.get(
-        Uri.parse('$baseUrl/delivery/$deliveryId/detail'),
-        headers: _headers,
-      );
-      return jsonDecode(res.body) as Map<String, dynamic>;
-    } catch (e) {
-      return {'success': false, 'message': 'Connection failed'};
-    }
-  }
-
-  // ── Pre-delivery photo upload ─────────────────────────────────────────────
-
-  Future<Map<String, dynamic>> uploadDeliveryPhoto(
-    String deliveryId,
-    String filePath,
-  ) async {
-    try {
-      final file = File(filePath);
-      if (!await file.exists()) {
-        return {'success': false, 'message': 'Photo file not found'};
-      }
-      final request = http.MultipartRequest(
-        'POST',
-        Uri.parse('$baseUrl/upload/delivery-photo/$deliveryId'),
-      );
-      // Add auth header only (no Content-Type — multipart sets its own)
-      if (_token != null) request.headers['Authorization'] = _token!;
-      request.files.add(await http.MultipartFile.fromPath('image', file.path));
-      final streamed = await request.send().timeout(
-        const Duration(seconds: 30),
-      );
-      final body = await streamed.stream.bytesToString();
-      final json = jsonDecode(body) as Map<String, dynamic>;
-      if (streamed.statusCode == 200) return json;
-      return {
-        'success': false,
-        'message': json['message'] ?? 'Upload failed (${streamed.statusCode})',
-      };
-    } catch (e) {
-      return {'success': false, 'message': 'Upload failed: $e'};
-    }
-  }
-}
+export default router;
