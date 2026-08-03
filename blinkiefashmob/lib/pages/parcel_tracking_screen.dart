@@ -241,6 +241,38 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                               'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
                           userAgentPackageName: 'com.blinkiefash.app',
                         ),
+                        // ── Route polylines ──────────────────────────────
+                        PolylineLayer(
+                          polylines: [
+                            // Pickup to Dropoff route
+                            if (pickupLat != null &&
+                                pickupLng != null &&
+                                dropLat != null &&
+                                dropLng != null)
+                              Polyline(
+                                points: [
+                                  LatLng(pickupLat, pickupLng),
+                                  LatLng(dropLat, dropLng),
+                                ],
+                                color: const Color(0xFFEA580C),
+                                strokeWidth: 3,
+                                isDotted: false,
+                              ),
+                            // Rider to Dropoff remaining route
+                            if (hasRiderLocation &&
+                                dropLat != null &&
+                                dropLng != null)
+                              Polyline(
+                                points: [
+                                  LatLng(riderLat, riderLng),
+                                  LatLng(dropLat, dropLng),
+                                ],
+                                color: const Color(0xFF0284C7),
+                                strokeWidth: 2.5,
+                                isDotted: true,
+                              ),
+                          ],
+                        ),
                         MarkerLayer(
                           markers: [
                             // Pickup pin
