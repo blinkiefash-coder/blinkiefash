@@ -132,6 +132,41 @@ export async function notifyAvailableRiders(pool, orderId) {
   }
 }
 
+/**
+ * Notify available riders (is_available=true) who are within 7 km of a
+ * newly created parcel delivery request's pickup point.
+ * Uses the shared Neon DB — same DB as blinkiefashride backend.
+ */
+export async function notifyRidersOfNewParcel(pool, requestId, pickupLat, pickupLng) {
+  try {
+    if (pickupLat == null || pickupLng == null) return;
+    const { rows } = await pool.query(
+      `SELECT r.fcm_token
+       FROM "Riders" r
+       WHERE r.is_available = TRUE
+         AND r.fcm_token IS NOT NULL
+         AND r.fcm_token != ''
+         AND r.current_lat IS NOT NULL
+         AND r.current_lng IS NOT NULL
+         AND (
+           6371 * acos(GREATEST(-1.0, LEAST(1.0,
+             cos(radians($2)) * cos(radians(r.current_lat)) *
+             cos(radians(r.current_lng) - radians($3)) +
+             sin(radians($2)) * sin(radians(r.current_lat))
+           ))) * 1.6
+         ) <= 7`,
+      [requestId, Number(pickupLat), Number(pickupLng)]
+    );
+    await Promise.all(rows.map(r => sendPush(r.fcm_token, {
+      title: '📦 New Parcel Available!',
+      body: 'A new parcel delivery request is waiting near you.',
+      data: { type: 'parcel_available', requestId: String(requestId) },
+    })));
+  } catch (err) {
+    console.error('[notifyRidersOfNewParcel] error:', err.message);
+  }
+}
+
 export async function notifyVendorOfNewOrder(pool, orderId) {
   try {
     const { rows } = await pool.query(

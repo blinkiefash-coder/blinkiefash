@@ -4,27 +4,43 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
-class OrderRequestScreen extends StatefulWidget {
-  const OrderRequestScreen({super.key, this.delivery});
+import '../api_service.dart';
 
-  /// If provided, shows real delivery data. Otherwise shows a preview.
-  final Map<String, dynamic>? delivery;
+/// Single-request, Uber-style popup for one nearby parcel delivery request.
+/// Shows distance + fare, pickup/drop, and lets the rider accept or reject.
+class ParcelRequestScreen extends StatefulWidget {
+  const ParcelRequestScreen({
+    super.key,
+    required this.parcel,
+    required this.riderId,
+    required this.riderName,
+    required this.riderPhone,
+    this.riderLat,
+    this.riderLng,
+  });
+
+  final Map<String, dynamic> parcel;
+  final String riderId;
+  final String riderName;
+  final String riderPhone;
+  final double? riderLat;
+  final double? riderLng;
 
   @override
-  State<OrderRequestScreen> createState() => _OrderRequestScreenState();
+  State<ParcelRequestScreen> createState() => _ParcelRequestScreenState();
 }
 
-class _OrderRequestScreenState extends State<OrderRequestScreen>
+class _ParcelRequestScreenState extends State<ParcelRequestScreen>
     with SingleTickerProviderStateMixin {
+  final ApiService _api = ApiService();
   late AnimationController _timerController;
   int _seconds = 25;
   Timer? _vibrateTimer;
+  bool _accepting = false;
 
   @override
   void initState() {
     super.initState();
-    // Uber/Swiggy-style alert: loud looping alarm (plays on the alarm stream so
-    // it cuts through silent/vibrate mode) plus a repeating vibration pattern.
     _startAlert();
     _timerController =
         AnimationController(vsync: this, duration: const Duration(seconds: 25))
@@ -45,11 +61,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
 
   void _startAlert() {
     try {
-      FlutterRingtonePlayer().playAlarm(
-        volume: 1.0,
-        looping: true,
-        asAlarm: true,
-      );
+      FlutterRingtonePlayer().playAlarm(volume: 1.0, looping: true, asAlarm: true);
     } catch (_) {}
     HapticFeedback.vibrate();
     _vibrateTimer = Timer.periodic(
@@ -73,36 +85,125 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
     super.dispose();
   }
 
+  Future<void> _accept() async {
+    final requestId = widget.parcel['id'] as String? ?? '';
+    if (requestId.isEmpty || _accepting) return;
+    _stopAlert();
+    _timerController.stop();
+    setState(() => _accepting = true);
+
+    try {
+      final result = await _api.acceptParcelRequest(
+        requestId,
+        riderId: widget.riderId,
+        riderName: widget.riderName,
+        riderPhone: widget.riderPhone,
+        riderLat: widget.riderLat,
+        riderLng: widget.riderLng,
+      );
+
+      if (!mounted) return;
+
+      if (result?['success'] == true) {
+        final otp = result?['request']?['otp_code'] as String? ?? 'N/A';
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Parcel Accepted! \u2713'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'OTP generated for customer verification:',
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F9FF),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF0284C7)),
+                  ),
+                  child: Center(
+                    child: Text(
+                      otp,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF0284C7),
+                        letterSpacing: 3,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        Navigator.of(context).pop(true);
+      } else {
+        setState(() => _accepting = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              (result?['message'] ?? 'Parcel no longer available') as String,
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+        Navigator.of(context).pop(false);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _accepting = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    final d = widget.delivery;
-    final deliveryId = (d?['id'] ?? '') as String;
-    final shortId = deliveryId.length > 8
-        ? deliveryId.substring(0, 8).toUpperCase()
-        : deliveryId.toUpperCase();
-    final fee = d?['delivery_fee'];
-    final distance = d?['distance'];
-    final feeStr = fee != null ? '\u20B9$fee' : '\u20B9--';
-    final distStr = distance != null ? '$distance km' : '-- km';
+    final p = widget.parcel;
+    final requestId = (p['id'] ?? '') as String;
+    final shortId = requestId.length > 8
+        ? requestId.substring(0, 8).toUpperCase()
+        : requestId.toUpperCase();
+    final fare = p['estimated_fare'];
+    final distance = p['distance_from_rider_km'] ?? p['distance_km'];
+    final fareStr = fare != null ? '\u20B9$fare' : '\u20B9--';
+    final distStr = distance != null
+        ? '${(distance as num).toStringAsFixed(1)} km'
+        : '-- km';
+    final pickupText = (p['pickup_text'] ?? 'Pickup location') as String;
+    final dropText = (p['drop_text'] ?? 'Drop location') as String;
 
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
         child: Stack(
           children: [
-            // Map placeholder
             Container(
               height: MediaQuery.of(context).size.height * 0.42,
               color: const Color(0xFF1E293B),
               child: const Center(
                 child: Icon(
-                  Icons.map_outlined,
+                  Icons.local_shipping_outlined,
                   color: Colors.white24,
                   size: 80,
                 ),
               ),
             ),
-            // Notification bar
             Positioned(
               top: 12,
               left: 14,
@@ -125,7 +226,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'New Order Alert',
+                            'New Parcel Request',
                             style: TextStyle(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -133,7 +234,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                             ),
                           ),
                           Text(
-                            'You have a new delivery request!',
+                            'You have a new parcel delivery request!',
                             style: TextStyle(
                               color: Colors.white60,
                               fontSize: 12,
@@ -150,7 +251,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                 ),
               ),
             ),
-            // Order sheet
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
@@ -170,7 +270,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                           radius: 28,
                           backgroundColor: Color(0xFFECFDF3),
                           child: Icon(
-                            Icons.shopping_bag_outlined,
+                            Icons.local_shipping_outlined,
                             color: Color(0xFF16A34A),
                             size: 28,
                           ),
@@ -200,7 +300,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                     ),
                     const SizedBox(height: 12),
                     const Text(
-                      'New Delivery Request',
+                      'New Parcel Delivery',
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
@@ -223,10 +323,12 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                           size: 16,
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
+                        Expanded(
                           child: Text(
-                            'Pickup: Blinkie Fashion Store',
-                            style: TextStyle(
+                            'Pickup: $pickupText',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
                             ),
@@ -245,7 +347,9 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'Drop: Customer Address',
+                            'Drop: $dropText',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
@@ -268,7 +372,7 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                               ),
                             ),
                             Text(
-                              feeStr,
+                              fareStr,
                               style: const TextStyle(
                                 fontSize: 26,
                                 fontWeight: FontWeight.w900,
@@ -308,64 +412,54 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        _MetaChip(
-                          icon: Icons.directions_bike_outlined,
-                          label: 'Distance',
-                          value: distStr,
-                        ),
-                        const SizedBox(width: 10),
-                        const _MetaChip(
-                          icon: Icons.local_shipping_outlined,
-                          label: 'Type',
-                          value: 'Fashion',
-                        ),
-                      ],
-                    ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: FilledButton(
-                        onPressed: () {
-                          Navigator.of(
-                            context,
-                          ).pop(true); // duty_screen handles navigation
-                        },
+                        onPressed: _accepting ? null : _accept,
                         style: FilledButton.styleFrom(
                           backgroundColor: const Color(0xFF16A34A),
                           minimumSize: const Size.fromHeight(50),
                         ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Accept Order',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
+                        child: _accepting
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.white,
+                                ),
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Accept Parcel',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(Icons.arrow_forward),
+                                ],
                               ),
-                            ),
-                            SizedBox(width: 10),
-                            Icon(Icons.arrow_forward),
-                          ],
-                        ),
                       ),
                     ),
                     const SizedBox(height: 10),
                     SizedBox(
                       width: double.infinity,
                       child: OutlinedButton(
-                        onPressed: () =>
-                            Navigator.of(context).pop(false), // declined
+                        onPressed: _accepting
+                            ? null
+                            : () => Navigator.of(context).pop(false),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFFEF4444),
                           side: const BorderSide(color: Color(0xFFEF4444)),
                           minimumSize: const Size.fromHeight(46),
                         ),
                         child: const Text(
-                          'Decline',
+                          'Reject',
                           style: TextStyle(fontWeight: FontWeight.w700),
                         ),
                       ),
@@ -373,46 +467,6 @@ class _OrderRequestScreenState extends State<OrderRequestScreen>
                   ],
                 ),
               ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _MetaChip extends StatelessWidget {
-  const _MetaChip({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-  final IconData icon;
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 16, color: const Color(0xFF16A34A)),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: const TextStyle(color: Color(0xFF64748B), fontSize: 10),
-            ),
-            Text(
-              value,
-              style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13),
             ),
           ],
         ),

@@ -10,6 +10,7 @@ import '../api_service.dart';
 import '../main.dart' show localNotifications, androidChannel;
 import 'navigation_screen.dart';
 import 'order_request_screen.dart';
+import 'parcel_request_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -30,7 +31,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription<RemoteMessage>? _fcmSub;
   final Set<String> _knownIds = {};
   final Set<String> _knownOrderIds = {};
+  final Set<String> _knownParcelIds = {};
   bool _showingOrderRequest = false;
+  bool _showingParcelAlert = false;
+  String? _riderId;
+  String? _riderPhone;
+  double? _lastLat;
+  double? _lastLng;
 
   @override
   void initState() {
@@ -53,6 +60,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final earnings = await _api.getEarnings();
     final deliveries = await _api.getDeliveries();
     final available = await _api.getAvailableOrders();
+    _riderId = profile?['id'] as String?;
+    _riderPhone = profile?['phone'] as String?;
+    // Try to get an initial location fix so we can seed known parcels
+    // (avoids an immediate alert popup for parcels that already existed).
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (serviceEnabled) {
+        var permission = await Geolocator.checkPermission();
+        if (permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.always ||
+            permission == LocationPermission.whileInUse) {
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 10),
+          );
+          _lastLat = pos.latitude;
+          _lastLng = pos.longitude;
+        }
+      }
+    } catch (_) {}
+    final parcels = _lastLat != null
+        ? await _api.getAvailableParcelRequests(_lastLat!, _lastLng!)
+        : <Map<String, dynamic>>[];
     if (mounted) {
       final online = profile?['is_available'] == true;
       setState(() {
@@ -69,6 +101,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         }
         for (final o in available) {
           _knownOrderIds.add((o['id'] ?? '') as String);
+        }
+        for (final p in parcels) {
+          _knownParcelIds.add((p['id'] ?? '') as String);
         }
       });
       if (online) {
@@ -127,7 +162,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Trigger poll on any relevant notification type
       final data = message.data;
       if (data['type'] == 'order_assigned' ||
-          data['type'] == 'order_available') {
+          data['type'] == 'order_available' ||
+          data['type'] == 'parcel_available') {
         _poll();
       }
     });
@@ -177,6 +213,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
+      _lastLat = pos.latitude;
+      _lastLng = pos.longitude;
       await _api.updateRiderLocation(pos.latitude, pos.longitude);
     } catch (_) {}
   }
@@ -226,6 +264,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
         await _showOrderRequest(d);
       }
     }
+
+    if (_isOnline) await _checkParcels();
+  }
+
+  // ── Poll for newly available parcel delivery requests ─────────────────────
+  Future<void> _checkParcels() async {
+    if (_lastLat == null || _lastLng == null) return;
+    final parcels = await _api.getAvailableParcelRequests(_lastLat!, _lastLng!);
+    if (!mounted) return;
+
+    final newParcels = <Map<String, dynamic>>[];
+    for (final p in parcels) {
+      final id = (p['id'] ?? '') as String;
+      if (!_knownParcelIds.contains(id)) newParcels.add(p);
+      _knownParcelIds.add(id);
+    }
+
+    for (final p in newParcels) {
+      if (_showingOrderRequest || _showingParcelAlert || !mounted) break;
+      await _showParcelRequest(p);
+    }
+  }
+
+  Future<void> _showParcelRequest(Map<String, dynamic> parcel) async {
+    _showingParcelAlert = true;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
+        builder: (_) => ParcelRequestScreen(
+          parcel: parcel,
+          riderId: _riderId ?? '',
+          riderName: _riderName,
+          riderPhone: _riderPhone ?? '',
+          riderLat: _lastLat,
+          riderLng: _lastLng,
+        ),
+        fullscreenDialog: true,
+      ),
+    );
+    _showingParcelAlert = false;
   }
 
   Future<void> _showOrderRequest(Map<String, dynamic> delivery) async {

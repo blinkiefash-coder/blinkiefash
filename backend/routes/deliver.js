@@ -1,5 +1,6 @@
 import express from "express";
 import { pool } from "../db.js";
+import { notifyRidersOfNewParcel } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 
@@ -390,7 +391,17 @@ router.post("/request", async (req, res) => {
       ]
     );
 
-    return res.json({ success: true, request: insert.rows[0] });
+    const created = insert.rows[0];
+    notifyRidersOfNewParcel(
+      pool,
+      created.id,
+      Number(pickupLat),
+      Number(pickupLng)
+    ).catch((err) =>
+      console.error("notifyRidersOfNewParcel error", err)
+    );
+
+    return res.json({ success: true, request: created });
   } catch (err) {
     console.error("deliver request error", err);
     return res.status(500).json({ success: false, message: "Server error" });

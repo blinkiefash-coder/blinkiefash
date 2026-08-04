@@ -29,7 +29,9 @@ final FlutterLocalNotificationsPlugin localNotifications =
 Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   final data = message.data;
-  if (data['type'] == 'order_assigned' || data['type'] == 'order_available') {
+  if (data['type'] == 'order_assigned' ||
+      data['type'] == 'order_available' ||
+      data['type'] == 'parcel_available') {
     final notification = message.notification;
     await FlutterLocalNotificationsPlugin().show(
       notification.hashCode,

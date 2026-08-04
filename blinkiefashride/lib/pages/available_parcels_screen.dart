@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 import 'package:geolocator/geolocator.dart';
 import '../api_service.dart';
 
@@ -26,11 +30,47 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
   String? _error;
   String? _acceptingId;
   late Position _currentPosition;
+  Timer? _vibrateTimer;
+  Timer? _alarmStopTimer;
 
   @override
   void initState() {
     super.initState();
+    _startAlert();
     _init();
+  }
+
+  @override
+  void dispose() {
+    _stopAlert();
+    super.dispose();
+  }
+
+  void _startAlert() {
+    try {
+      FlutterRingtonePlayer().playAlarm(
+        volume: 1.0,
+        looping: true,
+        asAlarm: true,
+      );
+    } catch (_) {}
+    HapticFeedback.vibrate();
+    _vibrateTimer = Timer.periodic(
+      const Duration(milliseconds: 800),
+      (_) => HapticFeedback.vibrate(),
+    );
+    // Grab the rider's attention for 15s, then let them browse quietly.
+    _alarmStopTimer = Timer(const Duration(seconds: 15), _stopAlert);
+  }
+
+  void _stopAlert() {
+    try {
+      FlutterRingtonePlayer().stop();
+    } catch (_) {}
+    _vibrateTimer?.cancel();
+    _vibrateTimer = null;
+    _alarmStopTimer?.cancel();
+    _alarmStopTimer = null;
   }
 
   Future<void> _init() async {
@@ -84,6 +124,7 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
 
   Future<void> _acceptParcel(Map<String, dynamic> parcel) async {
     final requestId = parcel['id'] as String;
+    _stopAlert();
 
     setState(() => _acceptingId = requestId);
 
