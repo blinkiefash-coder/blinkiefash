@@ -61,7 +61,11 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen>
 
   void _startAlert() {
     try {
-      FlutterRingtonePlayer().playAlarm(volume: 1.0, looping: true, asAlarm: true);
+      FlutterRingtonePlayer().playAlarm(
+        volume: 1.0,
+        looping: true,
+        asAlarm: true,
+      );
     } catch (_) {}
     HapticFeedback.vibrate();
     _vibrateTimer = Timer.periodic(
