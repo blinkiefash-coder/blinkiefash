@@ -260,7 +260,38 @@ const ensureTables = async () => {
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS who_pays VARCHAR(20) DEFAULT 'sender'`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6)`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_verified BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS last_broadcast_at TIMESTAMPTZ`);
 };
+
+// Re-notify available riders for any parcel still pending/unassigned 2+ minutes
+// after it was created or last broadcast, so it keeps reaching online riders.
+const REBROADCAST_INTERVAL_MS = 60 * 1000;
+const REBROADCAST_AFTER_SQL = "INTERVAL '2 minutes'";
+
+async function rebroadcastStaleParcels() {
+  try {
+    await ensureTables();
+    const { rows } = await pool.query(
+      `SELECT id, pickup_lat, pickup_lng
+       FROM deliver_requests
+       WHERE status = 'pending'
+         AND rider_id IS NULL
+         AND created_at <= NOW() - ${REBROADCAST_AFTER_SQL}
+         AND (last_broadcast_at IS NULL OR last_broadcast_at <= NOW() - ${REBROADCAST_AFTER_SQL})`
+    );
+    for (const r of rows) {
+      await notifyRidersOfNewParcel(pool, r.id, r.pickup_lat, r.pickup_lng);
+      await pool.query(
+        `UPDATE deliver_requests SET last_broadcast_at = NOW() WHERE id = $1`,
+        [r.id]
+      );
+    }
+  } catch (err) {
+    console.error("rebroadcastStaleParcels error", err.message);
+  }
+}
+
+setInterval(rebroadcastStaleParcels, REBROADCAST_INTERVAL_MS);
 
 router.get("/estimate", async (req, res) => {
   try {
@@ -373,9 +404,10 @@ router.post("/request", async (req, res) => {
         distance_km,
         estimated_fare,
         city_zone,
-        status
+        status,
+        last_broadcast_at
       ) VALUES (
-        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending'
+        $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pending',NOW()
       ) RETURNING id, status, distance_km, estimated_fare, city_zone, created_at`,
       [
         userId || null,

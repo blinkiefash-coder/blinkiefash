@@ -184,10 +184,11 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen>
         ? requestId.substring(0, 8).toUpperCase()
         : requestId.toUpperCase();
     final fare = p['estimated_fare'];
-    final distance = p['distance_from_rider_km'] ?? p['distance_km'];
+    final distance =
+        num.tryParse('${p['distance_from_rider_km'] ?? p['distance_km'] ?? ''}');
     final fareStr = fare != null ? '\u20B9$fare' : '\u20B9--';
     final distStr = distance != null
-        ? '${(distance as num).toStringAsFixed(1)} km'
+        ? '${distance.toStringAsFixed(1)} km'
         : '-- km';
     final pickupText = (p['pickup_text'] ?? 'Pickup location') as String;
     final dropText = (p['drop_text'] ?? 'Drop location') as String;

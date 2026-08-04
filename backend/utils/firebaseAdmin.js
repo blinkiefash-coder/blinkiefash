@@ -150,12 +150,12 @@ export async function notifyRidersOfNewParcel(pool, requestId, pickupLat, pickup
          AND r.current_lng IS NOT NULL
          AND (
            6371 * acos(GREATEST(-1.0, LEAST(1.0,
-             cos(radians($2)) * cos(radians(r.current_lat)) *
-             cos(radians(r.current_lng) - radians($3)) +
-             sin(radians($2)) * sin(radians(r.current_lat))
+             cos(radians($1)) * cos(radians(r.current_lat)) *
+             cos(radians(r.current_lng) - radians($2)) +
+             sin(radians($1)) * sin(radians(r.current_lat))
            ))) * 1.6
          ) <= 7`,
-      [requestId, Number(pickupLat), Number(pickupLng)]
+      [Number(pickupLat), Number(pickupLng)]
     );
     await Promise.all(rows.map(r => sendPush(r.fcm_token, {
       title: '📦 New Parcel Available!',

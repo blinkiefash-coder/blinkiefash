@@ -31,7 +31,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
   StreamSubscription<RemoteMessage>? _fcmSub;
   final Set<String> _knownIds = {};
   final Set<String> _knownOrderIds = {};
-  final Set<String> _knownParcelIds = {};
+  final Map<String, DateTime> _parcelLastShown = {};
+  static const _parcelRealertAfter = Duration(minutes: 2);
   bool _showingOrderRequest = false;
   bool _showingParcelAlert = false;
   String? _riderId;
@@ -103,7 +104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           _knownOrderIds.add((o['id'] ?? '') as String);
         }
         for (final p in parcels) {
-          _knownParcelIds.add((p['id'] ?? '') as String);
+          _parcelLastShown[(p['id'] ?? '') as String] = DateTime.now();
         }
       });
       if (online) {
@@ -274,15 +275,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final parcels = await _api.getAvailableParcelRequests(_lastLat!, _lastLng!);
     if (!mounted) return;
 
+    final now = DateTime.now();
     final newParcels = <Map<String, dynamic>>[];
     for (final p in parcels) {
       final id = (p['id'] ?? '') as String;
-      if (!_knownParcelIds.contains(id)) newParcels.add(p);
-      _knownParcelIds.add(id);
+      final lastShown = _parcelLastShown[id];
+      // Re-alert if never shown, or if it's still unaccepted after 2 minutes.
+      if (lastShown == null || now.difference(lastShown) >= _parcelRealertAfter) {
+        newParcels.add(p);
+      }
     }
 
     for (final p in newParcels) {
       if (_showingOrderRequest || _showingParcelAlert || !mounted) break;
+      _parcelLastShown[(p['id'] ?? '') as String] = DateTime.now();
       await _showParcelRequest(p);
     }
   }
