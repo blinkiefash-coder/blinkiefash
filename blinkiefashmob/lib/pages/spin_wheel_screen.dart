@@ -665,8 +665,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                             Padding(
                               padding: const EdgeInsets.only(top: 14),
                               child: Container(
-                                width: 402,
-                                height: 402,
+                                width: 261,
+                                height: 261,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   gradient: RadialGradient(
@@ -688,8 +688,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                               Padding(
                                 padding: const EdgeInsets.only(top: 22),
                                 child: Container(
-                                  width: 376,
-                                  height: 376,
+                                  width: 244,
+                                  height: 244,
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     boxShadow: [
@@ -715,7 +715,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                               child: Transform.rotate(
                                 angle: _spinning ? _angle : _startAngle,
                                 child: CustomPaint(
-                                  size: const Size(350, 350),
+                                  size: const Size(227, 227),
                                   painter: _WheelPainter(_carUnlocked),
                                 ),
                               ),
@@ -723,8 +723,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                             Padding(
                               padding: const EdgeInsets.only(top: 22),
                               child: Container(
-                                width: 64,
-                                height: 64,
+                                width: 42,
+                                height: 42,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
@@ -753,7 +753,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                 child: const Icon(
                                   Icons.auto_awesome,
                                   color: Color(0xFF16A34A),
-                                  size: 32,
+                                  size: 21,
                                 ),
                               ),
                             ),
@@ -763,7 +763,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                 angle: _pointerTiltAnim.value,
                                 alignment: Alignment.topCenter,
                                 child: CustomPaint(
-                                  size: const Size(36, 48),
+                                  size: const Size(23, 31),
                                   painter: _PointerPainter(),
                                 ),
                               ),
@@ -774,8 +774,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                 child: Padding(
                                   padding: const EdgeInsets.only(top: 8),
                                   child: SizedBox(
-                                    width: 420,
-                                    height: 420,
+                                    width: 273,
+                                    height: 273,
                                     child: CustomPaint(
                                       painter: _ConfettiPainter(
                                         progress: _confettiCtrl.value,
