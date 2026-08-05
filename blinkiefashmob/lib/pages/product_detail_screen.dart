@@ -1643,10 +1643,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 .toList(),
           );
 
-          final effectiveSize =
-              (_selectedSize != null && sizeOptions.contains(_selectedSize))
-              ? _selectedSize
-              : null;
+          // Auto-select first available size if none is selected
+          final effectiveSize = _selectedSize ?? (sizeOptions.isNotEmpty ? sizeOptions.first : null);
+
+          // If size was auto-selected, update the state
+          if (_selectedSize == null && effectiveSize != null) {
+            _selectedSize = effectiveSize;
+          }
 
           Map<String, dynamic>? selectedVariant;
           for (final v in variantMaps) {
