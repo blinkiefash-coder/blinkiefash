@@ -3088,7 +3088,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -3123,6 +3123,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                             ],
                           ),
+                          const SizedBox(height: 6),
                           Row(
                             children: [
                               Text(
