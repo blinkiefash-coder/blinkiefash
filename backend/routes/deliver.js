@@ -661,7 +661,8 @@ router.get("/request/:id", async (req, res) => {
       `SELECT id, user_id, pickup_text, drop_text, pickup_lat, pickup_lng, 
               drop_lat, drop_lng, distance_km, estimated_fare, city_zone, status, 
               created_at, accepted_at, completed_at, rider_id, receiver_name, 
-              receiver_phone, note, who_pays
+              receiver_phone, note, who_pays, rider_lat, rider_lng, otp_code, 
+              otp_verified, delivery_photo_url
        FROM deliver_requests
        WHERE id = $1`,
       [id]
@@ -681,11 +682,13 @@ router.get("/request/:id", async (req, res) => {
         );
         if (riderRows.length > 0) {
           rider = riderRows[0];
+          parcel.rider_name = rider.name;
+          parcel.rider_phone = rider.phone;
         }
       } catch (_) {}
     }
     
-    return res.json({ success: true, parcel: { ...parcel, rider } });
+    return res.json({ success: true, parcel });
   } catch (err) {
     console.error("deliver request detail error", err.message);
     return res.status(500).json({ success: false, message: "Server error" });

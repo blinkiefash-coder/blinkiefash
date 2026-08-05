@@ -57,34 +57,68 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
           .timeout(const Duration(seconds: 10));
       if (!mounted) return;
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      if (body['success'] == true) {
-        final req = body['request'] as Map<String, dynamic>;
+
+      // Check if response is successful
+      if (body['success'] != true) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = body['message'] ?? 'Failed to load parcel details';
+          });
+        }
+        return;
+      }
+
+      // Extract parcel data - try 'parcel' key first, then 'request'
+      dynamic req = body['parcel'];
+      if (req == null) {
+        req = body['request'];
+      }
+
+      if (req == null || req is! Map<String, dynamic>) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Parcel data not found in response';
+          });
+        }
+        return;
+      }
+
+      if (mounted) {
         setState(() {
           _data = req;
           _loading = false;
           _error = null;
         });
-        // Pan map to rider if location available
-        final rLat = req['rider_lat'];
-        final rLng = req['rider_lng'];
-        if (rLat != null && rLng != null) {
-          try {
-            _mapCtrl.move(
-              LatLng(
-                double.parse(rLat.toString()),
-                double.parse(rLng.toString()),
-              ),
-              14,
-            );
-          } catch (_) {}
-        }
-        // Stop polling when delivered
-        if (req['status'] == 'completed' || req['status'] == 'delivered') {
-          _timer?.cancel();
-        }
       }
-    } catch (_) {
-      if (mounted && _loading) setState(() => _error = 'Network error');
+
+      // Pan map to rider if location available
+      final rLat = req['rider_lat'];
+      final rLng = req['rider_lng'];
+      if (rLat != null && rLng != null) {
+        try {
+          _mapCtrl.move(
+            LatLng(
+              double.parse(rLat.toString()),
+              double.parse(rLng.toString()),
+            ),
+            14,
+          );
+        } catch (_) {}
+      }
+
+      // Stop polling when delivered
+      if (req['status'] == 'completed' || req['status'] == 'delivered') {
+        _timer?.cancel();
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _loading = false;
+          _error = 'Error: ${e.toString().substring(0, 60)}';
+        });
+      }
     }
   }
 
@@ -178,6 +212,11 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
         ? double.tryParse(_data!['drop_lng']?.toString() ?? '')
         : null;
 
+    // Use API data for location and fare (prefer over constructor params)
+    final pickupText = (_data?['pickup_text'] ?? widget.pickupText).toString();
+    final dropText = (_data?['drop_text'] ?? widget.dropText).toString();
+    final fare = _data?['estimated_fare'] ?? widget.estimatedFare;
+
     final mapCenter = hasRiderLocation
         ? LatLng(riderLat, riderLng)
         : (pickupLat != null && pickupLng != null
@@ -197,6 +236,39 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
           foregroundColor: const Color(0xFF0F172A),
           elevation: 0,
           automaticallyImplyLeading: isDone,
+          actions: [
+            if (!isDone)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: Center(
+                  child: _cancelling
+                      ? const Padding(
+                          padding: EdgeInsets.all(12),
+                          child: SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation(
+                                Color(0xFFEF4444),
+                              ),
+                            ),
+                          ),
+                        )
+                      : TextButton(
+                          onPressed: _cancelRequest,
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Color(0xFFEF4444),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+          ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
             child: Container(color: const Color(0xFFE2E8F0), height: 1),
@@ -324,15 +396,13 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                   // ── Bottom info card ─────────────────────────────
                   _BottomCard(
                     data: _data!,
-                    pickupText: widget.pickupText,
-                    dropText: widget.dropText,
-                    fare: widget.estimatedFare,
+                    pickupText: pickupText,
+                    dropText: dropText,
+                    fare: fare,
                     isAssigned: isAssigned,
                     isDone: isDone,
                     onBookAnother: () =>
                         Navigator.of(context).popUntil((r) => r.isFirst),
-                    onCancel: isDone ? null : _cancelRequest,
-                    cancelling: _cancelling,
                   ),
                 ],
               ),
@@ -421,8 +491,6 @@ class _BottomCard extends StatelessWidget {
   final bool isAssigned;
   final bool isDone;
   final VoidCallback onBookAnother;
-  final VoidCallback? onCancel;
-  final bool cancelling;
 
   const _BottomCard({
     required this.data,
@@ -432,8 +500,6 @@ class _BottomCard extends StatelessWidget {
     required this.isAssigned,
     required this.isDone,
     required this.onBookAnother,
-    this.onCancel,
-    this.cancelling = false,
   });
 
   int _calculateExpectedMinutes() {
@@ -705,7 +771,7 @@ class _BottomCard extends StatelessWidget {
             ),
           ],
 
-          // Expected time + Cancel button
+          // Expected time
           if (!isDone) ...[
             const SizedBox(height: 14),
             Container(
@@ -715,44 +781,21 @@ class _BottomCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.schedule_rounded,
-                        color: Color(0xFFEA580C),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        timerLabel,
-                        style: const TextStyle(
-                          color: Color(0xFFEA580C),
-                          fontWeight: FontWeight.w600,
-                          fontSize: 13,
-                        ),
-                      ),
-                    ],
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: Color(0xFFEA580C),
+                    size: 20,
                   ),
-                  if (cancelling)
-                    const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    TextButton(
-                      onPressed: onCancel,
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Color(0xFFEF4444),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                  const SizedBox(width: 8),
+                  Text(
+                    timerLabel,
+                    style: const TextStyle(
+                      color: Color(0xFFEA580C),
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
                     ),
+                  ),
                 ],
               ),
             ),

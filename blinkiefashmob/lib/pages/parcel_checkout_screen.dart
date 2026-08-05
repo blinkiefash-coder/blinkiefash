@@ -142,7 +142,7 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
       if (!mounted) return;
       if (res['success'] == true) {
         // Return parcel ID so customer app can navigate to tracking
-        final parcelId = res['parcel']?['id'] as String?;
+        final parcelId = res['request']?['id'] as String?;
         Navigator.of(
           context,
         ).pop(parcelId); // Return parcel ID instead of just true
