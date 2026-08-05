@@ -350,6 +350,7 @@ router.get("/:id/orders", async (req, res) => {
        LEFT JOIN users u ON u.id = o.user_id
        WHERE p.vendor_id::text = ANY($1::text[])
          AND o.dark_store_id = $2
+         AND o.status IN ('delivered', 'completed')
        GROUP BY o.id, u.name, u.phone
        ORDER BY o.created_at DESC`,
       [ownerIds, linkedStoreId]

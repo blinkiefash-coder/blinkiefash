@@ -281,7 +281,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final id = (p['id'] ?? '') as String;
       final lastShown = _parcelLastShown[id];
       // Re-alert if never shown, or if it's still unaccepted after 2 minutes.
-      if (lastShown == null || now.difference(lastShown) >= _parcelRealertAfter) {
+      if (lastShown == null ||
+          now.difference(lastShown) >= _parcelRealertAfter) {
         newParcels.add(p);
       }
     }

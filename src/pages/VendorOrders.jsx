@@ -220,7 +220,9 @@ export default function VendorOrders() {
   const newCount = orders.filter((o) => o.status === "placed").length;
   const inProgressCount = orders.filter((o) => ["confirmed", "packed", "out_for_delivery"].includes(o.status)).length;
   const deliveredCount = orders.filter((o) => o.status === "delivered").length;
-  const totalRevenue = orders.reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0);
+  const totalRevenue = orders
+    .filter((o) => ["delivered", "completed"].includes(o.status))
+    .reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0);
   const metrics = [
     { label: "New orders", value: newCount, tone: "accent" },
     { label: "In progress", value: inProgressCount, tone: "blue" },

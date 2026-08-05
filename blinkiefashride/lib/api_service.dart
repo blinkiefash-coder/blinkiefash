@@ -432,6 +432,26 @@ class ApiService {
     }
   }
 
+  // ── Get detailed parcel information ────────────────────────────────────────
+  Future<Map<String, dynamic>?> getParcelDetails(String requestId) async {
+    try {
+      final res = await http.get(
+        Uri.parse(
+          'https://blinkiefash.onrender.com/api/deliver/request/$requestId',
+        ),
+      );
+      if (res.statusCode == 200) {
+        final body = jsonDecode(res.body) as Map<String, dynamic>;
+        if (body['success'] == true) {
+          return body['parcel'] as Map<String, dynamic>;
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Submit OTP entered by rider; returns {success, is_try_order}
   Future<Map<String, dynamic>> verifyOtp(String deliveryId, String otp) async {
     try {

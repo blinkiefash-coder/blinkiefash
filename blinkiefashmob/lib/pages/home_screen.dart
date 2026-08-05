@@ -6536,9 +6536,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _pickDeliverLocationFromMap({required bool pickup}) async {
     final picked = await Navigator.of(context).push<PickedAddress>(
-      MaterialPageRoute(
-        builder: (_) => const LocationPickerScreen(skipAddressForm: true),
-      ),
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
     );
     if (!mounted || picked == null) return;
 

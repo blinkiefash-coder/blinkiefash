@@ -78,7 +78,7 @@ router.get("/orders", adminGuard, async (req, res) => {
     const { status, limit = 200, from, to } = req.query;
     const values = [];
     let idx = 1;
-    let whereClause = "WHERE 1=1";
+    let whereClause = "WHERE o.status != 'cancelled'";
 
     if (status) {
       whereClause += ` AND o.status = $${idx++}`;

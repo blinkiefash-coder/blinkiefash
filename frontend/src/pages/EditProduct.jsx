@@ -146,6 +146,17 @@ export default function EditProduct() {
     (p.variants || []).some((v) => (v.barcode?.toLowerCase() || "").includes(searchTerm.toLowerCase()))
   );
 
+  const getUniqueBarcodeCount = () => {
+    const barcodes = new Set();
+    filtered.forEach((p) => {
+      (p.variants || []).forEach((v) => {
+        const barcode = v.barcode?.trim();
+        if (barcode) barcodes.add(barcode);
+      });
+    });
+    return barcodes.size;
+  };
+
   const getVendorIdForProduct = (productId) => {
     if (!adminMode || selectedAdminVendorId !== "all") return adminMode ? selectedAdminVendorId : vendorId;
     const p = products.find(x => x.id === productId);
@@ -286,7 +297,7 @@ export default function EditProduct() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
-          <span className="ep-count">{filtered.length} product{filtered.length !== 1 ? "s" : ""}</span>
+          <span className="ep-count">{getUniqueBarcodeCount()} barcode{getUniqueBarcodeCount() !== 1 ? "s" : ""}</span>
           {!loading && filtered.length > 0 && (
             <button
               className="ep-save-all-btn"

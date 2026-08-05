@@ -1,6 +1,6 @@
 import express from "express";
 import { pool } from "../db.js";
-import { notifyAvailableRiders, notifyCustomerOfStatus } from "../utils/firebaseAdmin.js";
+import { notifyAvailableRiders, notifyCustomerOfStatus, notifyVendorOfNewOrder } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
 
@@ -487,8 +487,9 @@ router.post("/orders", async (req, res) => {
     }
 
     await client.query("COMMIT");
-    // Push "order placed" to the customer (best-effort)
+    // Push "order placed" to the customer and vendor (best-effort)
     notifyCustomerOfStatus(pool, order.id, 'placed').catch(() => {});
+    notifyVendorOfNewOrder(pool, order.id).catch(() => {});
     res.json({
       success: true,
       orderId: order.id,
@@ -657,7 +658,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
       LEFT JOIN deliveries d  ON d.order_id = o.id AND d.is_active = TRUE
       LEFT JOIN "Riders" r     ON r.id = d.rider_id
       LEFT JOIN users ru      ON ru.id = r.user_id
-      WHERE o.dark_store_id = $1
+      WHERE o.dark_store_id = $1 AND o.status IN ('delivered', 'completed')
     `;
     const values = [storeId];
     if (status) {
@@ -766,6 +767,20 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     }
 
     await client.query("COMMIT");
+
+    // ── IMPORTANT: When order is cancelled, also cancel associated delivery requests ──
+    if (status === 'cancelled') {
+      try {
+        await pool.query(
+          `UPDATE deliver_requests SET status = 'cancelled' 
+           WHERE order_id = $1 AND status NOT IN ('completed', 'delivered', 'cancelled')`,
+          [orderId]
+        );
+      } catch (err) {
+        // If deliver_requests doesn't have order_id column, silently continue
+        console.warn("Could not cancel delivery requests for order (order_id column may not exist):", err.message);
+      }
+    }
 
     // Notify available riders when order becomes confirmed
     if (status === 'confirmed') {
