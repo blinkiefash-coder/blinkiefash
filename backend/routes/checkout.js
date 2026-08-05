@@ -184,8 +184,9 @@ function calculateDeliveryInfo(distanceKm, city) {
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
     
     if (isOperatingHours) {
-      // Dynamic ETA: ~2.5 minutes per km, rounded
-      const estimatedMinutes = Math.ceil(distanceKm * 2.5);
+      // Dynamic ETA: ~2.5 minutes per km + 10 min for accepting + 5 min for rider assignment
+      const distanceMinutes = Math.ceil(distanceKm * 2.5);
+      const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
       result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
       result.etaMinutes = estimatedMinutes;
       result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8));
@@ -207,8 +208,9 @@ function calculateDeliveryInfo(distanceKm, city) {
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
     
     if (isOperatingHours) {
-      // Dynamic ETA: ~3 minutes per km for extended range
-      const estimatedMinutes = Math.ceil(distanceKm * 3);
+      // Dynamic ETA: ~3 minutes per km + 10 min for accepting + 5 min for rider assignment
+      const distanceMinutes = Math.ceil(distanceKm * 3);
+      const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
       result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
       result.etaMinutes = estimatedMinutes;
       result.etaMinMinutes = Math.max(30, Math.ceil(estimatedMinutes * 0.8));
