@@ -550,9 +550,16 @@ exports.getDeliveryDetail = async (req, res) => {
               o.id AS order_id, o.status AS order_status,
               o.delivery_otp, o.otp_verified_at,
               o.is_try_order, o.try_buy_mode,
-              o.try_buy_started_at, o.try_buy_deadline, o.try_buy_decision
+              o.try_buy_started_at, o.try_buy_deadline, o.try_buy_decision,
+              o.created_at AS started_at, o.confirmed_at,
+              o.total_amount, o.final_amount,
+              a.lat AS drop_lat, a.lng AS drop_lng,
+              a.address_line, a.city, a.pincode,
+              u.name AS customer_name, u.phone AS customer_phone
        FROM deliveries d
        JOIN orders o ON o.id = d.order_id
+       LEFT JOIN addresses a ON a.id = o.address_id
+       LEFT JOIN users u ON u.id = o.user_id
        WHERE d.id = :id`,
       { replacements: { id }, type: QueryTypes.SELECT }
     );
