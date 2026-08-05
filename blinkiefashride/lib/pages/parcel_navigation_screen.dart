@@ -309,7 +309,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [_blue.withValues(alpha: 0.95), _blue.withValues(alpha: 0.85)],
+                    colors: [
+                      _blue.withValues(alpha: 0.95),
+                      _blue.withValues(alpha: 0.85),
+                    ],
                   ),
                   borderRadius: BorderRadius.circular(18),
                   boxShadow: [
@@ -373,7 +376,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                       _orange.withValues(alpha: 0.1),
                     ],
                   ),
-                  border: Border.all(color: _green.withValues(alpha: 0.3), width: 1.5),
+                  border: Border.all(
+                    color: _green.withValues(alpha: 0.3),
+                    width: 1.5,
+                  ),
                   borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
@@ -387,9 +393,16 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           decoration: BoxDecoration(
                             color: _green.withValues(alpha: 0.2),
                             shape: BoxShape.circle,
-                            border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                            border: Border.all(
+                              color: _green.withValues(alpha: 0.4),
+                              width: 2,
+                            ),
                           ),
-                          child: const Icon(Icons.person_rounded, color: _green, size: 28),
+                          child: const Icon(
+                            Icons.person_rounded,
+                            color: _green,
+                            size: 28,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -435,7 +448,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     if (_receiverPhone.isNotEmpty) ...[
                       const SizedBox(height: 12),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.6),
                           borderRadius: BorderRadius.circular(12),
@@ -443,7 +459,11 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.phone_rounded, color: _green, size: 14),
+                            const Icon(
+                              Icons.phone_rounded,
+                              color: _green,
+                              size: 14,
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               _receiverPhone,
@@ -485,7 +505,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         _blue.withValues(alpha: 0.05),
                       ],
                     ),
-                    border: Border.all(color: _blue.withValues(alpha: 0.3), width: 1.5),
+                    border: Border.all(
+                      color: _blue.withValues(alpha: 0.3),
+                      width: 1.5,
+                    ),
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
@@ -558,7 +581,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           _orange.withValues(alpha: 0.05),
                         ],
                       ),
-                      border: Border.all(color: _orange.withValues(alpha: 0.3), width: 1.5),
+                      border: Border.all(
+                        color: _orange.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
@@ -594,7 +620,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           _green.withValues(alpha: 0.05),
                         ],
                       ),
-                      border: Border.all(color: _green.withValues(alpha: 0.3), width: 1.5),
+                      border: Border.all(
+                        color: _green.withValues(alpha: 0.3),
+                        width: 1.5,
+                      ),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Row(
@@ -623,7 +652,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.camera_alt_rounded),
@@ -694,11 +725,17 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     fillColor: Colors.white,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE2E8F0),
+                        width: 2,
+                      ),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: _blue.withValues(alpha: 0.3), width: 2),
+                      borderSide: BorderSide(
+                        color: _blue.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
@@ -755,7 +792,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         _green.withValues(alpha: 0.08),
                       ],
                     ),
-                    border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                    border: Border.all(
+                      color: _green.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(
@@ -812,7 +852,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
                             ),
                           )
                         : const Icon(Icons.check_circle_outline_rounded),
@@ -838,7 +880,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         _green.withValues(alpha: 0.08),
                       ],
                     ),
-                    border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                    border: Border.all(
+                      color: _green.withValues(alpha: 0.4),
+                      width: 2,
+                    ),
                     borderRadius: BorderRadius.circular(18),
                   ),
                   child: Column(

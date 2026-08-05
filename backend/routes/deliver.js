@@ -540,24 +540,45 @@ router.patch("/vendor/:vendorId/requests/:id", async (req, res) => {
   }
 });
 
-// ── GET /api/deliver/request/:id — customer polls for tracking status ──────────
+// ── GET /api/deliver/request/:id — customer polls for tracking status / rider gets details ──────────
 router.get("/request/:id", async (req, res) => {
   try {
+    await ensureTables();
     const { id } = req.params;
     const { rows } = await pool.query(
-      `SELECT id, status, pickup_text, drop_text, pickup_lat, pickup_lng,
-              drop_lat, drop_lng, distance_km, estimated_fare, city_zone,
-              created_at, accepted_at, completed_at,
-              rider_id, rider_name, rider_phone, rider_lat, rider_lng,
-              receiver_name, receiver_phone, note, who_pays,
-              otp_code, otp_verified
-       FROM deliver_requests WHERE id = $1 LIMIT 1`,
+      `SELECT id, user_id, pickup_text, drop_text, pickup_lat, pickup_lng, 
+              drop_lat, drop_lng, distance_km, estimated_fare, city_zone, status, 
+              created_at, accepted_at, completed_at, rider_id, receiver_name, 
+              receiver_phone, note, who_pays, rider_lat, rider_lng, otp_code, 
+              otp_verified, delivery_photo_url
+       FROM deliver_requests
+       WHERE id = $1`,
       [id]
     );
-    if (!rows.length) return res.status(404).json({ success: false, message: "Not found" });
-    return res.json({ success: true, request: rows[0] });
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: "Parcel not found" });
+    }
+    const parcel = rows[0];
+    
+    // If rider is assigned, get rider details
+    let rider = null;
+    if (parcel.rider_id) {
+      try {
+        const { rows: riderRows } = await pool.query(
+          `SELECT id, name, phone FROM users WHERE id = $1`,
+          [parcel.rider_id]
+        );
+        if (riderRows.length > 0) {
+          rider = riderRows[0];
+          parcel.rider_name = rider.name;
+          parcel.rider_phone = rider.phone;
+        }
+      } catch (_) {}
+    }
+    
+    return res.json({ success: true, parcel });
   } catch (err) {
-    console.error("deliver get request error", err.message);
+    console.error("deliver request detail error", err.message);
     return res.status(500).json({ success: false, message: "Server error" });
   }
 });

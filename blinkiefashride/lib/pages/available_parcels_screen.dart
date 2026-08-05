@@ -430,6 +430,20 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
     }
   }
 
+  String _formatDistance(dynamic distance) {
+    if (distance == null) return 'N/A';
+    if (distance is String) {
+      final parsed = double.tryParse(distance);
+      if (parsed == null || parsed == 0) return 'N/A';
+      return parsed.toStringAsFixed(1);
+    }
+    if (distance is num) {
+      if (distance == 0) return 'N/A';
+      return distance.toStringAsFixed(1);
+    }
+    return 'N/A';
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -549,7 +563,7 @@ class _AvailableParcelsScreenState extends State<AvailableParcelsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Distance: ${parcel['distance_km'] ?? 'N/A'} km',
+                                      'Distance: ${_formatDistance(parcel['distance_from_rider_km'] ?? parcel['distance_km'])} km',
                                       style: const TextStyle(
                                         fontSize: 12,
                                         color: Color(0xFF64748B),
