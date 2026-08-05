@@ -696,67 +696,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return DateTime.tryParse(raw)?.toLocal();
   }
 
-  String? _scheduledSlotLabel(Map<String, dynamic> order) {
-    final raw = order['scheduled_slot_label']?.toString();
-    if (raw == null || raw.trim().isEmpty) return null;
-    return raw.trim();
-  }
-
   bool _isScheduled(Map<String, dynamic> order) {
     final type = order['delivery_schedule_type']?.toString() ?? 'asap';
     return type == 'scheduled';
-  }
-
-  String _scheduledEtaText(Map<String, dynamic> order) {
-    final slotLabel = _scheduledSlotLabel(order);
-    final scheduledAt = _scheduledFor(order);
-    if (slotLabel != null) {
-      if (scheduledAt != null) {
-        final now = DateTime.now();
-        final tomorrow = DateTime(now.year, now.month, now.day + 1);
-        if (scheduledAt.year == tomorrow.year &&
-            scheduledAt.month == tomorrow.month &&
-            scheduledAt.day == tomorrow.day) {
-          return 'Tomorrow at $slotLabel';
-        }
-      }
-      return 'Scheduled at $slotLabel';
-    }
-    if (scheduledAt != null) return _formatScheduledLabel(scheduledAt);
-    return 'Scheduled Delivery';
-  }
-
-  String _formatTime(DateTime dt) {
-    final hour12 = dt.hour % 12 == 0 ? 12 : dt.hour % 12;
-    final minute = dt.minute.toString().padLeft(2, '0');
-    final period = dt.hour < 12 ? 'AM' : 'PM';
-    return '$hour12:$minute $period';
-  }
-
-  String _formatScheduledLabel(DateTime dt) {
-    final now = DateTime.now();
-    final tomorrow = DateTime(now.year, now.month, now.day + 1);
-    final slot = _formatTime(dt);
-    if (dt.year == tomorrow.year &&
-        dt.month == tomorrow.month &&
-        dt.day == tomorrow.day) {
-      return 'Tomorrow at $slot';
-    }
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
-    return '${dt.day} ${months[dt.month - 1]} at $slot';
   }
 
   String? _resolveImageUrl(dynamic raw) {
