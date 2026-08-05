@@ -6,7 +6,6 @@ import 'login_screen.dart';
 import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
 import '../widgets/bf_loader.dart';
-import '../widgets/store_closed_banner.dart';
 
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({
@@ -94,9 +93,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    if (isStoreClosed()) {
-      _deliverTomorrow = true;
-    }
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _startCheckoutFlow();
     });
@@ -754,8 +750,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const StoreClosedBanner(),
-          if (isStoreClosed()) const SizedBox(height: 12),
           if (_error != null)
             Container(
               margin: const EdgeInsets.only(bottom: 12),
@@ -875,7 +869,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   title: _todayDeliveryLabel(),
                   subtitle: _todayDeliverySubtitle(),
                   selected: !_deliverTomorrow,
-                  enabled: !isStoreClosed(),
+                  enabled: true,
                   onTap: () => setState(() => _deliverTomorrow = false),
                 ),
                 const Divider(height: 8),
@@ -919,18 +913,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     },
                   ),
                 ],
-                if (isStoreClosed())
-                  const Padding(
-                    padding: EdgeInsets.only(top: 10),
-                    child: Text(
-                      'Store is closed right now. Please schedule tomorrow delivery.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Color(0xFF9C6500),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
               ],
             ),
           ),
@@ -1826,29 +1808,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (isStoreClosed())
-                Container(
-                  width: double.infinity,
-                  margin: const EdgeInsets.only(bottom: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFFF8E1),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFFFFCC02)),
-                  ),
-                  child: const Text(
-                    '🕘 Store closed — choose tomorrow delivery between 7:30 AM and 9:00 PM',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF7C4F00),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
               FilledButton(
                 style: FilledButton.styleFrom(
                   backgroundColor: const Color(0xFF16A34A),

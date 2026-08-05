@@ -9,7 +9,6 @@ import '../services/wishlist_manager.dart';
 import 'cart_screen.dart';
 import 'product_detail_screen.dart';
 import '../widgets/bf_loader.dart';
-import '../widgets/store_closed_banner.dart';
 
 class AllProductsScreen extends StatefulWidget {
   final String? categoryId;
@@ -608,7 +607,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       appBar: _buildAppBar(title),
       body: Column(
         children: [
-          const StoreClosedBanner(),
           _searchBar(),
           if (_showSuggestions)
             Expanded(child: _suggestionsDropdown())

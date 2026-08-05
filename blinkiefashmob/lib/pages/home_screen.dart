@@ -36,7 +36,6 @@ import 'spin_wheel_screen.dart';
 import 'fashion_quest_screen.dart';
 import '../widgets/animated_search_bar.dart';
 import '../widgets/bf_loader.dart';
-import '../widgets/store_closed_banner.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -1281,7 +1280,6 @@ class _HomeScreenState extends State<HomeScreen>
       child: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const StoreClosedBanner(),
           if (_outOfServiceArea) ...[
             _serviceAreaGate(),
           ] else ...[
