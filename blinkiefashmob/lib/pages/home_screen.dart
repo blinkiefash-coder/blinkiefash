@@ -1628,7 +1628,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 150,
+                      height: 145,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -1639,7 +1639,7 @@ class _HomeScreenState extends State<HomeScreen>
                           height: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                                height: 160,
+                                height: 155,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
@@ -1686,7 +1686,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 150,
+                      height: 145,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -1697,7 +1697,7 @@ class _HomeScreenState extends State<HomeScreen>
                           height: double.infinity,
                           errorBuilder: (context, error, stackTrace) =>
                               Container(
-                                height: 160,
+                                height: 155,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
                                     colors: [
