@@ -1639,7 +1639,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 145,
+                      height: 140,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
@@ -1697,7 +1697,7 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                     child: SizedBox(
-                      height: 145,
+                      height: 140,
                       child: ClipRRect(
                         borderRadius: BorderRadius.circular(12),
                         child: Image.asset(
