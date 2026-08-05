@@ -739,7 +739,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
       LEFT JOIN deliveries d  ON d.order_id = o.id AND d.is_active = TRUE
       LEFT JOIN "Riders" r     ON r.id = d.rider_id
       LEFT JOIN users ru      ON ru.id = r.user_id
-      WHERE o.dark_store_id = $1 AND o.status IN ('delivered', 'completed')
+      WHERE o.dark_store_id = $1
     `;
     const values = [storeId];
     if (status) {

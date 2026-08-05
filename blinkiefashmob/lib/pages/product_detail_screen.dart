@@ -89,9 +89,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     _detailFuture.then((d) {
       if (mounted) {
         // Auto-select first in-stock size BEFORE setState so it's available for first render
-        if (_selectedSize == null) {
-          _selectedSize = _findFirstAvailableSize(d);
-        }
+        _selectedSize ??= _findFirstAvailableSize(d);
         setState(() => _loadedData = d);
         _loadSimilarProducts(d);
       }

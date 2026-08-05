@@ -855,7 +855,7 @@ class _HomeScreenState extends State<HomeScreen>
     Map<String, dynamic>? inStockVariant;
     for (final v in variants) {
       if (v is! Map) continue;
-      final variantMap = Map<String, dynamic>.from(v as Map);
+      final variantMap = Map<String, dynamic>.from(v);
       final stock =
           int.tryParse(variantMap['available_stock']?.toString() ?? '0') ?? 0;
       if (stock > 0) {
