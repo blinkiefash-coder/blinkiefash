@@ -560,10 +560,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     // Auto-schedule if delivery type is next-day scheduled (after 21:00, ≤45km)
     bool isScheduled = _deliverTomorrow;
-    if (_deliveryType == 'nextday_scheduled_local' || _deliveryType == 'nextday_scheduled_extended') {
+    if (_deliveryType == 'nextday_scheduled_local' ||
+        _deliveryType == 'nextday_scheduled_extended') {
       isScheduled = true;
     }
-    
+
     final scheduledAt = isScheduled ? _selectedTomorrowDateTime() : null;
     final slotList = _getSlotList();
     final scheduledLabel = isScheduled
