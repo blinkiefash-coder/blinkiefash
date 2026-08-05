@@ -114,7 +114,8 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
       if (details != null) {
         setState(() {
           _receiverName = details['receiver_name'] as String? ?? _receiverName;
-          _receiverPhone = details['receiver_phone'] as String? ?? _receiverPhone;
+          _receiverPhone =
+              details['receiver_phone'] as String? ?? _receiverPhone;
           _pickupText = details['pickup_text'] as String? ?? _pickupText;
           _dropText = details['drop_text'] as String? ?? _dropText;
           _dropLat = _parseCoordinate(details['drop_lat'] ?? _dropLat);
@@ -521,17 +522,14 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
               ),
               const SizedBox(height: 24),
 
-                const SizedBox(height: 24),
+              const SizedBox(height: 24),
 
               // ── Sender/Pickup Details ──
               Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                    width: 1,
-                  ),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -589,10 +587,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF8FAFC),
-                  border: Border.all(
-                    color: const Color(0xFFE2E8F0),
-                    width: 1,
-                  ),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
