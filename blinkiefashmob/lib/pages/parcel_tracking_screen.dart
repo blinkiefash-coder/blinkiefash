@@ -27,6 +27,9 @@ class ParcelTrackingScreen extends StatefulWidget {
 
 class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
   static const _green = Color(0xFF16A34A);
+  static const _orange = Color(0xFFEA580C);
+  static const _blue = Color(0xFF0284C7);
+  static const _red = Color(0xFFEF4444);
   static const _pollInterval = Duration(seconds: 8);
 
   Timer? _timer;
@@ -233,8 +236,12 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           title: const Text(
-            'Parcel Tracking',
-            style: TextStyle(fontWeight: FontWeight.w700),
+            'Live Tracking',
+            style: TextStyle(
+              fontWeight: FontWeight.w800,
+              fontSize: 18,
+              letterSpacing: -0.5,
+            ),
           ),
           backgroundColor: Colors.white,
           foregroundColor: const Color(0xFF0F172A),
@@ -243,30 +250,39 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
           actions: [
             if (!isDone)
               Padding(
-                padding: const EdgeInsets.only(right: 8),
+                padding: const EdgeInsets.only(right: 12),
                 child: Center(
                   child: _cancelling
                       ? const Padding(
-                          padding: EdgeInsets.all(12),
+                          padding: EdgeInsets.all(8),
                           child: SizedBox(
-                            width: 24,
-                            height: 24,
+                            width: 28,
+                            height: 28,
                             child: CircularProgressIndicator(
                               strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation(
-                                Color(0xFFEF4444),
-                              ),
+                              valueColor: AlwaysStoppedAnimation<Color>(_red),
                             ),
                           ),
                         )
-                      : TextButton(
-                          onPressed: _cancelRequest,
-                          child: const Text(
-                            'Cancel',
-                            style: TextStyle(
-                              color: Color(0xFFEF4444),
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                      : Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: _cancelRequest,
+                            borderRadius: BorderRadius.circular(20),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              child: Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  color: _red,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
                             ),
                           ),
                         ),
@@ -275,7 +291,10 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(color: const Color(0xFFE2E8F0), height: 1),
+            child: Container(
+              color: const Color(0xFFE2E8F0),
+              height: 1,
+            ),
           ),
         ),
         body: _loading
@@ -429,56 +448,84 @@ class _StatusBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final Color bg;
-    final Color fg;
+    final Color bgColor;
+    final Color accentColor;
     final IconData icon;
     final String label;
 
     if (isDone || status == 'completed') {
-      bg = const Color(0xFFF0FDF4);
-      fg = const Color(0xFF16A34A);
+      bgColor = const Color(0xFFF0FDF4);
+      accentColor = const Color(0xFF16A34A);
       icon = Icons.check_circle_rounded;
-      label = 'Parcel Delivered! 🎉';
+      label = 'Delivered Successfully! 🎉';
     } else if (status == 'arrived') {
-      bg = const Color(0xFFE0F2FE);
-      fg = const Color(0xFF0284C7);
+      bgColor = const Color(0xFFE0F2FE);
+      accentColor = const Color(0xFF0284C7);
       icon = Icons.location_on_rounded;
-      label = 'Rider has arrived at your location';
+      label = 'Rider arrived at your location';
     } else if (status == 'accepted' || isAssigned) {
-      bg = const Color(0xFFFFF7ED);
-      fg = const Color(0xFFEA580C);
+      bgColor = const Color(0xFFFFF7ED);
+      accentColor = const Color(0xFFEA580C);
       icon = Icons.delivery_dining_rounded;
-      label = 'Rider is on the way to you…';
+      label = 'Rider is heading to you…';
     } else {
-      bg = const Color(0xFFF0F9FF);
-      fg = const Color(0xFF0284C7);
+      bgColor = const Color(0xFFF0F9FF);
+      accentColor = const Color(0xFF0284C7);
       icon = Icons.access_time_rounded;
-      label = 'Waiting for a rider to accept…';
+      label = 'Finding a rider…';
     }
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: bg,
+      padding: const EdgeInsets.all(16),
+      color: bgColor,
       child: Row(
         children: [
-          Icon(icon, color: fg, size: 22),
-          const SizedBox(width: 10),
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Icon(icon, color: accentColor, size: 24),
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: fg,
-                fontWeight: FontWeight.w700,
-                fontSize: 14,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: accentColor,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Updates every 8 seconds',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: accentColor.withValues(alpha: 0.6),
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
           ),
           if (!isDone && status != 'completed')
             SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: fg),
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                valueColor: AlwaysStoppedAnimation(accentColor),
+              ),
             ),
         ],
       ),
@@ -528,309 +575,590 @@ class _BottomCard extends StatelessWidget {
     final riderName = data['rider_name'] as String?;
     final riderPhone = data['rider_phone'] as String?;
     final expectedMin = _calculateExpectedMinutes();
-    final timerLabel = isAssigned
-        ? 'Expected: $expectedMin min'
-        : 'Connecting to rider in $expectedMin min';
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 12)],
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
+          ),
+        ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // ── Route Info Card ──
+            _RouteInfoCard(
+              pickupText: pickupText,
+              dropText: dropText,
+              fare: fare,
+              expectedMin: expectedMin,
+              isAssigned: isAssigned,
+            ),
+            const SizedBox(height: 16),
+
+            // ── Rider Info Card ──
+            if (isAssigned && (riderName != null || riderPhone != null))
+              _RiderInfoCard(
+                name: riderName,
+                phone: riderPhone,
+              )
+            else if (!isAssigned)
+              _ConnectingCard(expectedMin: expectedMin),
+
+            if (isAssigned && (riderName != null || riderPhone != null))
+              const SizedBox(height: 16),
+
+            // ── OTP Box ──
+            if (isAssigned && data['otp_code'] != null) ...[
+              _OTPBox(
+                otpCode: data['otp_code'],
+                isVerified: data['otp_verified'] == true,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Delivery Photo ──
+            if (data['delivery_photo_url'] != null) ...[
+              _DeliveryPhotoBox(
+                photoUrl: data['delivery_photo_url'],
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // ── Book Another ──
+            if (isDone)
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: onBookAnother,
+                  icon: const Icon(Icons.add_circle_outline_rounded),
+                  label: const Text(
+                    'Book Another Delivery',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                      letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Route Info Card ──
+class _RouteInfoCard extends StatelessWidget {
+  final String pickupText;
+  final String dropText;
+  final num fare;
+  final int expectedMin;
+  final bool isAssigned;
+
+  const _RouteInfoCard({
+    required this.pickupText,
+    required this.dropText,
+    required this.fare,
+    required this.expectedMin,
+    required this.isAssigned,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
       child: Column(
-        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Route
+          // Pickup
           Row(
             children: [
-              const Icon(
-                Icons.trip_origin_rounded,
-                color: Color(0xFF16A34A),
-                size: 16,
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16A34A).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.trip_origin_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  pickupText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pickup',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      pickupText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
           const Padding(
-            padding: EdgeInsets.only(left: 7),
+            padding: EdgeInsets.only(left: 17),
             child: SizedBox(
-              height: 12,
-              child: VerticalDivider(width: 1, color: Color(0xFFCBD5E1)),
+              height: 16,
+              child: VerticalDivider(
+                width: 1,
+                color: Color(0xFFCBD5E1),
+              ),
             ),
           ),
+          // Dropoff
           Row(
             children: [
-              const Icon(
-                Icons.place_rounded,
-                color: Color(0xFFEF4444),
-                size: 16,
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Text(
-                  dropText,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 12),
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.place_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 18,
                 ),
               ),
-              Text(
-                '₹$fare',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w800,
-                  color: Color(0xFF16A34A),
-                  fontSize: 16,
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Dropoff',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      dropText,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-
-          // Rider info
-          if (isAssigned && (riderName != null || riderPhone != null)) ...[
-            const Divider(height: 20),
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 18,
-                  backgroundColor: Color(0xFFE0F2FE),
-                  child: Icon(Icons.person_rounded, color: Color(0xFF0284C7)),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (riderName != null)
-                        Text(
-                          riderName,
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                      if (riderPhone != null)
-                        Text(
-                          riderPhone,
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 12,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ],
-
-          // OTP Box - Show when rider accepts
-          if (isAssigned && data['otp_code'] != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0F9FF),
-                border: Border.all(color: const Color(0xFF0284C7), width: 2),
-                borderRadius: BorderRadius.circular(12),
+          const SizedBox(height: 12),
+          Container(
+            height: 1,
+            color: const Color(0xFFE2E8F0),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _InfoChip(
+                icon: Icons.currency_rupee_rounded,
+                label: '₹$fare',
+                color: const Color(0xFF16A34A),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Delivery OTP',
-                    style: TextStyle(
+              const SizedBox(width: 10),
+              _InfoChip(
+                icon: Icons.schedule_rounded,
+                label: '~$expectedMin min',
+                color: const Color(0xFFEA580C),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Rider Info Card ──
+class _RiderInfoCard extends StatelessWidget {
+  final String? name;
+  final String? phone;
+
+  const _RiderInfoCard({
+    required this.name,
+    required this.phone,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE0F2FE),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0284C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              color: Colors.white,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (name != null)
+                  Text(
+                    name!,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      color: Color(0xFF0F172A),
+                    ),
+                  ),
+                const SizedBox(height: 2),
+                if (phone != null)
+                  Text(
+                    phone!,
+                    style: const TextStyle(
                       color: Color(0xFF0284C7),
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        data['otp_code'] ?? '---',
-                        style: const TextStyle(
-                          fontSize: 28,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF0284C7),
-                          letterSpacing: 4,
-                        ),
-                      ),
-                      if (data['otp_verified'] == true)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 6,
-                          ),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF0FDF4),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: const Row(
-                            children: [
-                              Icon(
-                                Icons.check_circle_rounded,
-                                color: Color(0xFF16A34A),
-                                size: 16,
-                              ),
-                              SizedBox(width: 6),
-                              Text(
-                                'Verified',
-                                style: TextStyle(
-                                  color: Color(0xFF16A34A),
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    data['otp_verified'] == true
-                        ? 'OTP verified with rider ✓'
-                        : 'Share this code with your rider at delivery',
-                    style: const TextStyle(
-                      color: Color(0xFF64748B),
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
+              ],
+            ),
+          ),
+          Icon(
+            Icons.check_circle_rounded,
+            color: const Color(0xFF0284C7),
+            size: 22,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Connecting Card ──
+class _ConnectingCard extends StatelessWidget {
+  final int expectedMin;
+
+  const _ConnectingCard({required this.expectedMin});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F9FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0284C7).withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation(Color(0xFF0284C7)),
+                ),
               ),
             ),
-          ],
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Finding a rider…',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                    color: Color(0xFF0F172A),
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Usually within $expectedMin minutes',
+                  style: const TextStyle(
+                    color: Color(0xFF0284C7),
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
-          // Photo Proof - Show when uploaded
-          if (isAssigned && data['delivery_photo_url'] != null) ...[
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0FDF4),
-                border: Border.all(color: const Color(0xFF86EFAC), width: 2),
-                borderRadius: BorderRadius.circular(12),
+// ── OTP Box ──
+class _OTPBox extends StatelessWidget {
+  final String otpCode;
+  final bool isVerified;
+
+  const _OTPBox({
+    required this.otpCode,
+    required this.isVerified,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0F9FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF0284C7).withValues(alpha: 0.4),
+          width: 2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Delivery OTP',
+                style: TextStyle(
+                  color: Color(0xFF0284C7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.3,
+                ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Row(
+              if (isVerified)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
                     children: [
                       Icon(
                         Icons.check_circle_rounded,
                         color: Color(0xFF16A34A),
-                        size: 18,
+                        size: 14,
                       ),
-                      SizedBox(width: 8),
+                      SizedBox(width: 4),
                       Text(
-                        'Proof of Delivery',
+                        'Verified',
                         style: TextStyle(
                           color: Color(0xFF16A34A),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: Image.network(
-                      data['delivery_photo_url'],
-                      height: 120,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        height: 120,
-                        color: const Color(0xFFF1F5F9),
-                        child: const Center(
-                          child: Icon(
-                            Icons.image_not_supported_outlined,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Photo taken by rider for verification',
-                    style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Expected time
-          if (!isDone) ...[
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFF7ED),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.schedule_rounded,
-                    color: Color(0xFFEA580C),
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    timerLabel,
-                    style: const TextStyle(
-                      color: Color(0xFFEA580C),
-                      fontWeight: FontWeight.w600,
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-
-          // Book another button
-          if (isDone) ...[
-            const SizedBox(height: 14),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
-                onPressed: onBookAnother,
-                icon: const Icon(Icons.add_rounded, color: Colors.white),
-                label: const Text(
-                  'Book Another Parcel',
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            otpCode,
+            style: const TextStyle(
+              fontSize: 32,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0284C7),
+              letterSpacing: 6,
+              fontFamily: 'Courier',
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            isVerified
+                ? 'OTP verified with the rider ✓'
+                : 'Share with your rider at delivery',
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Delivery Photo Box ──
+class _DeliveryPhotoBox extends StatelessWidget {
+  final String photoUrl;
+
+  const _DeliveryPhotoBox({required this.photoUrl});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFF86EFAC).withValues(alpha: 0.5),
+          width: 2,
+        ),
+        color: const Color(0xFFF0FDF4),
+      ),
+      overflow: Overflow.hidden,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            color: const Color(0xFFF0FDF4),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Proof of Delivery',
                   style: TextStyle(
+                    color: Color(0xFF16A34A),
+                    fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: Colors.white,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(14),
+            ),
+            child: Image.network(
+              photoUrl,
+              height: 140,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => Container(
+                height: 140,
+                color: const Color(0xFFF1F5F9),
+                child: const Center(
+                  child: Icon(
+                    Icons.image_not_supported_outlined,
+                    color: Color(0xFF94A3B8),
+                    size: 32,
                   ),
                 ),
               ),
             ),
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Info Chip ──
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
         ],
       ),
     );
