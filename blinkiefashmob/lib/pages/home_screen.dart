@@ -1302,6 +1302,7 @@ class _HomeScreenState extends State<HomeScreen>
             _products.isNotEmpty
                 ? _dealsOfTheDayCategories()
                 : _stockOutBanner(),
+            const SizedBox(height: 16),
             _banner01Strip(),
             _universeSection(),
             _brandBannersGrid(),
@@ -2156,7 +2157,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 12),
+      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
       child: Row(
         children: [
           // Green left accent bar
@@ -2189,12 +2190,16 @@ class _HomeScreenState extends State<HomeScreen>
               onTap: onAction,
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 5,
+                  horizontal: 14,
+                  vertical: 7,
                 ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: const Color(0xFFBBF7D0),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -2207,7 +2212,7 @@ class _HomeScreenState extends State<HomeScreen>
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(width: 3),
+                    const SizedBox(width: 4),
                     const Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 10,
@@ -2513,11 +2518,16 @@ class _HomeScreenState extends State<HomeScreen>
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x0F000000),
-                        blurRadius: 12,
-                        offset: Offset(0, 4),
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                      BoxShadow(
+                        color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                        blurRadius: 4,
+                        offset: const Offset(0, 1),
                       ),
                     ],
                   ),
@@ -2883,11 +2893,16 @@ class _HomeScreenState extends State<HomeScreen>
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                    color: Color(0x0F000000),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, 4),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF0F172A).withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ],
               ),
