@@ -228,9 +228,6 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
               ? LatLng(pickupLat, pickupLng)
               : const LatLng(20.4625, 85.883));
 
-    // Check if rider is actively riding (in progress)
-    final isRiderActive = isAssigned && !isDone;
-
     return PopScope(
       canPop: isDone,
       child: Scaffold(
@@ -312,225 +309,125 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                 ),
               )
             : RefreshIndicator(
-                onRefresh: () => _fetchStatus(),
-                child: isRiderActive
-                    ? // ── FULL-PAGE MAP OVERLAY (when rider is active) ──
-                    Stack(
-                        children: [
-                          // ── Full-screen map (behind everything) ──
-                          FlutterMap(
-                            mapController: _mapCtrl,
-                            options: MapOptions(
-                              initialCenter: mapCenter,
-                              initialZoom: 13,
-                            ),
-                            children: [
-                              TileLayer(
-                                urlTemplate:
-                                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                userAgentPackageName: 'com.blinkiefash.app',
-                              ),
-                              PolylineLayer(
-                                polylines: [
-                                  if (pickupLat != null &&
-                                      pickupLng != null &&
-                                      dropLat != null &&
-                                      dropLng != null)
-                                    Polyline(
-                                      points: [
-                                        LatLng(pickupLat, pickupLng),
-                                        LatLng(dropLat, dropLng),
-                                      ],
-                                      color: const Color(0xFFEA580C),
-                                      strokeWidth: 3.5,
-                                    ),
-                                  if (hasRiderLocation &&
-                                      dropLat != null &&
-                                      dropLng != null)
-                                    Polyline(
-                                      points: [
-                                        LatLng(riderLat, riderLng),
-                                        LatLng(dropLat, dropLng),
-                                      ],
-                                      color: const Color(0xFF0284C7),
-                                      strokeWidth: 2.5,
-                                    ),
-                                ],
-                              ),
-                              MarkerLayer(
-                                markers: [
-                                  if (pickupLat != null && pickupLng != null)
-                                    Marker(
-                                      point: LatLng(pickupLat, pickupLng),
-                                      width: 36,
-                                      height: 36,
-                                      child: const Icon(
-                                        Icons.trip_origin_rounded,
-                                        color: _green,
-                                        size: 30,
-                                      ),
-                                    ),
-                                  if (dropLat != null && dropLng != null)
-                                    Marker(
-                                      point: LatLng(dropLat, dropLng),
-                                      width: 36,
-                                      height: 36,
-                                      child: const Icon(
-                                        Icons.place_rounded,
-                                        color: Color(0xFFEF4444),
-                                        size: 30,
-                                      ),
-                                    ),
-                                  if (hasRiderLocation)
-                                    Marker(
-                                      point: LatLng(riderLat, riderLng),
-                                      width: 44,
-                                      height: 44,
-                                      child: Container(
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFF0EA5E9),
-                                          shape: BoxShape.circle,
-                                        ),
-                                        child: const Icon(
-                                          Icons.delivery_dining_rounded,
-                                          color: Colors.white,
-                                          size: 24,
-                                        ),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ],
-                          ),
+                onRefresh: _fetchStatus,
+                child: Column(
+                  children: [
+                    // ── Status banner ────────────────────────────────
+                    _StatusBanner(
+                      status: status,
+                      isAssigned: isAssigned,
+                      isDone: isDone,
+                    ),
 
-                          // ── Floating bottom card (on top of map) ──
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            child: _BottomCard(
-                              data: _data!,
-                              pickupText: pickupText,
-                              dropText: dropText,
-                              fare: fare,
-                              isAssigned: isAssigned,
-                              isDone: isDone,
-                              onBookAnother: () =>
-                                  Navigator.of(context)
-                                      .popUntil((r) => r.isFirst),
-                              onCancel: _cancelRequest,
-                            ),
-                          ),
-                        ],
-                      )
-                    : // ── NORMAL LAYOUT (when waiting for rider) ──
-                    Column(
-                        children: [
-                          _StatusBanner(
-                            status: status,
-                            isAssigned: isAssigned,
-                            isDone: isDone,
-                          ),
-                          Expanded(
-                            child: FlutterMap(
-                              mapController: _mapCtrl,
-                              options: MapOptions(
-                                initialCenter: mapCenter,
-                                initialZoom: 13,
+                    // ── Map (always visible) ─────────────────────────
+                    Expanded(
+                      child: FlutterMap(
+                        mapController: _mapCtrl,
+                        options: MapOptions(
+                          initialCenter: mapCenter,
+                          initialZoom: 13,
+                        ),
+                      children: [
+                        TileLayer(
+                          urlTemplate:
+                              'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                          userAgentPackageName: 'com.blinkiefash.app',
+                        ),
+                        // ── Route polylines ──────────────────────────────
+                        PolylineLayer(
+                          polylines: [
+                            // Pickup to Dropoff route
+                            if (pickupLat != null &&
+                                pickupLng != null &&
+                                dropLat != null &&
+                                dropLng != null)
+                              Polyline(
+                                points: [
+                                  LatLng(pickupLat, pickupLng),
+                                  LatLng(dropLat, dropLng),
+                                ],
+                                color: const Color(0xFFEA580C),
+                                strokeWidth: 3.5,
                               ),
-                              children: [
-                                TileLayer(
-                                  urlTemplate:
-                                      'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                  userAgentPackageName: 'com.blinkiefash.app',
+                            // Rider to Dropoff remaining route
+                            if (hasRiderLocation &&
+                                dropLat != null &&
+                                dropLng != null)
+                              Polyline(
+                                points: [
+                                  LatLng(riderLat, riderLng),
+                                  LatLng(dropLat, dropLng),
+                                ],
+                                color: const Color(0xFF0284C7),
+                                strokeWidth: 2.5,
+                              ),
+                          ],
+                        ),
+                        MarkerLayer(
+                          markers: [
+                            // Pickup pin
+                            if (pickupLat != null && pickupLng != null)
+                              Marker(
+                                point: LatLng(pickupLat, pickupLng),
+                                width: 36,
+                                height: 36,
+                                child: const Icon(
+                                  Icons.trip_origin_rounded,
+                                  color: _green,
+                                  size: 30,
                                 ),
-                                PolylineLayer(
-                                  polylines: [
-                                    if (pickupLat != null &&
-                                        pickupLng != null &&
-                                        dropLat != null &&
-                                        dropLng != null)
-                                      Polyline(
-                                        points: [
-                                          LatLng(pickupLat, pickupLng),
-                                          LatLng(dropLat, dropLng),
-                                        ],
-                                        color: const Color(0xFFEA580C),
-                                        strokeWidth: 3.5,
-                                      ),
-                                    if (hasRiderLocation &&
-                                        dropLat != null &&
-                                        dropLng != null)
-                                      Polyline(
-                                        points: [
-                                          LatLng(riderLat, riderLng),
-                                          LatLng(dropLat, dropLng),
-                                        ],
-                                        color: const Color(0xFF0284C7),
-                                        strokeWidth: 2.5,
-                                      ),
-                                  ],
+                              ),
+                            // Drop pin
+                            if (dropLat != null && dropLng != null)
+                              Marker(
+                                point: LatLng(dropLat, dropLng),
+                                width: 36,
+                                height: 36,
+                                child: const Icon(
+                                  Icons.place_rounded,
+                                  color: Color(0xFFEF4444),
+                                  size: 30,
                                 ),
-                                MarkerLayer(
-                                  markers: [
-                                    if (pickupLat != null && pickupLng != null)
-                                      Marker(
-                                        point: LatLng(pickupLat, pickupLng),
-                                        width: 36,
-                                        height: 36,
-                                        child: const Icon(
-                                          Icons.trip_origin_rounded,
-                                          color: _green,
-                                          size: 30,
-                                        ),
-                                      ),
-                                    if (dropLat != null && dropLng != null)
-                                      Marker(
-                                        point: LatLng(dropLat, dropLng),
-                                        width: 36,
-                                        height: 36,
-                                        child: const Icon(
-                                          Icons.place_rounded,
-                                          color: Color(0xFFEF4444),
-                                          size: 30,
-                                        ),
-                                      ),
-                                    if (hasRiderLocation)
-                                      Marker(
-                                        point: LatLng(riderLat, riderLng),
-                                        width: 44,
-                                        height: 44,
-                                        child: Container(
-                                          decoration: const BoxDecoration(
-                                            color: Color(0xFF0EA5E9),
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(
-                                            Icons.delivery_dining_rounded,
-                                            color: Colors.white,
-                                            size: 24,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
+                              ),
+                            // Rider pin
+                            if (hasRiderLocation)
+                              Marker(
+                                point: LatLng(riderLat, riderLng),
+                                width: 44,
+                                height: 44,
+                                child: Container(
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF0EA5E9),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.delivery_dining_rounded,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
                                 ),
-                              ],
-                            ),
-                          ),
-                          _BottomCard(
-                            data: _data!,
-                            pickupText: pickupText,
-                            dropText: dropText,
-                            fare: fare,
-                            isAssigned: isAssigned,
-                            isDone: isDone,
-                            onBookAnother: () =>
-                                Navigator.of(context).popUntil((r) => r.isFirst),
-                            onCancel: _cancelRequest,
-                          ),
-                        ],
-                      ),
+                              ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // ── Bottom info card ─────────────────────────────
+                  _BottomCard(
+                    data: _data!,
+                    pickupText: pickupText,
+                    dropText: dropText,
+                    fare: fare,
+                    isAssigned: isAssigned,
+                    isDone: isDone,
+                    onBookAnother: () =>
+                        Navigator.of(context).popUntil((r) => r.isFirst),
+                    onCancel: _cancelRequest,
+                  ),
+                ],
               ),
+            ),
       ),
     );
   }
