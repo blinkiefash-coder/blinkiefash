@@ -3082,9 +3082,11 @@ class _HomeScreenState extends State<HomeScreen>
                   Expanded(
                     flex: 2,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 11,
-                        vertical: 10,
+                      padding: const EdgeInsets.fromLTRB(
+                        11,
+                        8,
+                        11,
+                        6,
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -3141,8 +3143,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 style: const TextStyle(
                                   fontSize: 11,
                                   decoration: TextDecoration.lineThrough,
-                                  color: Color(0xFFCBD5E1),
-                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF475569),
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
