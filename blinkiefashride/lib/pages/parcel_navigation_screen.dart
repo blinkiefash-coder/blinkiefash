@@ -42,7 +42,6 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
 
   _Phase _phase = _Phase.navigating;
   bool _loading = false;
-  bool _initializing = true;
 
   // Delivery OTP entry
   final _otpController = TextEditingController();
@@ -120,13 +119,14 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
           _dropText = details['drop_text'] as String? ?? _dropText;
           _dropLat = _parseCoordinate(details['drop_lat'] ?? _dropLat);
           _dropLng = _parseCoordinate(details['drop_lng'] ?? _dropLng);
-          _initializing = false;
         });
       } else {
-        setState(() => _initializing = false);
+        // Details not found, continue with defaults
       }
     } catch (e) {
-      if (mounted) setState(() => _initializing = false);
+      if (mounted) {
+        // API error, continue with defaults
+      }
     }
   }
 
@@ -546,8 +546,8 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                             color: _blue.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
-                            Icons.package_rounded,
+                          child: Icon(
+                            Icons.local_shipping_rounded,
                             color: _blue,
                             size: 20,
                           ),
@@ -607,7 +607,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                             color: _red.withValues(alpha: 0.15),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(
+                          child: Icon(
                             Icons.location_on_rounded,
                             color: _red,
                             size: 20,
@@ -643,6 +643,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                   ],
                 ),
               ),
+              const SizedBox(height: 24),
+
+              // Phase-specific UI
+              if (_phase == _Phase.navigating) ...[
                 const Text(
                   'Navigate to Delivery Location',
                   style: TextStyle(
@@ -718,7 +722,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                       ),
                     ),
                     onPressed: _loading ? null : _markArrived,
-                    icon: const Icon(Icons.location_on_rounded),
+                    icon: const Icon(Icons.check_rounded),
                     label: const Text(
                       'Mark Arrived',
                       style: TextStyle(
