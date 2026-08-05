@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
 import '../api_base.dart';
 
 /// Real-time parcel tracking screen — polls backend every 8 s.
@@ -291,10 +292,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
           ],
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(1),
-            child: Container(
-              color: const Color(0xFFE2E8F0),
-              height: 1,
-            ),
+            child: Container(color: const Color(0xFFE2E8F0), height: 1),
           ),
         ),
         body: _loading
@@ -489,9 +487,7 @@ class _StatusBanner extends StatelessWidget {
               color: accentColor.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Center(
-              child: Icon(icon, color: accentColor, size: 24),
-            ),
+            child: Center(child: Icon(icon, color: accentColor, size: 24)),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -609,10 +605,7 @@ class _BottomCard extends StatelessWidget {
 
             // ── Rider Info Card ──
             if (isAssigned && (riderName != null || riderPhone != null))
-              _RiderInfoCard(
-                name: riderName,
-                phone: riderPhone,
-              )
+              _RiderInfoCard(name: riderName, phone: riderPhone)
             else if (!isAssigned)
               _ConnectingCard(expectedMin: expectedMin),
 
@@ -630,9 +623,7 @@ class _BottomCard extends StatelessWidget {
 
             // ── Delivery Photo ──
             if (data['delivery_photo_url'] != null) ...[
-              _DeliveryPhotoBox(
-                photoUrl: data['delivery_photo_url'],
-              ),
+              _DeliveryPhotoBox(photoUrl: data['delivery_photo_url']),
               const SizedBox(height: 16),
             ],
 
@@ -665,10 +656,7 @@ class _BottomCard extends StatelessWidget {
                 width: double.infinity,
                 child: OutlinedButton.icon(
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(
-                      color: Color(0xFFEF4444),
-                      width: 2,
-                    ),
+                    side: const BorderSide(color: Color(0xFFEF4444), width: 2),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -775,10 +763,7 @@ class _RouteInfoCard extends StatelessWidget {
             padding: EdgeInsets.only(left: 17),
             child: SizedBox(
               height: 16,
-              child: VerticalDivider(
-                width: 1,
-                color: Color(0xFFCBD5E1),
-              ),
+              child: VerticalDivider(width: 1, color: Color(0xFFCBD5E1)),
             ),
           ),
           // Dropoff
@@ -828,10 +813,7 @@ class _RouteInfoCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 12),
-          Container(
-            height: 1,
-            color: const Color(0xFFE2E8F0),
-          ),
+          Container(height: 1, color: const Color(0xFFE2E8F0)),
           const SizedBox(height: 12),
           Row(
             children: [
@@ -859,10 +841,15 @@ class _RiderInfoCard extends StatelessWidget {
   final String? name;
   final String? phone;
 
-  const _RiderInfoCard({
-    required this.name,
-    required this.phone,
-  });
+  const _RiderInfoCard({required this.name, required this.phone});
+
+  Future<void> _launchPhoneCall() async {
+    if (phone == null) return;
+    final uri = Uri.parse('tel:$phone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -938,16 +925,19 @@ class _RiderInfoCard extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16A34A),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.check_rounded,
-                  color: Colors.white,
-                  size: 20,
+              GestureDetector(
+                onTap: _launchPhoneCall,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF16A34A),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.phone_rounded,
+                    color: Colors.white,
+                    size: 20,
+                  ),
                 ),
               ),
             ],
@@ -1083,7 +1073,9 @@ class _ConnectingCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFF0F9FF),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
+        border: Border.all(
+          color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+        ),
       ),
       child: Row(
         children: [
@@ -1140,10 +1132,7 @@ class _OTPBox extends StatelessWidget {
   final String otpCode;
   final bool isVerified;
 
-  const _OTPBox({
-    required this.otpCode,
-    required this.isVerified,
-  });
+  const _OTPBox({required this.otpCode, required this.isVerified});
 
   @override
   Widget build(BuildContext context) {
@@ -1153,10 +1142,7 @@ class _OTPBox extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFFF0F9FF),
-            const Color(0xFFE0F2FE),
-          ],
+          colors: [const Color(0xFFF0F9FF), const Color(0xFFE0F2FE)],
         ),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
@@ -1289,7 +1275,7 @@ class _DeliveryPhotoBox extends StatelessWidget {
         ),
         color: const Color(0xFFF0FDF4),
       ),
-      overflow: Overflow.hidden,
+      clipBehavior: Clip.hardEdge,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

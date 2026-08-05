@@ -28,6 +28,11 @@ class ParcelNavigationScreen extends StatefulWidget {
 }
 
 class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
+  static const _green = Color(0xFF16A34A);
+  static const _orange = Color(0xFFEA580C);
+  static const _blue = Color(0xFF0284C7);
+  static const _red = Color(0xFFEF4444);
+
   final _api = ApiService();
   Timer? _locationTimer;
   Timer? _deliveryCountdownTimer;
@@ -274,20 +279,46 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Parcel Delivery'), elevation: 0),
+      appBar: AppBar(
+        title: const Text(
+          'Parcel Delivery',
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 20,
+            letterSpacing: -0.5,
+          ),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(1),
+          child: Container(color: const Color(0xFFE2E8F0), height: 1),
+        ),
+      ),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Delivery timer
+              // ── Delivery Timer ──
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0F9FF),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF0284C7)),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [_blue.withValues(alpha: 0.95), _blue.withValues(alpha: 0.85)],
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: _blue.withValues(alpha: 0.3),
+                      blurRadius: 16,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -299,7 +330,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           'Time Remaining',
                           style: TextStyle(
                             fontSize: 12,
-                            color: Color(0xFF64748B),
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.3,
                           ),
                         ),
                         SizedBox(height: 4),
@@ -308,9 +341,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     Text(
                       _formatTime(_deliverySecondsRemaining),
                       style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF0284C7),
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                        letterSpacing: -1,
                       ),
                     ),
                   ],
@@ -318,41 +352,112 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Recipient details
+              // ── Recipient Details ──
               const Text(
-                'Recipient',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                'Recipient Details',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.3,
+                ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      _green.withValues(alpha: 0.15),
+                      _orange.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  border: Border.all(color: _green.withValues(alpha: 0.3), width: 1.5),
+                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      _receiverName,
-                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: _green.withValues(alpha: 0.2),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                          ),
+                          child: const Icon(Icons.person_rounded, color: _green, size: 28),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _receiverName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 16,
+                                  letterSpacing: -0.3,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (_receiverPhone.isNotEmpty)
+                          GestureDetector(
+                            onTap: () async {
+                              final uri = Uri.parse('tel:$_receiverPhone');
+                              if (await canLaunchUrl(uri)) {
+                                await launchUrl(uri);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: _green,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.phone_rounded,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    const SizedBox(height: 4),
-                    GestureDetector(
-                      onTap: () async {
-                        final uri = Uri.parse('tel:$_receiverPhone');
-                        if (await canLaunchUrl(uri)) {
-                          await launchUrl(uri);
-                        }
-                      },
-                      child: Text(
-                        _receiverPhone,
-                        style: const TextStyle(
-                          color: Color(0xFF0284C7),
-                          decoration: TextDecoration.underline,
+                    if (_receiverPhone.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.phone_rounded, color: _green, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              _receiverPhone,
+                              style: const TextStyle(
+                                color: _green,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -362,14 +467,26 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
               if (_phase == _Phase.navigating) ...[
                 const Text(
                   'Navigate to Delivery Location',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _blue.withValues(alpha: 0.1),
+                        _blue.withValues(alpha: 0.05),
+                      ],
+                    ),
+                    border: Border.all(color: _blue.withValues(alpha: 0.3), width: 1.5),
+                    borderRadius: BorderRadius.circular(14),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -379,40 +496,53 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         style: TextStyle(
                           fontSize: 12,
                           color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 8),
                       Text(
                         '$_dropLat, $_dropLng',
-                        style: const TextStyle(fontFamily: 'monospace'),
+                        style: const TextStyle(
+                          fontFamily: 'monospace',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F172A),
+                        ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _loading ? null : _markArrived,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: const Color(0xFF0284C7),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _loading ? null : _markArrived,
+                    icon: const Icon(Icons.location_on_rounded),
+                    label: const Text(
+                      'Mark Arrived',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
                   ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Text('Mark Arrived'),
                 ),
               ] else if (_phase == _Phase.arrived) ...[
                 const Text(
                   'Photo Proof',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 if (_deliveryPhotoUrl == null)
@@ -420,16 +550,23 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(32),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF8F9FA),
-                      border: Border.all(color: const Color(0xFFE2E8F0)),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _orange.withValues(alpha: 0.1),
+                          _orange.withValues(alpha: 0.05),
+                        ],
+                      ),
+                      border: Border.all(color: _orange.withValues(alpha: 0.3), width: 1.5),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: Column(
                       children: [
-                        const Icon(
-                          Icons.camera_alt,
+                        Icon(
+                          Icons.camera_alt_rounded,
                           size: 48,
-                          color: Color(0xFF94A3B8),
+                          color: _orange.withValues(alpha: 0.6),
                         ),
                         const SizedBox(height: 12),
                         const Text(
@@ -438,6 +575,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           style: TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 14,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ],
@@ -448,9 +586,16 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      border: Border.all(color: const Color(0xFF86EFAC)),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          _green.withValues(alpha: 0.1),
+                          _green.withValues(alpha: 0.05),
+                        ],
+                      ),
+                      border: Border.all(color: _green.withValues(alpha: 0.3), width: 1.5),
+                      borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Row(
                       children: [
@@ -461,47 +606,81 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                     ),
                   ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _uploadingPhoto ? null : _pickAndUploadPhoto,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: const Color(0xFF0284C7),
-                  ),
-                  child: _uploadingPhoto
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _orange,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _uploadingPhoto ? null : _pickAndUploadPhoto,
+                    icon: _uploadingPhoto
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
-                          ),
-                        )
-                      : const Text('Capture Photo'),
+                          )
+                        : const Icon(Icons.camera_alt_rounded),
+                    label: Text(
+                      _uploadingPhoto ? 'Uploading...' : 'Capture Photo',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
                 ),
                 if (_photoTaken) ...[
                   const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: () {
-                      setState(() => _phase = _Phase.photoUpload);
-                    },
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size.fromHeight(48),
-                      backgroundColor: const Color(0xFF22C55E),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _green,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      onPressed: () {
+                        setState(() => _phase = _Phase.photoUpload);
+                      },
+                      icon: const Icon(Icons.check_circle_outline_rounded),
+                      label: const Text(
+                        'Continue to OTP',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          letterSpacing: 0.2,
+                        ),
+                      ),
                     ),
-                    child: const Text('Continue to OTP'),
                   ),
                 ],
               ] else if (_phase == _Phase.photoUpload) ...[
                 const Text(
                   'Enter Delivery OTP',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 const Text(
                   'Ask the recipient for the 4-digit OTP',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -512,70 +691,95 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                   decoration: InputDecoration(
                     hintText: '0000',
                     filled: true,
-                    fillColor: const Color(0xFFF8F9FA),
+                    fillColor: Colors.white,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: Color(0xFFE2E8F0), width: 2),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: _blue.withValues(alpha: 0.3), width: 2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _blue, width: 2),
                     ),
                     errorText: _otpError,
                     errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: Color(0xFFEF4444)),
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: _red, width: 2),
                     ),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 16),
                   ),
                   style: const TextStyle(
-                    fontSize: 24,
+                    fontSize: 32,
                     letterSpacing: 8,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w900,
+                    color: _blue,
+                    fontFamily: 'Courier',
                   ),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _loading ? null : _verifyOtp,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: const Color(0xFF0284C7),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _loading ? null : _verifyOtp,
+                    icon: const Icon(Icons.verified_user_rounded),
+                    label: const Text(
+                      'Verify OTP',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
                   ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : const Text('Verify OTP'),
                 ),
               ] else if (_phase == _Phase.otpVerified) ...[
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    border: Border.all(color: const Color(0xFF86EFAC)),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _green.withValues(alpha: 0.15),
+                        _green.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 48,
-                        color: Color(0xFF22C55E),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: _green,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 40,
+                          color: Colors.white,
+                        ),
                       ),
-                      SizedBox(height: 12),
-                      Text(
-                        'OTP Verified! ✓',
+                      const SizedBox(height: 16),
+                      const Text(
+                        'OTP Verified!',
                         style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF22C55E),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                          color: _green,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       SizedBox(height: 8),
@@ -584,53 +788,81 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         style: TextStyle(
                           fontSize: 14,
                           color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _loading ? null : _completeDelivery,
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size.fromHeight(48),
-                    backgroundColor: const Color(0xFF22C55E),
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 24,
-                          width: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _green,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: _loading ? null : _completeDelivery,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
-                          ),
-                        )
-                      : const Text('Complete Delivery'),
+                          )
+                        : const Icon(Icons.check_circle_outline_rounded),
+                    label: const Text(
+                      'Complete Delivery',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
                 ),
               ] else if (_phase == _Phase.completed) ...[
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF0FDF4),
-                    border: Border.all(color: const Color(0xFF86EFAC)),
-                    borderRadius: BorderRadius.circular(8),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        _green.withValues(alpha: 0.15),
+                        _green.withValues(alpha: 0.08),
+                      ],
+                    ),
+                    border: Border.all(color: _green.withValues(alpha: 0.4), width: 2),
+                    borderRadius: BorderRadius.circular(18),
                   ),
-                  child: const Column(
+                  child: Column(
                     children: [
-                      Icon(
-                        Icons.check_circle,
-                        size: 64,
-                        color: Color(0xFF22C55E),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: _green,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.check_rounded,
+                          size: 48,
+                          color: Colors.white,
+                        ),
                       ),
-                      SizedBox(height: 16),
-                      Text(
+                      const SizedBox(height: 20),
+                      const Text(
                         'Delivery Complete!',
                         style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF22C55E),
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          color: _green,
+                          letterSpacing: -0.3,
                         ),
                       ),
                       SizedBox(height: 8),
