@@ -90,6 +90,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       if (mounted) {
         setState(() => _loadedData = d);
         _loadSimilarProducts(d);
+        // Auto-select first in-stock size if no size was pre-selected
+        _autoSelectFirstSize(d);
       }
     });
     _loadReviews();
@@ -638,6 +640,58 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     } catch (_) {
       if (mounted) setState(() => _reviewsLoading = false);
+    }
+  }
+
+  Future<void> _autoSelectFirstSize(Map<String, dynamic> data) async {
+    // Only auto-select if no size was pre-selected
+    if (_selectedSize != null) return;
+    
+    try {
+      final variants = (data['variants'] is List)
+          ? List<dynamic>.from(data['variants'])
+          : <dynamic>[];
+      
+      if (variants.isEmpty) return;
+
+      final variantMaps = variants
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+
+      // Get unique sizes sorted
+      final allSizes = variantMaps
+          .map((v) => (v['size'] ?? '').toString().trim())
+          .where((v) => v.isNotEmpty)
+          .toSet()
+          .toList();
+      
+      if (allSizes.isEmpty) return;
+
+      allSizes.sort();
+
+      // Find first in-stock size
+      String? firstAvailableSize;
+      for (final size in allSizes) {
+        final hasStock = variantMaps.any((v) {
+          final vSize = (v['size'] ?? '').toString().trim();
+          final stock = int.tryParse((v['available_stock'] ?? 0).toString()) ?? 0;
+          return vSize == size && stock > 0;
+        });
+        if (hasStock) {
+          firstAvailableSize = size;
+          break;
+        }
+      }
+
+      // Fallback to first size if no in-stock found
+      firstAvailableSize ??= allSizes.first;
+
+      if (mounted && firstAvailableSize != null) {
+        setState(() => _selectedSize = firstAvailableSize);
+      }
+    } catch (e) {
+      debugPrint('Error auto-selecting size: $e');
     }
   }
 
@@ -1756,9 +1810,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }
 
           // Use variant-specific price if selected, otherwise use minimum price
-          final displayPrice = (selectedVariant?['discount_price'] ?? 
-              selectedVariant?['price'] ?? minDiscountPrice ?? 0).toString();
-          final displayOriginalPrice = (selectedVariant?['price'] ?? 
+          final displayPrice = (selectedVariant['discount_price'] ?? 
+              selectedVariant['price'] ?? minDiscountPrice ?? 0).toString();
+          final displayOriginalPrice = (selectedVariant['price'] ?? 
               minOriginalPrice ?? 0).toString();
 
           final currentPrice = _formatPrice(displayPrice);
@@ -3165,19 +3219,19 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           color: const Color(0xFFFCD34D),
                                         ),
                                       ),
-                                      child: Row(
+                                      child: const Row(
                                         children: [
-                                          const Icon(
+                                          Icon(
                                             Icons.info_outlined,
                                             color: Color(0xFFB45309),
                                             size: 18,
                                           ),
-                                          const SizedBox(width: 10),
+                                          SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
                                               'You can only review after your order is delivered',
                                               style: TextStyle(
-                                                color: const Color(0xFFB45309),
+                                                color: Color(0xFFB45309),
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.w600,
                                               ),
@@ -3500,7 +3554,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                 ],
                               ),
-                            ]
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 14),
                 // ── Similar Products ──────────────────────────────────────
                 if (_similarLoading || _similarProducts.isNotEmpty)
