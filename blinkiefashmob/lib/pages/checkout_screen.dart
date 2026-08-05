@@ -89,6 +89,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
   });
 
+  // Next-day scheduled delivery slots (11:00 to 21:00 for 25km local delivery)
+  static final List<TimeOfDay> _nextdayLocalSlots = List.generate(20, (i) {
+    final totalMinutes = (11 * 60) + (i * 30);
+    return TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
+  });
+
+  // Next-day scheduled delivery slots (11:30 to 21:00 for 25-45km extended delivery)
+  static final List<TimeOfDay> _nextdayExtendedSlots = List.generate(19, (i) {
+    final totalMinutes = (11 * 60 + 30) + (i * 30);
+    return TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
+  });
+
   @override
   void initState() {
     super.initState();
@@ -323,7 +335,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _deliveryDistanceKm = (result['distance'] as num?)?.toDouble();
       _deliveryEtaMinMinutes = (result['etaMinMinutes'] as num?)?.toInt();
       _deliveryEtaMaxMinutes = (result['etaMaxMinutes'] as num?)?.toInt();
-      
+
       // Store delivery promise and type for display
       _deliveryPromise = result['deliveryPromise']?.toString();
       _deliveryType = result['deliveryType']?.toString();
@@ -440,7 +452,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       return 'Same day delivery to major Odisha cities (ordered before 12:00 PM)';
     }
 
-    // For next day delivery
+    // For next day delivery (after 21:00, within 45km - allows time slot selection)
+    if (type == 'nextday_scheduled_local') {
+      return 'Next day delivery (11:00 AM to 9:00 PM) - Select your preferred time';
+    }
+    if (type == 'nextday_scheduled_extended') {
+      return 'Next day delivery (11:30 AM to 9:00 PM) - Select your preferred time';
+    }
+
+    // For next day delivery (fixed)
     if (type == 'nextday') {
       if (isAfterOperatingHours) {
         return 'Next day delivery (order placed after operating hours)';
@@ -466,10 +486,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return 'ETA updates automatically once your address is selected.';
   }
 
+  // Get the appropriate slot list based on delivery type
+  List<TimeOfDay> _getSlotList() {
+    if (_deliveryType == 'nextday_scheduled_local') {
+      return _nextdayLocalSlots;
+    } else if (_deliveryType == 'nextday_scheduled_extended') {
+      return _nextdayExtendedSlots;
+    }
+    return _tomorrowSlots;
+  }
+
   DateTime _selectedTomorrowDateTime() {
     final now = DateTime.now();
     final tomorrow = now.add(const Duration(days: 1));
-    final slot = _tomorrowSlots[_selectedTomorrowSlotIndex];
+    final slotList = _getSlotList();
+    final slot = slotList[_selectedTomorrowSlotIndex];
     return DateTime(
       tomorrow.year,
       tomorrow.month,
@@ -527,10 +558,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Send subtotal only — backend calculates final amount with delivery fee
     final subtotal = _effectiveSubtotal;
 
-    final isScheduled = _deliverTomorrow;
+    // Auto-schedule if delivery type is next-day scheduled (after 21:00, ≤45km)
+    bool isScheduled = _deliverTomorrow;
+    if (_deliveryType == 'nextday_scheduled_local' || _deliveryType == 'nextday_scheduled_extended') {
+      isScheduled = true;
+    }
+    
     final scheduledAt = isScheduled ? _selectedTomorrowDateTime() : null;
+    final slotList = _getSlotList();
     final scheduledLabel = isScheduled
-        ? _slotLabel(_tomorrowSlots[_selectedTomorrowSlotIndex])
+        ? _slotLabel(slotList[_selectedTomorrowSlotIndex])
         : null;
 
     String? manualOfferType;
@@ -891,8 +928,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // For same day, next day, and 2 days deliveries, show fixed delivery info
-                if (_deliveryType == 'sameday' || _deliveryType == 'nextday' || _deliveryType == '2days')
+                // Fixed delivery: same day, next day (not scheduled), or 2+ days
+                if ((_deliveryType == 'sameday' ||
+                        _deliveryType == 'nextday' ||
+                        _deliveryType == '2days') &&
+                    _deliveryType != 'nextday_scheduled_local' &&
+                    _deliveryType != 'nextday_scheduled_extended')
                   _deliveryModeTile(
                     title: _todayDeliveryLabel(),
                     subtitle: _todayDeliverySubtitle(),
@@ -900,7 +941,49 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     enabled: false,
                     onTap: () {},
                   )
-                // For fast delivery (local and extended), show scheduling options
+                // Next-day scheduled (for after 21:00, ≤45km): show time slot selection directly
+                else if (_deliveryType == 'nextday_scheduled_local' ||
+                    _deliveryType == 'nextday_scheduled_extended') ...[
+                  _deliveryModeTile(
+                    title: _todayDeliveryLabel(),
+                    subtitle: _todayDeliverySubtitle(),
+                    selected: true,
+                    enabled: false,
+                    onTap: () {},
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: _selectedTomorrowSlotIndex,
+                    decoration: InputDecoration(
+                      labelText: 'Select delivery time',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                      ),
+                    ),
+                    items: List.generate(_getSlotList().length, (i) {
+                      final label = _slotLabel(_getSlotList()[i]);
+                      return DropdownMenuItem<int>(
+                        value: i,
+                        child: Text(
+                          label,
+                          style: const TextStyle(fontSize: 13.5),
+                        ),
+                      );
+                    }),
+                    onChanged: (value) {
+                      if (value == null) return;
+                      setState(() => _selectedTomorrowSlotIndex = value);
+                    },
+                  ),
+                ]
+                // Fast delivery (local and extended): show today/tomorrow with time slot options
                 else ...[
                   _deliveryModeTile(
                     title: _todayDeliveryLabel(),
@@ -927,11 +1010,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         fillColor: const Color(0xFFF8FAFC),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                          borderSide: const BorderSide(
+                            color: Color(0xFFE5E7EB),
+                          ),
                         ),
                       ),
                       items: List.generate(_tomorrowSlots.length, (i) {
@@ -950,7 +1037,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       },
                     ),
                   ],
-                ]
+                ],
               ],
             ),
           ),

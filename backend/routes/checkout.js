@@ -191,10 +191,12 @@ function calculateDeliveryInfo(distanceKm, city) {
       result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8));
       result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
     } else {
-      // After operating hours: next day delivery
+      // After operating hours: next day delivery with time slot selection (11:00 to 21:00)
       result.deliveryPromise = "Next Day Delivery";
-      result.deliveryType = 'nextday';
+      result.deliveryType = 'nextday_scheduled_local'; // NEW: allows time slot selection
       result.etaMinutes = null;
+      result.timeSlotStart = '11:00'; // 11:00 AM
+      result.timeSlotEnd = '21:00';   // 9:00 PM
     }
     return result;
   }
@@ -212,10 +214,12 @@ function calculateDeliveryInfo(distanceKm, city) {
       result.etaMinMinutes = Math.max(30, Math.ceil(estimatedMinutes * 0.8));
       result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
     } else {
-      // After operating hours: next day delivery
+      // After operating hours: next day delivery with time slot selection (11:30 to 21:00)
       result.deliveryPromise = "Next Day Delivery";
-      result.deliveryType = 'nextday';
+      result.deliveryType = 'nextday_scheduled_extended'; // NEW: allows time slot selection
       result.etaMinutes = null;
+      result.timeSlotStart = '11:30'; // 11:30 AM
+      result.timeSlotEnd = '21:00';   // 9:00 PM
     }
     return result;
   }

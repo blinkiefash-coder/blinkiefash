@@ -1551,10 +1551,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _estimatedDelivery(String status, Map<String, dynamic> order) {
     final isDelivered = status == 'delivered' || status == 'completed';
-    final deliveryPromise = order['deliveryPromise']?.toString() ?? 'Today, within 60 minutes';
+    final deliveryPromise =
+        order['deliveryPromise']?.toString() ?? 'Today, within 60 minutes';
     final deliveryType = order['deliveryType']?.toString();
     final distanceKm = order['distanceKm'] as num?;
-    
+
     String deliveryText = deliveryPromise;
     if (!isDelivered && deliveryType == 'local' || deliveryType == 'extended') {
       // For dynamic ETAs, show the promise from backend
@@ -1563,7 +1564,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       // For scheduled deliveries, show what was delivered
       deliveryText = deliveryPromise;
     }
-    
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1599,10 +1600,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 'Distance: ${distanceKm.toStringAsFixed(1)} km',
-                style: const TextStyle(
-                  color: Color(0xFF6B7280),
-                  fontSize: 12,
-                ),
+                style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12),
               ),
             ),
           Container(
