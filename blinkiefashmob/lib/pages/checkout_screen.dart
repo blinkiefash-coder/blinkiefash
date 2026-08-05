@@ -27,7 +27,6 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final ApiClient _api = ApiClient();
   bool _authRedirectInFlight = false;
-  static const double _defaultDeliveryRangeKm = 45;
   static const double _platformFeeFlat = 9.0;
   static const double _shippingPackagingHandlingPerProduct = 9.0;
 
@@ -49,10 +48,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double _deliveryFee = 0.0;
   bool _deliveryAvailable = true;
   double? _deliveryDistanceKm;
-  double _deliveryRadiusKm = _defaultDeliveryRangeKm;
   int? _deliveryEtaMinutes;
   int? _deliveryEtaMinMinutes;
   int? _deliveryEtaMaxMinutes;
+  String? _deliveryPromise; // e.g., "Fast Delivery", "Same Day Delivery", etc.
+  String? _deliveryType; // e.g., 'local', 'sameday', 'nextday', '2days'
 
   // Reward state
   double _availableReferralAmount = 0;
@@ -322,12 +322,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _deliveryFee = fee != null ? (fee as num).toDouble() : 0.0;
       _deliveryAvailable = result['withinRange'] as bool? ?? true;
       _deliveryDistanceKm = (result['distance'] as num?)?.toDouble();
-      _deliveryRadiusKm =
-          (result['deliveryRadiusKm'] as num?)?.toDouble() ??
-          _defaultDeliveryRangeKm;
       _deliveryEtaMinutes = (result['etaMinutes'] as num?)?.toInt();
       _deliveryEtaMinMinutes = (result['etaMinMinutes'] as num?)?.toInt();
       _deliveryEtaMaxMinutes = (result['etaMaxMinutes'] as num?)?.toInt();
+      
+      // Store delivery promise and type for display
+      _deliveryPromise = result['deliveryPromise']?.toString();
+      _deliveryType = result['deliveryType']?.toString();
     });
   }
 
@@ -420,17 +421,51 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   String _todayDeliveryLabel() {
-    final eta = DateTime.now().add(
-      Duration(minutes: _deliveryEtaMaxMinutes ?? _deliveryEtaMinutes ?? 60),
-    );
-    return 'Deliver Today by ${_slotLabel(TimeOfDay.fromDateTime(eta))}';
+    // Show delivery promise if available from backend
+    if (_deliveryPromise != null) {
+      final type = _deliveryType ?? '';
+      if (type == 'sameday' || type == 'nextday') {
+        return _deliveryPromise!; // e.g., "Same Day Delivery" or "Next Day Delivery"
+      }
+      if (type == 'local' || type == 'extended') {
+        // For fast delivery, show ETA
+        if (_deliveryEtaMinutes != null) {
+          return 'Delivery within $_deliveryEtaMinutes minutes';
+        }
+      }
+      if (type == '2days') {
+        return _deliveryPromise!; // "Delivery within 2 Days"
+      }
+    }
+    
+    // Fallback for when ETA is available
+    if (_deliveryEtaMaxMinutes != null && _deliveryEtaMaxMinutes! > 0) {
+      final eta = DateTime.now().add(
+        Duration(minutes: _deliveryEtaMaxMinutes!),
+      );
+      return 'Deliver Today by ${_slotLabel(TimeOfDay.fromDateTime(eta))}';
+    }
+    
+    return 'Delivery Time';
   }
 
   String _todayDeliverySubtitle() {
     final etaMin = _deliveryEtaMinMinutes;
     final etaMax = _deliveryEtaMaxMinutes;
     final distance = _deliveryDistanceKm;
+    final type = _deliveryType ?? '';
 
+    // For same day/next day in major cities
+    if (type == 'sameday' || type == 'nextday') {
+      return 'Delivery to major Odisha cities';
+    }
+
+    // For 2 days delivery
+    if (type == '2days') {
+      return 'Across Odisha';
+    }
+
+    // For time-based ETAs (local and extended)
     if (etaMin != null && etaMax != null && distance != null) {
       return '$etaMin-$etaMax min for ${distance.toStringAsFixed(1)} km from your nearest delivery partner.';
     }
@@ -461,7 +496,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     if (!_deliveryAvailable) {
       setState(
         () => _error =
-            'Delivery is not available beyond ${_deliveryRadiusKm.toStringAsFixed(0)} km from your nearest delivery partner.',
+            'Delivery is not available at this location. Please check your address.',
       );
       return;
     }
@@ -865,54 +900,66 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _deliveryModeTile(
-                  title: _todayDeliveryLabel(),
-                  subtitle: _todayDeliverySubtitle(),
-                  selected: !_deliverTomorrow,
-                  enabled: true,
-                  onTap: () => setState(() => _deliverTomorrow = false),
-                ),
-                const Divider(height: 8),
-                _deliveryModeTile(
-                  title: 'Schedule for Tomorrow',
-                  subtitle: 'Select a slot between 7:30 AM and 9:00 PM',
-                  selected: _deliverTomorrow,
-                  enabled: true,
-                  onTap: () => setState(() => _deliverTomorrow = true),
-                ),
-                if (_deliverTomorrow) ...[
-                  const SizedBox(height: 6),
-                  DropdownButtonFormField<int>(
-                    initialValue: _selectedTomorrowSlotIndex,
-                    decoration: InputDecoration(
-                      labelText: 'Tomorrow delivery slot',
-                      filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-                      ),
-                    ),
-                    items: List.generate(_tomorrowSlots.length, (i) {
-                      final label = _slotLabel(_tomorrowSlots[i]);
-                      return DropdownMenuItem<int>(
-                        value: i,
-                        child: Text(
-                          label,
-                          style: const TextStyle(fontSize: 13.5),
-                        ),
-                      );
-                    }),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => _selectedTomorrowSlotIndex = value);
-                    },
+                // For same day, next day, and 2 days deliveries, show fixed delivery info
+                if (_deliveryType == 'sameday' || _deliveryType == 'nextday' || _deliveryType == '2days')
+                  _deliveryModeTile(
+                    title: _todayDeliveryLabel(),
+                    subtitle: _todayDeliverySubtitle(),
+                    selected: true,
+                    enabled: false,
+                    onTap: () {},
+                  )
+                // For fast delivery (local and extended), show scheduling options
+                else ...[
+                  _deliveryModeTile(
+                    title: _todayDeliveryLabel(),
+                    subtitle: _todayDeliverySubtitle(),
+                    selected: !_deliverTomorrow,
+                    enabled: true,
+                    onTap: () => setState(() => _deliverTomorrow = false),
                   ),
-                ],
+                  const Divider(height: 8),
+                  _deliveryModeTile(
+                    title: 'Schedule for Tomorrow',
+                    subtitle: 'Select a slot between 7:30 AM and 9:00 PM',
+                    selected: _deliverTomorrow,
+                    enabled: true,
+                    onTap: () => setState(() => _deliverTomorrow = true),
+                  ),
+                  if (_deliverTomorrow) ...[
+                    const SizedBox(height: 6),
+                    DropdownButtonFormField<int>(
+                      initialValue: _selectedTomorrowSlotIndex,
+                      decoration: InputDecoration(
+                        labelText: 'Tomorrow delivery slot',
+                        filled: true,
+                        fillColor: const Color(0xFFF8FAFC),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        ),
+                      ),
+                      items: List.generate(_tomorrowSlots.length, (i) {
+                        final label = _slotLabel(_tomorrowSlots[i]);
+                        return DropdownMenuItem<int>(
+                          value: i,
+                          child: Text(
+                            label,
+                            style: const TextStyle(fontSize: 13.5),
+                          ),
+                        );
+                      }),
+                      onChanged: (value) {
+                        if (value == null) return;
+                        setState(() => _selectedTomorrowSlotIndex = value);
+                      },
+                    ),
+                  ],
+                ]
               ],
             ),
           ),

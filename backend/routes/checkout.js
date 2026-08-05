@@ -16,6 +16,27 @@ const BASE_DELIVERY_FEE = 39;
 const FREE_DELIVERY_DISTANCE_KM = 18;
 const EXTRA_DELIVERY_PER_KM = 2;
 
+// ── Odisha Statewide Delivery Configuration ────────────────────────────────
+const LOCAL_DELIVERY_RADIUS_KM = 25;
+const EXTENDED_DELIVERY_RADIUS_KM = 500; // serviceable range for extended delivery
+const EXTENDED_DELIVERY_ETA_MINUTES = 120;
+
+// Major Odisha cities for Same Day / Next Day delivery
+const MAJOR_ODISHA_CITIES = new Set([
+  'bhubaneswar',
+  'khordha',
+  'puri',
+  'balasore',
+  'baleshwar',
+  'sambalpur',
+  'bhadrak'
+]);
+
+// Helper to check if city is a major Odisha city
+function isMajorOdishaCity(city) {
+  return MAJOR_ODISHA_CITIES.has(city?.toLowerCase().trim() || '');
+}
+
 const hasOrdersColumn = async (columnName) => {
   try {
     const { rows } = await pool.query(
@@ -106,6 +127,65 @@ function calcDeliveryFee(subtotal, distanceKm) {
   return baseFee + (extraKm * EXTRA_DELIVERY_PER_KM);
 }
 
+// ── Calculate delivery information based on Odisha statewide rules ──────────
+function calculateDeliveryInfo(distanceKm, city) {
+  const result = {
+    deliveryPromise: null,     // e.g., "Fast Delivery", "Same Day Delivery", etc.
+    deliveryType: null,         // 'local', 'extended', 'sameday', 'nextday', '2days'
+    etaMinutes: null,
+    etaMinMinutes: null,
+    etaMaxMinutes: null,
+    isAvailable: true,
+  };
+
+  // RULE 1: LOCAL DELIVERY (within 25 km)
+  if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
+    result.deliveryPromise = "Fast Delivery";
+    result.deliveryType = 'local';
+    result.etaMinMinutes = 30;
+    result.etaMaxMinutes = 60;
+    result.etaMinutes = 60; // max eta for checkout display
+    return result;
+  }
+
+  // RULE 2: EXTENDED DISTANCE DELIVERY (within serviceable range but > 25 km)
+  if (distanceKm != null && distanceKm <= EXTENDED_DELIVERY_RADIUS_KM) {
+    result.deliveryPromise = "Within 120 Minutes";
+    result.deliveryType = 'extended';
+    result.etaMinutes = EXTENDED_DELIVERY_ETA_MINUTES;
+    result.etaMinMinutes = 90;
+    result.etaMaxMinutes = 120;
+    return result;
+  }
+
+  // For city-based delivery (when coordinates not available)
+  const isMajor = isMajorOdishaCity(city);
+
+  // RULE 3: SAME-DAY / NEXT-DAY CITY DELIVERY (major Odisha cities)
+  if (isMajor) {
+    const now = new Date();
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+
+    // If order placed before 12:00 PM (noon)
+    if (currentHours < 12 || (currentHours === 12 && currentMinutes === 0)) {
+      result.deliveryPromise = "Same Day Delivery";
+      result.deliveryType = 'sameday';
+    } else {
+      result.deliveryPromise = "Next Day Delivery";
+      result.deliveryType = 'nextday';
+    }
+    result.etaMinutes = null; // Not applicable for same/next day
+    return result;
+  }
+
+  // RULE 4: OTHER ODISHA LOCATIONS (2 days)
+  result.deliveryPromise = "Delivery within 2 Days";
+  result.deliveryType = '2days';
+  result.etaMinutes = null; // Not applicable for 2 days
+  return result;
+}
+
 async function resolveOrderStore(client, items) {
   const variantIds = [...new Set(items.map((item) => item.variantId).filter(Boolean))];
   if (variantIds.length === 0) {
@@ -177,7 +257,7 @@ router.get("/delivery-fee", async (req, res) => {
     const sub = parseFloat(subtotal) || 0;
     let fee = 0;
     let distance = null;
-    let withinRange = true;
+    let deliveryInfo = null;
 
     if (addrLat != null && addrLng != null) {
       // Find nearest active dark store by actual distance
@@ -196,13 +276,15 @@ router.get("/delivery-fee", async (req, res) => {
         fee = calcDeliveryFee(sub, distance);
       }
     } else {
-      // No coordinates — city-based fallback, assume in range
+      // No coordinates — city-based fallback
       const { rows: storeRows } = await pool.query(
         `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
       );
-      if (!storeRows.length) withinRange = false;
       fee = calcDeliveryFee(sub, null);
     }
+
+    // Calculate delivery information using new Odisha statewide rules
+    deliveryInfo = calculateDeliveryInfo(distance, city);
 
     const distanceSurcharge = (distance != null && distance > FREE_DELIVERY_DISTANCE_KM)
       ? Math.ceil(distance - FREE_DELIVERY_DISTANCE_KM) * EXTRA_DELIVERY_PER_KM
@@ -211,7 +293,12 @@ router.get("/delivery-fee", async (req, res) => {
       success: true,
       fee,
       distance,
-      withinRange,
+      withinRange: deliveryInfo.isAvailable,
+      deliveryPromise: deliveryInfo.deliveryPromise,
+      deliveryType: deliveryInfo.deliveryType,
+      etaMinutes: deliveryInfo.etaMinutes,
+      etaMinMinutes: deliveryInfo.etaMinMinutes,
+      etaMaxMinutes: deliveryInfo.etaMaxMinutes,
       freeDeliveryThreshold: FREE_DELIVERY_THRESHOLD,
       baseDeliveryFee: BASE_DELIVERY_FEE,
       freeDistanceKm: FREE_DELIVERY_DISTANCE_KM,
@@ -391,6 +478,9 @@ router.post("/orders", async (req, res) => {
     const firstOrderDiscount = 0;
 
     const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
+    
+    // Calculate delivery information using new Odisha statewide rules
+    const deliveryInfo = calculateDeliveryInfo(distanceKm, city);
 
     // ── Allow only ONE offer per order ─────────────────────────────────────
     const hasManualOffer = !!manualOfferType;
@@ -567,6 +657,11 @@ router.post("/orders", async (req, res) => {
       distanceKm: distanceKm,
       createdAt: order.created_at,
       darkStoreAssigned: !!darkStoreId,
+      deliveryPromise: deliveryInfo.deliveryPromise,
+      deliveryType: deliveryInfo.deliveryType,
+      etaMinutes: deliveryInfo.etaMinutes,
+      etaMinMinutes: deliveryInfo.etaMinMinutes,
+      etaMaxMinutes: deliveryInfo.etaMaxMinutes,
     });
   } catch (err) {
     await client.query("ROLLBACK");

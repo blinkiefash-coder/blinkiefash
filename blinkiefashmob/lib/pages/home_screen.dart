@@ -2196,10 +2196,7 @@ class _HomeScreenState extends State<HomeScreen>
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: const Color(0xFFBBF7D0),
-                    width: 1,
-                  ),
+                  border: Border.all(color: const Color(0xFFBBF7D0), width: 1),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
