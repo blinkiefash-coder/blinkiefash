@@ -2909,9 +2909,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   alignment: Alignment.center,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  placeholder: (context, url) => Container(
-                                    color: const Color(0xFFF1F5F9),
-                                  ),
+                                  placeholder: (context, url) =>
+                                      Container(color: const Color(0xFFF1F5F9)),
                                   errorWidget: (context, url, error) =>
                                       Container(
                                         color: const Color(0xFFF1F5F9),
@@ -2933,19 +2932,23 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                         // HOT DEAL ribbon
                         Positioned(
-                          top: 10,
-                          left: -25,
+                          top: 8,
+                          left: -30,
                           child: Transform.rotate(
                             angle: -0.785,
                             child: Container(
-                              width: 80,
-                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              width: 90,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFEA580C),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(0xFFEA580C)
-                                        .withValues(alpha: 0.4),
+                                    color: const Color(
+                                      0xFFEA580C,
+                                    ).withValues(alpha: 0.4),
                                     blurRadius: 8,
                                   ),
                                 ],
