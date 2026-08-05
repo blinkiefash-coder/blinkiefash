@@ -84,6 +84,11 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   final TextEditingController _minCtrl = TextEditingController();
   final TextEditingController _maxCtrl = TextEditingController();
 
+  // Scroll-based visibility
+  bool _showCategoryPanel = true;
+  double _lastScrollPosition = 0;
+  static const double _scrollThreshold = 50;
+
   @override
   void initState() {
     super.initState();
@@ -105,12 +110,28 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     _loadMeta();
     _loadProducts(reset: true);
     _scrollCtrl.addListener(() {
+      // Infinite scroll loading
       if (_scrollCtrl.position.pixels >
               _scrollCtrl.position.maxScrollExtent - 300 &&
           !_isLoading &&
           _hasMore) {
         _loadProducts();
       }
+
+      // Show/hide category panel based on scroll direction
+      final currentPosition = _scrollCtrl.position.pixels;
+      if (currentPosition > _lastScrollPosition + _scrollThreshold) {
+        // Scrolling down - hide category panel
+        if (_showCategoryPanel) {
+          setState(() => _showCategoryPanel = false);
+        }
+      } else if (currentPosition < _lastScrollPosition - _scrollThreshold) {
+        // Scrolling up - show category panel
+        if (!_showCategoryPanel) {
+          setState(() => _showCategoryPanel = true);
+        }
+      }
+      _lastScrollPosition = currentPosition;
     });
   }
 
@@ -592,9 +613,24 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           if (_showSuggestions)
             Expanded(child: _suggestionsDropdown())
           else ...[
-            if (_categories.isNotEmpty) _categoryChipsRow(),
-            if (_subcategories.isNotEmpty) _subcategoriesRow(),
-            if (_activeFilterCount > 0) _activeFilterChips(),
+            AnimatedOpacity(
+              opacity: _showCategoryPanel ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                height: _showCategoryPanel ? null : 0,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_categories.isNotEmpty) _categoryChipsRow(),
+                      if (_subcategories.isNotEmpty) _subcategoriesRow(),
+                      if (_activeFilterCount > 0) _activeFilterChips(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
           Expanded(child: _body()),
         ],
@@ -853,7 +889,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   // ── Category chips row ─────────────────────────────────────────────────────
   Widget _subcategoriesRow() {
     if (_subcategories.isEmpty) return const SizedBox.shrink();
-    
+
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -878,7 +914,10 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
                 margin: const EdgeInsets.only(right: 8),
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1F5F9),
