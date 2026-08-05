@@ -16,9 +16,9 @@ class ParcelTrackingScreen extends StatefulWidget {
   const ParcelTrackingScreen({
     super.key,
     required this.requestId,
-    required this.pickupText,
-    required this.dropText,
-    required this.estimatedFare,
+    this.pickupText = '',
+    this.dropText = '',
+    this.estimatedFare = 0,
   });
 
   @override

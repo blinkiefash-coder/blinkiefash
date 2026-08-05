@@ -59,7 +59,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     _requestId = widget.parcel['id'] as String? ?? '';
     _receiverName = widget.parcel['receiver_name'] as String? ?? 'Recipient';
     _receiverPhone = widget.parcel['receiver_phone'] as String? ?? '';
-    
+
     // Handle both string and num types for coordinates using helper function
     _dropLat = _parseCoordinate(widget.parcel['drop_lat']);
     _dropLng = _parseCoordinate(widget.parcel['drop_lng']);

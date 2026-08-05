@@ -751,7 +751,7 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverPickupAutoInitialized = false;
       });
       _stopDeliverLiveTracking();
-      
+
       // Navigate to parcel tracking screen
       if (mounted) {
         Navigator.of(context).push(
