@@ -1184,8 +1184,7 @@ router.patch("/orders/:orderId/status", async (req, res) => {
         shouldNotifyRiders = true;
       }
     }
-      params
-    );
+
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
     
     // ── IMPORTANT: When order is cancelled, also cancel associated delivery requests ──
