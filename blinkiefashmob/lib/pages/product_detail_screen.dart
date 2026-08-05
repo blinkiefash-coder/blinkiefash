@@ -1681,10 +1681,32 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               ? variantMaps.first
               : <String, dynamic>{};
 
-          final currentPrice = _formatPrice(
-            selectedVariant['discount_price'] ?? selectedVariant['price'],
-          );
-          final originalPrice = _formatPrice(selectedVariant['price']);
+          // Calculate minimum variant price for display consistency
+          int? minDiscountPrice;
+          int? minOriginalPrice;
+          for (final v in variantMaps) {
+            final discPrice = int.tryParse(
+              (v['discount_price'] ?? v['price'] ?? 0).toString(),
+            ) ?? 0;
+            final origPrice = int.tryParse(
+              (v['price'] ?? 0).toString(),
+            ) ?? 0;
+            if (minDiscountPrice == null || discPrice < minDiscountPrice) {
+              minDiscountPrice = discPrice;
+            }
+            if (minOriginalPrice == null || origPrice < minOriginalPrice) {
+              minOriginalPrice = origPrice;
+            }
+          }
+
+          // Use variant-specific price if selected, otherwise use minimum price
+          final displayPrice = (selectedVariant?['discount_price'] ?? 
+              selectedVariant?['price'] ?? minDiscountPrice ?? 0).toString();
+          final displayOriginalPrice = (selectedVariant?['price'] ?? 
+              minOriginalPrice ?? 0).toString();
+
+          final currentPrice = _formatPrice(displayPrice);
+          final originalPrice = _formatPrice(displayOriginalPrice);
           final offPercent = _discountPercent(originalPrice, currentPrice);
           final stock =
               int.tryParse(
