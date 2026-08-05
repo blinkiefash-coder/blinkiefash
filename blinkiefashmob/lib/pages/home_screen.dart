@@ -833,6 +833,69 @@ class _HomeScreenState extends State<HomeScreen>
     return (double.tryParse(v.toString()) ?? 0).round().toString();
   }
 
+  /// Get minimum variant prices (discount or original) from product variants
+  /// Falls back to product-level prices if variants don't exist
+  /// Get first available variant for product cards (prefer in-stock)
+  /// Returns variant data with image_url and pricing
+  Map<String, dynamic> _getCardVariant(Map<String, dynamic> product) {
+    final variants = product['variants'] is List
+        ? List<dynamic>.from(product['variants'] as List)
+        : <dynamic>[];
+
+    if (variants.isEmpty) {
+      // No variants - use product-level data
+      return {
+        'image_url': product['image_url'] ?? product['image'],
+        'discount_price': product['discount_price'] ?? product['price'] ?? 0,
+        'price': product['price'] ?? 0,
+      };
+    }
+
+    // Find first in-stock variant
+    Map<String, dynamic>? inStockVariant;
+    for (final v in variants) {
+      if (v is! Map) continue;
+      final variantMap = Map<String, dynamic>.from(v as Map);
+      final stock =
+          int.tryParse(variantMap['available_stock']?.toString() ?? '0') ?? 0;
+      if (stock > 0) {
+        inStockVariant = variantMap;
+        break;
+      }
+    }
+
+    // If no in-stock variant, use first variant
+    final selectedVariant =
+        inStockVariant ??
+        (variants.isNotEmpty && variants[0] is Map
+            ? Map<String, dynamic>.from(variants[0] as Map)
+            : null);
+
+    if (selectedVariant != null) {
+      return {
+        'image_url':
+            selectedVariant['image_url'] ??
+            selectedVariant['image'] ??
+            product['image_url'] ??
+            product['image'],
+        'discount_price':
+            selectedVariant['discount_price'] ??
+            selectedVariant['price'] ??
+            product['discount_price'] ??
+            product['price'] ??
+            0,
+        'price': selectedVariant['price'] ?? product['price'] ?? 0,
+      };
+    }
+
+    // Fallback to product-level data
+    return {
+      'image_url': product['image_url'] ?? product['image'],
+      'discount_price': product['discount_price'] ?? product['price'] ?? 0,
+      'price': product['price'] ?? 0,
+    };
+  }
+
   String _offLabel(Map<String, dynamic> p) {
     final price = double.tryParse((p['price'] ?? '').toString());
     final disc = double.tryParse((p['discount_price'] ?? '').toString());
@@ -2413,10 +2476,11 @@ class _HomeScreenState extends State<HomeScreen>
               final item = products[i];
               final name = item['name']?.toString() ?? 'Product';
               final brand = item['brand']?.toString() ?? '';
-              final price = _fmt(item['discount_price'] ?? item['price']);
-              final origP = _fmt(item['price']);
+              final variantData = _getCardVariant(item);
+              final price = _fmt(variantData['discount_price']);
+              final origP = _fmt(variantData['price']);
               final off = item['off']?.toString() ?? _offLabel(item);
-              final img = _imgUrl(item['image']);
+              final img = _imgUrl(variantData['image_url'] ?? item['image']);
               final wishItem = WishlistItem(
                 productId: item['id']?.toString() ?? '',
                 name: name,
@@ -2754,10 +2818,11 @@ class _HomeScreenState extends State<HomeScreen>
           final item = items[i];
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
-          final price = _fmt(item['discount_price'] ?? item['price']);
-          final origP = _fmt(item['price']);
+          final variantData = _getCardVariant(item);
+          final price = _fmt(variantData['discount_price']);
+          final origP = _fmt(variantData['price']);
           final off = item['off']?.toString() ?? _offLabel(item);
-          final img = _imgUrl(item['image']);
+          final img = _imgUrl(variantData['image_url'] ?? item['image']);
           final wishItem1 = WishlistItem(
             productId: item['id']?.toString() ?? '',
             name: name,
@@ -3085,10 +3150,11 @@ class _HomeScreenState extends State<HomeScreen>
           final item = items[i];
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
-          final price = _fmt(item['discount_price'] ?? item['price']);
-          final origP = _fmt(item['price']);
+          final variantData = _getCardVariant(item);
+          final price = _fmt(variantData['discount_price']);
+          final origP = _fmt(variantData['price']);
           final off = item['off']?.toString() ?? _offLabel(item);
-          final img = _imgUrl(item['image']);
+          final img = _imgUrl(variantData['image_url'] ?? item['image']);
           final wishItem = WishlistItem(
             productId: item['id']?.toString() ?? '',
             name: name,
@@ -3952,10 +4018,11 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _shopProductCard(Map<String, dynamic> item, double cardW) {
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
-    final price = _fmt(item['discount_price'] ?? item['price']);
-    final origP = _fmt(item['price']);
+    final variantData = _getCardVariant(item);
+    final price = _fmt(variantData['discount_price']);
+    final origP = _fmt(variantData['price']);
     final off = item['off']?.toString() ?? _offLabel(item);
-    final img = _imgUrl(item['image']);
+    final img = _imgUrl(variantData['image_url'] ?? item['image']);
     final wishItem = WishlistItem(
       productId: item['id']?.toString() ?? '',
       name: name,
