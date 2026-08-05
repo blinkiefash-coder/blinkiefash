@@ -113,30 +113,43 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
 
       if (details != null) {
         setState(() {
-          _receiverName = details['receiver_name'] as String? ?? _receiverName;
-          _receiverPhone =
-              details['receiver_phone'] as String? ?? _receiverPhone;
-          _pickupText = details['pickup_text'] as String? ?? _pickupText;
-          _dropText = details['drop_text'] as String? ?? _dropText;
-          _dropLat = _parseCoordinate(details['drop_lat'] ?? _dropLat);
-          _dropLng = _parseCoordinate(details['drop_lng'] ?? _dropLng);
+          // Update all fields from API response
+          _receiverName = details['receiver_name'] as String? ?? 'Recipient';
+          _receiverPhone = details['receiver_phone'] as String? ?? '';
+          _pickupText = details['pickup_text'] as String? ?? 'Pickup Location';
+          _dropText = details['drop_text'] as String? ?? 'Dropoff Location';
+          _dropLat = _parseCoordinate(details['drop_lat']);
+          _dropLng = _parseCoordinate(details['drop_lng']);
         });
-      } else {
-        // Details not found, continue with defaults
       }
     } catch (e) {
-      if (mounted) {
-        // API error, continue with defaults
-      }
+      // Log error but continue with defaults
     }
   }
 
   Future<void> _openMaps() async {
+    // Check if coordinates are valid (not 0,0)
+    if (_dropLat == 0 || _dropLng == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Delivery location not available yet. Please wait...'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     final uri = Uri.parse(
       'https://www.google.com/maps/search/?api=1&query=$_dropLat,$_dropLng',
     );
     if (await canLaunchUrl(uri)) {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not open Google Maps')),
+        );
+      }
     }
   }
 
@@ -661,7 +674,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    onPressed: _openMaps,
+                    onPressed: (_dropLat == 0 || _dropLng == 0)
+                        ? null
+                        : _openMaps,
                     icon: const Icon(Icons.map_rounded),
                     label: const Text(
                       'Open in Google Maps',
