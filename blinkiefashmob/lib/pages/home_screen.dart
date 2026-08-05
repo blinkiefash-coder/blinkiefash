@@ -2853,7 +2853,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return SizedBox(
-      height: 300,
+      height: 270,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -3080,14 +3080,9 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   Expanded(
-                    flex: 2,
+                    flex: 1,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        11,
-                        8,
-                        11,
-                        6,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(11, 5, 11, 3),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.start,
@@ -3099,8 +3094,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 name,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
-                                  fontSize: 13,
-                                  height: 1.1,
+                                  fontSize: 12,
+                                  height: 1.0,
                                   letterSpacing: -0.3,
                                   color: Color(0xFF0F172A),
                                 ),
@@ -3109,7 +3104,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                               if (brand.isNotEmpty)
                                 Padding(
-                                  padding: const EdgeInsets.only(top: 3),
+                                  padding: const EdgeInsets.only(top: 1),
                                   child: Text(
                                     brand.toUpperCase(),
                                     style: const TextStyle(
@@ -3125,7 +3120,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 ),
                             ],
                           ),
-                          const SizedBox(height: 6),
+                          const SizedBox(height: 1),
                           Row(
                             children: [
                               Text(
