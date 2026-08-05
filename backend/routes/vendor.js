@@ -1079,6 +1079,16 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
         const newSize = (size && String(size).trim()) ? String(size).trim() : curSize;
         const newColor = (color && String(color).trim()) ? String(color).trim() : curColor;
         const newSku = `${product_id}-${newColor}-${newSize}`.replace(/\s+/g, "-").toUpperCase();
+        
+        // Check if the new SKU already exists (for a different variant)
+        const existingSKU = await pool.query(
+          `SELECT id FROM product_variants WHERE product_id = $1 AND sku = $2 AND id != $3 LIMIT 1`,
+          [product_id, newSku, variantId]
+        );
+        if (existingSKU.rows.length > 0) {
+          return res.status(400).json({ success: false, message: `Variant with size '${newSize}' and color '${newColor}' already exists. Please use a different size/color combination.` });
+        }
+        
         const sets = ['size = $2', 'color = $3', 'sku = $4'];
         const vals = [variantId, newSize, newColor, newSku];
         if (barcode !== undefined) {
