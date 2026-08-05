@@ -1106,6 +1106,17 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
 
     await client.query("BEGIN");
     const sku = `${productId}-${color}-${size}`.replace(/\s+/g, "-").toUpperCase();
+    
+    // Check if this size/color combination already exists
+    const existingSKU = await client.query(
+      `SELECT id FROM product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
+      [productId, sku]
+    );
+    if (existingSKU.rows.length > 0) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: `Variant with size '${size}' and color '${color}' already exists. Please edit the existing variant or use a different size/color combination.` });
+    }
+    
     const variantRes = await client.query(
       `INSERT INTO product_variants (product_id, sku, size, color, barcode, price, mrp)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
