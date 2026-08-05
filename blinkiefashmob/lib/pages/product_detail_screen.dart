@@ -55,6 +55,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final TextEditingController _reviewerNameCtrl = TextEditingController();
   bool _submittingReview = false;
   XFile? _pickedReviewImage;
+  
+  // Review access control
+  bool _canReview = false;
+  bool _reviewAccessLoading = true;
 
   // Description expansion
   bool _descExpanded = false;
@@ -89,6 +93,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     });
     _loadReviews();
+    _checkReviewAccess();
   }
 
   @override
@@ -633,6 +638,54 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     } catch (_) {
       if (mounted) setState(() => _reviewsLoading = false);
+    }
+  }
+
+  Future<void> _checkReviewAccess() async {
+    if (!mounted) return;
+    setState(() => _reviewAccessLoading = true);
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        if (mounted) setState(() => _reviewAccessLoading = false);
+        return;
+      }
+
+      // Fetch user's orders
+      final orders = await _apiClient.fetchUserOrders(currentUser.uid);
+      bool hasDeliveredOrder = false;
+
+      // Check if user has a delivered order containing this product
+      for (final order in orders) {
+        if (order is! Map) continue;
+        final items = order['items'] as List? ?? [];
+        final status = (order['status'] ?? '').toString().toLowerCase();
+        
+        // Check if order is delivered
+        if (status == 'delivered' || status == 'completed') {
+          // Check if order contains this product
+          for (final item in items) {
+            if (item is Map) {
+              final productId = item['product_id']?.toString();
+              if (productId == widget.productId) {
+                hasDeliveredOrder = true;
+                break;
+              }
+            }
+          }
+          if (hasDeliveredOrder) break;
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _canReview = hasDeliveredOrder;
+          _reviewAccessLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error checking review access: $e');
+      if (mounted) setState(() => _reviewAccessLoading = false);
     }
   }
 
@@ -3076,264 +3129,378 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   .map((r) => _buildReviewCard(r))),
                             const Divider(height: 28),
                             // ── Write a Review ────────────────────────────────
-                            const Row(
-                              children: [
-                                Icon(
-                                  Icons.rate_review_outlined,
-                                  color: Color(0xFF16A34A),
-                                  size: 18,
-                                ),
-                                SizedBox(width: 8),
-                                Text(
-                                  'Write a Review',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            // Star picker with label
-                            Row(
-                              children: [
-                                ...List.generate(5, (i) {
-                                  return GestureDetector(
-                                    onTap: () => setState(
-                                      () => _newReviewRating = i + 1,
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.only(right: 4),
-                                      child: Icon(
-                                        i < _newReviewRating
-                                            ? Icons.star_rounded
-                                            : Icons.star_outline_rounded,
-                                        color: i < _newReviewRating
-                                            ? const Color(0xFFFBBF24)
-                                            : const Color(0xFFD1D5DB),
-                                        size: 36,
+                            if (!_reviewAccessLoading)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Row(
+                                    children: [
+                                      Icon(
+                                        Icons.rate_review_outlined,
+                                        color: Color(0xFF16A34A),
+                                        size: 18,
                                       ),
-                                    ),
-                                  );
-                                }),
-                                const SizedBox(width: 10),
-                                Text(
-                                  [
-                                    '',
-                                    'Poor',
-                                    'Fair',
-                                    'Good',
-                                    'Very Good',
-                                    'Excellent',
-                                  ][_newReviewRating],
-                                  style: const TextStyle(
-                                    color: Color(0xFFD97706),
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 13,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _reviewerNameCtrl,
-                              decoration: InputDecoration(
-                                hintText: 'Your name (optional)',
-                                filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            TextField(
-                              controller: _reviewTextCtrl,
-                              maxLines: 3,
-                              decoration: InputDecoration(
-                                hintText:
-                                    'Share your experience with this product…',
-                                filled: true,
-                                fillColor: const Color(0xFFF9FAFB),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: const BorderSide(
-                                    color: Color(0xFFE5E7EB),
-                                  ),
-                                ),
-                                contentPadding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 10,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 12),
-                            // ── Image picker ──────────────────────────────────
-                            Row(
-                              children: [
-                                GestureDetector(
-                                  onTap: () async {
-                                    final picker = ImagePicker();
-                                    final img = await picker.pickImage(
-                                      source: ImageSource.gallery,
-                                      imageQuality: 80,
-                                      maxWidth: 1080,
-                                    );
-                                    if (img != null) {
-                                      setState(() => _pickedReviewImage = img);
-                                    }
-                                  },
-                                  child: Container(
-                                    width: 64,
-                                    height: 64,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFF9FAFB),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
-                                        color: const Color(0xFFE5E7EB),
-                                        width: 1.5,
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Write a Review',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                          color: Color(0xFF0F172A),
+                                        ),
                                       ),
-                                    ),
-                                    child: _pickedReviewImage == null
-                                        ? const Column(
-                                            mainAxisAlignment:
-                                                MainAxisAlignment.center,
-                                            children: [
-                                              Icon(
-                                                Icons
-                                                    .add_photo_alternate_outlined,
-                                                color: Color(0xFF9CA3AF),
-                                                size: 24,
-                                              ),
-                                              SizedBox(height: 2),
-                                              Text(
-                                                'Photo',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  color: Color(0xFF9CA3AF),
-                                                ),
-                                              ),
-                                            ],
-                                          )
-                                        : Stack(
-                                            fit: StackFit.expand,
-                                            children: [
-                                              ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(9),
-                                                child: Image.network(
-                                                  _pickedReviewImage!.path
-                                                          .startsWith('http')
-                                                      ? _pickedReviewImage!.path
-                                                      : _pickedReviewImage!
-                                                            .path,
-                                                  fit: BoxFit.cover,
-                                                  errorBuilder: (ctx, e, st) =>
-                                                      Image.asset(
-                                                        'assets/images/logo.png',
-                                                        fit: BoxFit.cover,
-                                                      ),
-                                                ),
-                                              ),
-                                              Positioned(
-                                                top: 2,
-                                                right: 2,
-                                                child: GestureDetector(
-                                                  onTap: () => setState(
-                                                    () => _pickedReviewImage =
-                                                        null,
-                                                  ),
-                                                  child: Container(
-                                                    decoration:
-                                                        const BoxDecoration(
-                                                          color: Colors.black54,
-                                                          shape:
-                                                              BoxShape.circle,
-                                                        ),
-                                                    padding:
-                                                        const EdgeInsets.all(2),
-                                                    child: const Icon(
-                                                      Icons.close,
-                                                      size: 12,
-                                                      color: Colors.white,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                    ],
+                                  ),
+                                  const SizedBox(height: 14),
+                                  if (!_canReview)
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 10,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEF3C7),
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: const Color(0xFFFCD34D),
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          const Icon(
+                                            Icons.info_outlined,
+                                            color: Color(0xFFB45309),
+                                            size: 18,
                                           ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Text(
-                                    'Add a photo to your review (optional)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Color(0xFF6B7280),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: FilledButton.icon(
-                                style: FilledButton.styleFrom(
-                                  backgroundColor: const Color(0xFF16A34A),
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: _submittingReview
-                                    ? null
-                                    : () => _submitReview(
-                                        data['product']?['id']?.toString() ??
-                                            widget.productId,
+                                          const SizedBox(width: 10),
+                                          Expanded(
+                                            child: Text(
+                                              'You can only review after your order is delivered',
+                                              style: TextStyle(
+                                                color: const Color(0xFFB45309),
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                icon: _submittingReview
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: BfSpinner(size: 16),
-                                      )
-                                    : const Icon(Icons.rate_review_outlined),
-                                label: const Text(
-                                  'Submit Review',
-                                  style: TextStyle(fontWeight: FontWeight.w700),
-                                ),
+                                    )
+                                  else
+                                    Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        // Star picker with label
+                                        Row(
+                                          children: [
+                                            ...List.generate(5, (i) {
+                                              return GestureDetector(
+                                                onTap: () => setState(
+                                                  () => _newReviewRating =
+                                                      i + 1,
+                                                ),
+                                                child: Padding(
+                                                  padding:
+                                                      const EdgeInsets.only(
+                                                        right: 4,
+                                                      ),
+                                                  child: Icon(
+                                                    i < _newReviewRating
+                                                        ? Icons.star_rounded
+                                                        : Icons
+                                                            .star_outline_rounded,
+                                                    color: i < _newReviewRating
+                                                        ? const Color(
+                                                          0xFFFBBF24,
+                                                        )
+                                                        : const Color(
+                                                          0xFFD1D5DB,
+                                                        ),
+                                                    size: 36,
+                                                  ),
+                                                ),
+                                              );
+                                            }),
+                                            const SizedBox(width: 10),
+                                            Text(
+                                              [
+                                                '',
+                                                'Poor',
+                                                'Fair',
+                                                'Good',
+                                                'Very Good',
+                                                'Excellent',
+                                              ][_newReviewRating],
+                                              style: const TextStyle(
+                                                color: Color(0xFFD97706),
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 13,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        TextField(
+                                          controller: _reviewerNameCtrl,
+                                          decoration: InputDecoration(
+                                            hintText: 'Your name (optional)',
+                                            filled: true,
+                                            fillColor:
+                                                const Color(0xFFF9FAFB),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                color: Color(0xFFE5E7EB),
+                                              ),
+                                            ),
+                                            enabledBorder:
+                                                OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                color: Color(0xFFE5E7EB),
+                                              ),
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 10),
+                                        TextField(
+                                          controller: _reviewTextCtrl,
+                                          maxLines: 3,
+                                          decoration: InputDecoration(
+                                            hintText:
+                                                'Share your experience with this product…',
+                                            filled: true,
+                                            fillColor:
+                                                const Color(0xFFF9FAFB),
+                                            border: OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                color: Color(0xFFE5E7EB),
+                                              ),
+                                            ),
+                                            enabledBorder:
+                                                OutlineInputBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              borderSide: const BorderSide(
+                                                color: Color(0xFFE5E7EB),
+                                              ),
+                                            ),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 12,
+                                              vertical: 10,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        // ── Image picker ──────────────────────────────────
+                                        Row(
+                                          children: [
+                                            GestureDetector(
+                                              onTap: () async {
+                                                final picker = ImagePicker();
+                                                final img =
+                                                    await picker.pickImage(
+                                                  source:
+                                                      ImageSource.gallery,
+                                                  imageQuality: 80,
+                                                  maxWidth: 1080,
+                                                );
+                                                if (img != null) {
+                                                  setState(() =>
+                                                      _pickedReviewImage =
+                                                      img);
+                                                }
+                                              },
+                                              child: Container(
+                                                width: 64,
+                                                height: 64,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(
+                                                    0xFFF9FAFB,
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        10,
+                                                      ),
+                                                  border: Border.all(
+                                                    color: const Color(
+                                                      0xFFE5E7EB,
+                                                    ),
+                                                    width: 1.5,
+                                                  ),
+                                                ),
+                                                child: _pickedReviewImage ==
+                                                        null
+                                                    ? const Column(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                          .center,
+                                                      children: [
+                                                        Icon(
+                                                          Icons
+                                                              .add_photo_alternate_outlined,
+                                                          color: Color(
+                                                            0xFF9CA3AF,
+                                                          ),
+                                                          size: 24,
+                                                        ),
+                                                        SizedBox(
+                                                          height: 2,
+                                                        ),
+                                                        Text(
+                                                          'Photo',
+                                                          style:
+                                                              TextStyle(
+                                                            fontSize: 10,
+                                                            color: Color(
+                                                              0xFF9CA3AF,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    )
+                                                    : Stack(
+                                                      fit: StackFit.expand,
+                                                      children: [
+                                                        ClipRRect(
+                                                          borderRadius:
+                                                              BorderRadius
+                                                              .circular(9),
+                                                          child: Image
+                                                              .network(
+                                                            _pickedReviewImage!
+                                                                    .path
+                                                                    .startsWith(
+                                                                      'http',
+                                                                    )
+                                                                ? _pickedReviewImage!
+                                                                .path
+                                                                : _pickedReviewImage!
+                                                                .path,
+                                                            fit: BoxFit.cover,
+                                                            errorBuilder:
+                                                                (ctx, e,
+                                                                st) =>
+                                                              Image.asset(
+                                                                'assets/images/logo.png',
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                              ),
+                                                          ),
+                                                        ),
+                                                        Positioned(
+                                                          top: 2,
+                                                          right: 2,
+                                                          child:
+                                                              GestureDetector(
+                                                            onTap: () =>
+                                                                setState(
+                                                              () =>
+                                                              _pickedReviewImage =
+                                                              null,
+                                                            ),
+                                                            child: Container(
+                                                              decoration:
+                                                                  const BoxDecoration(
+                                                                color: Colors
+                                                                    .black54,
+                                                                shape: BoxShape
+                                                                    .circle,
+                                                              ),
+                                                              padding:
+                                                                  const EdgeInsets
+                                                                  .all(2),
+                                                              child:
+                                                                  const Icon(
+                                                                Icons.close,
+                                                                size: 12,
+                                                                color: Colors
+                                                                    .white,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 12),
+                                            const Expanded(
+                                              child: Text(
+                                                'Add a photo to your review (optional)',
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  color: Color(0xFF6B7280),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 12),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          child: FilledButton.icon(
+                                            style:
+                                                FilledButton.styleFrom(
+                                              backgroundColor:
+                                                  const Color(0xFF16A34A),
+                                              padding:
+                                                  const EdgeInsets
+                                                  .symmetric(
+                                                vertical: 12,
+                                              ),
+                                              shape:
+                                                  RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(
+                                                      10,
+                                                    ),
+                                              ),
+                                            ),
+                                            onPressed: _submittingReview
+                                                ? null
+                                                : () => _submitReview(
+                                                  data['product']?['id']
+                                                      ?.toString() ??
+                                                      widget
+                                                      .productId,
+                                                ),
+                                            icon: _submittingReview
+                                                ? const SizedBox(
+                                                  width: 16,
+                                                  height: 16,
+                                                  child:
+                                                      BfSpinner(size: 16),
+                                                )
+                                                : const Icon(
+                                                  Icons
+                                                      .rate_review_outlined,
+                                                ),
+                                            label: const Text(
+                                              'Submit Review',
+                                              style: TextStyle(
+                                                fontWeight:
+                                                    FontWeight.w700,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                ],
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                            ]
                 const SizedBox(height: 14),
                 // ── Similar Products ──────────────────────────────────────
                 if (_similarLoading || _similarProducts.isNotEmpty)
