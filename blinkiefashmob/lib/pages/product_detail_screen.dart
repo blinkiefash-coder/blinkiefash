@@ -88,10 +88,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     // Cache data in state so bottomNavigationBar can access it
     _detailFuture.then((d) {
       if (mounted) {
+        // Auto-select first in-stock size BEFORE setState so it's available for first render
+        if (_selectedSize == null) {
+          _selectedSize = _findFirstAvailableSize(d);
+        }
         setState(() => _loadedData = d);
         _loadSimilarProducts(d);
-        // Auto-select first in-stock size if no size was pre-selected
-        _autoSelectFirstSize(d);
       }
     });
     _loadReviews();
@@ -643,16 +645,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     }
   }
 
-  Future<void> _autoSelectFirstSize(Map<String, dynamic> data) async {
-    // Only auto-select if no size was pre-selected
-    if (_selectedSize != null) return;
-
+  String? _findFirstAvailableSize(Map<String, dynamic> data) {
     try {
       final variants = (data['variants'] is List)
           ? List<dynamic>.from(data['variants'])
           : <dynamic>[];
 
-      if (variants.isEmpty) return;
+      if (variants.isEmpty) return null;
 
       final variantMaps = variants
           .whereType<Map>()
@@ -666,12 +665,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           .toSet()
           .toList();
 
-      if (allSizes.isEmpty) return;
+      if (allSizes.isEmpty) return null;
 
       allSizes.sort();
 
       // Find first in-stock size
-      String? firstAvailableSize;
       for (final size in allSizes) {
         final hasStock = variantMaps.any((v) {
           final vSize = (v['size'] ?? '').toString().trim();
@@ -680,19 +678,15 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           return vSize == size && stock > 0;
         });
         if (hasStock) {
-          firstAvailableSize = size;
-          break;
+          return size;
         }
       }
 
       // Fallback to first size if no in-stock found
-      firstAvailableSize ??= allSizes.first;
-
-      if (mounted && firstAvailableSize != null) {
-        setState(() => _selectedSize = firstAvailableSize);
-      }
+      return allSizes.first;
     } catch (e) {
-      debugPrint('Error auto-selecting size: $e');
+      debugPrint('Error finding first available size: $e');
+      return null;
     }
   }
 
@@ -1770,16 +1764,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               }
             }
             // Fallback to first size if none have stock
-            effectiveSize ??= (sizeOptions.isNotEmpty ? sizeOptions.first : null);
-
-            // Update state if we auto-selected a size
-            if (effectiveSize != null && _selectedSize == null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) {
-                  setState(() => _selectedSize = effectiveSize);
-                }
-              });
-            }
+            effectiveSize ??= (sizeOptions.isNotEmpty
+                ? sizeOptions.first
+                : null);
           }
 
           Map<String, dynamic>? selectedVariant;
@@ -1846,14 +1833,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           final currentPrice = _formatPrice(displayPrice);
           final originalPrice = _formatPrice(displayOriginalPrice);
           final offPercent = _discountPercent(originalPrice, currentPrice);
-          
+
           // Calculate stock: prioritize selected variant, fallback to any available stock
           int stock =
               int.tryParse(
                 (selectedVariant['available_stock'] ?? 0).toString(),
               ) ??
               0;
-          
+
           // If selected variant has no stock, check if ANY variant has stock
           if (stock <= 0) {
             for (final v in variantMaps) {
