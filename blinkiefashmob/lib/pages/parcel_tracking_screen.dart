@@ -426,6 +426,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
                     isDone: isDone,
                     onBookAnother: () =>
                         Navigator.of(context).popUntil((r) => r.isFirst),
+                    onCancel: _cancelRequest,
                   ),
                 ],
               ),
@@ -542,6 +543,7 @@ class _BottomCard extends StatelessWidget {
   final bool isAssigned;
   final bool isDone;
   final VoidCallback onBookAnother;
+  final VoidCallback onCancel;
 
   const _BottomCard({
     required this.data,
@@ -551,6 +553,7 @@ class _BottomCard extends StatelessWidget {
     required this.isAssigned,
     required this.isDone,
     required this.onBookAnother,
+    required this.onCancel,
   });
 
   int _calculateExpectedMinutes() {
@@ -633,7 +636,7 @@ class _BottomCard extends StatelessWidget {
               const SizedBox(height: 16),
             ],
 
-            // ── Book Another ──
+            // ── Action Buttons ──
             if (isDone)
               SizedBox(
                 width: double.infinity,
@@ -653,6 +656,36 @@ class _BottomCard extends StatelessWidget {
                       fontWeight: FontWeight.w700,
                       fontSize: 15,
                       letterSpacing: 0.2,
+                    ),
+                  ),
+                ),
+              )
+            else if (isAssigned)
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(
+                      color: Color(0xFFEF4444),
+                      width: 2,
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: onCancel,
+                  icon: const Icon(
+                    Icons.close_rounded,
+                    color: Color(0xFFEF4444),
+                  ),
+                  label: const Text(
+                    'Cancel Delivery',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                      letterSpacing: 0.2,
+                      color: Color(0xFFEF4444),
                     ),
                   ),
                 ),
@@ -834,58 +867,202 @@ class _RiderInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFE0F2FE),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFF0284C7).withValues(alpha: 0.3)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: const Color(0xFF0284C7),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.person_rounded,
-              color: Colors.white,
-              size: 24,
-            ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFF0284C7).withValues(alpha: 0.95),
+            const Color(0xFF0284C7).withValues(alpha: 0.85),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (name != null)
-                  Text(
-                    name!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                      color: Color(0xFF0F172A),
-                    ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.4),
+                    width: 2,
                   ),
-                const SizedBox(height: 2),
-                if (phone != null)
+                ),
+                child: const Icon(
+                  Icons.person_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Your Rider',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    if (name != null)
+                      Text(
+                        name!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 18,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF16A34A),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ],
+          ),
+          if (phone != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.phone_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
+                  const SizedBox(width: 6),
                   Text(
                     phone!,
                     style: const TextStyle(
-                      color: Color(0xFF0284C7),
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.2,
                     ),
                   ),
-              ],
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(2),
+            child: Divider(
+              color: Colors.white.withValues(alpha: 0.2),
+              height: 1,
             ),
           ),
-          Icon(
-            Icons.check_circle_rounded,
-            color: const Color(0xFF0284C7),
-            size: 22,
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _RiderStatChip(
+                  icon: Icons.star_rounded,
+                  label: '4.8',
+                  sublabel: 'Rating',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _RiderStatChip(
+                  icon: Icons.local_shipping_rounded,
+                  label: '342',
+                  sublabel: 'Deliveries',
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _RiderStatChip(
+                  icon: Icons.timer_rounded,
+                  label: '12min',
+                  sublabel: 'ETA',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RiderStatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String sublabel;
+
+  const _RiderStatChip({
+    required this.icon,
+    required this.label,
+    required this.sublabel,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          Text(
+            sublabel,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 9,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ],
       ),
@@ -971,14 +1148,28 @@ class _OTPBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F9FF),
-        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFF0F9FF),
+            const Color(0xFFE0F2FE),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: const Color(0xFF0284C7).withValues(alpha: 0.4),
+          color: const Color(0xFF0284C7).withValues(alpha: 0.5),
           width: 2,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0284C7).withValues(alpha: 0.1),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -990,20 +1181,24 @@ class _OTPBox extends StatelessWidget {
                 'Delivery OTP',
                 style: TextStyle(
                   color: Color(0xFF0284C7),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.3,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: 0.4,
                 ),
               ),
               if (isVerified)
                 Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
+                    horizontal: 10,
+                    vertical: 5,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF16A34A).withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
+                    color: const Color(0xFF16A34A).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: const Color(0xFF16A34A),
+                      width: 1.5,
+                    ),
                   ),
                   child: const Row(
                     children: [
@@ -1018,7 +1213,8 @@ class _OTPBox extends StatelessWidget {
                         style: TextStyle(
                           color: Color(0xFF16A34A),
                           fontSize: 11,
-                          fontWeight: FontWeight.w700,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.2,
                         ),
                       ),
                     ],
@@ -1026,27 +1222,49 @@ class _OTPBox extends StatelessWidget {
                 ),
             ],
           ),
-          const SizedBox(height: 10),
-          Text(
-            otpCode,
-            style: const TextStyle(
-              fontSize: 32,
-              fontWeight: FontWeight.w900,
-              color: Color(0xFF0284C7),
-              letterSpacing: 6,
-              fontFamily: 'Courier',
+          const SizedBox(height: 14),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: const Color(0xFF0284C7).withValues(alpha: 0.2),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0284C7).withValues(alpha: 0.05),
+                  blurRadius: 8,
+                ),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                otpCode,
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF0284C7),
+                  letterSpacing: 8,
+                  fontFamily: 'Courier',
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             isVerified
-                ? 'OTP verified with the rider ✓'
-                : 'Share with your rider at delivery',
-            style: const TextStyle(
-              color: Color(0xFF64748B),
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
+                ? '✓ OTP verified with the rider'
+                : 'Share this code with your rider at delivery',
+            style: TextStyle(
+              color: isVerified
+                  ? const Color(0xFF16A34A)
+                  : const Color(0xFF64748B),
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.2,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
