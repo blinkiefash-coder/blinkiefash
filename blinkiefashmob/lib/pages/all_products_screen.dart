@@ -51,6 +51,8 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   List<Map<String, dynamic>> _categories = const []; // root only (for chips)
   List<Map<String, dynamic>> _allCats =
       const []; // all levels (for suggestions)
+  List<Map<String, dynamic>> _subcategories =
+      const []; // subcategories of selected category
   List<Map<String, dynamic>> _brands = const [];
 
   // ── Search suggestions ───────────────────────────────────────────────────
@@ -413,11 +415,28 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
 
     setState(() {
       _categories = allCats.where((c) => c['parent_id'] == null).toList();
+      // Sort categories: Women, Men, Footwear, Electronics, Beauty, then others
+      _categories.sort((a, b) {
+        final an = (a['name'] ?? '').toString().toLowerCase();
+        final bn = (b['name'] ?? '').toString().toLowerCase();
+        const priority = {
+          'women': 0,
+          'men': 1,
+          'footwear': 2,
+          'electronics': 3,
+          'beauty': 4,
+        };
+        final ap = priority[an] ?? 99;
+        final bp = priority[bn] ?? 99;
+        if (ap != bp) return ap.compareTo(bp);
+        return an.compareTo(bn);
+      });
       _allCats = allCats;
       _brands = (results[1]).whereType<Map<String, dynamic>>().toList();
       if (resolvedCatId != null) {
         _selectedCategoryId = resolvedCatId;
         _selectedCategoryName = resolvedCatName;
+        _updateSubcategoriesForSelected(resolvedCatId);
       }
     });
 
@@ -425,6 +444,17 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     if (resolvedCatId != null) {
       _loadProducts(reset: true);
     }
+  }
+
+  void _updateSubcategoriesForSelected(String? categoryId) {
+    if (categoryId == null) {
+      _subcategories = const [];
+      return;
+    }
+    final subs = _allCats
+        .where((c) => c['parent_id']?.toString() == categoryId)
+        .toList();
+    _subcategories = subs;
   }
 
   Future<void> _loadProducts({bool reset = false}) async {
@@ -563,6 +593,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
             Expanded(child: _suggestionsDropdown())
           else ...[
             if (_categories.isNotEmpty) _categoryChipsRow(),
+            if (_subcategories.isNotEmpty) _subcategoriesRow(),
             if (_activeFilterCount > 0) _activeFilterChips(),
           ],
           Expanded(child: _body()),
@@ -820,6 +851,58 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   }
 
   // ── Category chips row ─────────────────────────────────────────────────────
+  Widget _subcategoriesRow() {
+    if (_subcategories.isEmpty) return const SizedBox.shrink();
+    
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: SizedBox(
+        height: 45,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: EdgeInsets.zero,
+          itemCount: _subcategories.length,
+          itemBuilder: (_, i) {
+            final sub = _subcategories[i];
+            final subId = sub['id']?.toString() ?? '';
+            return GestureDetector(
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AllProductsScreen(
+                      categoryId: subId,
+                      categoryName: sub['name']?.toString() ?? '',
+                    ),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                margin: const EdgeInsets.only(right: 8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Center(
+                  child: Text(
+                    sub['name']?.toString() ?? '',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF475569),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   Widget _categoryChipsRow() {
     return Container(
       color: Colors.white,
@@ -841,6 +924,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   _selectedCategoryName = null;
                   _selectedBrandId = null;
                   _selectedBrandName = null;
+                  _subcategories = const [];
                 });
                 _loadProducts(reset: true);
               },
@@ -860,6 +944,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     _selectedBrandId = null;
                     _selectedBrandName = null;
                     _searchCtrl.clear();
+                    _updateSubcategoriesForSelected(id);
                   });
                   _loadProducts(reset: true);
                 },

@@ -454,7 +454,13 @@ class _HomeScreenState extends State<HomeScreen>
               ..sort((a, b) {
                 final an = (a['name'] ?? '').toString().toLowerCase();
                 final bn = (b['name'] ?? '').toString().toLowerCase();
-                const priority = {'men': 0, 'women': 1, 'footwear': 2};
+                const priority = {
+                  'women': 0,
+                  'men': 1,
+                  'footwear': 2,
+                  'electronics': 3,
+                  'beauty': 4,
+                };
                 final ap = priority[an] ?? 99;
                 final bp = priority[bn] ?? 99;
                 if (ap != bp) return ap.compareTo(bp);
@@ -1295,7 +1301,9 @@ class _HomeScreenState extends State<HomeScreen>
                 MaterialPageRoute(builder: (_) => const AllProductsScreen()),
               ),
             ),
-            _products.isNotEmpty ? _dealsOfTheDayCategories() : _stockOutBanner(),
+            _products.isNotEmpty
+                ? _dealsOfTheDayCategories()
+                : _stockOutBanner(),
             _banner01Strip(),
             _universeSection(),
             _brandBannersGrid(),
@@ -2821,38 +2829,58 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _dealsOfTheDayCategories() {
     // Group products by category and find max discount per category
     final categoryDeals = <String, Map<String, dynamic>>{};
-    
-    final rootCategories = _categories.isNotEmpty ? _categories : [
-      {'id': 'men', 'name': 'Men', 'category_url': 'assets/images/men_cat.jpg'},
-      {'id': 'women', 'name': 'Women', 'category_url': 'assets/images/women_cat.jpg'},
-      {'id': 'kids', 'name': 'Kids', 'category_url': 'assets/images/kids_cat.jpg'},
-      {'id': 'electronics', 'name': 'Electronics', 'category_url': 'assets/images/electronics_cat.jpg'},
-      {'id': 'footwear', 'name': 'Footwear', 'category_url': 'assets/images/footwear_cat.jpg'},
-    ];
+
+    final rootCategories = _categories.isNotEmpty
+        ? _categories
+        : [
+            {
+              'id': 'men',
+              'name': 'Men',
+              'category_url': 'assets/images/men_cat.jpg',
+            },
+            {
+              'id': 'women',
+              'name': 'Women',
+              'category_url': 'assets/images/women_cat.jpg',
+            },
+            {
+              'id': 'kids',
+              'name': 'Kids',
+              'category_url': 'assets/images/kids_cat.jpg',
+            },
+            {
+              'id': 'electronics',
+              'name': 'Electronics',
+              'category_url': 'assets/images/electronics_cat.jpg',
+            },
+            {
+              'id': 'footwear',
+              'name': 'Footwear',
+              'category_url': 'assets/images/footwear_cat.jpg',
+            },
+          ];
 
     // Calculate max discount for each category using available products
     for (final cat in rootCategories) {
       final catName = cat['name']?.toString() ?? '';
       int maxDiscount = 0;
-      
+
       for (final product in _products) {
         final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
-        final discPrice = double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
-        
+        final discPrice =
+            double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
+
         if (price > discPrice && price > 0) {
           final discount = ((price - discPrice) / price * 100).round();
           maxDiscount = discount > maxDiscount ? discount : maxDiscount;
         }
       }
-      
-      categoryDeals[catName] = {
-        ...cat,
-        'max_discount': maxDiscount,
-      };
+
+      categoryDeals[catName] = {...cat, 'max_discount': maxDiscount};
     }
 
     final categories = categoryDeals.values.toList();
-    
+
     return SizedBox(
       height: 160,
       child: ListView.builder(
@@ -2864,7 +2892,7 @@ class _HomeScreenState extends State<HomeScreen>
           final catName = cat['name']?.toString() ?? 'Category';
           final discount = cat['max_discount'] as int? ?? 0;
           final img = _imgUrl(cat['category_url'] ?? cat['image']);
-          
+
           return GestureDetector(
             onTap: () {
               Navigator.of(context).push(
@@ -2981,7 +3009,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
-
 
   // ── Products Under 999 ────────────────────────────────────────────────────
   Widget _under999Cards() {
