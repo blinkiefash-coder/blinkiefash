@@ -42,6 +42,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
 
   _Phase _phase = _Phase.navigating;
   bool _loading = false;
+  bool _initializing = true;
 
   // Delivery OTP entry
   final _otpController = TextEditingController();
@@ -55,6 +56,8 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
   late String _requestId;
   late String _receiverName;
   late String _receiverPhone;
+  late String _pickupText;
+  late String _dropText;
   late double _dropLat;
   late double _dropLng;
 
@@ -64,12 +67,15 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     _requestId = widget.parcel['id'] as String? ?? '';
     _receiverName = widget.parcel['receiver_name'] as String? ?? 'Recipient';
     _receiverPhone = widget.parcel['receiver_phone'] as String? ?? '';
+    _pickupText = widget.parcel['pickup_text'] as String? ?? 'Pickup Location';
+    _dropText = widget.parcel['drop_text'] as String? ?? 'Dropoff Location';
 
     // Handle both string and num types for coordinates using helper function
     _dropLat = _parseCoordinate(widget.parcel['drop_lat']);
     _dropLng = _parseCoordinate(widget.parcel['drop_lng']);
 
     _api.loadToken().then((_) async {
+      await _fetchParcelDetails();
       _startLocationStream();
     });
     _initDeliveryTimer();
@@ -99,6 +105,38 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
         );
       } catch (_) {}
     });
+  }
+
+  Future<void> _fetchParcelDetails() async {
+    try {
+      final details = await _api.getParcelDetails(_requestId);
+      if (!mounted) return;
+
+      if (details != null) {
+        setState(() {
+          _receiverName = details['receiver_name'] as String? ?? _receiverName;
+          _receiverPhone = details['receiver_phone'] as String? ?? _receiverPhone;
+          _pickupText = details['pickup_text'] as String? ?? _pickupText;
+          _dropText = details['drop_text'] as String? ?? _dropText;
+          _dropLat = _parseCoordinate(details['drop_lat'] ?? _dropLat);
+          _dropLng = _parseCoordinate(details['drop_lng'] ?? _dropLng);
+          _initializing = false;
+        });
+      } else {
+        setState(() => _initializing = false);
+      }
+    } catch (e) {
+      if (mounted) setState(() => _initializing = false);
+    }
+  }
+
+  Future<void> _openMaps() async {
+    final uri = Uri.parse(
+      'https://www.google.com/maps/search/?api=1&query=$_dropLat,$_dropLng',
+    );
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   void _initDeliveryTimer() {
@@ -483,8 +521,128 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Phase-specific UI
-              if (_phase == _Phase.navigating) ...[
+                const SizedBox(height: 24),
+
+              // ── Sender/Pickup Details ──
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _blue.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.package_rounded,
+                            color: _blue,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Pickup Location',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _pickupText,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Receiver/Dropoff Details ──
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  border: Border.all(
+                    color: const Color(0xFFE2E8F0),
+                    width: 1,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: _red.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.location_on_rounded,
+                            color: _red,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Delivery Location',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _dropText,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
                 const Text(
                   'Navigate to Delivery Location',
                   style: TextStyle(
@@ -494,42 +652,55 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        _blue.withValues(alpha: 0.1),
-                        _blue.withValues(alpha: 0.05),
-                      ],
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: _blue,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
+                    onPressed: _openMaps,
+                    icon: const Icon(Icons.map_rounded),
+                    label: const Text(
+                      'Open in Google Maps',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F9FF),
                     border: Border.all(
                       color: _blue.withValues(alpha: 0.3),
-                      width: 1.5,
+                      width: 1,
                     ),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Row(
                     children: [
-                      const Text(
-                        'Coordinates',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Color(0xFF64748B),
-                          fontWeight: FontWeight.w600,
-                        ),
+                      const Icon(
+                        Icons.location_on_rounded,
+                        color: _blue,
+                        size: 16,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$_dropLat, $_dropLng',
-                        style: const TextStyle(
-                          fontFamily: 'monospace',
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F172A),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '$_dropLat, $_dropLng',
+                          style: const TextStyle(
+                            fontFamily: 'monospace',
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF0F172A),
+                          ),
                         ),
                       ),
                     ],
