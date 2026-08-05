@@ -2853,7 +2853,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return SizedBox(
-      height: 270,
+      height: 300,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -2878,21 +2878,16 @@ class _HomeScreenState extends State<HomeScreen>
           return GestureDetector(
             onTap: item['id'] != null ? () => _openProduct(item) : null,
             child: Container(
-              width: 170,
-              margin: const EdgeInsets.only(right: 14),
+              width: 160,
+              margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
+                borderRadius: BorderRadius.circular(18),
+                boxShadow: const [
                   BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.12),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                  BoxShadow(
-                    color: const Color(0xFF0F172A).withValues(alpha: 0.06),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    color: Color(0x0F000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
                   ),
                 ],
               ),
@@ -2903,10 +2898,9 @@ class _HomeScreenState extends State<HomeScreen>
                     flex: 3,
                     child: Stack(
                       children: [
-                        // Image background
                         ClipRRect(
                           borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20),
+                            top: Radius.circular(18),
                           ),
                           child: img != null
                               ? CachedNetworkImage(
@@ -2915,13 +2909,15 @@ class _HomeScreenState extends State<HomeScreen>
                                   alignment: Alignment.center,
                                   width: double.infinity,
                                   height: double.infinity,
-                                  placeholder: (context, url) =>
-                                      Container(color: const Color(0xFFF1F5F9)),
+                                  placeholder: (context, url) => Container(
+                                    color: const Color(0xFFF1F5F9),
+                                  ),
                                   errorWidget: (context, url, error) =>
                                       Container(
                                         color: const Color(0xFFF1F5F9),
                                         child: const Icon(
-                                          Icons.image_not_supported_outlined,
+                                          Icons.checkroom_outlined,
+                                          size: 40,
                                           color: Color(0xFFCBD5E1),
                                         ),
                                       ),
@@ -2934,24 +2930,6 @@ class _HomeScreenState extends State<HomeScreen>
                                     color: Color(0xFFCBD5E1),
                                   ),
                                 ),
-                        ),
-                        // Gradient overlay
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(20),
-                          ),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [
-                                  Colors.transparent,
-                                  Colors.black.withValues(alpha: 0.15),
-                                ],
-                              ),
-                            ),
-                          ),
                         ),
                         // HOT DEAL ribbon
                         Positioned(
@@ -2966,9 +2944,8 @@ class _HomeScreenState extends State<HomeScreen>
                                 color: const Color(0xFFEA580C),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFFEA580C,
-                                    ).withValues(alpha: 0.4),
+                                    color: const Color(0xFFEA580C)
+                                        .withValues(alpha: 0.4),
                                     blurRadius: 8,
                                   ),
                                 ],
@@ -2986,76 +2963,25 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                         ),
-                        // Discount badge
+                        // Wishlist
                         Positioned(
-                          bottom: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: <Color>[
-                                  Color(0xFFEF4444),
-                                  Color(0xFFDC2626),
-                                ],
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFFEF4444,
-                                  ).withValues(alpha: 0.5),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Text(
-                                  '🔥',
-                                  style: TextStyle(fontSize: 10),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  off,
-                                  style: const TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w900,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        // Wishlist button
-                        Positioned(
-                          top: 8,
-                          right: 8,
+                          top: 7,
+                          right: 7,
                           child: GestureDetector(
                             onTap: () {
                               WishlistManager.instance.toggle(wishItem);
                               setState(() {});
                             },
                             child: Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
+                              width: 30,
+                              height: 30,
+                              decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFF0F172A,
-                                    ).withValues(alpha: 0.2),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    color: Color(0x18000000),
+                                    blurRadius: 6,
                                   ),
                                 ],
                               ),
@@ -3080,69 +3006,81 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                   Expanded(
-                    flex: 1,
+                    flex: 2,
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(11, 5, 11, 3),
+                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                name,
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                  height: 1.0,
-                                  letterSpacing: -0.3,
-                                  color: Color(0xFF0F172A),
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+                          if (brand.isNotEmpty)
+                            Text(
+                              brand.toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF9CA3AF),
+                                letterSpacing: 0.8,
                               ),
-                              if (brand.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 1),
-                                  child: Text(
-                                    brand.toUpperCase(),
-                                    style: const TextStyle(
-                                      color: Color(0xFF94A3B8),
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      height: 1.2,
-                                      letterSpacing: 0.2,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                            ],
+                            ),
+                          const SizedBox(height: 2),
+                          Text(
+                            name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                              height: 1.2,
+                            ),
                           ),
-                          const SizedBox(height: 1),
+                          const Spacer(),
                           Row(
+                            crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
                                 '₹$price',
                                 style: const TextStyle(
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 14,
-                                  color: Color(0xFF16A34A),
-                                  letterSpacing: -0.3,
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFF0F172A),
                                 ),
                               ),
-                              const SizedBox(width: 6),
-                              Text(
-                                '₹$origP',
-                                style: const TextStyle(
-                                  fontSize: 11,
-                                  decoration: TextDecoration.lineThrough,
-                                  color: Color(0xFF475569),
-                                  fontWeight: FontWeight.w600,
+                              if (origP.isNotEmpty && origP != price) ...[
+                                const SizedBox(width: 4),
+                                Text(
+                                  '₹$origP',
+                                  style: const TextStyle(
+                                    fontSize: 11,
+                                    color: Color(0xFF94A3B8),
+                                    decoration: TextDecoration.lineThrough,
+                                  ),
+                                ),
+                              ],
+                              const Spacer(),
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDCFCE7),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.shopping_cart_outlined,
+                                  size: 15,
+                                  color: _green,
                                 ),
                               ),
                             ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            off,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              color: _green,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ],
                       ),
