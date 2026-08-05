@@ -590,7 +590,9 @@ class ApiService {
   Future<Map<String, dynamic>> markParcelArrived(String requestId) async {
     try {
       final res = await http.patch(
-        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/arrived'),
+        Uri.parse(
+          'https://blinkiefash.onrender.com/api/deliver/request/$requestId/arrived',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
       return jsonDecode(res.body) as Map<String, dynamic>;
@@ -600,10 +602,15 @@ class ApiService {
   }
 
   /// Upload parcel delivery photo
-  Future<Map<String, dynamic>> uploadParcelPhoto(String requestId, String photoUrl) async {
+  Future<Map<String, dynamic>> uploadParcelPhoto(
+    String requestId,
+    String photoUrl,
+  ) async {
     try {
       final res = await http.post(
-        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/upload-photo'),
+        Uri.parse(
+          'https://blinkiefash.onrender.com/api/deliver/request/$requestId/upload-photo',
+        ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'photo_url': photoUrl}),
       );
@@ -614,10 +621,15 @@ class ApiService {
   }
 
   /// Verify 4-digit OTP for parcel delivery
-  Future<Map<String, dynamic>> verifyParcelOtp(String requestId, String otp) async {
+  Future<Map<String, dynamic>> verifyParcelOtp(
+    String requestId,
+    String otp,
+  ) async {
     try {
       final res = await http.post(
-        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/verify-otp'),
+        Uri.parse(
+          'https://blinkiefash.onrender.com/api/deliver/request/$requestId/verify-otp',
+        ),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'otp': otp}),
       );
@@ -631,7 +643,9 @@ class ApiService {
   Future<Map<String, dynamic>> completeParcelDelivery(String requestId) async {
     try {
       final res = await http.patch(
-        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/complete'),
+        Uri.parse(
+          'https://blinkiefash.onrender.com/api/deliver/request/$requestId/complete',
+        ),
         headers: {'Content-Type': 'application/json'},
       );
       return jsonDecode(res.body) as Map<String, dynamic>;

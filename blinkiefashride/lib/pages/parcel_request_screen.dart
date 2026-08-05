@@ -111,7 +111,7 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen>
 
       if (result?['success'] == true) {
         final otp = result?['request']?['otp_code'] as String? ?? 'N/A';
-        
+
         // Create parcel data for navigation screen
         final parcelData = {
           ...widget.parcel,
@@ -121,9 +121,9 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen>
           'rider_name': widget.riderName,
           'rider_phone': widget.riderPhone,
         };
-        
+
         if (!mounted) return;
-        
+
         // Navigate to parcel navigation screen
         Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(

@@ -360,16 +360,21 @@ class _StatusBanner extends StatelessWidget {
     final IconData icon;
     final String label;
 
-    if (isDone) {
+    if (isDone || status == 'completed') {
       bg = const Color(0xFFF0FDF4);
       fg = const Color(0xFF16A34A);
       icon = Icons.check_circle_rounded;
       label = 'Parcel Delivered! 🎉';
-    } else if (isAssigned) {
+    } else if (status == 'arrived') {
+      bg = const Color(0xFFE0F2FE);
+      fg = const Color(0xFF0284C7);
+      icon = Icons.location_on_rounded;
+      label = 'Rider has arrived at your location';
+    } else if (status == 'accepted' || isAssigned) {
       bg = const Color(0xFFFFF7ED);
       fg = const Color(0xFFEA580C);
       icon = Icons.delivery_dining_rounded;
-      label = 'Rider is on the way…';
+      label = 'Rider is on the way to you…';
     } else {
       bg = const Color(0xFFF0F9FF);
       fg = const Color(0xFF0284C7);
@@ -395,7 +400,7 @@ class _StatusBanner extends StatelessWidget {
               ),
             ),
           ),
-          if (!isDone)
+          if (!isDone && status != 'completed')
             SizedBox(
               width: 14,
               height: 14,
@@ -625,8 +630,71 @@ class _BottomCard extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 8),
+                  Text(
+                    data['otp_verified'] == true
+                        ? 'OTP verified with rider ✓'
+                        : 'Share this code with your rider at delivery',
+                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          // Photo Proof - Show when uploaded
+          if (isAssigned && data['delivery_photo_url'] != null) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0FDF4),
+                border: Border.all(color: const Color(0xFF86EFAC), width: 2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: Color(0xFF16A34A),
+                        size: 18,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'Proof of Delivery',
+                        style: TextStyle(
+                          color: Color(0xFF16A34A),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Image.network(
+                      data['delivery_photo_url'],
+                      height: 120,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Container(
+                        height: 120,
+                        color: const Color(0xFFF1F5F9),
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported_outlined,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   const Text(
-                    'Share this code with your rider at pickup',
+                    'Photo taken by rider for verification',
                     style: TextStyle(color: Color(0xFF64748B), fontSize: 11),
                   ),
                 ],

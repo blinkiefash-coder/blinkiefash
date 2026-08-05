@@ -11,19 +11,10 @@ import '../api_service.dart';
 // Parcel delivery phases
 // navigating → arrived → photoUpload → otpVerified → completed
 // ─────────────────────────────────────────────────────────────────────────────
-enum _Phase {
-  navigating,
-  arrived,
-  photoUpload,
-  otpVerified,
-  completed,
-}
+enum _Phase { navigating, arrived, photoUpload, otpVerified, completed }
 
 class ParcelNavigationScreen extends StatefulWidget {
-  const ParcelNavigationScreen({
-    super.key,
-    required this.parcel,
-  });
+  const ParcelNavigationScreen({super.key, required this.parcel});
   final Map<String, dynamic> parcel;
 
   @override
@@ -88,7 +79,11 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
         );
         if (!mounted) return;
         // Update rider location in backend
-        await _api.updateParcelDeliveryLocation(_requestId, pos.latitude, pos.longitude);
+        await _api.updateParcelDeliveryLocation(
+          _requestId,
+          pos.latitude,
+          pos.longitude,
+        );
       } catch (_) {}
     });
   }
@@ -97,7 +92,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     _deliveryCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
-        _deliverySecondsRemaining = (_deliverySecondsRemaining - 1).clamp(0, 2700);
+        _deliverySecondsRemaining = (_deliverySecondsRemaining - 1).clamp(
+          0,
+          2700,
+        );
         if (_deliverySecondsRemaining == 0) {
           // Timer expired
           _deliveryCountdownTimer?.cancel();
@@ -131,9 +129,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -167,15 +165,17 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
       } else {
         setState(() => _uploadingPhoto = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(result['message'] as String? ?? 'Upload failed')),
+          SnackBar(
+            content: Text(result['message'] as String? ?? 'Upload failed'),
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       setState(() => _uploadingPhoto = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
@@ -257,19 +257,16 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Parcel Delivery'),
-        elevation: 0,
-      ),
+      appBar: AppBar(title: const Text('Parcel Delivery'), elevation: 0),
       body: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -397,8 +394,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           width: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Mark Arrived'),
@@ -467,8 +465,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           width: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Capture Photo'),
@@ -494,10 +493,7 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                 const SizedBox(height: 12),
                 const Text(
                   'Ask the recipient for the 4-digit OTP',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Color(0xFF64748B),
-                  ),
+                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -543,8 +539,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           width: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Verify OTP'),
@@ -597,8 +594,9 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
                           width: 24,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : const Text('Complete Delivery'),
