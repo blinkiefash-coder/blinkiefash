@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,6 +11,13 @@ import '../api_service.dart';
 // navigating → arrived → photoUpload → otpVerified → completed
 // ─────────────────────────────────────────────────────────────────────────────
 enum _Phase { navigating, arrived, photoUpload, otpVerified, completed }
+
+// Helper function to safely parse coordinates
+double _parseCoordinate(dynamic value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value) ?? 0.0;
+  return 0.0;
+}
 
 class ParcelNavigationScreen extends StatefulWidget {
   const ParcelNavigationScreen({super.key, required this.parcel});
@@ -53,8 +59,10 @@ class _ParcelNavigationScreenState extends State<ParcelNavigationScreen> {
     _requestId = widget.parcel['id'] as String? ?? '';
     _receiverName = widget.parcel['receiver_name'] as String? ?? 'Recipient';
     _receiverPhone = widget.parcel['receiver_phone'] as String? ?? '';
-    _dropLat = (widget.parcel['drop_lat'] as num?)?.toDouble() ?? 0;
-    _dropLng = (widget.parcel['drop_lng'] as num?)?.toDouble() ?? 0;
+    
+    // Handle both string and num types for coordinates using helper function
+    _dropLat = _parseCoordinate(widget.parcel['drop_lat']);
+    _dropLng = _parseCoordinate(widget.parcel['drop_lng']);
 
     _api.loadToken().then((_) async {
       _startLocationStream();

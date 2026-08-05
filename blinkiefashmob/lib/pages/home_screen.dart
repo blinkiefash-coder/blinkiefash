@@ -31,6 +31,7 @@ import 'wishlist_screen.dart';
 import 'address_screen.dart';
 import 'location_picker_screen.dart';
 import 'parcel_checkout_screen.dart';
+import 'parcel_tracking_screen.dart';
 import 'spin_wheel_screen.dart';
 import 'fashion_quest_screen.dart';
 import '../widgets/animated_search_bar.dart';
@@ -718,7 +719,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _openParcelCheckout(Map<String, dynamic> estimate) async {
-    final booked = await Navigator.of(context).push<bool>(
+    final parcelId = await Navigator.of(context).push<String>(
       MaterialPageRoute(
         builder: (_) => ParcelCheckoutScreen(
           pickupText: _deliverPickupCtrl.text.trim(),
@@ -734,7 +735,8 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
 
-    if (booked == true && mounted) {
+    if (parcelId != null && mounted) {
+      // Clear form and tracking
       setState(() {
         _deliverPickupCtrl.clear();
         _deliverDropCtrl.clear();
@@ -749,6 +751,15 @@ class _HomeScreenState extends State<HomeScreen>
         _deliverPickupAutoInitialized = false;
       });
       _stopDeliverLiveTracking();
+      
+      // Navigate to parcel tracking screen
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ParcelTrackingScreen(requestId: parcelId),
+          ),
+        );
+      }
     }
   }
 

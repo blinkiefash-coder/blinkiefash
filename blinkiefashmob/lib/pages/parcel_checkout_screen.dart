@@ -141,7 +141,9 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
       if (!mounted) return;
       if (res['success'] == true) {
-        Navigator.of(context).pop(true); // true = success
+        // Return parcel ID so customer app can navigate to tracking
+        final parcelId = res['parcel']?['id'] as String?;
+        Navigator.of(context).pop(parcelId); // Return parcel ID instead of just true
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Parcel booked successfully!')),
         );
