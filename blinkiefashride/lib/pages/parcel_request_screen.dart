@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_ringtone_player/flutter_ringtone_player.dart';
 
 import '../api_service.dart';
+import 'parcel_navigation_screen.dart';
 
 /// Single-request, Uber-style popup for one nearby parcel delivery request.
 /// Shows distance + fare, pickup/drop, and lets the rider accept or reject.
@@ -110,51 +111,25 @@ class _ParcelRequestScreenState extends State<ParcelRequestScreen>
 
       if (result?['success'] == true) {
         final otp = result?['request']?['otp_code'] as String? ?? 'N/A';
-        await showDialog<void>(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Parcel Accepted! \u2713'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'OTP generated for customer verification:',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF0F9FF),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF0284C7)),
-                  ),
-                  child: Center(
-                    child: Text(
-                      otp,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF0284C7),
-                        letterSpacing: 3,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('OK'),
-              ),
-            ],
+        
+        // Create parcel data for navigation screen
+        final parcelData = {
+          ...widget.parcel,
+          'id': requestId,
+          'otp_code': otp,
+          'rider_id': widget.riderId,
+          'rider_name': widget.riderName,
+          'rider_phone': widget.riderPhone,
+        };
+        
+        if (!mounted) return;
+        
+        // Navigate to parcel navigation screen
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => ParcelNavigationScreen(parcel: parcelData),
           ),
         );
-        if (!mounted) return;
-        Navigator.of(context).pop(true);
       } else {
         setState(() => _accepting = false);
         ScaffoldMessenger.of(context).showSnackBar(

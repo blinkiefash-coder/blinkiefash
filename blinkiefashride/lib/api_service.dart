@@ -581,4 +581,62 @@ class ApiService {
   /// Alias for storeArrived (for navigation screen compatibility)
   Future<Map<String, dynamic>> markArrived(String deliveryId) async =>
       storeArrived(deliveryId);
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // Parcel Delivery Endpoints (for parcel requests)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /// Mark parcel as arrived; generates 4-digit OTP for customer
+  Future<Map<String, dynamic>> markParcelArrived(String requestId) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/arrived'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Connection failed'};
+    }
+  }
+
+  /// Upload parcel delivery photo
+  Future<Map<String, dynamic>> uploadParcelPhoto(String requestId, String photoUrl) async {
+    try {
+      final res = await http.post(
+        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/upload-photo'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'photo_url': photoUrl}),
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Upload failed'};
+    }
+  }
+
+  /// Verify 4-digit OTP for parcel delivery
+  Future<Map<String, dynamic>> verifyParcelOtp(String requestId, String otp) async {
+    try {
+      final res = await http.post(
+        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/verify-otp'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'otp': otp}),
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Connection failed'};
+    }
+  }
+
+  /// Complete parcel delivery and mark as completed
+  Future<Map<String, dynamic>> completeParcelDelivery(String requestId) async {
+    try {
+      final res = await http.patch(
+        Uri.parse('https://blinkiefash.onrender.com/api/deliver/request/$requestId/complete'),
+        headers: {'Content-Type': 'application/json'},
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Connection failed'};
+    }
+  }
 }

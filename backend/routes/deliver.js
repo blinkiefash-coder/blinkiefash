@@ -260,6 +260,9 @@ const ensureTables = async () => {
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS who_pays VARCHAR(20) DEFAULT 'sender'`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_code VARCHAR(6)`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_verified BOOLEAN DEFAULT FALSE`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_generated_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS delivery_photo_url TEXT`);
   await pool.query(`ALTER TABLE deliver_requests ADD COLUMN IF NOT EXISTS last_broadcast_at TIMESTAMPTZ`);
 };
 
@@ -686,6 +689,96 @@ router.get("/request/:id", async (req, res) => {
   } catch (err) {
     console.error("deliver request detail error", err.message);
     return res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── POST /api/deliver/request/:id/upload-photo ─ Upload proof of delivery photo
+router.post('/request/:id/upload-photo', async (req, res) => {
+  const { id } = req.params;
+  const { photo_url } = req.body || {};
+  try {
+    if (!photo_url || typeof photo_url !== 'string') {
+      return res.status(400).json({ success: false, message: 'Photo URL required' });
+    }
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests SET delivery_photo_url = $1 WHERE id = $2 AND status IN ('pending', 'accepted') RETURNING id, status`,
+      [photo_url, id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Parcel not found' });
+    res.json({ success: true, parcel: rows[0] });
+  } catch (err) {
+    console.error('upload photo error', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PATCH /api/deliver/request/:id/arrived ─ Rider arrived, generate customer OTP
+router.patch('/request/:id/arrived', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const otp = Math.floor(1000 + Math.random() * 9000).toString();
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests SET otp_code = $1, otp_generated_at = NOW(), status = 'arrived' WHERE id = $2 AND status IN ('pending', 'accepted') RETURNING id, status, otp_code`,
+      [otp, id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Parcel not found' });
+    res.json({ success: true, otp: rows[0].otp_code });
+  } catch (err) {
+    console.error('mark arrived error', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── POST /api/deliver/request/:id/verify-otp ─ Verify customer OTP for parcel delivery
+router.post('/request/:id/verify-otp', async (req, res) => {
+  const { id } = req.params;
+  const { otp } = req.body || {};
+  try {
+    if (!otp || String(otp).length !== 4) {
+      return res.status(400).json({ success: false, message: 'Enter 4-digit OTP' });
+    }
+    const { rows } = await pool.query(
+      `SELECT id, otp_code, otp_generated_at FROM deliver_requests WHERE id = $1`,
+      [id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: 'Parcel not found' });
+    const parcel = rows[0];
+    if (String(parcel.otp_code) !== String(otp)) {
+      return res.status(400).json({ success: false, message: 'Incorrect OTP' });
+    }
+    const { rows: verifyRows } = await pool.query(
+      `UPDATE deliver_requests SET otp_verified = TRUE, otp_verified_at = NOW() WHERE id = $1 RETURNING id`,
+      [id]
+    );
+    res.json({ success: true, verified: true });
+  } catch (err) {
+    console.error('verify otp error', err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ── PATCH /api/deliver/request/:id/complete ─ Mark parcel delivery complete
+router.patch('/request/:id/complete', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const { rows } = await pool.query(
+      `UPDATE deliver_requests SET status = 'completed', completed_at = NOW() WHERE id = $1 AND otp_verified = TRUE RETURNING id, status, rider_id, estimated_fare`,
+      [id]
+    );
+    if (!rows.length) return res.status(400).json({ success: false, message: 'Parcel not found or OTP not verified' });
+    const parcel = rows[0];
+    if (parcel.rider_id) {
+      try {
+        await pool.query(
+          `UPDATE "Riders" SET balance = balance + $1 WHERE id = $2`,
+          [parcel.estimated_fare, parcel.rider_id]
+        );
+      } catch (_) {}
+    }
+    res.json({ success: true, completed: true });
+  } catch (err) {
+    console.error('complete delivery error', err.message);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 
