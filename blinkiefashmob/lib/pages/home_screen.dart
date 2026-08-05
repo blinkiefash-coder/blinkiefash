@@ -1295,7 +1295,7 @@ class _HomeScreenState extends State<HomeScreen>
                 MaterialPageRoute(builder: (_) => const AllProductsScreen()),
               ),
             ),
-            _products.isNotEmpty ? _trendingHorizontal() : _stockOutBanner(),
+            _products.isNotEmpty ? _dealsOfTheDayCategories() : _stockOutBanner(),
             _banner01Strip(),
             _universeSection(),
             _brandBannersGrid(),
@@ -2817,38 +2817,68 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
-  Widget _trendingHorizontal() {
-    final items = <Map<String, dynamic>>[..._products];
+  // ── Deals of the Day: Category cards with max discount ──────────────────────
+  Widget _dealsOfTheDayCategories() {
+    // Group products by category and find max discount per category
+    final categoryDeals = <String, Map<String, dynamic>>{};
+    
+    final rootCategories = _categories.isNotEmpty ? _categories : [
+      {'id': 'men', 'name': 'Men', 'category_url': 'assets/images/men_cat.jpg'},
+      {'id': 'women', 'name': 'Women', 'category_url': 'assets/images/women_cat.jpg'},
+      {'id': 'kids', 'name': 'Kids', 'category_url': 'assets/images/kids_cat.jpg'},
+      {'id': 'electronics', 'name': 'Electronics', 'category_url': 'assets/images/electronics_cat.jpg'},
+      {'id': 'footwear', 'name': 'Footwear', 'category_url': 'assets/images/footwear_cat.jpg'},
+    ];
+
+    // Calculate max discount for each category using available products
+    for (final cat in rootCategories) {
+      final catName = cat['name']?.toString() ?? '';
+      int maxDiscount = 0;
+      
+      for (final product in _products) {
+        final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
+        final discPrice = double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
+        
+        if (price > discPrice && price > 0) {
+          final discount = ((price - discPrice) / price * 100).round();
+          maxDiscount = discount > maxDiscount ? discount : maxDiscount;
+        }
+      }
+      
+      categoryDeals[catName] = {
+        ...cat,
+        'max_discount': maxDiscount,
+      };
+    }
+
+    final categories = categoryDeals.values.toList();
+    
     return SizedBox(
-      height: 300,
+      height: 160,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: items.length,
+        itemCount: categories.length,
         itemBuilder: (_, i) {
-          final item = items[i];
-          final name = item['name']?.toString() ?? 'Product';
-          final brand = item['brand']?.toString() ?? '';
-          final variantData = _getCardVariant(item);
-          final price = _fmt(variantData['discount_price']);
-          final origP = _fmt(variantData['price']);
-          final off = item['off']?.toString() ?? _offLabel(item);
-          final img = _imgUrl(variantData['image_url'] ?? item['image']);
-          final wishItem1 = WishlistItem(
-            productId: item['id']?.toString() ?? '',
-            name: name,
-            price: price,
-            imageUrl: img,
-          );
-
+          final cat = categories[i];
+          final catName = cat['name']?.toString() ?? 'Category';
+          final discount = cat['max_discount'] as int? ?? 0;
+          final img = _imgUrl(cat['category_url'] ?? cat['image']);
+          
           return GestureDetector(
-            onTap: item['id'] != null ? () => _openProduct(item) : null,
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => AllProductsScreen(categoryName: catName),
+                ),
+              );
+            },
             child: Container(
-              width: 160,
+              width: 140,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
+                borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x0F000000),
@@ -2857,277 +2887,90 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Stack(
                 children: [
-                  Expanded(
-                    flex: 3,
-                    child: Stack(
+                  // Background image
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: img != null
+                        ? CachedNetworkImage(
+                            imageUrl: img,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                            height: double.infinity,
+                            placeholder: (context, url) =>
+                                Container(color: const Color(0xFFF1F5F9)),
+                            errorWidget: (context, url, error) => Container(
+                              color: const Color(0xFFF1F5F9),
+                              child: const Icon(
+                                Icons.category_outlined,
+                                color: Color(0xFFCBD5E1),
+                                size: 32,
+                              ),
+                            ),
+                          )
+                        : Container(
+                            color: const Color(0xFFF1F5F9),
+                            child: const Icon(
+                              Icons.category_outlined,
+                              color: Color(0xFFCBD5E1),
+                              size: 32,
+                            ),
+                          ),
+                  ),
+                  // Overlay gradient
+                  Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.black.withValues(alpha: 0.7),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Content
+                  Positioned(
+                    bottom: 12,
+                    left: 12,
+                    right: 12,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: const BorderRadius.vertical(
-                            top: Radius.circular(18),
+                        Text(
+                          catName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.3,
                           ),
-                          child: img != null
-                              ? CachedNetworkImage(
-                                  imageUrl: img,
-                                  fit: BoxFit.contain,
-                                  alignment: Alignment.center,
-                                  width: double.infinity,
-                                  height: double.infinity,
-                                  placeholder: (context, url) =>
-                                      Container(color: const Color(0xFFF1F5F9)),
-                                  errorWidget: (context, url, error) =>
-                                      Container(
-                                        color: const Color(0xFFF1F5F9),
-                                        child: const Icon(
-                                          Icons.image_not_supported_outlined,
-                                          color: Color(0xFFCBD5E1),
-                                        ),
-                                      ),
-                                )
-                              : Container(
-                                  color: const Color(0xFFF1F5F9),
-                                  child: const Icon(
-                                    Icons.checkroom_outlined,
-                                    size: 40,
-                                    color: Color(0xFFCBD5E1),
-                                  ),
-                                ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Primary label: Bestseller or Try and Buy
-                              if (item['is_bestseller'] == true)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 7,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFDC2626),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Text(
-                                    'BESTSELLER',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: 0.3,
-                                    ),
-                                  ),
-                                )
-                              else if (item['is_try_and_buy'] == true)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFF59E0B),
-                                        Color(0xFFEF4444),
-                                      ],
-                                      begin: Alignment.centerLeft,
-                                      end: Alignment.centerRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(20),
-                                    boxShadow: const [
-                                      BoxShadow(
-                                        color: Color(0x55F59E0B),
-                                        blurRadius: 6,
-                                        offset: Offset(0, 2),
-                                      ),
-                                    ],
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '✨',
-                                        style: TextStyle(
-                                          fontSize: 7,
-                                          height: 1,
-                                        ),
-                                      ),
-                                      SizedBox(width: 3),
-                                      Text(
-                                        'Try & Buy',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                )
-                              else
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF16A34A),
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: const Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '⚡',
-                                        style: TextStyle(
-                                          fontSize: 7,
-                                          height: 1,
-                                        ),
-                                      ),
-                                      SizedBox(width: 3),
-                                      Text(
-                                        '+60 MIN',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 8,
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0.3,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                            ],
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ),
-                        Positioned(
-                          top: 7,
-                          right: 7,
-                          child: GestureDetector(
-                            onTap: () {
-                              final id = item['id']?.toString() ?? '';
-                              if (id.isEmpty) return;
-                              WishlistManager.instance.toggle(wishItem1);
-                              setState(() {});
-                            },
-                            child: Container(
-                              width: 30,
-                              height: 30,
-                              decoration: const BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Color(0x18000000),
-                                    blurRadius: 6,
-                                  ),
-                                ],
-                              ),
-                              child: Icon(
-                                WishlistManager.instance.isWishlisted(
-                                      item['id']?.toString() ?? '',
-                                    )
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                size: 16,
-                                color:
-                                    WishlistManager.instance.isWishlisted(
-                                      item['id']?.toString() ?? '',
-                                    )
-                                    ? const Color(0xFFE11D48)
-                                    : const Color(0xFF94A3B8),
-                              ),
+                          decoration: BoxDecoration(
+                            color: _green,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            'Up to $discount% OFF',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ],
-                    ),
-                  ),
-                  Expanded(
-                    flex: 2,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (brand.isNotEmpty)
-                            Text(
-                              brand.toUpperCase(),
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFF9CA3AF),
-                                letterSpacing: 0.8,
-                              ),
-                            ),
-                          const SizedBox(height: 2),
-                          Text(
-                            name,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF0F172A),
-                              height: 1.2,
-                            ),
-                          ),
-                          const Spacer(),
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Text(
-                                '₹$price',
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w800,
-                                  color: Color(0xFF0F172A),
-                                ),
-                              ),
-                              if (origP.isNotEmpty && origP != price) ...[
-                                const SizedBox(width: 4),
-                                Text(
-                                  '₹$origP',
-                                  style: const TextStyle(
-                                    fontSize: 11,
-                                    color: Color(0xFF94A3B8),
-                                    decoration: TextDecoration.lineThrough,
-                                  ),
-                                ),
-                              ],
-                              const Spacer(),
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFDCFCE7),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.shopping_cart_outlined,
-                                  size: 15,
-                                  color: _green,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            off,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              color: _green,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ],
@@ -3138,6 +2981,7 @@ class _HomeScreenState extends State<HomeScreen>
       ),
     );
   }
+
 
   // ── Products Under 999 ────────────────────────────────────────────────────
   Widget _under999Cards() {
