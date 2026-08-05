@@ -48,29 +48,66 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
   Future<void> _selectContact() async {
     try {
-      // native.showPicker is permissionless on Android and iOS
-      final contact = await FlutterContacts.native.showPicker(
-        properties: {ContactProperty.phone, ContactProperty.name},
-      );
+      // showPicker() without properties = permissionless; we fetch full contact after
+      final contact = await FlutterContacts.native.showPicker();
       if (contact == null || !mounted) return;
-      final phone = contact.phones.isNotEmpty
-          ? (contact.phones.first.normalizedNumber ?? '')
-                .replaceAll(RegExp(r'[^\d]'), '')
-                .replaceAll(RegExp(r'^91'), '')
-          : '';
-      final name = contact.displayName ?? '';
+
+      Contact full = contact;
+
+      // Native picker only returns ID without properties — always fetch full contact
+      if (contact.id?.isNotEmpty ?? false) {
+        final status = await FlutterContacts.permissions.request(
+          PermissionType.read,
+        );
+        if (status == PermissionStatus.granted ||
+            status == PermissionStatus.limited) {
+          final fetched = await FlutterContacts.get(
+            contact.id!,
+            properties: {ContactProperty.phone, ContactProperty.name},
+          );
+          if (fetched != null) full = fetched;
+        }
+      }
+
+      String phone = '';
+      if (full.phones.isNotEmpty) {
+        final normalized = full.phones.first.normalizedNumber;
+        final raw =
+            ((normalized != null && normalized.isNotEmpty)
+                    ? normalized
+                    : full.phones.first.number)
+                .replaceAll(RegExp(r'[^\d]'), '');
+        phone = raw.length > 10 ? raw.substring(raw.length - 10) : raw;
+      }
+
+      final firstName = full.name?.first ?? '';
+      final lastName = full.name?.last ?? '';
+      final composed = [
+        firstName,
+        lastName,
+      ].where((s) => s.isNotEmpty).join(' ').trim();
+      final displayName = full.displayName ?? '';
+      final name = displayName.isNotEmpty ? displayName : composed;
+
       setState(() {
-        if (name.isNotEmpty) {
-          _receiverNameCtrl.text = name;
-        }
-        if (phone.isNotEmpty) {
-          _receiverPhoneCtrl.text = phone.length > 10
-              ? phone.substring(phone.length - 10)
-              : phone;
-        }
+        if (name.isNotEmpty) _receiverNameCtrl.text = name;
+        if (phone.isNotEmpty) _receiverPhoneCtrl.text = phone;
       });
+
+      if (phone.isEmpty && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Phone not found — please type it manually.'),
+          ),
+        );
+      }
     } catch (e) {
       debugPrint('Contact pick error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
     }
   }
 
