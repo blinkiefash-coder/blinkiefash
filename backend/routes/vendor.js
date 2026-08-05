@@ -1073,12 +1073,19 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
 
     // Update size, color, barcode + regenerate SKU atomically to avoid unique constraint violation
     if ((size && String(size).trim()) || (color && String(color).trim()) || barcode !== undefined) {
-      const pv = await pool.query(`SELECT product_id, size, color FROM product_variants WHERE id = $1`, [variantId]);
+      const pv = await pool.query(`SELECT product_id, size, color, barcode FROM product_variants WHERE id = $1`, [variantId]);
       if (pv.rows.length) {
-        const { product_id, size: curSize, color: curColor } = pv.rows[0];
+        const { product_id, size: curSize, color: curColor, barcode: curBarcode } = pv.rows[0];
         const newSize = (size && String(size).trim()) ? String(size).trim() : curSize;
         const newColor = (color && String(color).trim()) ? String(color).trim() : curColor;
-        const newSku = `${product_id}-${newColor}-${newSize}`.replace(/\s+/g, "-").toUpperCase();
+        const newBarcode = barcode !== undefined ? (barcode ? String(barcode).trim() : null) : curBarcode;
+        
+        if (!newBarcode) {
+          return res.status(400).json({ success: false, message: "Barcode is required for the variant" });
+        }
+        
+        // SKU format: barcode_size_color (e.g., 30823504_UK_11_WHITE)
+        const newSku = `${newBarcode}_${newSize}_${newColor}`.replace(/\s+/g, "_").toUpperCase();
         
         // Check if the new SKU already exists (for a different variant)
         const existingSKU = await pool.query(
@@ -1086,15 +1093,11 @@ router.patch("/:vendorId/variants/:variantId/stock", async (req, res) => {
           [product_id, newSku, variantId]
         );
         if (existingSKU.rows.length > 0) {
-          return res.status(400).json({ success: false, message: `Variant with size '${newSize}' and color '${newColor}' already exists. Please use a different size/color combination.` });
+          return res.status(400).json({ success: false, message: `Variant with barcode '${newBarcode}' already exists.` });
         }
         
-        const sets = ['size = $2', 'color = $3', 'sku = $4'];
-        const vals = [variantId, newSize, newColor, newSku];
-        if (barcode !== undefined) {
-          sets.push(`barcode = $${vals.length + 1}`);
-          vals.push(barcode ? String(barcode).trim() : null);
-        }
+        const sets = ['size = $2', 'color = $3', 'sku = $4', 'barcode = $5'];
+        const vals = [variantId, newSize, newColor, newSku, newBarcode];
         await pool.query(`UPDATE product_variants SET ${sets.join(', ')} WHERE id = $1`, vals);
       }
     }
@@ -1133,16 +1136,21 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
     if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
 
     await client.query("BEGIN");
-    const sku = `${productId}-${color}-${size}`.replace(/\s+/g, "-").toUpperCase();
+    // SKU format: barcode_size_color (e.g., 30823504_UK_11_WHITE)
+    if (!barcode) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: "Barcode is required to create a variant" });
+    }
+    const sku = `${barcode}_${size}_${color}`.replace(/\s+/g, "_").toUpperCase();
     
-    // Check if this size/color combination already exists
+    // Check if this barcode already exists (each barcode should be unique)
     const existingSKU = await client.query(
       `SELECT id FROM product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
       [productId, sku]
     );
     if (existingSKU.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ success: false, message: `Variant with size '${size}' and color '${color}' already exists. Please edit the existing variant or use a different size/color combination.` });
+      return res.status(400).json({ success: false, message: `Variant with barcode '${barcode}' already exists.` });
     }
     
     const variantRes = await client.query(

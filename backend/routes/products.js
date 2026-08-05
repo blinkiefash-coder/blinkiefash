@@ -185,8 +185,15 @@ const createProductSimple = async (req, res) => {
     let insertedImageCount = 0;
 
     for (const variant of variants) {
-      const sku = `${name}-${variant.color}-${variant.size}`
-        .replace(/\s+/g, "-")
+      // Validate barcode is provided
+      if (!variant.barcode) {
+        await client.query("ROLLBACK");
+        return res.status(400).json({ success: false, message: "Barcode is required for all variants" });
+      }
+      
+      // SKU format: barcode_size_color (e.g., 30823504_UK_11_WHITE)
+      const sku = `${variant.barcode}_${variant.color}_${variant.size}`
+        .replace(/\s+/g, "_")
         .toUpperCase();
 
       const variantRes = await client.query(

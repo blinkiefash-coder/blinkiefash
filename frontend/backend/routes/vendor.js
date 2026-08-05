@@ -1105,16 +1105,21 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
     if (!check.rows.length) return res.status(403).json({ success: false, message: "Not authorised" });
 
     await client.query("BEGIN");
-    const sku = `${productId}-${color}-${size}`.replace(/\s+/g, "-").toUpperCase();
+    // SKU format: barcode_size_color (e.g., 30823504_UK_11_WHITE)
+    if (!barcode) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: "Barcode is required to create a variant" });
+    }
+    const sku = `${barcode}_${size}_${color}`.replace(/\s+/g, "_").toUpperCase();
     
-    // Check if this size/color combination already exists
+    // Check if this barcode already exists (each barcode should be unique)
     const existingSKU = await client.query(
       `SELECT id FROM product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
       [productId, sku]
     );
     if (existingSKU.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ success: false, message: `Variant with size '${size}' and color '${color}' already exists. Please edit the existing variant or use a different size/color combination.` });
+      return res.status(400).json({ success: false, message: `Variant with barcode '${barcode}' already exists.` });
     }
     
     const variantRes = await client.query(
