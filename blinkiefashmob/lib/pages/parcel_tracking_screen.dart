@@ -634,7 +634,10 @@ class _BottomCard extends StatelessWidget {
                     data['otp_verified'] == true
                         ? 'OTP verified with rider ✓'
                         : 'Share this code with your rider at delivery',
-                    style: const TextStyle(color: Color(0xFF64748B), fontSize: 11),
+                    style: const TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                    ),
                   ),
                 ],
               ),

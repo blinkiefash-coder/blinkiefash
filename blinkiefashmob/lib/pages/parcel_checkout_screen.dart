@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/user_session.dart';
 
@@ -44,6 +45,36 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
   final _api = ApiClient();
 
   static const _green = Color(0xFF16A34A);
+
+  Future<void> _selectContact() async {
+    try {
+      final contact = await FlutterContacts.openExternalPicker();
+      if (contact != null) {
+        // Get the first phone number
+        final phone = contact.phones.isNotEmpty
+            ? contact.phones.first.number.replaceAll(RegExp(r'[^0-9]'), '')
+            : '';
+        final name = contact.displayName;
+
+        setState(() {
+          if (name.isNotEmpty) _receiverNameCtrl.text = name;
+          if (phone.isNotEmpty) {
+            // Take last 10 digits if longer
+            final cleanPhone = phone.length > 10
+                ? phone.substring(phone.length - 10)
+                : phone.padLeft(10, '0');
+            _receiverPhoneCtrl.text = cleanPhone;
+          }
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: ${e.toString()}')),
+        );
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -149,6 +180,15 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
               keyboardType: TextInputType.phone,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               maxLength: 10,
+              suffixIcon: IconButton(
+                icon: const Icon(
+                  Icons.contacts_rounded,
+                  color: _green,
+                  size: 20,
+                ),
+                onPressed: _selectContact,
+                tooltip: 'Select from contacts',
+              ),
               validator: (v) {
                 if (v == null || v.trim().isEmpty) return 'Enter phone number';
                 if (v.trim().length < 10) return 'Enter valid 10-digit number';
@@ -226,6 +266,7 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
     int? maxLength,
     int maxLines = 1,
     String? Function(String?)? validator,
+    Widget? suffixIcon,
   }) {
     return TextFormField(
       controller: controller,
@@ -237,6 +278,7 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon),
+        suffixIcon: suffixIcon,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
         counterText: '',
         filled: true,
