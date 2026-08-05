@@ -184,8 +184,8 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
               ? LatLng(pickupLat, pickupLng)
               : const LatLng(20.4625, 85.883));
 
-    return WillPopScope(
-      onWillPop: () async => isDone,
+    return PopScope(
+      canPop: isDone,
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(

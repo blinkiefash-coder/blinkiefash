@@ -48,31 +48,29 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
   Future<void> _selectContact() async {
     try {
-      final contact = await FlutterContacts.openExternalPicker();
-      if (contact != null) {
-        // Get the first phone number
-        final phone = contact.phones.isNotEmpty
-            ? contact.phones.first.number.replaceAll(RegExp(r'[^0-9]'), '')
-            : '';
-        final name = contact.displayName;
-
-        setState(() {
-          if (name.isNotEmpty) _receiverNameCtrl.text = name;
-          if (phone.isNotEmpty) {
-            // Take last 10 digits if longer
-            final cleanPhone = phone.length > 10
-                ? phone.substring(phone.length - 10)
-                : phone.padLeft(10, '0');
-            _receiverPhoneCtrl.text = cleanPhone;
-          }
-        });
-      }
+      // native.showPicker is permissionless on Android and iOS
+      final contact = await FlutterContacts.native.showPicker(
+        properties: {ContactProperty.phone, ContactProperty.name},
+      );
+      if (contact == null || !mounted) return;
+      final phone = contact.phones.isNotEmpty
+          ? (contact.phones.first.normalizedNumber ?? '')
+                .replaceAll(RegExp(r'[^\d]'), '')
+                .replaceAll(RegExp(r'^91'), '')
+          : '';
+      final name = contact.displayName ?? '';
+      setState(() {
+        if (name.isNotEmpty) {
+          _receiverNameCtrl.text = name;
+        }
+        if (phone.isNotEmpty) {
+          _receiverPhoneCtrl.text = phone.length > 10
+              ? phone.substring(phone.length - 10)
+              : phone;
+        }
+      });
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
-      }
+      debugPrint('Contact pick error: $e');
     }
   }
 
