@@ -105,10 +105,7 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
       if (rLat != null && rLng != null) {
         try {
           _mapCtrl.move(
-            LatLng(
-              _parseCoordinate(rLat),
-              _parseCoordinate(rLng),
-            ),
+            LatLng(_parseCoordinate(rLat), _parseCoordinate(rLng)),
             14,
           );
         } catch (_) {}
@@ -221,7 +218,8 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
     // Use API data for location and fare (prefer over constructor params)
     final pickupText = (_data?['pickup_text'] ?? widget.pickupText).toString();
     final dropText = (_data?['drop_text'] ?? widget.dropText).toString();
-    final fare = _data?['estimated_fare'] ?? widget.estimatedFare;
+    final fareValue = _data?['estimated_fare'] ?? widget.estimatedFare;
+    final fare = _parseCoordinate(fareValue) as num;
 
     final mapCenter = hasRiderLocation
         ? LatLng(riderLat, riderLng)
