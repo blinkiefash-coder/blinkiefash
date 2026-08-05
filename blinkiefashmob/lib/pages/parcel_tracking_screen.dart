@@ -50,6 +50,12 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
     super.dispose();
   }
 
+  double _parseCoordinate(dynamic value) {
+    if (value is num) return value.toDouble();
+    if (value is String) return double.tryParse(value) ?? 0.0;
+    return 0.0;
+  }
+
   Future<void> _fetchStatus() async {
     try {
       final res = await http
@@ -100,8 +106,8 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
         try {
           _mapCtrl.move(
             LatLng(
-              double.parse(rLat.toString()),
-              double.parse(rLng.toString()),
+              _parseCoordinate(rLat),
+              _parseCoordinate(rLng),
             ),
             14,
           );
