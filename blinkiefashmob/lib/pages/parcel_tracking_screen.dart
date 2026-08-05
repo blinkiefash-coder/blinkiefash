@@ -28,8 +28,6 @@ class ParcelTrackingScreen extends StatefulWidget {
 
 class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
   static const _green = Color(0xFF16A34A);
-  static const _orange = Color(0xFFEA580C);
-  static const _blue = Color(0xFF0284C7);
   static const _red = Color(0xFFEF4444);
   static const _pollInterval = Duration(seconds: 8);
 
@@ -80,12 +78,9 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
       }
 
       // Extract parcel data - try 'parcel' key first, then 'request'
-      dynamic req = body['parcel'];
-      if (req == null) {
-        req = body['request'];
-      }
+      final req = body['parcel'] as Map<String, dynamic>? ?? body['request'] as Map<String, dynamic>?;
 
-      if (req == null || req is! Map<String, dynamic>) {
+      if (req == null) {
         if (mounted) {
           setState(() {
             _loading = false;
