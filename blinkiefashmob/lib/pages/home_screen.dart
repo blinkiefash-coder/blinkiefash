@@ -2823,88 +2823,69 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
-  // ── Deals of the Day: Category cards with max discount ──────────────────────
+  // ── Deals of the Day: Top products with maximum discounts ─────────────────
   Widget _dealsOfTheDayCategories() {
-    // Group products by category and find max discount per category
-    final categoryDeals = <String, Map<String, dynamic>>{};
+    // Calculate discount for each product and sort by highest discount
+    final dealsProducts = <Map<String, dynamic>>[];
 
-    final rootCategories = _categories.isNotEmpty
-        ? _categories
-        : [
-            {
-              'id': 'men',
-              'name': 'Men',
-              'category_url': 'assets/images/men_cat.jpg',
-            },
-            {
-              'id': 'women',
-              'name': 'Women',
-              'category_url': 'assets/images/women_cat.jpg',
-            },
-            {
-              'id': 'kids',
-              'name': 'Kids',
-              'category_url': 'assets/images/kids_cat.jpg',
-            },
-            {
-              'id': 'electronics',
-              'name': 'Electronics',
-              'category_url': 'assets/images/electronics_cat.jpg',
-            },
-            {
-              'id': 'footwear',
-              'name': 'Footwear',
-              'category_url': 'assets/images/footwear_cat.jpg',
-            },
-          ];
+    for (final product in _products) {
+      final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
+      final discPrice =
+          double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
 
-    // Calculate max discount for each category using available products
-    for (final cat in rootCategories) {
-      final catName = cat['name']?.toString() ?? '';
-      int maxDiscount = 0;
-
-      for (final product in _products) {
-        final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
-        final discPrice =
-            double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
-
-        if (price > discPrice && price > 0) {
-          final discount = ((price - discPrice) / price * 100).round();
-          maxDiscount = discount > maxDiscount ? discount : maxDiscount;
-        }
+      if (price > discPrice && price > 0) {
+        final discount = ((price - discPrice) / price * 100).round();
+        dealsProducts.add({
+          ...product,
+          'calculated_discount': discount,
+        });
       }
-
-      categoryDeals[catName] = {...cat, 'max_discount': maxDiscount};
     }
 
-    final categories = categoryDeals.values.toList();
+    // Sort by discount percentage descending and take top 10
+    dealsProducts.sort((a, b) {
+      final discA = a['calculated_discount'] as int? ?? 0;
+      final discB = b['calculated_discount'] as int? ?? 0;
+      return discB.compareTo(discA);
+    });
+
+    final topDeals = dealsProducts.take(10).toList();
+
+    if (topDeals.isEmpty) {
+      return _stockOutBanner();
+    }
 
     return SizedBox(
-      height: 160,
+      height: 300,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: categories.length,
+        itemCount: topDeals.length,
         itemBuilder: (_, i) {
-          final cat = categories[i];
-          final catName = cat['name']?.toString() ?? 'Category';
-          final discount = cat['max_discount'] as int? ?? 0;
-          final img = _imgUrl(cat['category_url'] ?? cat['image']);
+          final item = topDeals[i];
+          final name = item['name']?.toString() ?? 'Product';
+          final brand = item['brand']?.toString() ?? '';
+          final variantData = _getCardVariant(item);
+          final price = _fmt(variantData['discount_price']);
+          final origP = _fmt(variantData['price']);
+          final discount = item['calculated_discount'] as int? ?? 0;
+          final off = '$discount% OFF';
+          final img = _imgUrl(variantData['image_url'] ?? item['image']);
+          final wishItem = WishlistItem(
+            productId: item['id']?.toString() ?? '',
+            name: name,
+            price: price,
+            imageUrl: img,
+          );
 
           return GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => AllProductsScreen(categoryName: catName),
-                ),
-              );
-            },
+            onTap: item['id'] != null ? () => _openProduct(item) : null,
             child: Container(
-              width: 140,
+              width: 160,
               margin: const EdgeInsets.only(right: 12),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
                 boxShadow: const [
                   BoxShadow(
                     color: Color(0x0F000000),
@@ -2913,90 +2894,174 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ],
               ),
-              child: Stack(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Background image
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: img != null
-                        ? CachedNetworkImage(
-                            imageUrl: img,
-                            fit: BoxFit.cover,
-                            width: double.infinity,
-                            height: double.infinity,
-                            placeholder: (context, url) =>
-                                Container(color: const Color(0xFFF1F5F9)),
-                            errorWidget: (context, url, error) => Container(
-                              color: const Color(0xFFF1F5F9),
-                              child: const Icon(
-                                Icons.category_outlined,
-                                color: Color(0xFFCBD5E1),
-                                size: 32,
-                              ),
-                            ),
-                          )
-                        : Container(
-                            color: const Color(0xFFF1F5F9),
-                            child: const Icon(
-                              Icons.category_outlined,
-                              color: Color(0xFFCBD5E1),
-                              size: 32,
-                            ),
-                          ),
-                  ),
-                  // Overlay gradient
-                  Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(16),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.7),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Content
-                  Positioned(
-                    bottom: 12,
-                    left: 12,
-                    right: 12,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  Expanded(
+                    flex: 3,
+                    child: Stack(
                       children: [
-                        Text(
-                          catName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
+                        ClipRRect(
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          child: img != null
+                              ? CachedNetworkImage(
+                                  imageUrl: img,
+                                  fit: BoxFit.contain,
+                                  alignment: Alignment.center,
+                                  width: double.infinity,
+                                  height: double.infinity,
+                                  placeholder: (context, url) =>
+                                      Container(color: const Color(0xFFF1F5F9)),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
+                                )
+                              : Container(
+                                  color: const Color(0xFFF1F5F9),
+                                  child: const Icon(
+                                    Icons.checkroom_outlined,
+                                    size: 40,
+                                    color: Color(0xFFCBD5E1),
+                                  ),
+                                ),
                         ),
-                        const SizedBox(height: 4),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
+                        Positioned(
+                          top: 8,
+                          left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _green,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  '⭐',
+                                  style: TextStyle(
+                                    fontSize: 7,
+                                    height: 1,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Text(
+                                  off,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          decoration: BoxDecoration(
-                            color: _green,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            'Up to $discount% OFF',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
+                        ),
+                        Positioned(
+                          top: 8,
+                          right: 8,
+                          child: GestureDetector(
+                            onTap: () {
+                              WishlistManager.instance.toggle(wishItem);
+                              setState(() {});
+                            },
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: const BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x18000000),
+                                    blurRadius: 6,
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                WishlistManager.instance.isWishlisted(
+                                      item['id']?.toString() ?? '',
+                                    )
+                                    ? Icons.favorite_rounded
+                                    : Icons.favorite_border_rounded,
+                                size: 16,
+                                color:
+                                    WishlistManager.instance.isWishlisted(
+                                      item['id']?.toString() ?? '',
+                                    )
+                                    ? const Color(0xFFE11D48)
+                                    : const Color(0xFF94A3B8),
+                              ),
                             ),
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                  Expanded(
+                    flex: 2,
+                    child: Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 13,
+                              height: 1.1,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (brand.isNotEmpty)
+                            Text(
+                              brand,
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 11,
+                                height: 1.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          Row(
+                            children: [
+                              Text(
+                                '₹$price',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 13,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '₹$origP',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  decoration: TextDecoration.lineThrough,
+                                  color: Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
