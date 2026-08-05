@@ -1094,6 +1094,7 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
   try {
     const { vendorId, productId } = req.params;
     const { size, color, price, mrp, barcode, quantity, store_id, images } = req.body || {};
+    console.log("[POST variant] Request:", { vendorId, productId, size, color, price, mrp, barcode, quantity, store_id });
     if (!size || !color) return res.status(400).json({ success: false, message: "size and color are required" });
 
     const check = await pool.query(
@@ -1129,7 +1130,7 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
     res.json({ success: true, variant_id: newVariantId });
   } catch (err) {
     await client.query("ROLLBACK");
-    console.error("[add variant]", err.message);
+    console.error("[add variant] Error:", err.message, "Code:", err.code);
     res.status(500).json({ success: false, message: err.message });
   } finally {
     client.release();

@@ -245,15 +245,22 @@ export default function EditProduct() {
       try {
         const resolvedPrice = resolveVariantPrice(v.price, v.mrp);
         const uploadedImages = await uploadImages(v.imageFiles || []);
+        const payload = { size: v.size, color: v.color, price: resolvedPrice, mrp: v.mrp, barcode: v.barcode, quantity: v.quantity, images: uploadedImages, store_id: vendorStoreId };
+        console.log("[addVariant] Payload:", payload);
         const res = await fetch(`${API_API_BASE_URL}/vendor/${activeVendorId}/products/${productId}/variants`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ size: v.size, color: v.color, price: resolvedPrice, mrp: v.mrp, barcode: v.barcode, quantity: v.quantity, images: uploadedImages, store_id: vendorStoreId }),
+          body: JSON.stringify(payload),
         });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ message: `HTTP ${res.status}` }));
+          throw new Error(errData.message || `HTTP ${res.status}`);
+        }
         const data = await res.json();
         if (!data.success) throw new Error(data.message || "Failed");
+        console.log("[addVariant] Success:", data);
       } catch (err) {
+        console.error("[addVariant] Error:", err);
         errors.push(`${v.size}/${v.color}: ${err.message}`);
       }
     }
