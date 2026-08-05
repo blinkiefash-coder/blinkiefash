@@ -1551,7 +1551,19 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _estimatedDelivery(String status, Map<String, dynamic> order) {
     final isDelivered = status == 'delivered' || status == 'completed';
-    final isScheduledOrder = _isScheduled(order);
+    final deliveryPromise = order['deliveryPromise']?.toString() ?? 'Today, within 60 minutes';
+    final deliveryType = order['deliveryType']?.toString();
+    final distanceKm = order['distanceKm'] as num?;
+    
+    String deliveryText = deliveryPromise;
+    if (!isDelivered && deliveryType == 'local' || deliveryType == 'extended') {
+      // For dynamic ETAs, show the promise from backend
+      deliveryText = deliveryPromise;
+    } else if (!isDelivered) {
+      // For scheduled deliveries, show what was delivered
+      deliveryText = deliveryPromise;
+    }
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1572,11 +1584,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            isDelivered
-                ? 'Your order has been delivered'
-                : isScheduledOrder
-                ? _scheduledEtaText(order)
-                : 'Today, within 60 minutes',
+            isDelivered ? 'Your order has been delivered' : deliveryText,
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
@@ -1585,6 +1593,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   : const Color(0xFF0F172A),
             ),
           ),
+          // Show distance info if available
+          if (!isDelivered && distanceKm != null && distanceKm > 0)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Distance: ${distanceKm.toStringAsFixed(1)} km',
+                style: const TextStyle(
+                  color: Color(0xFF6B7280),
+                  fontSize: 12,
+                ),
+              ),
+            ),
           Container(
             margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),

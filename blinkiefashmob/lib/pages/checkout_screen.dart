@@ -48,7 +48,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double _deliveryFee = 0.0;
   bool _deliveryAvailable = true;
   double? _deliveryDistanceKm;
-  int? _deliveryEtaMinutes;
   int? _deliveryEtaMinMinutes;
   int? _deliveryEtaMaxMinutes;
   String? _deliveryPromise; // e.g., "Fast Delivery", "Same Day Delivery", etc.
@@ -322,7 +321,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _deliveryFee = fee != null ? (fee as num).toDouble() : 0.0;
       _deliveryAvailable = result['withinRange'] as bool? ?? true;
       _deliveryDistanceKm = (result['distance'] as num?)?.toDouble();
-      _deliveryEtaMinutes = (result['etaMinutes'] as num?)?.toInt();
       _deliveryEtaMinMinutes = (result['etaMinMinutes'] as num?)?.toInt();
       _deliveryEtaMaxMinutes = (result['etaMaxMinutes'] as num?)?.toInt();
       
@@ -423,29 +421,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String _todayDeliveryLabel() {
     // Show delivery promise if available from backend
     if (_deliveryPromise != null) {
-      final type = _deliveryType ?? '';
-      if (type == 'sameday' || type == 'nextday') {
-        return _deliveryPromise!; // e.g., "Same Day Delivery" or "Next Day Delivery"
-      }
-      if (type == 'local' || type == 'extended') {
-        // For fast delivery, show ETA
-        if (_deliveryEtaMinutes != null) {
-          return 'Delivery within $_deliveryEtaMinutes minutes';
-        }
-      }
-      if (type == '2days') {
-        return _deliveryPromise!; // "Delivery within 2 Days"
-      }
+      return _deliveryPromise!; // Shows dynamic ETA like "Delivery in 62 minutes" or "Next Day Delivery"
     }
-    
-    // Fallback for when ETA is available
-    if (_deliveryEtaMaxMinutes != null && _deliveryEtaMaxMinutes! > 0) {
-      final eta = DateTime.now().add(
-        Duration(minutes: _deliveryEtaMaxMinutes!),
-      );
-      return 'Deliver Today by ${_slotLabel(TimeOfDay.fromDateTime(eta))}';
-    }
-    
     return 'Delivery Time';
   }
 
@@ -454,15 +431,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final etaMax = _deliveryEtaMaxMinutes;
     final distance = _deliveryDistanceKm;
     final type = _deliveryType ?? '';
+    final now = DateTime.now();
+    final currentHour = now.hour;
+    final isAfterOperatingHours = currentHour >= 21 || currentHour < 10;
 
-    // For same day/next day in major cities
-    if (type == 'sameday' || type == 'nextday') {
-      return 'Delivery to major Odisha cities';
+    // For same day delivery
+    if (type == 'sameday') {
+      return 'Same day delivery to major Odisha cities (ordered before 12:00 PM)';
+    }
+
+    // For next day delivery
+    if (type == 'nextday') {
+      if (isAfterOperatingHours) {
+        return 'Next day delivery (order placed after operating hours)';
+      }
+      return 'Next day delivery available';
     }
 
     // For 2 days delivery
     if (type == '2days') {
-      return 'Across Odisha';
+      if (isAfterOperatingHours) {
+        return 'Next to next day delivery (order placed after 21:00)';
+      }
+      return 'Delivery within 2 days across Odisha';
     }
 
     // For time-based ETAs (local and extended)

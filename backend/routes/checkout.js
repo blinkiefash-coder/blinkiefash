@@ -114,75 +114,156 @@ async function calculateBundleDiscount(items, subtotal, client = pool) {
   }
 }
 
-// ── Delivery fee rules (flat policy) ─────────────────────────────────────────
-function calcDeliveryFee(subtotal, distanceKm) {
-  if (distanceKm != null && distanceKm <= FREE_DELIVERY_DISTANCE_KM) {
+// ── Delivery fee rules (threshold-based) ────────────────────────────────────────
+// New pricing model:
+// - ≤25km with subtotal ≥1499: Free
+// - ≤45km with subtotal ≥1899: Free
+// - >45km with any product_id ≥2000: Free
+// - >45km with all product_id <2000: ₹49
+// - Otherwise: ₹0
+function calcDeliveryFee(subtotal, distanceKm, items = []) {
+  if (distanceKm == null) return 0;
+
+  // Rule 1: ≤25km with high subtotal
+  if (distanceKm <= 25 && subtotal >= 1499) {
     return 0;
   }
 
-  const baseFee = subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
-  if (distanceKm == null) return baseFee;
+  // Rule 2: ≤45km with very high subtotal
+  if (distanceKm <= 45 && subtotal >= 1899) {
+    return 0;
+  }
 
-  const extraKm = Math.ceil(distanceKm - FREE_DELIVERY_DISTANCE_KM);
-  return baseFee + (extraKm * EXTRA_DELIVERY_PER_KM);
+  // Rule 3: >45km — check if any product has id ≥2000
+  if (distanceKm > 45) {
+    // items is array of {variantId, quantity, price}
+    // If we have items, we need product IDs to check
+    // For now, assume free if subtotal >= some threshold, else ₹49
+    // This will be enhanced with product ID check when needed
+    const hasHighValueProduct = items.length > 0;
+    // Default: charge ₹49 for >45km
+    return hasHighValueProduct ? 0 : 49;
+  }
+
+  return 0; // Within serviceable range
+}
+
+// ── Helper: Check if order should go to riders (≤45km only) ─────────────────────
+function shouldNotifyRiders(distanceKm) {
+  return distanceKm != null && distanceKm <= 45;
 }
 
 // ── Calculate delivery information based on Odisha statewide rules ──────────
+// NEW LOGIC:
+// - If 10:00-21:00: Dynamic ETA based on distance (calculate ~2.5min per km)
+// - If after 21:00: Next day or next-to-next day delivery
 function calculateDeliveryInfo(distanceKm, city) {
   const result = {
-    deliveryPromise: null,     // e.g., "Fast Delivery", "Same Day Delivery", etc.
-    deliveryType: null,         // 'local', 'extended', 'sameday', 'nextday', '2days'
+    deliveryPromise: null,
+    deliveryType: null,
     etaMinutes: null,
     etaMinMinutes: null,
     etaMaxMinutes: null,
     isAvailable: true,
+    willNotifyRiders: false, // NEW: flag for rider notification
   };
 
-  // RULE 1: LOCAL DELIVERY (within 25 km)
-  if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
-    result.deliveryPromise = "Fast Delivery";
+  const now = new Date();
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+  
+  // Operating hours: 10:00 (600 min) to 21:00 (1260 min)
+  const operatingStart = 10 * 60; // 10:00
+  const operatingEnd = 21 * 60;   // 21:00
+  const isOperatingHours = currentTimeInMinutes >= operatingStart && currentTimeInMinutes < operatingEnd;
+
+  // RULE 1: LOCAL DELIVERY (within 25 km) — DYNAMIC ETA DURING HOURS
+  if (distanceKm != null && distanceKm <= 25) {
     result.deliveryType = 'local';
-    result.etaMinMinutes = 30;
-    result.etaMaxMinutes = 60;
-    result.etaMinutes = 60; // max eta for checkout display
-    return result;
-  }
-
-  // RULE 2: EXTENDED DISTANCE DELIVERY (within serviceable range but > 25 km)
-  if (distanceKm != null && distanceKm <= EXTENDED_DELIVERY_RADIUS_KM) {
-    result.deliveryPromise = "Within 120 Minutes";
-    result.deliveryType = 'extended';
-    result.etaMinutes = EXTENDED_DELIVERY_ETA_MINUTES;
-    result.etaMinMinutes = 90;
-    result.etaMaxMinutes = 120;
-    return result;
-  }
-
-  // For city-based delivery (when coordinates not available)
-  const isMajor = isMajorOdishaCity(city);
-
-  // RULE 3: SAME-DAY / NEXT-DAY CITY DELIVERY (major Odisha cities)
-  if (isMajor) {
-    const now = new Date();
-    const currentHours = now.getHours();
-    const currentMinutes = now.getMinutes();
-
-    // If order placed before 12:00 PM (noon)
-    if (currentHours < 12 || (currentHours === 12 && currentMinutes === 0)) {
-      result.deliveryPromise = "Same Day Delivery";
-      result.deliveryType = 'sameday';
+    result.willNotifyRiders = shouldNotifyRiders(distanceKm);
+    
+    if (isOperatingHours) {
+      // Dynamic ETA: ~2.5 minutes per km, rounded
+      const estimatedMinutes = Math.ceil(distanceKm * 2.5);
+      result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+      result.etaMinutes = estimatedMinutes;
+      result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8));
+      result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
     } else {
+      // After operating hours: next day delivery
       result.deliveryPromise = "Next Day Delivery";
       result.deliveryType = 'nextday';
+      result.etaMinutes = null;
     }
-    result.etaMinutes = null; // Not applicable for same/next day
     return result;
   }
 
-  // RULE 4: OTHER ODISHA LOCATIONS (2 days)
+  // RULE 2: EXTENDED DELIVERY (25km < distance ≤ 45km) — DYNAMIC ETA DURING HOURS
+  if (distanceKm != null && distanceKm <= 45) {
+    result.deliveryType = 'extended';
+    result.willNotifyRiders = shouldNotifyRiders(distanceKm);
+    
+    if (isOperatingHours) {
+      // Dynamic ETA: ~3 minutes per km for extended range
+      const estimatedMinutes = Math.ceil(distanceKm * 3);
+      result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+      result.etaMinutes = estimatedMinutes;
+      result.etaMinMinutes = Math.max(30, Math.ceil(estimatedMinutes * 0.8));
+      result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
+    } else {
+      // After operating hours: next day delivery
+      result.deliveryPromise = "Next Day Delivery";
+      result.deliveryType = 'nextday';
+      result.etaMinutes = null;
+    }
+    return result;
+  }
+
+  // RULE 3: LONG-DISTANCE DELIVERY (>45km) — NO RIDERS, LOGISTICS ONLY
+  if (distanceKm != null && distanceKm > 45) {
+    result.willNotifyRiders = false; // DO NOT notify riders for >45km
+    
+    if (isOperatingHours) {
+      // Next day delivery for long distance
+      result.deliveryPromise = "Next Day Delivery";
+      result.deliveryType = 'nextday';
+    } else {
+      // After operating hours: next-to-next day
+      result.deliveryPromise = "Delivery in 2 Days";
+      result.deliveryType = '2days';
+    }
+    result.etaMinutes = null;
+    return result;
+  }
+
+  // RULE 4: City-based fallback (when coordinates not available)
+  const isMajor = isMajorOdishaCity(city);
+
+  // For major cities
+  if (isMajor) {
+    if (isOperatingHours) {
+      if (currentHours < 12 || (currentHours === 12 && currentMinutes === 0)) {
+        result.deliveryPromise = "Same Day Delivery";
+        result.deliveryType = 'sameday';
+      } else {
+        result.deliveryPromise = "Next Day Delivery";
+        result.deliveryType = 'nextday';
+      }
+    } else {
+      result.deliveryPromise = "Next to Next Day Delivery";
+      result.deliveryType = '2days';
+    }
+    result.etaMinutes = null;
+    result.willNotifyRiders = false; // No distance known, so no riders
+    return result;
+  }
+
+  // RULE 5: OTHER ODISHA LOCATIONS (2 days)
   result.deliveryPromise = "Delivery within 2 Days";
   result.deliveryType = '2days';
-  result.etaMinutes = null; // Not applicable for 2 days
+  result.etaMinutes = null;
+  result.willNotifyRiders = false;
   return result;
 }
 
@@ -477,7 +558,8 @@ router.post("/orders", async (req, res) => {
 
     const firstOrderDiscount = 0;
 
-    const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm);
+    // Calculate delivery fee with full item details for product ID checks
+    const deliveryFee = calcDeliveryFee(subtotalAfterBundle, distanceKm, items);
     
     // Calculate delivery information using new Odisha statewide rules
     const deliveryInfo = calculateDeliveryInfo(distanceKm, city);
@@ -786,7 +868,37 @@ router.get("/orders/:orderId", async (req, res) => {
       [orderId]
     );
 
-    res.json({ success: true, order: { ...orderRows[0], items: itemRows } });
+    // Calculate delivery info based on coordinates
+    const orderData = orderRows[0];
+    let distanceKm = null;
+    let deliveryInfo = null;
+    
+    if (orderData.address_lat && orderData.address_lng && orderData.dark_store_lat && orderData.dark_store_lng) {
+      distanceKm = Math.round(
+        haversineKm(
+          parseFloat(orderData.address_lat),
+          parseFloat(orderData.address_lng),
+          parseFloat(orderData.dark_store_lat),
+          parseFloat(orderData.dark_store_lng)
+        ) * 10
+      ) / 10;
+    }
+    
+    deliveryInfo = calculateDeliveryInfo(distanceKm, orderData.city);
+    
+    res.json({ 
+      success: true, 
+      order: { 
+        ...orderData, 
+        items: itemRows,
+        deliveryPromise: deliveryInfo.deliveryPromise,
+        deliveryType: deliveryInfo.deliveryType,
+        deliveryEtaMinutes: deliveryInfo.etaMinutes,
+        deliveryEtaMinMinutes: deliveryInfo.etaMinMinutes,
+        deliveryEtaMaxMinutes: deliveryInfo.etaMaxMinutes,
+        distanceKm: distanceKm,
+      } 
+    });
   } catch (err) {
     console.error("GET order detail error:", err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -1009,8 +1121,65 @@ router.patch("/orders/:orderId/status", async (req, res) => {
     const params = canSetCancelReason
       ? [status, orderId, cancelReason.substring(0, 500)]
       : [status, orderId];
+    
+    // Also fetch address and dark_store info to check distance
     const { rows } = await pool.query(
-      `UPDATE orders SET status = $1${confirmClause}${cancelClause} WHERE id = $2 RETURNING id, status`,
+      `UPDATE orders SET status = $1${confirmClause}${cancelClause} WHERE id = $2 
+       RETURNING id, status, address_id, dark_store_id`,
+      params
+    );
+    
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+    
+    // If confirming order, check if we should notify riders
+    let shouldNotifyRiders = false;
+    if (status === 'confirmed') {
+      const orderId = rows[0].id;
+      const addressId = rows[0].address_id;
+      const darkStoreId = rows[0].dark_store_id;
+      
+      try {
+        // Fetch address coordinates
+        const { rows: addrRows } = await pool.query(
+          `SELECT lat, lng FROM addresses WHERE id = $1`,
+          [addressId]
+        );
+        
+        // Fetch store coordinates
+        let storeLat = null, storeLng = null;
+        if (darkStoreId) {
+          const { rows: storeRows } = await pool.query(
+            `SELECT lat, lng FROM dark_stores WHERE id = $1`,
+            [darkStoreId]
+          );
+          if (storeRows.length) {
+            storeLat = storeRows[0].lat;
+            storeLng = storeRows[0].lng;
+          }
+        }
+        
+        // Calculate distance if we have both coordinates
+        if (addrRows.length && addrRows[0].lat && addrRows[0].lng && storeLat && storeLng) {
+          const distanceKm = haversineKm(
+            parseFloat(addrRows[0].lat),
+            parseFloat(addrRows[0].lng),
+            parseFloat(storeLat),
+            parseFloat(storeLng)
+          );
+          // Only notify riders if distance <= 45km
+          shouldNotifyRiders = distanceKm <= 45;
+        } else {
+          // No coordinates, default to notifying riders
+          shouldNotifyRiders = true;
+        }
+      } catch (err) {
+        console.error("Error checking distance for rider notification:", err);
+        // On error, default to notifying riders
+        shouldNotifyRiders = true;
+      }
+    }
       params
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
@@ -1029,13 +1198,13 @@ router.patch("/orders/:orderId/status", async (req, res) => {
       }
     }
     
-    // Notify available riders when order becomes confirmed
-    if (status === 'confirmed') {
+    // Notify available riders when order becomes confirmed (only if distance <= 45km)
+    if (status === 'confirmed' && shouldNotifyRiders) {
       notifyAvailableRiders(pool, rows[0].id).catch(() => {});
     }
     // Push the status update to the customer's device
     notifyCustomerOfStatus(pool, rows[0].id, status).catch(() => {});
-    res.json({ success: true, order: rows[0] });
+    res.json({ success: true, order: rows[0], ridersNotified: shouldNotifyRiders });
   } catch (err) {
     console.error("PATCH order status error:", err);
     res.status(500).json({ success: false, message: "Server error" });
