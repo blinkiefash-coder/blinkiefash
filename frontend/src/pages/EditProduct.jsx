@@ -237,6 +237,7 @@ export default function EditProduct() {
     // Validate all rows before submitting
     for (const v of pendingVariants) {
       if (!v.size.trim() || !v.color.trim()) { alert("Size and Color are required for every variant"); return; }
+      if (!v.barcode.trim()) { alert("Barcode is required for every variant (e.g. 30823504)"); return; }
       if (resolveVariantPrice(v.price, v.mrp) === null) { alert("Price is required for every variant (e.g. 499 or 40%)"); return; }
     }
     setAddSaving(true);
@@ -445,7 +446,7 @@ export default function EditProduct() {
                                   onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, size: e.target.value } : r))} /></label>
                                 <label>Color *<input placeholder="e.g. Black" value={pv.color}
                                   onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, color: e.target.value } : r))} /></label>
-                                <label>Barcode<input placeholder="optional" value={pv.barcode}
+                                <label>Barcode *<input placeholder="e.g. 30823504" value={pv.barcode}
                                   onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, barcode: e.target.value } : r))} /></label>
                                 <label>Price / % *<input type="text" value={pv.price} placeholder="499 or 40%"
                                   onChange={(e) => setPendingVariants(s => s.map((r, i) => i === idx ? { ...r, price: e.target.value } : r))} /></label>

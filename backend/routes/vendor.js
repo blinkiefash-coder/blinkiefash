@@ -1137,26 +1137,36 @@ router.post("/:vendorId/products/:productId/variants", async (req, res) => {
 
     await client.query("BEGIN");
     // SKU format: barcode_size_color (e.g., 30823504_UK_11_WHITE)
-    if (!barcode) {
+    const trimmedBarcode = barcode ? String(barcode).trim() : "";
+    const trimmedSize = size ? String(size).trim() : "";
+    const trimmedColor = color ? String(color).trim() : "";
+    
+    if (!trimmedBarcode) {
       await client.query("ROLLBACK");
       return res.status(400).json({ success: false, message: "Barcode is required to create a variant" });
     }
-    const sku = `${barcode}_${size}_${color}`.replace(/\s+/g, "_").toUpperCase();
+    if (!trimmedSize || !trimmedColor) {
+      await client.query("ROLLBACK");
+      return res.status(400).json({ success: false, message: "Size and Color are required" });
+    }
     
-    // Check if this barcode already exists (each barcode should be unique)
+    const sku = `${trimmedBarcode}_${trimmedSize}_${trimmedColor}`.replace(/\s+/g, "_").toUpperCase();
+    console.log(`[POST variant] SKU generated: ${sku} (barcode: ${trimmedBarcode}, size: ${trimmedSize}, color: ${trimmedColor})`);
+    
+    // Check if this barcode+size+color combination already exists
     const existingSKU = await client.query(
       `SELECT id FROM product_variants WHERE product_id = $1 AND sku = $2 LIMIT 1`,
       [productId, sku]
     );
     if (existingSKU.rows.length > 0) {
       await client.query("ROLLBACK");
-      return res.status(400).json({ success: false, message: `Variant with barcode '${barcode}' already exists.` });
+      return res.status(400).json({ success: false, message: `This variant (Barcode: ${trimmedBarcode}, Size: ${trimmedSize}, Color: ${trimmedColor}) already exists. Use a different barcode.` });
     }
     
     const variantRes = await client.query(
       `INSERT INTO product_variants (product_id, sku, size, color, barcode, price, mrp)
        VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [productId, sku, size, color, barcode || null, Number(price || 0), Number(mrp || price || 0)]
+      [productId, sku, trimmedSize, trimmedColor, trimmedBarcode, Number(price || 0), Number(mrp || price || 0)]
     );
     const newVariantId = variantRes.rows[0].id;
     await client.query(
