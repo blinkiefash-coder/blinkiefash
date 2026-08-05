@@ -227,6 +227,9 @@ class NotificationService {
     final body = notification?.body ?? message.data['body'] as String?;
     if (title == null && body == null) return;
 
+    // Increment unread notification count
+    unreadCountNotifier.value++;
+
     await _local.show(
       message.hashCode,
       title,
