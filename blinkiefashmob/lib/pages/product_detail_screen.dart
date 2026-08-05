@@ -55,7 +55,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final TextEditingController _reviewerNameCtrl = TextEditingController();
   bool _submittingReview = false;
   XFile? _pickedReviewImage;
-  
+
   // Review access control
   bool _canReview = false;
   bool _reviewAccessLoading = true;
@@ -646,12 +646,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _autoSelectFirstSize(Map<String, dynamic> data) async {
     // Only auto-select if no size was pre-selected
     if (_selectedSize != null) return;
-    
+
     try {
       final variants = (data['variants'] is List)
           ? List<dynamic>.from(data['variants'])
           : <dynamic>[];
-      
+
       if (variants.isEmpty) return;
 
       final variantMaps = variants
@@ -665,7 +665,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           .where((v) => v.isNotEmpty)
           .toSet()
           .toList();
-      
+
       if (allSizes.isEmpty) return;
 
       allSizes.sort();
@@ -675,7 +675,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       for (final size in allSizes) {
         final hasStock = variantMaps.any((v) {
           final vSize = (v['size'] ?? '').toString().trim();
-          final stock = int.tryParse((v['available_stock'] ?? 0).toString()) ?? 0;
+          final stock =
+              int.tryParse((v['available_stock'] ?? 0).toString()) ?? 0;
           return vSize == size && stock > 0;
         });
         if (hasStock) {
@@ -714,7 +715,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         if (order is! Map) continue;
         final items = order['items'] as List? ?? [];
         final status = (order['status'] ?? '').toString().toLowerCase();
-        
+
         // Check if order is delivered
         if (status == 'delivered' || status == 'completed') {
           // Check if order contains this product
@@ -1750,12 +1751,35 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                 .toList(),
           );
 
-          // Auto-select first available size if none is selected
-          final effectiveSize = _selectedSize ?? (sizeOptions.isNotEmpty ? sizeOptions.first : null);
+          // Auto-select first AVAILABLE (in-stock) size if none is selected
+          String? effectiveSize;
+          if (_selectedSize != null) {
+            effectiveSize = _selectedSize;
+          } else {
+            // Try to find first in-stock size
+            for (final size in sizeOptions) {
+              final hasStock = variantMaps.any((v) {
+                final vSize = (v['size'] ?? '').toString().trim();
+                final vStock =
+                    int.tryParse((v['available_stock'] ?? 0).toString()) ?? 0;
+                return vSize == size && vStock > 0;
+              });
+              if (hasStock) {
+                effectiveSize = size;
+                break;
+              }
+            }
+            // Fallback to first size if none have stock
+            effectiveSize ??= (sizeOptions.isNotEmpty ? sizeOptions.first : null);
 
-          // If size was auto-selected, update the state
-          if (_selectedSize == null && effectiveSize != null) {
-            _selectedSize = effectiveSize;
+            // Update state if we auto-selected a size
+            if (effectiveSize != null && _selectedSize == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _selectedSize = effectiveSize);
+                }
+              });
+            }
           }
 
           Map<String, dynamic>? selectedVariant;
@@ -1795,12 +1819,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           int? minDiscountPrice;
           int? minOriginalPrice;
           for (final v in variantMaps) {
-            final discPrice = int.tryParse(
-              (v['discount_price'] ?? v['price'] ?? 0).toString(),
-            ) ?? 0;
-            final origPrice = int.tryParse(
-              (v['price'] ?? 0).toString(),
-            ) ?? 0;
+            final discPrice =
+                int.tryParse(
+                  (v['discount_price'] ?? v['price'] ?? 0).toString(),
+                ) ??
+                0;
+            final origPrice = int.tryParse((v['price'] ?? 0).toString()) ?? 0;
             if (minDiscountPrice == null || discPrice < minDiscountPrice) {
               minDiscountPrice = discPrice;
             }
@@ -1810,19 +1834,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           }
 
           // Use variant-specific price if selected, otherwise use minimum price
-          final displayPrice = (selectedVariant['discount_price'] ?? 
-              selectedVariant['price'] ?? minDiscountPrice ?? 0).toString();
-          final displayOriginalPrice = (selectedVariant['price'] ?? 
-              minOriginalPrice ?? 0).toString();
+          final displayPrice =
+              (selectedVariant['discount_price'] ??
+                      selectedVariant['price'] ??
+                      minDiscountPrice ??
+                      0)
+                  .toString();
+          final displayOriginalPrice =
+              (selectedVariant['price'] ?? minOriginalPrice ?? 0).toString();
 
           final currentPrice = _formatPrice(displayPrice);
           final originalPrice = _formatPrice(displayOriginalPrice);
           final offPercent = _discountPercent(originalPrice, currentPrice);
-          final stock =
+          
+          // Calculate stock: prioritize selected variant, fallback to any available stock
+          int stock =
               int.tryParse(
                 (selectedVariant['available_stock'] ?? 0).toString(),
               ) ??
               0;
+          
+          // If selected variant has no stock, check if ANY variant has stock
+          if (stock <= 0) {
+            for (final v in variantMaps) {
+              final vStock =
+                  int.tryParse((v['available_stock'] ?? 0).toString()) ?? 0;
+              if (vStock > 0) {
+                stock = vStock;
+                break;
+              }
+            }
+          }
           final isTryEnabled = product['is_try_enabled'] != false;
           String readMapValue(Map<String, dynamic> src, List<String> keys) {
             for (final k in keys) {
@@ -3251,8 +3293,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             ...List.generate(5, (i) {
                                               return GestureDetector(
                                                 onTap: () => setState(
-                                                  () => _newReviewRating =
-                                                      i + 1,
+                                                  () =>
+                                                      _newReviewRating = i + 1,
                                                 ),
                                                 child: Padding(
                                                   padding:
@@ -3263,14 +3305,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                     i < _newReviewRating
                                                         ? Icons.star_rounded
                                                         : Icons
-                                                            .star_outline_rounded,
+                                                              .star_outline_rounded,
                                                     color: i < _newReviewRating
                                                         ? const Color(
-                                                          0xFFFBBF24,
-                                                        )
+                                                            0xFFFBBF24,
+                                                          )
                                                         : const Color(
-                                                          0xFFD1D5DB,
-                                                        ),
+                                                            0xFFD1D5DB,
+                                                          ),
                                                     size: 36,
                                                   ),
                                                 ),
@@ -3300,8 +3342,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                           decoration: InputDecoration(
                                             hintText: 'Your name (optional)',
                                             filled: true,
-                                            fillColor:
-                                                const Color(0xFFF9FAFB),
+                                            fillColor: const Color(0xFFF9FAFB),
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -3309,8 +3350,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 color: Color(0xFFE5E7EB),
                                               ),
                                             ),
-                                            enabledBorder:
-                                                OutlineInputBorder(
+                                            enabledBorder: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               borderSide: const BorderSide(
@@ -3319,9 +3359,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             ),
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 10,
-                                            ),
+                                                  horizontal: 12,
+                                                  vertical: 10,
+                                                ),
                                           ),
                                         ),
                                         const SizedBox(height: 10),
@@ -3332,8 +3372,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             hintText:
                                                 'Share your experience with this product…',
                                             filled: true,
-                                            fillColor:
-                                                const Color(0xFFF9FAFB),
+                                            fillColor: const Color(0xFFF9FAFB),
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
@@ -3341,8 +3380,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                 color: Color(0xFFE5E7EB),
                                               ),
                                             ),
-                                            enabledBorder:
-                                                OutlineInputBorder(
+                                            enabledBorder: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(10),
                                               borderSide: const BorderSide(
@@ -3351,9 +3389,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             ),
                                             contentPadding:
                                                 const EdgeInsets.symmetric(
-                                              horizontal: 12,
-                                              vertical: 10,
-                                            ),
+                                                  horizontal: 12,
+                                                  vertical: 10,
+                                                ),
                                           ),
                                         ),
                                         const SizedBox(height: 12),
@@ -3363,17 +3401,18 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                             GestureDetector(
                                               onTap: () async {
                                                 final picker = ImagePicker();
-                                                final img =
-                                                    await picker.pickImage(
-                                                  source:
-                                                      ImageSource.gallery,
-                                                  imageQuality: 80,
-                                                  maxWidth: 1080,
-                                                );
+                                                final img = await picker
+                                                    .pickImage(
+                                                      source:
+                                                          ImageSource.gallery,
+                                                      imageQuality: 80,
+                                                      maxWidth: 1080,
+                                                    );
                                                 if (img != null) {
-                                                  setState(() =>
-                                                      _pickedReviewImage =
-                                                      img);
+                                                  setState(
+                                                    () => _pickedReviewImage =
+                                                        img,
+                                                  );
                                                 }
                                               },
                                               child: Container(
@@ -3384,9 +3423,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                     0xFFF9FAFB,
                                                   ),
                                                   borderRadius:
-                                                      BorderRadius.circular(
-                                                        10,
-                                                      ),
+                                                      BorderRadius.circular(10),
                                                   border: Border.all(
                                                     color: const Color(
                                                       0xFFE5E7EB,
@@ -3394,99 +3431,95 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                     width: 1.5,
                                                   ),
                                                 ),
-                                                child: _pickedReviewImage ==
-                                                        null
+                                                child:
+                                                    _pickedReviewImage == null
                                                     ? const Column(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                          .center,
-                                                      children: [
-                                                        Icon(
-                                                          Icons
-                                                              .add_photo_alternate_outlined,
-                                                          color: Color(
-                                                            0xFF9CA3AF,
-                                                          ),
-                                                          size: 24,
-                                                        ),
-                                                        SizedBox(
-                                                          height: 2,
-                                                        ),
-                                                        Text(
-                                                          'Photo',
-                                                          style:
-                                                              TextStyle(
-                                                            fontSize: 10,
+                                                        mainAxisAlignment:
+                                                            MainAxisAlignment
+                                                                .center,
+                                                        children: [
+                                                          Icon(
+                                                            Icons
+                                                                .add_photo_alternate_outlined,
                                                             color: Color(
                                                               0xFF9CA3AF,
                                                             ),
+                                                            size: 24,
                                                           ),
-                                                        ),
-                                                      ],
-                                                    )
+                                                          SizedBox(height: 2),
+                                                          Text(
+                                                            'Photo',
+                                                            style: TextStyle(
+                                                              fontSize: 10,
+                                                              color: Color(
+                                                                0xFF9CA3AF,
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      )
                                                     : Stack(
-                                                      fit: StackFit.expand,
-                                                      children: [
-                                                        ClipRRect(
-                                                          borderRadius:
-                                                              BorderRadius
-                                                              .circular(9),
-                                                          child: Image
-                                                              .network(
-                                                            _pickedReviewImage!
-                                                                    .path
-                                                                    .startsWith(
-                                                                      'http',
-                                                                    )
-                                                                ? _pickedReviewImage!
-                                                                .path
-                                                                : _pickedReviewImage!
-                                                                .path,
-                                                            fit: BoxFit.cover,
-                                                            errorBuilder:
-                                                                (ctx, e,
-                                                                st) =>
-                                                              Image.asset(
-                                                                'assets/images/logo.png',
-                                                                fit: BoxFit
-                                                                    .cover,
-                                                              ),
-                                                          ),
-                                                        ),
-                                                        Positioned(
-                                                          top: 2,
-                                                          right: 2,
-                                                          child:
-                                                              GestureDetector(
-                                                            onTap: () =>
-                                                                setState(
-                                                              () =>
-                                                              _pickedReviewImage =
-                                                              null,
-                                                            ),
-                                                            child: Container(
-                                                              decoration:
-                                                                  const BoxDecoration(
-                                                                color: Colors
-                                                                    .black54,
-                                                                shape: BoxShape
-                                                                    .circle,
-                                                              ),
-                                                              padding:
-                                                                  const EdgeInsets
-                                                                  .all(2),
-                                                              child:
-                                                                  const Icon(
-                                                                Icons.close,
-                                                                size: 12,
-                                                                color: Colors
-                                                                    .white,
-                                                              ),
+                                                        fit: StackFit.expand,
+                                                        children: [
+                                                          ClipRRect(
+                                                            borderRadius:
+                                                                BorderRadius.circular(
+                                                                  9,
+                                                                ),
+                                                            child: Image.network(
+                                                              _pickedReviewImage!
+                                                                      .path
+                                                                      .startsWith(
+                                                                        'http',
+                                                                      )
+                                                                  ? _pickedReviewImage!
+                                                                        .path
+                                                                  : _pickedReviewImage!
+                                                                        .path,
+                                                              fit: BoxFit.cover,
+                                                              errorBuilder:
+                                                                  (
+                                                                    ctx,
+                                                                    e,
+                                                                    st,
+                                                                  ) => Image.asset(
+                                                                    'assets/images/logo.png',
+                                                                    fit: BoxFit
+                                                                        .cover,
+                                                                  ),
                                                             ),
                                                           ),
-                                                        ),
-                                                      ],
-                                                    ),
+                                                          Positioned(
+                                                            top: 2,
+                                                            right: 2,
+                                                            child: GestureDetector(
+                                                              onTap: () => setState(
+                                                                () =>
+                                                                    _pickedReviewImage =
+                                                                        null,
+                                                              ),
+                                                              child: Container(
+                                                                decoration: const BoxDecoration(
+                                                                  color: Colors
+                                                                      .black54,
+                                                                  shape: BoxShape
+                                                                      .circle,
+                                                                ),
+                                                                padding:
+                                                                    const EdgeInsets.all(
+                                                                      2,
+                                                                    ),
+                                                                child: const Icon(
+                                                                  Icons.close,
+                                                                  size: 12,
+                                                                  color: Colors
+                                                                      .white,
+                                                                ),
+                                                              ),
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
@@ -3505,47 +3538,39 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                         SizedBox(
                                           width: double.infinity,
                                           child: FilledButton.icon(
-                                            style:
-                                                FilledButton.styleFrom(
-                                              backgroundColor:
-                                                  const Color(0xFF16A34A),
-                                              padding:
-                                                  const EdgeInsets
-                                                  .symmetric(
-                                                vertical: 12,
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: const Color(
+                                                0xFF16A34A,
                                               ),
-                                              shape:
-                                                  RoundedRectangleBorder(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                    vertical: 12,
+                                                  ),
+                                              shape: RoundedRectangleBorder(
                                                 borderRadius:
-                                                    BorderRadius.circular(
-                                                      10,
-                                                    ),
+                                                    BorderRadius.circular(10),
                                               ),
                                             ),
                                             onPressed: _submittingReview
                                                 ? null
                                                 : () => _submitReview(
-                                                  data['product']?['id']
-                                                      ?.toString() ??
-                                                      widget
-                                                      .productId,
-                                                ),
+                                                    data['product']?['id']
+                                                            ?.toString() ??
+                                                        widget.productId,
+                                                  ),
                                             icon: _submittingReview
                                                 ? const SizedBox(
-                                                  width: 16,
-                                                  height: 16,
-                                                  child:
-                                                      BfSpinner(size: 16),
-                                                )
+                                                    width: 16,
+                                                    height: 16,
+                                                    child: BfSpinner(size: 16),
+                                                  )
                                                 : const Icon(
-                                                  Icons
-                                                      .rate_review_outlined,
-                                                ),
+                                                    Icons.rate_review_outlined,
+                                                  ),
                                             label: const Text(
                                               'Submit Review',
                                               style: TextStyle(
-                                                fontWeight:
-                                                    FontWeight.w700,
+                                                fontWeight: FontWeight.w700,
                                               ),
                                             ),
                                           ),
@@ -3554,12 +3579,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                     ),
                                 ],
                               ),
-                            ],
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
+                ),
                 const SizedBox(height: 14),
                 // ── Similar Products ──────────────────────────────────────
                 if (_similarLoading || _similarProducts.isNotEmpty)
