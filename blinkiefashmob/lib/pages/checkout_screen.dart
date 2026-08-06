@@ -989,6 +989,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               child: ElevatedButton.icon(
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF166534),
+                                  foregroundColor: Colors.white,
                                   minimumSize: const Size.fromHeight(42),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(10),
