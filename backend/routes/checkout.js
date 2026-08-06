@@ -1404,14 +1404,21 @@ router.get("/orders/:orderId/delivery-status", async (req, res) => {
               o.try_buy_deadline,
               o.try_buy_decision,
               o.status AS order_status,
-              d.status AS delivery_status
+              d.status AS delivery_status,
+              d.id AS delivery_id
        FROM orders o
-       LEFT JOIN deliveries d ON d.order_id = o.id AND d.is_active = TRUE
-       WHERE o.id = $1`,
+       LEFT JOIN deliveries d ON d.order_id = o.id 
+         AND d.is_active = TRUE
+         AND d.status NOT IN ('cancelled', 'returned')
+       WHERE o.id = $1
+       ORDER BY d.started_at DESC NULLS LAST
+       LIMIT 1`,
       [orderId]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
-    res.json({ success: true, data: rows[0] });
+    const row = rows[0];
+    console.log(`📋 [delivery-status] Order ${orderId}: order_status=${row.order_status}, delivery_status=${row.delivery_status}, delivery_otp=${row.delivery_otp}, otp_verified_at=${row.otp_verified_at}`);
+    res.json({ success: true, data: row });
   } catch (err) {
     console.error("GET delivery-status error:", err.message);
     res.status(500).json({ success: false, message: err.message });
