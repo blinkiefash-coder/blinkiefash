@@ -4121,10 +4121,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
             }
           }
         },
-        icon: const Icon(
-          Icons.receipt_long_rounded,
-          color: Color(0xFF2563EB),
-        ),
+        icon: const Icon(Icons.receipt_long_rounded, color: Color(0xFF2563EB)),
         label: const Text(
           'Download Invoice',
           style: TextStyle(
@@ -4223,9 +4220,8 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               final storePickupOtp = (o['store_pickup_otp'] ?? '')
                   .toString()
                   .trim();
-              final storePickupVerifiedAt = (o['store_pickup_verified_at'] ?? '')
-                  .toString()
-                  .trim();
+              final storePickupVerifiedAt =
+                  (o['store_pickup_verified_at'] ?? '').toString().trim();
               final otpVerifiedAt = (o['otp_verified_at'] ?? '')
                   .toString()
                   .trim();
@@ -4238,7 +4234,9 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                 (sum, item) =>
                     sum +
                     (double.tryParse((item['price'] ?? '0').toString()) ?? 0) *
-                        (double.tryParse((item['quantity'] ?? '0').toString()) ??
+                        (double.tryParse(
+                              (item['quantity'] ?? '0').toString(),
+                            ) ??
                             0),
               );
               final total = itemsSubtotal.toStringAsFixed(0);
@@ -4326,7 +4324,10 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                           color: const Color(0xFFE0E7FF),
                           borderRadius: BorderRadius.circular(8),
                           border: const Border(
-                            left: BorderSide(color: Color(0xFF4F46E5), width: 4),
+                            left: BorderSide(
+                              color: Color(0xFF4F46E5),
+                              width: 4,
+                            ),
                           ),
                         ),
                         child: Text(
