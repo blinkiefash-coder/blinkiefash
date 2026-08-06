@@ -40,6 +40,100 @@ class _OrdersScreenState extends State<OrdersScreen>
     }
   }
 
+  // Show dialog for rider to enter store pickup OTP
+  void _showStoreOtpDialog(BuildContext context, String deliveryId) {
+    final otpController = TextEditingController();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Store Pickup OTP'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter the 4-digit OTP given by the store staff',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: otpController,
+              keyboardType: TextInputType.number,
+              maxLength: 4,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 8,
+              ),
+              decoration: InputDecoration(
+                hintText: '0000',
+                counterText: '',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(
+                    color: Color(0xFF16A34A),
+                    width: 2,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () async {
+              final otp = otpController.text.trim();
+              if (otp.length != 4) {
+                ScaffoldMessenger.of(ctx).showSnackBar(
+                  const SnackBar(content: Text('Enter valid 4-digit OTP')),
+                );
+                return;
+              }
+              Navigator.pop(ctx);
+              
+              // Verify OTP with backend
+              final result = await _api.verifyStoreOtp(deliveryId, otp);
+              if (result['success'] == true) {
+                // OTP verified, update status to picked
+                await _api.updateDeliveryStatus(deliveryId, 'picked');
+                if (mounted) {
+                  _load();
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('✓ Pickup confirmed. Proceed to customer'),
+                      backgroundColor: Color(0xFF16A34A),
+                    ),
+                  );
+                }
+              } else {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('❌ ${result['message'] ?? 'OTP verification failed'}'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              }
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF16A34A),
+            ),
+            child: const Text('Verify'),
+          ),
+        ],
+      ),
+    );
+  }
+
   List<dynamic> get _active => _deliveries
       .where(
         (d) => !['completed', 'cancelled', 'returned'].contains(d['status']),
@@ -287,11 +381,19 @@ class _OrdersScreenState extends State<OrdersScreen>
                     Expanded(
                       child: FilledButton(
                         onPressed: () async {
-                          final newStatus = status == 'assigned'
-                              ? 'picked'
-                              : 'completed';
-                          await _api.updateDeliveryStatus(id, newStatus);
-                          if (mounted) _load();
+                          if (status == 'assigned') {
+                            // Step 1: Mark as arrived at store → generates store OTP
+                            await _api.storeArrived(id);
+                            // Step 2: Show OTP entry dialog
+                            if (mounted) {
+                              _showStoreOtpDialog(context, id);
+                            }
+                          } else if (status == 'picked') {
+                            // From "picked" to "completed" after delivery
+                            // This will be updated after delivery OTP verification
+                            await _api.updateDeliveryStatus(id, 'completed');
+                            if (mounted) _load();
+                          }
                         },
                         style: FilledButton.styleFrom(
                           minimumSize: const Size(0, 38),
