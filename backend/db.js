@@ -530,6 +530,14 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMPTZ
   `).catch(() => {});
 
+  // ── Deliveries table: Store pickup OTP for rider verification ──────────────
+  await pool.query(`
+    ALTER TABLE deliveries
+      ADD COLUMN IF NOT EXISTS store_pickup_otp VARCHAR(4),
+      ADD COLUMN IF NOT EXISTS store_pickup_verified_at TIMESTAMPTZ,
+      ADD COLUMN IF NOT EXISTS delivery_photo_url TEXT
+  `).catch(() => {});
+
   // ── Product feature flags ─────────────────────────────────────────────────
   await pool.query(`
     ALTER TABLE products
