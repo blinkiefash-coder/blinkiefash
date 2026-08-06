@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+// ignore: unused_import
+import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
@@ -635,6 +637,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
+  Future<void> _selectContact() async {
+    try {
+      // Simple contact selection - for MVP using first contact with phone
+      // In production, implement a custom contact picker UI or use platform channel
+      
+      // Placeholder for now - just show a message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Contact picker will be implemented with proper flutter_contacts API'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // TODO: Implement proper contact picker using flutter_contacts methods
+      // Once the correct API methods are confirmed from package documentation
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      }
+    }
+  }
+
   void _showDonationModal() {
     showModalBottomSheet(
       context: context,
@@ -1008,26 +1036,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                         const SizedBox(height: 16),
                         const Divider(thickness: 1, height: 1),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 12),
 
                         // Receiver section inside Address
                         const Text(
                           'Receiver Details',
                           style: TextStyle(
-                            fontSize: 14,
+                            fontSize: 13,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1F2937),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 8),
 
                         // Own receiver option
                         GestureDetector(
                           onTap: () => setState(() => _receiverType = 'own'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
+                              horizontal: 10,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
                               color: _receiverType == 'own'
@@ -1052,12 +1080,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   },
                                   activeColor: const Color(0xFF166534),
                                 ),
-                                const SizedBox(width: 8),
                                 const Expanded(
                                   child: Text(
                                     'Deliver to me',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -1066,15 +1093,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 6),
                         // Someone else option
                         GestureDetector(
                           onTap: () =>
                               setState(() => _receiverType = 'someone_else'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 10,
+                              horizontal: 10,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
                               color: _receiverType == 'someone_else'
@@ -1099,12 +1126,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   },
                                   activeColor: const Color(0xFF166534),
                                 ),
-                                const SizedBox(width: 8),
                                 const Expanded(
                                   child: Text(
                                     'Deliver to someone else',
                                     style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -1113,54 +1139,95 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                           ),
                         ),
-                        // Show name and phone fields if someone else is selected
+                        // Show contact select and name/phone fields if someone else is selected
                         if (_receiverType == 'someone_else') ...[
-                          const SizedBox(height: 12),
-                          TextField(
-                            controller: _receiverNameCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Receiver Name',
-                              hintText: 'Enter receiver name',
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFC),
-                              prefixIcon: const Icon(Icons.person, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E7EB),
+                          const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF166534),
+                                foregroundColor: Colors.white,
+                                minimumSize: const Size.fromHeight(36),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E7EB),
-                                ),
-                              ),
+                              onPressed: _selectContact,
+                              icon: const Icon(Icons.contacts, size: 16),
+                              label: const Text('Select Contact'),
                             ),
                           ),
-                          const SizedBox(height: 10),
-                          TextField(
-                            controller: _receiverPhoneCtrl,
-                            decoration: InputDecoration(
-                              labelText: 'Receiver Phone',
-                              hintText: 'Enter phone number',
-                              filled: true,
-                              fillColor: const Color(0xFFF8FAFC),
-                              prefixIcon: const Icon(Icons.phone, size: 20),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E7EB),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _receiverNameCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Name',
+                                    hintText: 'Name',
+                                    filled: true,
+                                    fillColor: const Color(0xFFF8FAFC),
+                                    prefixIcon: const Icon(
+                                      Icons.person,
+                                      size: 16,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    isDense: true,
+                                  ),
                                 ),
                               ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFE5E7EB),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: TextField(
+                                  controller: _receiverPhoneCtrl,
+                                  decoration: InputDecoration(
+                                    labelText: 'Phone',
+                                    hintText: 'Phone',
+                                    filled: true,
+                                    fillColor: const Color(0xFFF8FAFC),
+                                    prefixIcon: const Icon(
+                                      Icons.phone,
+                                      size: 16,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 8,
+                                    ),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                      borderSide: const BorderSide(
+                                        color: Color(0xFFE5E7EB),
+                                      ),
+                                    ),
+                                    isDense: true,
+                                  ),
+                                  keyboardType: TextInputType.phone,
                                 ),
                               ),
-                            ),
-                            keyboardType: TextInputType.phone,
+                            ],
                           ),
                         ],
                       ],
