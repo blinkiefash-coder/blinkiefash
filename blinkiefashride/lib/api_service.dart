@@ -578,9 +578,19 @@ class ApiService {
     }
   }
 
-  /// Alias for storeArrived (for navigation screen compatibility)
-  Future<Map<String, dynamic>> markArrived(String deliveryId) async =>
-      storeArrived(deliveryId);
+  /// Rider arrived at customer location — sets delivery.status='arrived' and
+  /// pushes the delivery OTP (NOT the same endpoint as storeArrived above).
+  Future<Map<String, dynamic>> markArrived(String deliveryId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/delivery/$deliveryId/arrived'),
+        headers: _headers,
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Connection failed'};
+    }
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // Parcel Delivery Endpoints (for parcel requests)

@@ -12,6 +12,11 @@ import '../services/api_client.dart';
 import '../api_base.dart';
 import '../widgets/bf_loader.dart';
 
+void _debugLog(String message) {
+  // ignore: avoid_print
+  print(message);
+}
+
 // ── Status helpers ────────────────────────────────────────────────────────────
 
 const _statusSteps = ['placed', 'packed', 'out_for_delivery', 'delivered'];
@@ -468,7 +473,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _startDeliveryStatusPolling(String orderStatus) {
-    _debugLog('🔍 Starting delivery status polling for order ${widget.orderId}');
+    _debugLog(
+      '🔍 Starting delivery status polling for order ${widget.orderId}',
+    );
     _deliveryStatusTimer?.cancel();
     final terminal = ['delivered', 'cancelled', 'completed', 'trial_completed'];
     if (terminal.contains(orderStatus)) return;
@@ -481,9 +488,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         if (!mounted) return;
         if (res['success'] == true) {
           final newStatus = res['data']?['order_status']?.toString() ?? '';
-          final deliveryStatus = res['data']?['delivery_status']?.toString() ?? 'NULL';
-          final deliveryOtp = res['data']?['delivery_otp']?.toString() ?? 'NULL';
-          _debugLog('✅ Status Updated: order=$newStatus, delivery=$deliveryStatus, otp=$deliveryOtp');
+          final deliveryStatus =
+              res['data']?['delivery_status']?.toString() ?? 'NULL';
+          final deliveryOtp =
+              res['data']?['delivery_otp']?.toString() ?? 'NULL';
+          _debugLog(
+            '✅ Status Updated: order=$newStatus, delivery=$deliveryStatus, otp=$deliveryOtp',
+          );
           setState(
             () => _deliveryStatus = res['data'] as Map<String, dynamic>?,
           );
@@ -786,20 +797,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ],
             // ── OTP card: show when rider has arrived ──────────────────────
             if (_deliveryStatus != null) ...[
-              Builder(builder: (context) {
-                final ds = _deliveryStatus!;
-                final deliveryStatus = ds['delivery_status']?.toString() ?? 'NULL';
-                final otpVerified = ds['otp_verified_at'];
-                final shouldShow = deliveryStatus == 'arrived' && otpVerified == null;
-                print('🎯 OTP Card Check: delivery_status=$deliveryStatus, otp_verified_at=$otpVerified, should_show=$shouldShow');
-                if (shouldShow) {
-                  return Column(children: [
-                    _otpCard(),
-                    const SizedBox(height: 12),
-                  ]);
-                }
-                return const SizedBox.shrink();
-              }),
+              Builder(
+                builder: (context) {
+                  final ds = _deliveryStatus!;
+                  final deliveryStatus =
+                      ds['delivery_status']?.toString() ?? 'NULL';
+                  final otpVerified = ds['otp_verified_at'];
+                  final shouldShow =
+                      deliveryStatus == 'arrived' && otpVerified == null;
+                  print(
+                    '🎯 OTP Card Check: delivery_status=$deliveryStatus, otp_verified_at=$otpVerified, should_show=$shouldShow',
+                  );
+                  if (shouldShow) {
+                    return Column(
+                      children: [_otpCard(), const SizedBox(height: 12)],
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
             ],
             // ── Trial timer: show during try & buy ─────────────────────────
             if (_deliveryStatus != null &&
