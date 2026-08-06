@@ -8,6 +8,67 @@ const toNumber = (value, fallback = 0) => {
   return Number.isFinite(num) ? num : fallback;
 };
 
+// Common gender/age word variants shoppers mix up (man/men, kid/kids, etc.)
+const SEARCH_SYNONYMS = {
+  men: ["man", "mens", "men's"],
+  man: ["men", "mens", "men's"],
+  women: ["woman", "womens", "women's"],
+  woman: ["women", "womens", "women's"],
+  boys: ["boy"],
+  boy: ["boys"],
+  girls: ["girl"],
+  girl: ["girls"],
+  kids: ["kid", "child", "children"],
+  kid: ["kids", "child", "children"],
+  child: ["kids", "kid", "children"],
+  children: ["kids", "kid", "child"],
+};
+
+const singularizeWord = (word) => {
+  if (word.endsWith("ies") && word.length > 3) return `${word.slice(0, -3)}y`;
+  if (/(sses|shes|ches|xes)$/.test(word)) return word.slice(0, -2);
+  if (word.endsWith("s") && !word.endsWith("ss") && word.length > 3) return word.slice(0, -1);
+  return null;
+};
+
+const pluralizeWord = (word) => {
+  if (/[^aeiou]y$/.test(word)) return `${word.slice(0, -1)}ies`;
+  if (/(s|x|ch|sh)$/.test(word)) return `${word}es`;
+  return `${word}s`;
+};
+
+// Every word in `search` must appear somewhere (name/brand/category/description/
+// barcode), tolerating singular/plural forms and men<->man style synonyms so a
+// typo-ish or differently-worded query ("man trouser") still finds "Men's Trousers".
+const buildSearchClause = (search, values, startIndex) => {
+  const tokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  let index = startIndex;
+  const clauses = [];
+  for (const token of tokens) {
+    const variants = new Set([token]);
+    const singular = singularizeWord(token);
+    if (singular) variants.add(singular);
+    variants.add(pluralizeWord(singular || token));
+    const base = singular || token;
+    for (const syn of SEARCH_SYNONYMS[token] || []) variants.add(syn);
+    for (const syn of SEARCH_SYNONYMS[base] || []) variants.add(syn);
+    const patterns = Array.from(variants).map((v) => `%${v}%`);
+    clauses.push(`(
+      lower(p.name) LIKE ANY($${index}::text[]) OR
+      lower(b.name) LIKE ANY($${index}::text[]) OR
+      lower(c.name) LIKE ANY($${index}::text[]) OR
+      lower(p.description) LIKE ANY($${index}::text[]) OR
+      EXISTS (
+        SELECT 1 FROM product_variants sv
+        WHERE sv.product_id = p.id AND lower(sv.barcode) LIKE ANY($${index}::text[])
+      )
+    )`);
+    values.push(patterns);
+    index += 1;
+  }
+  return { clause: clauses.length ? clauses.join(" AND ") : null, nextIndex: index };
+};
+
 export const getProductMediaShape = async (client) => {
   const result = await client.query(
     `SELECT column_name FROM information_schema.columns
@@ -1000,12 +1061,11 @@ router.get("/", async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}) OR lower(c.name) LIKE lower($${index++}) OR lower(p.description) LIKE lower($${index++}) OR EXISTS (
-        SELECT 1 FROM product_variants sv
-        WHERE sv.product_id = p.id AND lower(sv.barcode) LIKE lower($${index++})
-      ))`;
-      const term = `%${search}%`;
-      values.push(term, term, term, term, term);
+      const { clause, nextIndex } = buildSearchClause(search, values, index);
+      if (clause) {
+        query += ` AND (${clause})`;
+        index = nextIndex;
+      }
     }
 
     const sortMap = {
