@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart' as ul;
 
 import '../api_base.dart';
+import '../services/analytics_service.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/wishlist_manager.dart';
@@ -36,6 +37,7 @@ class ProductDetailScreen extends StatefulWidget {
 class _ProductDetailScreenState extends State<ProductDetailScreen> {
   final ApiClient _apiClient = ApiClient();
   late Future<Map<String, dynamic>> _detailFuture;
+  late DateTime _viewStartedAt;
   final PageController _imageController = PageController(keepPage: false);
 
   int _activeImageIndex = 0;
@@ -76,6 +78,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   @override
   void initState() {
     super.initState();
+    _viewStartedAt = DateTime.now();
+    AnalyticsService.instance.logProductView(widget.productId);
     _isWishlisted = WishlistManager.instance.isWishlisted(widget.productId);
     // Pre-select the colour/size that was tapped in the listing card.
     if (widget.initialColor != null && widget.initialColor!.isNotEmpty) {
@@ -100,6 +104,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   @override
   void dispose() {
+    final dwellMs = DateTime.now().difference(_viewStartedAt).inMilliseconds;
+    AnalyticsService.instance.logProductDwell(widget.productId, dwellMs);
     _imageController.dispose();
     _reviewTextCtrl.dispose();
     _reviewerNameCtrl.dispose();

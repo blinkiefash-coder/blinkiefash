@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../api_base.dart';
+import '../services/analytics_service.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/wishlist_manager.dart';
@@ -504,12 +505,13 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       setState(() => _isLoading = true);
     }
     try {
+      final searchTerm = _searchCtrl.text.trim().isEmpty
+          ? null
+          : _searchCtrl.text.trim();
       final data = await _api.fetchAllProducts(
         categoryId: _selectedCategoryId,
         brandId: _selectedBrandId,
-        search: _searchCtrl.text.trim().isEmpty
-            ? null
-            : _searchCtrl.text.trim(),
+        search: searchTerm,
         sort: _sort,
         minPrice: _minPrice,
         maxPrice: _maxPrice,
@@ -520,6 +522,12 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           .whereType<Map<String, dynamic>>()
           .toList();
       if (!mounted) return;
+      if (reset && searchTerm != null) {
+        AnalyticsService.instance.logSearch(
+          searchTerm,
+          resultCount: rows.length,
+        );
+      }
       setState(() {
         if (reset) {
           _products = rows;
@@ -1186,16 +1194,26 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
 
     return GestureDetector(
       onTap: item['id'] != null
-          ? () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => ProductDetailScreen(
-                  productId: item['id'].toString(),
-                  initialName: name,
-                  initialColor: color.isNotEmpty ? color : null,
-                  initialSize: item['size']?.toString(),
+          ? () {
+              final productId = item['id'].toString();
+              AnalyticsService.instance.logProductClick(
+                productId,
+                searchQuery: _searchCtrl.text.trim().isEmpty
+                    ? null
+                    : _searchCtrl.text.trim(),
+                source: 'all_products_screen',
+              );
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ProductDetailScreen(
+                    productId: productId,
+                    initialName: name,
+                    initialColor: color.isNotEmpty ? color : null,
+                    initialSize: item['size']?.toString(),
+                  ),
                 ),
-              ),
-            )
+              );
+            }
           : null,
       child: Container(
         decoration: BoxDecoration(
