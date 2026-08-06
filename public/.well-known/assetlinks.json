@@ -5,7 +5,8 @@
       "namespace": "android_app",
       "package_name": "com.blinkiefash.app",
       "sha256_cert_fingerprints": [
-        "9A:35:92:14:BA:4F:8D:3C:20:30:6B:23:6A:6F:81:01:04:11:20:1D:DD:7A:7C:19:AE:36:DB:11:37:C5:64:90"
+        "9A:35:92:14:BA:4F:8D:3C:20:30:6B:23:6A:6F:81:01:04:11:20:1D:DD:7A:7C:19:AE:36:DB:11:37:C5:64:90",
+        "9E:D6:A4:3A:8F:66:66:F9:04:6C:15:14:42:DC:D7:23:74:84:2B:92:6A:E4:00:AB:30:88:91:5E:7F:9C:A9:51"
       ]
     }
   }
