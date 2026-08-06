@@ -805,7 +805,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   final otpVerified = ds['otp_verified_at'];
                   final shouldShow =
                       deliveryStatus == 'arrived' && otpVerified == null;
-                  print(
+                  debugPrint(
                     '🎯 OTP Card Check: delivery_status=$deliveryStatus, otp_verified_at=$otpVerified, should_show=$shouldShow',
                   );
                   if (shouldShow) {
@@ -858,13 +858,14 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     final url = Uri.parse(
                       '$apiApiBaseUrl/checkout/orders/${order['id']}/invoice',
                     );
+                    final sm = ScaffoldMessenger.of(context);
                     try {
                       final launched = await launchUrl(
                         url,
                         mode: LaunchMode.externalApplication,
                       );
                       if (!launched && mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        sm.showSnackBar(
                           const SnackBar(
                             content: Text('Could not open invoice'),
                           ),
@@ -873,7 +874,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     } catch (e) {
                       _debugLog('Invoice launch failed: $e');
                       if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        sm.showSnackBar(
                           SnackBar(content: Text('Could not open invoice: $e')),
                         );
                       }
