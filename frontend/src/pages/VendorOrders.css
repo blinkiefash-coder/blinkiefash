@@ -437,6 +437,13 @@
   white-space: nowrap;
 }
 
+.vo-item-barcode {
+  font-size: 11px;
+  color: #4f46e5;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
 .vo-actions {
   display: flex;
   gap: 10px;
@@ -468,6 +475,12 @@
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fca5a5;
+}
+
+.vo-btn-invoice {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #93c5fd;
 }
 
 @media (max-width: 900px) {
