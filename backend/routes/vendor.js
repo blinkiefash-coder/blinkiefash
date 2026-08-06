@@ -365,6 +365,135 @@ router.get("/:id/orders", async (req, res) => {
   }
 });
 
+// GET vendor invoice/packing-slip for a single order — vendor's own items only,
+// no delivery/platform/handling fees (those aren't the vendor's revenue).
+router.get("/:id/orders/:orderId/invoice", async (req, res) => {
+  try {
+    const { id: vendorId, orderId } = req.params;
+
+    const vendorStore = await pool.query(
+      `SELECT dark_store_id, user_id, store_name FROM vendors WHERE id = $1 LIMIT 1`,
+      [vendorId]
+    );
+    const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
+    const vendorUserId = vendorStore.rows[0]?.user_id || null;
+    const storeName = vendorStore.rows[0]?.store_name || "Store";
+    const ownerIds = [vendorId, vendorUserId].filter(Boolean).map(String);
+    if (!linkedStoreId) return res.status(404).send("Vendor is not linked to a store");
+
+    const { rows: orderRows } = await pool.query(
+      `SELECT o.id, o.created_at, o.status,
+              u.name AS customer_name, u.phone AS customer_phone,
+              a.address_line, a.city, a.pincode
+       FROM orders o
+       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN addresses a ON a.id = o.address_id
+       WHERE o.id = $1 AND o.dark_store_id = $2
+       LIMIT 1`,
+      [orderId, linkedStoreId]
+    );
+    if (!orderRows.length) return res.status(404).send("Order not found");
+    const order = orderRows[0];
+
+    const { rows: items } = await pool.query(
+      `SELECT oi.quantity, oi.price, p.name AS product_name, v.size, v.color, v.barcode
+       FROM order_items oi
+       JOIN product_variants v ON v.id = oi.variant_id
+       JOIN products p ON p.id = v.product_id
+       WHERE oi.order_id = $1 AND p.vendor_id::text = ANY($2::text[])`,
+      [orderId, ownerIds]
+    );
+    if (!items.length) return res.status(404).send("No items found for this vendor on this order");
+
+    const shortId = orderId.toString().slice(-8).toUpperCase();
+    const date = new Date(order.created_at).toLocaleDateString("en-IN", {
+      day: "2-digit", month: "short", year: "numeric"
+    });
+    const subtotal = items.reduce((s, it) => s + parseFloat(it.price) * it.quantity, 0);
+
+    const itemRows = items.map(it => `
+      <tr>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0">${it.product_name}
+          ${it.size ? `<br/><span style="color:#6b7280;font-size:12px">Size: ${it.size}</span>` : ""}
+          ${it.color ? `<span style="color:#6b7280;font-size:12px"> | Color: ${it.color}</span>` : ""}
+        </td>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center;font-family:monospace">${it.barcode || "—"}</td>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center">${it.quantity}</td>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${parseFloat(it.price).toFixed(0)}</td>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${(parseFloat(it.price) * it.quantity).toFixed(0)}</td>
+      </tr>`).join("");
+
+    const html = `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Invoice #${shortId}</title>
+<style>
+  body{font-family:'Segoe UI',sans-serif;margin:0;padding:20px;background:#f8fafc;color:#0f172a}
+  .invoice{max-width:680px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #16a34a;padding-bottom:20px;margin-bottom:24px}
+  .brand{color:#16a34a;font-size:28px;font-weight:900;letter-spacing:-1px}
+  .brand span{color:#0f172a}
+  .invoice-meta{text-align:right;font-size:13px;color:#6b7280}
+  .invoice-meta strong{display:block;font-size:16px;color:#0f172a;margin-bottom:4px}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px}
+  .info-box h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:#9ca3af}
+  .info-box p{margin:3px 0;font-size:14px}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-bottom:20px}
+  thead{background:#f0fdf4}
+  thead th{padding:10px 6px;text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:#16a34a}
+  .totals{margin-left:auto;width:260px;font-size:14px}
+  .totals tr td{padding:5px 6px}
+  .totals tr td:last-child{text-align:right}
+  .totals .grand{font-size:16px;font-weight:800;border-top:2px solid #0f172a;padding-top:8px!important}
+  .badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;background:#dcfce7;color:#16a34a}
+  .footer{margin-top:24px;padding-top:16px;border-top:1px solid #f0f0f0;font-size:12px;color:#9ca3af;text-align:center}
+  @media print{body{background:#fff}.invoice{box-shadow:none}}
+</style></head><body>
+<div class="invoice">
+  <div class="header">
+    <div class="brand"><span>${storeName}</span></div>
+    <div class="invoice-meta">
+      <strong>PACKING SLIP / INVOICE</strong>
+      Order #${shortId}<br/>${date}<br/>
+      <span class="badge">${(order.status || "").toUpperCase()}</span>
+    </div>
+  </div>
+  <div class="info-grid">
+    <div class="info-box">
+      <h4>Deliver To</h4>
+      <p><strong>${order.customer_name || "Customer"}</strong></p>
+      <p>${order.customer_phone || ""}</p>
+      <p>${order.address_line || ""}</p>
+      <p>${order.city || ""}${order.pincode ? " - " + order.pincode : ""}</p>
+    </div>
+  </div>
+  <table>
+    <thead><tr>
+      <th>Item</th><th style="text-align:center">Barcode</th>
+      <th style="text-align:center">Qty</th>
+      <th style="text-align:right">Unit Price</th>
+      <th style="text-align:right">Amount</th>
+    </tr></thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+  <table class="totals">
+    <tr class="grand"><td>Your Items Subtotal</td><td>₹${subtotal.toFixed(0)}</td></tr>
+  </table>
+  <div class="footer">
+    This is your product subtotal only — delivery, platform and handling fees are not included.<br/>
+    Powered by BlinkieFash
+  </div>
+</div>
+<script>window.onload=()=>window.print()</script>
+</body></html>`;
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    res.send(html);
+  } catch (err) {
+    console.error("Vendor invoice error:", err);
+    res.status(500).send("Could not generate invoice");
+  }
+});
+
 router.patch("/:id/orders/:orderId/status", async (req, res) => {
   try {
     const { id: vendorId, orderId } = req.params;

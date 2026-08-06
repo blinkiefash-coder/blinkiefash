@@ -99,6 +99,7 @@ router.get("/orders", adminGuard, async (req, res) => {
          o.status,
          o.total_amount,
          o.final_amount,
+         o.otp_verified_at,
          o.created_at,
          u.name AS customer_name,
          u.phone AS customer_phone,
@@ -113,7 +114,8 @@ router.get("/orders", adminGuard, async (req, res) => {
            'item_status',  oi.item_status,
            'vendor_name',  v.store_name,
            'size',         pv.size,
-           'color',        pv.color
+           'color',        pv.color,
+           'barcode',      pv.barcode
          )) AS items
        FROM orders o
        LEFT JOIN users u ON u.id = o.user_id

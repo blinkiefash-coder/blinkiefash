@@ -224,12 +224,19 @@ export default function VendorOrders() {
     updateStatus(orderId, "cancelled", reason || "Rejected by store");
   };
 
-  const filtered = orders.filter((o) =>
-    statusFilter === "all" ? true : o.status === statusFilter
-  );
+  const ACTIVE_TABS = ["placed", "confirmed", "packed", "out_for_delivery"];
+  const filtered = orders.filter((o) => {
+    // Once delivered or the delivery OTP is verified, drop it out of the active-tracking tabs
+    if (ACTIVE_TABS.includes(statusFilter) && (o.status === "delivered" || o.otp_verified_at)) {
+      return false;
+    }
+    return statusFilter === "all" ? true : o.status === statusFilter;
+  });
 
   const newCount = orders.filter((o) => o.status === "placed").length;
-  const inProgressCount = orders.filter((o) => ["confirmed", "packed", "out_for_delivery"].includes(o.status)).length;
+  const inProgressCount = orders.filter(
+    (o) => ["confirmed", "packed", "out_for_delivery"].includes(o.status) && !o.otp_verified_at
+  ).length;
   const deliveredCount = orders.filter((o) => o.status === "delivered").length;
   const totalRevenue = orders
     .filter((o) => ["delivered", "completed"].includes(o.status))
@@ -420,6 +427,9 @@ export default function VendorOrders() {
                               <span className="vo-item-detail">
                                 {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
                               </span>
+                              {item.barcode && (
+                                <span className="vo-item-barcode">🏷️ {item.barcode}</span>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -465,6 +475,23 @@ export default function VendorOrders() {
                         onClick={() => updateStatus(order.id, "out_for_delivery")}
                       >
                         {busy ? "…" : "🛵 Out for Delivery"}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Invoice / packing slip — vendor's own items only, no fees */}
+                  {!isAdmin() && vendorId && (
+                    <div className="vo-actions">
+                      <button
+                        className="vo-btn vo-btn-invoice"
+                        onClick={() =>
+                          window.open(
+                            `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
+                            "_blank"
+                          )
+                        }
+                      >
+                        🧾 Download Invoice
                       </button>
                     </div>
                   )}
