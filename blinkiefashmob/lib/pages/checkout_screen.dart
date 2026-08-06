@@ -80,7 +80,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int _selectedAutoOffer = -1; // index in _kAutoOffers, -1 = none
 
   // Offers & Discounts state
-  final bool _hasAppliedFlatOffer = true; // Flat 50 rupees discount applied by default
+  final bool _hasAppliedFlatOffer =
+      true; // Flat 50 rupees discount applied by default
   static const double _flatOfferDiscount = 50.0; // 50 rupees flat discount
 
   // Donation modal state
@@ -604,10 +605,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         manualOfferDiscount = currentAuto.compute(subtotal);
       }
     }
-    // Add flat offer discount on top
-    if (_hasAppliedFlatOffer) {
-      manualOfferDiscount += _flatOfferDiscount;
-      manualOfferType ??= 'flat';
+    // Cap total discount at ₹50 maximum
+    manualOfferDiscount = manualOfferDiscount.clamp(0.0, _flatOfferDiscount);
+    if (manualOfferType == null && _hasAppliedFlatOffer) {
+      manualOfferType = 'flat';
     }
 
     final res = await _api.placeOrder(
@@ -868,14 +869,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         : 0.0;
     final flatOfferDiscount = _hasAppliedFlatOffer ? _flatOfferDiscount : 0.0;
     final totalOfferDiscount =
-        referralDiscount +
-        clothingDiscount +
-        firstOrderDiscount +
-        spinDiscount +
-        questDiscount +
-        flatOfferDiscount +
-        _couponDiscount +
-        autoOfferDiscount;
+        (referralDiscount +
+                clothingDiscount +
+                firstOrderDiscount +
+                spinDiscount +
+                questDiscount +
+                flatOfferDiscount +
+                _couponDiscount +
+                autoOfferDiscount)
+            .clamp(0.0, _flatOfferDiscount); // Cap at ₹50 maximum
     final discountedSubtotal = (subtotal - totalOfferDiscount).clamp(
       0.0,
       subtotal,
