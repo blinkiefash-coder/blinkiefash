@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.blinkiefash.app",
+      "sha256_cert_fingerprints": [
+        "9A:35:92:14:BA:4F:8D:3C:20:30:6B:23:6A:6F:81:01:04:11:20:1D:DD:7A:7C:19:AE:36:DB:11:37:C5:64:90"
+      ]
+    }
+  }
+]

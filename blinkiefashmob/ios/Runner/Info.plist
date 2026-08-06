@@ -70,5 +70,17 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<!-- Custom URL scheme so blinkiefash://product/{id} links open the app on iOS -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>blinkiefash</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

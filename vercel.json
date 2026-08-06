@@ -1,8 +1,18 @@
 {
+  "headers": [
+    {
+      "source": "/.well-known/(.*)",
+      "headers": [{"key": "Content-Type", "value": "application/json"}]
+    }
+  ],
   "rewrites": [
     {
       "source": "/backend-proxy/(.*)",
       "destination": "https://blinkiefash.onrender.com/$1"
+    },
+    {
+      "source": "/.well-known/:file",
+      "destination": "/.well-known/:file"
     },
     {
       "source": "/(.*)",
