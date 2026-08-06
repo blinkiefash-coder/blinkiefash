@@ -83,6 +83,61 @@ const buildSearchClause = (search, values, startIndex) => {
   return { clause: clauses.length ? clauses.join(" AND ") : null, nextIndex: index };
 };
 
+// Recognizes natural-language price phrases inside a free-text search query
+// ("trouser under 500", "shoes above 1000", "kurti between 300 and 600",
+// "jacket 500 to 800") so shoppers can type a budget without needing separate
+// min/max price filter inputs. Returns the bounds found plus the search text
+// with the price phrase stripped out (so words like "under" don't pollute
+// name/category matching).
+const PRICE_CURRENCY = "(?:\u20b9|rs\\.?|inr|rupees?)";
+const PRICE_NUM = `(?:${PRICE_CURRENCY}\\s*)?(\\d+(?:,\\d{3})*(?:\\.\\d+)?)\\s*(k)?(?:\\s*${PRICE_CURRENCY})?`;
+const PRICE_BETWEEN_RE = new RegExp(`\\bbetween\\s+${PRICE_NUM}\\s*(?:and|to)\\s*${PRICE_NUM}\\b`, "i");
+const PRICE_RANGE_RE = new RegExp(`\\b${PRICE_NUM}\\s*to\\s*${PRICE_NUM}\\b`, "i");
+const PRICE_UNDER_RE = new RegExp(`\\b(?:under|below|less\\s+than|cheaper\\s+than|up\\s*to)\\s*${PRICE_NUM}`, "i");
+const PRICE_OVER_RE = new RegExp(`\\b(?:over|above|more\\s+than|greater\\s+than|starting\\s+from)\\s*${PRICE_NUM}`, "i");
+
+const parsePriceNumber = (value, kFlag) => {
+  const num = parseFloat(String(value).replace(/,/g, ""));
+  if (!Number.isFinite(num)) return null;
+  return kFlag ? num * 1000 : num;
+};
+
+const extractPriceConstraint = (text) => {
+  let remaining = text;
+  let minPrice = null;
+  let maxPrice = null;
+
+  const rangeMatch = remaining.match(PRICE_BETWEEN_RE) || remaining.match(PRICE_RANGE_RE);
+  if (rangeMatch) {
+    const a = parsePriceNumber(rangeMatch[1], rangeMatch[2]);
+    const b = parsePriceNumber(rangeMatch[3], rangeMatch[4]);
+    if (a != null && b != null) {
+      minPrice = Math.min(a, b);
+      maxPrice = Math.max(a, b);
+      remaining = remaining.replace(rangeMatch[0], " ");
+    }
+  } else {
+    const underMatch = remaining.match(PRICE_UNDER_RE);
+    if (underMatch) {
+      const val = parsePriceNumber(underMatch[1], underMatch[2]);
+      if (val != null) {
+        maxPrice = val;
+        remaining = remaining.replace(underMatch[0], " ");
+      }
+    }
+    const overMatch = remaining.match(PRICE_OVER_RE);
+    if (overMatch) {
+      const val = parsePriceNumber(overMatch[1], overMatch[2]);
+      if (val != null) {
+        minPrice = val;
+        remaining = remaining.replace(overMatch[0], " ");
+      }
+    }
+  }
+
+  return { minPrice, maxPrice, remainingText: remaining.replace(/\s+/g, " ").trim() };
+};
+
 export const getProductMediaShape = async (client) => {
   const result = await client.query(
     `SELECT column_name FROM information_schema.columns
@@ -577,6 +632,18 @@ router.get("/", async (req, res) => {
       store_id,   // explicit store override from frontend
     } = req.query;
 
+    // Let a free-text budget phrase ("under 500") drive price filtering when
+    // explicit min_price/max_price filters weren't already supplied.
+    let effectiveMinPrice = min_price;
+    let effectiveMaxPrice = max_price;
+    let effectiveSearch = search;
+    if (search && typeof search === "string") {
+      const priceInfo = extractPriceConstraint(search);
+      if (priceInfo.minPrice != null && !effectiveMinPrice) effectiveMinPrice = priceInfo.minPrice;
+      if (priceInfo.maxPrice != null && !effectiveMaxPrice) effectiveMaxPrice = priceInfo.maxPrice;
+      effectiveSearch = priceInfo.remainingText;
+    }
+
     // Find nearest dark store when coordinates are provided
     let nearestStoreName = null;
     let nearestStoreCity = null;
@@ -803,7 +870,7 @@ router.get("/", async (req, res) => {
       index += 2;
     }
 
-    if (min_price) {
+    if (effectiveMinPrice) {
       query += ` AND EXISTS (
         SELECT 1
         FROM product_variants v
@@ -813,10 +880,10 @@ router.get("/", async (req, res) => {
           ${storeInvCondition}
           AND v.price >= $${index++}
       )`;
-      values.push(min_price);
+      values.push(effectiveMinPrice);
     }
 
-    if (max_price) {
+    if (effectiveMaxPrice) {
       query += ` AND EXISTS (
         SELECT 1
         FROM product_variants v
@@ -826,7 +893,7 @@ router.get("/", async (req, res) => {
           ${storeInvCondition}
           AND v.price <= $${index++}
       )`;
-      values.push(max_price);
+      values.push(effectiveMaxPrice);
     }
 
     if (color) {
@@ -842,8 +909,8 @@ router.get("/", async (req, res) => {
       values.push(color);
     }
 
-    if (search) {
-      const { clause, nextIndex } = buildSearchClause(search, values, index);
+    if (effectiveSearch) {
+      const { clause, nextIndex } = buildSearchClause(effectiveSearch, values, index);
       if (clause) {
         query += ` AND (${clause})`;
         index = nextIndex;
