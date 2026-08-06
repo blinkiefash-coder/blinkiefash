@@ -37,9 +37,15 @@ const pluralizeWord = (word) => {
   return `${word}s`;
 };
 
-// Every word in `search` must appear somewhere (name/brand/category/description/
-// barcode), tolerating singular/plural forms and men<->man style synonyms so a
-// typo-ish or differently-worded query ("man trouser") still finds "Men's Trousers".
+// Strips everything but letters/digits so "tshirt" can match "T-Shirt"/"T Shirt".
+const normalizeForSearch = (value) => value.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+// Every word in `search` must appear somewhere (name/brand/category/barcode),
+// tolerating singular/plural forms and men<->man style synonyms so a typo-ish
+// or differently-worded query ("man trouser") still finds "Men's Trousers".
+// NOTE: product `description` is intentionally excluded — descriptions often
+// contain unrelated styling-tip text (e.g. "pair this kurti with jeans") which
+// caused searches like "jeans" to wrongly surface kurtis.
 const buildSearchClause = (search, values, startIndex) => {
   const tokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
   let index = startIndex;
@@ -53,20 +59,26 @@ const buildSearchClause = (search, values, startIndex) => {
     for (const syn of SEARCH_SYNONYMS[token] || []) variants.add(syn);
     for (const syn of SEARCH_SYNONYMS[base] || []) variants.add(syn);
     const patterns = Array.from(variants).map((v) => `%${v}%`);
+    const normalizedPatterns = Array.from(
+      new Set(Array.from(variants).map((v) => normalizeForSearch(v)).filter(Boolean))
+    ).map((v) => `%${v}%`);
     clauses.push(`(
       lower(p.name) LIKE ANY($${index}::text[]) OR
       lower(b.name) LIKE ANY($${index}::text[]) OR
       lower(c.name) LIKE ANY($${index}::text[]) OR
       lower(c_parent.name) LIKE ANY($${index}::text[]) OR
       lower(c_root.name) LIKE ANY($${index}::text[]) OR
-      lower(p.description) LIKE ANY($${index}::text[]) OR
+      regexp_replace(lower(p.name), '[^a-z0-9]', '', 'g') LIKE ANY($${index + 1}::text[]) OR
+      regexp_replace(lower(c.name), '[^a-z0-9]', '', 'g') LIKE ANY($${index + 1}::text[]) OR
+      regexp_replace(lower(c_parent.name), '[^a-z0-9]', '', 'g') LIKE ANY($${index + 1}::text[]) OR
+      regexp_replace(lower(c_root.name), '[^a-z0-9]', '', 'g') LIKE ANY($${index + 1}::text[]) OR
       EXISTS (
         SELECT 1 FROM product_variants sv
         WHERE sv.product_id = p.id AND lower(sv.barcode) LIKE ANY($${index}::text[])
       )
     )`);
-    values.push(patterns);
-    index += 1;
+    values.push(patterns, normalizedPatterns);
+    index += 2;
   }
   return { clause: clauses.length ? clauses.join(" AND ") : null, nextIndex: index };
 };
