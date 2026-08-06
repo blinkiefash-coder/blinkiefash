@@ -16,6 +16,164 @@ import 'wishlist_screen.dart';
 import '../widgets/bf_loader.dart';
 import '../widgets/animated_search_bar.dart';
 
+// Which reference chart to show in the Size Guide sheet, picked from the
+// product's category/name so trousers, shoes, kidswear etc. each get a
+// relevant chart instead of one generic table.
+enum _SizeGuideKind {
+  kidsFootwear,
+  kidsApparel,
+  footwear,
+  innerwear,
+  bottoms,
+  tops,
+}
+
+class _SizeGuideChart {
+  const _SizeGuideChart({
+    required this.title,
+    required this.columns,
+    required this.rows,
+    required this.tips,
+  });
+
+  final String title;
+  final List<String> columns;
+  final List<List<String>> rows;
+  final List<String> tips;
+}
+
+_SizeGuideKind _sizeGuideKindFor(String category, String productName) {
+  final text = '$category $productName'.toLowerCase();
+  final isKids = RegExp(
+    r'\bkids?\b|\bboys?\b|\bgirls?\b|\binfant\b|\btoddler\b|\bjunior\b',
+  ).hasMatch(text);
+  final isFootwear = RegExp(
+    r'footwear|shoe|sneaker|loafer|sandal|slipper|flip|heel|\bboot|mule|clog',
+  ).hasMatch(text);
+  final isInnerwear = RegExp(
+    r'\bbra\b|lingerie|innerwear|panty|panties|brief|boxer|\bvest\b|thermal|camisole',
+  ).hasMatch(text);
+  final isBottoms = RegExp(
+    r'trouser|jean|\bpant|short|skirt|legging|jogger|palazzo|chino|capri|cargo',
+  ).hasMatch(text);
+
+  if (isKids && isFootwear) return _SizeGuideKind.kidsFootwear;
+  if (isKids) return _SizeGuideKind.kidsApparel;
+  if (isFootwear) return _SizeGuideKind.footwear;
+  if (isInnerwear) return _SizeGuideKind.innerwear;
+  if (isBottoms) return _SizeGuideKind.bottoms;
+  return _SizeGuideKind.tops;
+}
+
+_SizeGuideChart _sizeGuideChartFor(_SizeGuideKind kind) {
+  switch (kind) {
+    case _SizeGuideKind.tops:
+      return const _SizeGuideChart(
+        title: 'Tops & Dresses',
+        columns: ['Size', 'Chest (in)', 'Length (in)'],
+        rows: [
+          ['S', '36', '27'],
+          ['M', '38', '28'],
+          ['L', '40', '29'],
+          ['XL', '42', '30'],
+          ['XXL', '44', '31'],
+          ['XXXL', '46', '32'],
+        ],
+        tips: [
+          'Chest: measure around the fullest part of your chest, keeping the tape level.',
+          'Length: measure from the shoulder seam down to the hem.',
+        ],
+      );
+    case _SizeGuideKind.bottoms:
+      return const _SizeGuideChart(
+        title: 'Bottoms',
+        columns: ['Size', 'Waist (in)', 'Hip (in)', 'Inseam (in)'],
+        rows: [
+          ['28', '28', '36', '30'],
+          ['30', '30', '38', '30'],
+          ['32', '32', '40', '31'],
+          ['34', '34', '42', '31'],
+          ['36', '36', '44', '32'],
+          ['38', '38', '46', '32'],
+        ],
+        tips: [
+          'Waist: measure around your natural waistline, just above the hips.',
+          'Hip: measure around the fullest part of your hips.',
+        ],
+      );
+    case _SizeGuideKind.footwear:
+      return const _SizeGuideChart(
+        title: 'Footwear',
+        columns: ['UK', 'US', 'EU', 'Foot Length (cm)'],
+        rows: [
+          ['5', '6', '38', '24.1'],
+          ['6', '7', '39', '24.8'],
+          ['7', '8', '41', '25.4'],
+          ['8', '9', '42', '26.0'],
+          ['9', '10', '43', '26.7'],
+          ['10', '11', '44', '27.3'],
+          ['11', '12', '45', '27.9'],
+        ],
+        tips: [
+          'Foot length: stand on a sheet of paper and measure from heel to the tip of your longest toe.',
+          'If you\'re between sizes, we recommend sizing up.',
+        ],
+      );
+    case _SizeGuideKind.innerwear:
+      return const _SizeGuideChart(
+        title: 'Innerwear',
+        columns: ['Size', 'Chest/Bust (in)', 'Waist (in)'],
+        rows: [
+          ['S', '32-34', '26-28'],
+          ['M', '34-36', '28-30'],
+          ['L', '36-38', '30-32'],
+          ['XL', '38-40', '32-34'],
+          ['XXL', '40-42', '34-36'],
+        ],
+        tips: [
+          'Chest/Bust: measure around the fullest part, keeping the tape level.',
+          'For the most comfortable fit, measure over your regular underwear.',
+        ],
+      );
+    case _SizeGuideKind.kidsApparel:
+      return const _SizeGuideChart(
+        title: 'Kids Wear',
+        columns: ['Age', 'Height (cm)', 'Chest (in)'],
+        rows: [
+          ['2-3Y', '92-98', '21'],
+          ['4-5Y', '104-110', '22'],
+          ['6-7Y', '116-122', '23'],
+          ['8-9Y', '128-134', '24'],
+          ['10-11Y', '140-146', '26'],
+          ['12-13Y', '152-158', '28'],
+        ],
+        tips: [
+          'Use your child\'s height as the primary guide; chest is a secondary check.',
+          'If your child is between age groups, we recommend sizing up.',
+        ],
+      );
+    case _SizeGuideKind.kidsFootwear:
+      return const _SizeGuideChart(
+        title: 'Kids Footwear',
+        columns: ['UK', 'EU', 'Foot Length (cm)'],
+        rows: [
+          ['8', '25', '15.5'],
+          ['9', '27', '16.5'],
+          ['10', '28', '17.5'],
+          ['11', '29', '18.5'],
+          ['12', '30', '19.5'],
+          ['13', '31', '20.5'],
+          ['1', '33', '21.5'],
+          ['2', '34', '22.5'],
+        ],
+        tips: [
+          'Foot length: measure from heel to the tip of the longest toe, ideally in the evening when feet are largest.',
+          'Leave about 1cm of extra room for growing feet.',
+        ],
+      );
+  }
+}
+
 class ProductDetailScreen extends StatefulWidget {
   const ProductDetailScreen({
     super.key,
@@ -187,6 +345,166 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       return aa.compareTo(bb);
     });
     return sorted;
+  }
+
+  void _showSizeGuide({required String category, required String productName}) {
+    final kind = _sizeGuideKindFor(category, productName);
+    final chart = _sizeGuideChartFor(kind);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.9,
+          expand: false,
+          builder: (context, scrollController) {
+            return SingleChildScrollView(
+              controller: scrollController,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.straighten,
+                        color: Color(0xFF16A34A),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Size Guide · ${chart.title}',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF111827),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  Table(
+                    border: TableBorder.all(
+                      color: const Color(0xFFE5E7EB),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    children: [
+                      TableRow(
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF0FDF4),
+                        ),
+                        children: chart.columns
+                            .map(
+                              (c) => Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 10,
+                                  horizontal: 8,
+                                ),
+                                child: Text(
+                                  c,
+                                  textAlign: TextAlign.center,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    color: Color(0xFF166534),
+                                  ),
+                                ),
+                              ),
+                            )
+                            .toList(),
+                      ),
+                      for (final row in chart.rows)
+                        TableRow(
+                          children: row
+                              .map(
+                                (cell) => Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 10,
+                                    horizontal: 8,
+                                  ),
+                                  child: Text(
+                                    cell,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF111827),
+                                    ),
+                                  ),
+                                ),
+                              )
+                              .toList(),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    'How to measure',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF111827),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  for (final tip in chart.tips)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 6),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            '•  ',
+                            style: TextStyle(
+                              color: Color(0xFF6B7280),
+                              fontSize: 13,
+                            ),
+                          ),
+                          Expanded(
+                            child: Text(
+                              tip,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'General reference — actual measurements may vary slightly by brand.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontStyle: FontStyle.italic,
+                      color: Color(0xFF9CA3AF),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   String _normalizeColorValue(dynamic value) {
@@ -2650,7 +2968,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ),
                     ),
                     TextButton(
-                      onPressed: () {},
+                      onPressed: () => _showSizeGuide(
+                        category: category,
+                        productName: title,
+                      ),
                       style: TextButton.styleFrom(
                         padding: EdgeInsets.zero,
                         minimumSize: Size.zero,
