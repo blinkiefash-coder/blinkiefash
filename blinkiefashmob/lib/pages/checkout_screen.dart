@@ -220,41 +220,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (_) {}
   }
 
-  // Hardcoded coupon validation (extend as needed)
-  static const _validCoupons = {
-    'BLINKIE10': 10.0, // 10% off
-    'BLINKIE5': 5.0, // 5% off
-    'FLASH20': 20.0, // 20% off
-    'WELCOME15': 15.0, // 15% off
-  };
-
-  void _applyCoupon() {
-    final code = _couponCtrl.text.trim().toUpperCase();
-    if (code.isEmpty) return;
-    final pct = _validCoupons[code];
-    if (pct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Invalid coupon code. Try BLINKIE10 or FLASH20.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
-      return;
-    }
-    final discount = _effectiveSubtotal * pct / 100;
-    setState(() {
-      _useReferral = false;
-      _useClothing = false;
-      _useSpinReward = false;
-      _useQuestReward = false;
-      _selectedAutoOffer = -1;
-      _appliedCouponCode = code;
-      _couponDiscount = discount;
-      _couponApplied = true;
-    });
-    FocusScope.of(context).unfocus();
-  }
-
   void _toggleExclusiveOffer(String offerKey, bool enabled, {int? autoIndex}) {
     setState(() {
       if (!enabled) {
@@ -1299,15 +1264,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             padding: const EdgeInsets.all(12),
             child: Column(
               children: [
-                Row(
+                const Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.local_offer_outlined,
                       color: Color(0xFFF59E0B),
                       size: 20,
                     ),
-                    const SizedBox(width: 8),
-                    const Expanded(
+                    SizedBox(width: 8),
+                    Expanded(
                       child: Text(
                         'Offers & Discounts',
                         style: TextStyle(
@@ -1356,10 +1321,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
+                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               '🎡 Spin Wheel',
                               style: TextStyle(
                                 fontSize: 12,
@@ -1367,7 +1332,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 color: Color(0xFF78350F),
                               ),
                             ),
-                            const SizedBox(height: 2),
+                            SizedBox(height: 2),
                             Text(
                               'Get ₹50 discount now',
                               style: TextStyle(
@@ -1762,246 +1727,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ],
               ),
             ),
-          const SizedBox(height: 16),
-
-          // ── Offers & Coupons ───────────────────────────────────────────
-          const _SectionHeader(title: 'Offers & Coupons'),
-          const SizedBox(height: 8),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Coupon code input
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _couponCtrl,
-                          textCapitalization: TextCapitalization.characters,
-                          enabled: !_couponApplied,
-                          decoration: InputDecoration(
-                            hintText: 'Enter coupon code',
-                            prefixIcon: const Icon(
-                              Icons.local_offer_outlined,
-                              color: Color(0xFF16A34A),
-                              size: 20,
-                            ),
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 10,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              borderSide: const BorderSide(
-                                color: Color(0xFF16A34A),
-                              ),
-                            ),
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: _couponApplied ? null : _applyCoupon,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF16A34A),
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: const Color(
-                            0xFF16A34A,
-                          ).withValues(alpha: 0.5),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 13,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          _couponApplied ? 'Applied ✓' : 'Apply',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Applied badge
-                if (_couponApplied)
-                  Container(
-                    margin: const EdgeInsets.fromLTRB(14, 0, 14, 12),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF0FDF4),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFFD1FAE5)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.check_circle,
-                          color: Color(0xFF16A34A),
-                          size: 16,
-                        ),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Coupon \u2018$_appliedCouponCode\u2019 applied!',
-                            style: const TextStyle(
-                              color: Color(0xFF166534),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          '- \u20b9${_couponDiscount.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            color: Color(0xFF16A34A),
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        GestureDetector(
-                          onTap: () => setState(() {
-                            _couponApplied = false;
-                            _appliedCouponCode = '';
-                            _couponDiscount = 0;
-                            _couponCtrl.clear();
-                          }),
-                          child: const Icon(
-                            Icons.close,
-                            size: 16,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                // Spin Wheel reward
-                if (_spinRewardPct > 0) ...[
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    value: _useSpinReward,
-                    activeThumbColor: const Color(0xFF16A34A),
-                    onChanged: (v) => _toggleExclusiveOffer('spin', v),
-                    secondary: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFFEC4899), Color(0xFFBE185D)],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.casino_outlined,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                    title: Text(
-                      'Spin & Win: ${_spinRewardPct.toStringAsFixed(0)}% Off',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Save \u20b9${(_effectiveSubtotal * _spinRewardPct / 100).toStringAsFixed(0)} on this order',
-                    ),
-                  ),
-                ],
-                // Fashion Quest reward
-                if (_questRewardPct > 0) ...[
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    value: _useQuestReward,
-                    activeThumbColor: const Color(0xFF16A34A),
-                    onChanged: (v) => _toggleExclusiveOffer('quest', v),
-                    secondary: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C3AED), Color(0xFF0EA5E9)],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.videogame_asset_rounded,
-                        color: Colors.white,
-                        size: 18,
-                      ),
-                    ),
-                    title: Text(
-                      'Fashion Quest: ${_questRewardPct.toStringAsFixed(1)}% Off',
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    subtitle: Text(
-                      'Save \u20b9${(_effectiveSubtotal * _questRewardPct / 100).toStringAsFixed(0)} \u00b7 earned from game levels',
-                    ),
-                  ),
-                ],
-                // Empty hint
-                if (_spinRewardPct == 0 &&
-                    _questRewardPct == 0 &&
-                    !_couponApplied)
-                  const Padding(
-                    padding: EdgeInsets.fromLTRB(14, 0, 14, 14),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.lightbulb_outline,
-                          color: Color(0xFF9CA3AF),
-                          size: 16,
-                        ),
-                        SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            'Play Spin & Win or Fashion Quest to earn discount rewards!',
-                            style: TextStyle(
-                              color: Color(0xFF9CA3AF),
-                              fontSize: 12,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-              ],
-            ),
-          ),
           const SizedBox(height: 16),
 
           if (_availableReferralAmount > 0 || _availableClothingItems > 0) ...[
