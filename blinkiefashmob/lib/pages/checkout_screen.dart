@@ -35,8 +35,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   static const double _platformFeeFlat = 9.0;
   static const double _shippingPackagingHandlingPerProduct = 9.0;
 
-  List<CartItem> get _effectiveItems =>
-      widget.overrideItems ?? CartManager.instance.items;
+  List<CartItem> get _effectiveItems {
+    // Merge cart items + override items (buy now)
+    final cartItems = CartManager.instance.items;
+    if (widget.overrideItems != null) {
+      return [...cartItems, ...widget.overrideItems!];
+    }
+    return cartItems;
+  }
 
   double get _effectiveSubtotal => _effectiveItems.fold(0.0, (sum, i) {
     final p = double.tryParse(i.rawPrice) ?? 0.0;
