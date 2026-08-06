@@ -351,6 +351,7 @@ class ApiClient {
     double? minPrice,
     double? maxPrice,
     int? minDiscount,
+    bool noDiscount = false,
     int limit = 40,
     int offset = 0,
   }) async {
@@ -362,6 +363,7 @@ class ApiClient {
     if (minPrice != null) params['min_price'] = minPrice.toStringAsFixed(0);
     if (maxPrice != null) params['max_price'] = maxPrice.toStringAsFixed(0);
     if (minDiscount != null) params['min_discount'] = '$minDiscount';
+    if (noDiscount) params['no_discount'] = 'true';
     if (ApiClient.currentStoreId != null) {
       if (ApiClient.currentStoreIds.isNotEmpty) {
         params['store_ids'] = ApiClient.currentStoreIds.join(',');

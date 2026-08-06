@@ -20,6 +20,7 @@ class AllProductsScreen extends StatefulWidget {
   final double? minPrice;
   final double? maxPrice;
   final int? initialMinDiscount;
+  final bool initialNoDiscount;
   final bool autoFocusSearch;
   final String initialSort;
 
@@ -33,6 +34,7 @@ class AllProductsScreen extends StatefulWidget {
     this.minPrice,
     this.maxPrice,
     this.initialMinDiscount,
+    this.initialNoDiscount = false,
     this.autoFocusSearch = false,
     this.initialSort = 'newest',
   });
@@ -77,6 +79,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   double? _minPrice;
   double? _maxPrice;
   int? _minDiscount;
+  bool _noDiscount = false;
 
   // Filter sheet temp values
   String? _tempCatId;
@@ -110,6 +113,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     if (widget.minPrice != null) _minPrice = widget.minPrice;
     if (widget.maxPrice != null) _maxPrice = widget.maxPrice;
     _minDiscount = widget.initialMinDiscount;
+    _noDiscount = widget.initialNoDiscount;
     _sort = widget.initialSort;
     _loadMeta();
     _loadProducts(reset: true);
@@ -520,6 +524,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         minPrice: _minPrice,
         maxPrice: _maxPrice,
         minDiscount: _minDiscount,
+        noDiscount: _noDiscount,
         limit: _pageSize,
         offset: reset ? 0 : _offset,
       );

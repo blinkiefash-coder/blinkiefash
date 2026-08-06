@@ -1320,18 +1320,20 @@ class _HomeScreenState extends State<HomeScreen>
                 : _stockOutBanner(),
             const SizedBox(height: 16),
             _sectionHeader(
-              'MAHA BACHAT',
+              'NEW & TRENDY',
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => const AllProductsScreen(
-                    initialMinDiscount: 30,
+                    initialNoDiscount: true,
                     initialSort: 'newest',
                   ),
                 ),
               ),
             ),
-            _products.isNotEmpty ? _mahaBachatCategories() : _stockOutBanner(),
+            _products.isNotEmpty
+                ? _newAndTrendyCategories()
+                : _stockOutBanner(),
             const SizedBox(height: 16),
             _banner01Strip(),
             _universeSection(),
@@ -2135,7 +2137,7 @@ class _HomeScreenState extends State<HomeScreen>
   }) {
     if (title.toUpperCase() == 'SHOP BY CATEGORY' ||
         title.toUpperCase() == 'DEALS OF THE DAY' ||
-        title.toUpperCase() == 'MAHA BACHAT' ||
+        title.toUpperCase() == 'NEW & TRENDY' ||
         title.toUpperCase() == 'MEN\'S COLLECTION') {
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
@@ -2861,7 +2863,7 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
-  // Shared discount-computation used by both Deals of the Day and Maha Bachat.
+  // Shared discount-computation used by Deals of the Day.
   List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount}) {
     final dealsProducts = <Map<String, dynamic>>[];
 
@@ -2898,14 +2900,30 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Maha Bachat: Products with more than 30% off ───────────────────────────
-  Widget _mahaBachatCategories() {
-    final topDeals = _topDiscountedProducts(minDiscount: 30);
-    if (topDeals.isEmpty) return _stockOutBanner();
+  // ── New & Trendy: Full-price products (no discount), newest first ─────────
+  List<Map<String, dynamic>> _newAndTrendyProducts() {
+    final items = <Map<String, dynamic>>[];
+    for (final product in _products) {
+      final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
+      final discPrice =
+          double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
+      final hasDiscount = price > 0 && discPrice > 0 && discPrice < price;
+      if (!hasDiscount) {
+        items.add({...product, 'calculated_discount': 0});
+      }
+    }
+    // _products is already newest-first (default backend sort), so this keeps
+    // the freshest/trendiest arrivals first without needing a separate sort.
+    return items.take(10).toList();
+  }
+
+  Widget _newAndTrendyCategories() {
+    final trendy = _newAndTrendyProducts();
+    if (trendy.isEmpty) return _stockOutBanner();
     return _buildDiscountDealCards(
-      topDeals,
-      ribbonText: 'MAHA BACHAT',
-      ribbonColor: const Color(0xFFDC2626),
+      trendy,
+      ribbonText: 'NEW',
+      ribbonColor: const Color(0xFF2563EB),
     );
   }
 
@@ -2928,7 +2946,7 @@ class _HomeScreenState extends State<HomeScreen>
           final price = _fmt(variantData['discount_price']);
           final origP = _fmt(variantData['price']);
           final discount = item['calculated_discount'] as int? ?? 0;
-          final off = '$discount% OFF';
+          final off = discount > 0 ? '$discount% OFF' : 'NEW';
           final img = _imgUrl(variantData['image_url'] ?? item['image']);
           final wishItem = WishlistItem(
             productId: item['id']?.toString() ?? '',
