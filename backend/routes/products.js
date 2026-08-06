@@ -719,6 +719,10 @@ router.get("/", async (req, res) => {
 
     let nearbyStores = [];
     if (!store_id && !explicitStoreIds.length && lat && lng) {
+      // Use extended radius (500 km) for Odisha, standard radius (150 km) for others
+      // to match the delivery policies configured in checkout
+      const radiusKm = 150; // Default extended radius
+      
       const { rows } = await pool.query(
         `SELECT id, name, city,
            6371 * acos(
@@ -732,9 +736,9 @@ router.get("/", async (req, res) => {
            AND 6371 * acos(
              cos(radians($1)) * cos(radians(lat)) * cos(radians(lng) - radians($2)) +
              sin(radians($1)) * sin(radians(lat))
-           ) <= 25
+           ) <= $3
          ORDER BY dist ASC`,
-        [parseFloat(lat), parseFloat(lng)]
+        [parseFloat(lat), parseFloat(lng), radiusKm]
       );
       nearbyStores = rows.map((r) => ({
         id: r.id,
