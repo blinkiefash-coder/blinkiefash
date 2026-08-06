@@ -16,6 +16,7 @@ import checkoutRoutes from "./routes/checkout.js";
 import usersRoutes from "./routes/users.js";
 import referralRoutes from "./routes/referrals.js";
 import oldClothesRoutes from "./routes/oldClothes.js";
+import analyticsRoutes from "./routes/analytics.js";
 
 const app = express();
 
@@ -92,6 +93,7 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/users", usersRoutes);
 app.use("/api/referrals", referralRoutes);
 app.use("/api/old-clothes", oldClothesRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
 

@@ -327,4 +327,43 @@ export const ensureDatabaseTables = async () => {
     CREATE INDEX IF NOT EXISTS idx_bundle_offers_product
     ON bundle_offers(product_id, is_active);
   `).catch(() => {});
+
+  // ── User activity / search analytics (search terms, clicks, dwell time) ──
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_activity_events (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      session_id TEXT NOT NULL,
+      event_type TEXT NOT NULL,
+      search_query TEXT,
+      product_id UUID REFERENCES products(id) ON DELETE SET NULL,
+      category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+      result_count INT,
+      duration_ms INT,
+      metadata JSONB,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `).catch((err) => {
+    console.warn("user_activity_events table create skipped:", err.message);
+  });
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_activity_events_user
+    ON user_activity_events(user_id, created_at DESC);
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_activity_events_session
+    ON user_activity_events(session_id, created_at DESC);
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_activity_events_product
+    ON user_activity_events(product_id);
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_activity_events_type
+    ON user_activity_events(event_type, created_at DESC);
+  `).catch(() => {});
 };
