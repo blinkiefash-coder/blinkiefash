@@ -296,7 +296,15 @@ router.get("/:id/orders", async (req, res) => {
     );
     const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
     const vendorUserId = vendorStore.rows[0]?.user_id || null;
-    const ownerIds = [id, vendorUserId].filter(Boolean).map(String);
+    // Also pull sibling vendor IDs (same user_id) so orders from linked stores are visible.
+    const siblingVendors = vendorUserId
+      ? await pool.query(`SELECT id FROM vendors WHERE user_id = $1`, [vendorUserId])
+      : { rows: [] };
+    const ownerIds = [
+      id,
+      vendorUserId,
+      ...siblingVendors.rows.map((r) => String(r.id)),
+    ].filter(Boolean).map(String).filter((v, i, a) => a.indexOf(v) === i);
     if (!linkedStoreId) {
       return res.json([]);
     }
@@ -521,7 +529,14 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
     );
     const linkedStoreId = vendorStore.rows[0]?.dark_store_id || null;
     const vendorUserId = vendorStore.rows[0]?.user_id || null;
-    const ownerIds = [vendorId, vendorUserId].filter(Boolean).map(String);
+    const siblingVendors = vendorUserId
+      ? await pool.query(`SELECT id FROM vendors WHERE user_id = $1`, [vendorUserId])
+      : { rows: [] };
+    const ownerIds = [
+      vendorId,
+      vendorUserId,
+      ...siblingVendors.rows.map((r) => String(r.id)),
+    ].filter(Boolean).map(String).filter((v, i, a) => a.indexOf(v) === i);
     if (!linkedStoreId) {
       return res.status(400).json({
         success: false,
