@@ -1319,6 +1319,22 @@ class _HomeScreenState extends State<HomeScreen>
                 ? _dealsOfTheDayCategories()
                 : _stockOutBanner(),
             const SizedBox(height: 16),
+            _sectionHeader(
+              'MAHA BACHAT',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllProductsScreen(
+                    initialMinDiscount: 30,
+                    initialSort: 'newest',
+                  ),
+                ),
+              ),
+            ),
+            _products.isNotEmpty
+                ? _mahaBachatCategories()
+                : _stockOutBanner(),
+            const SizedBox(height: 16),
             _banner01Strip(),
             _universeSection(),
             _brandBannersGrid(),
@@ -2121,6 +2137,7 @@ class _HomeScreenState extends State<HomeScreen>
   }) {
     if (title.toUpperCase() == 'SHOP BY CATEGORY' ||
         title.toUpperCase() == 'DEALS OF THE DAY' ||
+        title.toUpperCase() == 'MAHA BACHAT' ||
         title.toUpperCase() == 'MEN\'S COLLECTION') {
       return Padding(
         padding: const EdgeInsets.fromLTRB(12, 14, 12, 6),
@@ -2846,9 +2863,8 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
-  // ── Deals of the Day: Top products with maximum discounts ─────────────────
-  Widget _dealsOfTheDayCategories() {
-    // Calculate discount for each product and sort by highest discount
+  // Shared discount-computation used by both Deals of the Day and Maha Bachat.
+  List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount}) {
     final dealsProducts = <Map<String, dynamic>>[];
 
     for (final product in _products) {
@@ -2858,23 +2874,48 @@ class _HomeScreenState extends State<HomeScreen>
 
       if (price > discPrice && price > 0) {
         final discount = ((price - discPrice) / price * 100).round();
-        dealsProducts.add({...product, 'calculated_discount': discount});
+        if (minDiscount == null || discount > minDiscount) {
+          dealsProducts.add({...product, 'calculated_discount': discount});
+        }
       }
     }
 
-    // Sort by discount percentage descending and take top 10
     dealsProducts.sort((a, b) {
       final discA = a['calculated_discount'] as int? ?? 0;
       final discB = b['calculated_discount'] as int? ?? 0;
       return discB.compareTo(discA);
     });
 
-    final topDeals = dealsProducts.take(10).toList();
+    return dealsProducts.take(10).toList();
+  }
 
-    if (topDeals.isEmpty) {
-      return _stockOutBanner();
-    }
+  // ── Deals of the Day: Top products with maximum discounts ─────────────────
+  Widget _dealsOfTheDayCategories() {
+    final topDeals = _topDiscountedProducts();
+    if (topDeals.isEmpty) return _stockOutBanner();
+    return _buildDiscountDealCards(
+      topDeals,
+      ribbonText: 'HOT DEAL',
+      ribbonColor: const Color(0xFFEA580C),
+    );
+  }
 
+  // ── Maha Bachat: Products with more than 30% off ───────────────────────────
+  Widget _mahaBachatCategories() {
+    final topDeals = _topDiscountedProducts(minDiscount: 30);
+    if (topDeals.isEmpty) return _stockOutBanner();
+    return _buildDiscountDealCards(
+      topDeals,
+      ribbonText: 'MAHA BACHAT',
+      ribbonColor: const Color(0xFFDC2626),
+    );
+  }
+
+  Widget _buildDiscountDealCards(
+    List<Map<String, dynamic>> topDeals, {
+    required String ribbonText,
+    required Color ribbonColor,
+  }) {
     return SizedBox(
       height: 300,
       child: ListView.builder(
@@ -2958,7 +2999,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   ),
                                 ),
                         ),
-                        // HOT DEAL ribbon
+                        // Deal ribbon
                         Positioned(
                           top: 8,
                           left: -30,
@@ -2971,20 +3012,18 @@ class _HomeScreenState extends State<HomeScreen>
                                 vertical: 5,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFEA580C),
+                                color: ribbonColor,
                                 boxShadow: [
                                   BoxShadow(
-                                    color: const Color(
-                                      0xFFEA580C,
-                                    ).withValues(alpha: 0.4),
+                                    color: ribbonColor.withValues(alpha: 0.4),
                                     blurRadius: 8,
                                   ),
                                 ],
                               ),
-                              child: const Text(
-                                'HOT DEAL',
+                              child: Text(
+                                ribbonText,
                                 textAlign: TextAlign.center,
-                                style: TextStyle(
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 9,
