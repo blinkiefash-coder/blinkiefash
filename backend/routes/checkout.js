@@ -246,26 +246,45 @@ function calculateDeliveryInfo(distanceKm, city) {
     return result;
   }
 
-  // RULE 3: LONG-DISTANCE DELIVERY (>45km) — NO RIDERS, LOGISTICS ONLY
+  // RULE 3: LONG-DISTANCE DELIVERY (>45km) — LOGISTICS ONLY, NO RIDERS
   if (distanceKm != null && distanceKm > 45) {
     result.willNotifyRiders = false; // DO NOT notify riders for >45km
     
     if (isOperatingHours) {
-      // Next day delivery for long distance
-      result.deliveryPromise = "Next Day Delivery";
-      result.deliveryType = 'nextday';
+      // During 10:00-21:00: Check if before or after 12:00 noon
+      const isBeforeNoon = currentHours < 12 || (currentHours === 12 && currentMinutes === 0);
+      
+      if (isBeforeNoon) {
+        // Before 12:00 PM: Same day delivery for selected pincodes, 1-3 days for others
+        if (isMajorOdishaCity(city)) {
+          result.deliveryPromise = "Same Day Delivery Available";
+          result.deliveryType = 'sameday';
+        } else {
+          result.deliveryPromise = "Delivery in 1-3 Days";
+          result.deliveryType = '1-3days';
+        }
+      } else {
+        // At or after 12:00 PM: 1-2 days delivery
+        result.deliveryPromise = "Delivery in 1-2 Days";
+        result.deliveryType = '1-2days';
+      }
     } else {
-      // After operating hours: next-to-next day
-      result.deliveryPromise = "Delivery in 2 Days";
-      result.deliveryType = '2days';
+      // During CLOSED hours (21:01 to 09:59): Same day or 1-3 days
+      if (isMajorOdishaCity(city)) {
+        result.deliveryPromise = "Same Day Delivery Available";
+        result.deliveryType = 'sameday';
+      } else {
+        result.deliveryPromise = "Delivery in 1-3 Days";
+        result.deliveryType = '1-3days';
+      }
     }
     result.etaMinutes = null;
     return result;
   }
 
   // RULE 4: City-based fallback (when coordinates not available)
-  // During operating hours: show dynamic ETA with estimated time (~45 mins for local)
-  // After operating hours: show next-day delivery
+  // During operating hours: show dynamic ETA
+  // During closed hours: show "Store opens at 10:00 AM" with time slots
   const isMajor = isMajorOdishaCity(city);
 
   if (isOperatingHours) {
@@ -283,9 +302,9 @@ function calculateDeliveryInfo(distanceKm, city) {
     return result;
   }
 
-  // After operating hours: next day or next-to-next day
+  // After operating hours (21:01 to 09:59): "Store opens at 10:00 AM"
   if (isMajor) {
-    result.deliveryPromise = "Next Day Delivery";
+    result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
     result.deliveryType = 'nextday_scheduled_local'; // Allow time slot selection
     result.timeSlotStart = '11:00';
     result.timeSlotEnd = '21:00';
