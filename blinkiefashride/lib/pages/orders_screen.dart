@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../api_service.dart';
 import 'navigation_screen.dart';
@@ -98,7 +99,7 @@ class _OrdersScreenState extends State<OrdersScreen>
                 return;
               }
               Navigator.pop(ctx);
-              
+
               // Verify OTP with backend
               final result = await _api.verifyStoreOtp(deliveryId, otp);
               if (result['success'] == true) {
@@ -117,7 +118,9 @@ class _OrdersScreenState extends State<OrdersScreen>
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('❌ ${result['message'] ?? 'OTP verification failed'}'),
+                      content: Text(
+                        '❌ ${result['message'] ?? 'OTP verification failed'}',
+                      ),
                       backgroundColor: Colors.red,
                     ),
                   );
@@ -132,6 +135,36 @@ class _OrdersScreenState extends State<OrdersScreen>
         ],
       ),
     );
+  }
+
+  // Open location in Google Maps
+  Future<void> _openMaps(double? lat, double? lng, String name) async {
+    if (lat == null || lng == null) return;
+    final googleUrl = 'https://maps.google.com/maps?q=$lat,$lng';
+    try {
+      await launchUrl(Uri.parse(googleUrl), mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not open maps: $e')),
+        );
+      }
+    }
+  }
+
+  // Make phone call
+  Future<void> _makeCall(String? phone) async {
+    if (phone == null || phone.isEmpty) return;
+    final uri = Uri(scheme: 'tel', path: phone);
+    try {
+      await launchUrl(uri);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not make call: $e')),
+        );
+      }
+    }
   }
 
   List<dynamic> get _active => _deliveries
@@ -336,7 +369,278 @@ class _OrdersScreenState extends State<OrdersScreen>
                       ],
                     ),
                   ),
-                // Show items
+                // Vendor location (when assigned)
+                if (status == 'assigned') ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0F9FF),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFBFDBFE)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.store_outlined,
+                              size: 16,
+                              color: Color(0xFF0369A1),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Pick Up From',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0369A1),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        if ((d['store_name'] as String?)?.isNotEmpty == true)
+                          Text(
+                            d['store_name'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        if ((d['vendor_address'] as String?)?.isNotEmpty == true)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              d['vendor_address'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _openMaps(
+                                  d['vendor_lat'] as double?,
+                                  d['vendor_lng'] as double?,
+                                  d['store_name'] ?? 'Store',
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0F2FE),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_outlined,
+                                        size: 14,
+                                        color: Color(0xFF0369A1),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Map',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0369A1),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _makeCall(d['vendor_phone'] as String?),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFE0F2FE),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.call_outlined,
+                                        size: 14,
+                                        color: Color(0xFF0369A1),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Call',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF0369A1),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                // Customer location (when picked or later)
+                if (status != 'assigned') ...[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF0FDF4),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFFBBF7D0)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Row(
+                          children: [
+                            Icon(
+                              Icons.person_outlined,
+                              size: 16,
+                              color: Color(0xFF16A34A),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Deliver To',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF16A34A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        if ((d['customer_name'] as String?)?.isNotEmpty == true)
+                          Text(
+                            d['customer_name'] ?? '',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                        if ((d['delivery_address'] as String?)?.isNotEmpty == true)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              d['delivery_address'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF64748B),
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _openMaps(
+                                  d['customer_lat'] as double?,
+                                  d['customer_lng'] as double?,
+                                  d['customer_name'] ?? 'Customer',
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.location_on_outlined,
+                                        size: 14,
+                                        color: Color(0xFF16A34A),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Map',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF16A34A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _makeCall(d['customer_phone'] as String?),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDCFCE7),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.call_outlined,
+                                        size: 14,
+                                        color: Color(0xFF16A34A),
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Call',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF16A34A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 if ((d['items'] as List?)?.isNotEmpty == true) ...[
                   ...((d['items'] as List)
                       .take(3)
