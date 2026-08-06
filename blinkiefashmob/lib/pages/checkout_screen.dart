@@ -889,7 +889,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     border: Border.all(color: const Color(0xFFE5E7EB)),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       if (_addresses.isEmpty)
                         Column(
