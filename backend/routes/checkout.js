@@ -1395,8 +1395,10 @@ router.get("/orders/:orderId/location", async (req, res) => {
 router.get("/orders/:orderId/delivery-status", async (req, res) => {
   const { orderId } = req.params;
   try {
+    console.log(`\n🔍 [delivery-status] Querying for order: ${orderId}`);
     const { rows } = await pool.query(
-      `SELECT o.delivery_otp,
+      `SELECT o.id AS order_id,
+              o.delivery_otp,
               o.otp_verified_at,
               o.is_try_order,
               o.try_buy_mode,
@@ -1404,8 +1406,10 @@ router.get("/orders/:orderId/delivery-status", async (req, res) => {
               o.try_buy_deadline,
               o.try_buy_decision,
               o.status AS order_status,
+              d.id AS delivery_id,
               d.status AS delivery_status,
-              d.id AS delivery_id
+              d.is_active,
+              d.started_at
        FROM orders o
        LEFT JOIN deliveries d ON d.order_id = o.id 
          AND d.is_active = TRUE
@@ -1415,9 +1419,17 @@ router.get("/orders/:orderId/delivery-status", async (req, res) => {
        LIMIT 1`,
       [orderId]
     );
-    if (!rows.length) return res.status(404).json({ success: false, message: "Order not found" });
+    if (!rows.length) {
+      console.log(`❌ [delivery-status] No order found with ID: ${orderId}`);
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
     const row = rows[0];
-    console.log(`📋 [delivery-status] Order ${orderId}: order_status=${row.order_status}, delivery_status=${row.delivery_status}, delivery_otp=${row.delivery_otp}, otp_verified_at=${row.otp_verified_at}`);
+    console.log(`📋 [delivery-status] Order ${orderId}:`);
+    console.log(`  - order_status=${row.order_status}`);
+    console.log(`  - delivery_id=${row.delivery_id}`);
+    console.log(`  - delivery_status=${row.delivery_status}`);
+    console.log(`  - delivery_otp=${row.delivery_otp}`);
+    console.log(`  - otp_verified_at=${row.otp_verified_at}`);
     res.json({ success: true, data: row });
   } catch (err) {
     console.error("GET delivery-status error:", err.message);

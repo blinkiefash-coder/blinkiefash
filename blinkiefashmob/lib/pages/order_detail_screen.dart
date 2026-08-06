@@ -468,6 +468,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   }
 
   void _startDeliveryStatusPolling(String orderStatus) {
+    _debugLog('🔍 Starting delivery status polling for order ${widget.orderId}');
     _deliveryStatusTimer?.cancel();
     final terminal = ['delivered', 'cancelled', 'completed', 'trial_completed'];
     if (terminal.contains(orderStatus)) return;
@@ -476,9 +477,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ) async {
       try {
         final res = await _api.fetchOrderDeliveryStatus(widget.orderId);
+        _debugLog('📍 API Response: $res');
         if (!mounted) return;
         if (res['success'] == true) {
           final newStatus = res['data']?['order_status']?.toString() ?? '';
+          final deliveryStatus = res['data']?['delivery_status']?.toString() ?? 'NULL';
+          final deliveryOtp = res['data']?['delivery_otp']?.toString() ?? 'NULL';
+          _debugLog('✅ Status Updated: order=$newStatus, delivery=$deliveryStatus, otp=$deliveryOtp');
           setState(
             () => _deliveryStatus = res['data'] as Map<String, dynamic>?,
           );
@@ -780,11 +785,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               const SizedBox(height: 12),
             ],
             // ── OTP card: show when rider has arrived ──────────────────────
-            if (_deliveryStatus != null &&
-                _deliveryStatus!['delivery_status'] == 'arrived' &&
-                _deliveryStatus!['otp_verified_at'] == null) ...[
-              _otpCard(),
-              const SizedBox(height: 12),
+            if (_deliveryStatus != null) ...[
+              Builder(builder: (context) {
+                final ds = _deliveryStatus!;
+                final deliveryStatus = ds['delivery_status']?.toString() ?? 'NULL';
+                final otpVerified = ds['otp_verified_at'];
+                final shouldShow = deliveryStatus == 'arrived' && otpVerified == null;
+                print('🎯 OTP Card Check: delivery_status=$deliveryStatus, otp_verified_at=$otpVerified, should_show=$shouldShow');
+                if (shouldShow) {
+                  return Column(children: [
+                    _otpCard(),
+                    const SizedBox(height: 12),
+                  ]);
+                }
+                return const SizedBox.shrink();
+              }),
             ],
             // ── Trial timer: show during try & buy ─────────────────────────
             if (_deliveryStatus != null &&
