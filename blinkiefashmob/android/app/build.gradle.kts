@@ -39,7 +39,7 @@ android {
         applicationId = "com.blinkiefash.app"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
-        versionCode = 11465
+        versionCode = 11466
         versionName = "2.0.3"
     }
 
