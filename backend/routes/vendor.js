@@ -450,7 +450,10 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
 </style></head><body>
 <div class="invoice">
   <div class="header">
-    <div class="brand"><span>${storeName}</span></div>
+    <div>
+      <div class="brand">Blinkie<span>Fash</span></div>
+      <div style="font-size:13px;color:#6b7280;margin-top:2px;font-weight:600">${storeName}</div>
+    </div>
     <div class="invoice-meta">
       <strong>PACKING SLIP / INVOICE</strong>
       Order #${shortId}<br/>${date}<br/>
