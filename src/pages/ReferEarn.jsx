@@ -44,7 +44,7 @@ export default function ReferEarn() {
   };
 
   const handleShare = async () => {
-    const message = `Join me on BlinkieFash and we'll BOTH get ₹${perReferral} off our orders! 🎁\n\nUse my code at signup: ${code}\n\nDownload: https://blinkiefash.com`;
+    const message = `Join me on BlinkieFash and we'll BOTH get ₹${perReferral} off our orders! 🎁\n\nUse my code at signup: ${code}\n\nDownload: https://blinkiefash.in`;
     if (navigator.share) {
       try {
         await navigator.share({ title: "BlinkieFash — Refer & Earn", text: message });
