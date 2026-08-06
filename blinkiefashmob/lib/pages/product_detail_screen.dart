@@ -17,15 +17,22 @@ import '../widgets/bf_loader.dart';
 import '../widgets/animated_search_bar.dart';
 
 // Which reference chart to show in the Size Guide sheet, picked from the
-// product's category/name so trousers, shoes, kidswear etc. each get a
-// relevant chart instead of one generic table.
+// product's category/name so men's, women's, kids' and footwear/innerwear
+// items each get a relevant chart instead of one generic table. Non-apparel
+// products (electronics, beauty, appliances, accessories, ...) get no chart
+// at all — the "Size Guide" button is hidden for those.
 enum _SizeGuideKind {
   kidsFootwear,
   kidsApparel,
-  footwear,
-  innerwear,
-  bottoms,
-  tops,
+  menFootwear,
+  womenFootwear,
+  unisexFootwear,
+  menInnerwear,
+  womenInnerwear,
+  menBottoms,
+  womenBottoms,
+  menTops,
+  womenTops,
 }
 
 class _SizeGuideChart {
@@ -42,7 +49,9 @@ class _SizeGuideChart {
   final List<String> tips;
 }
 
-_SizeGuideKind _sizeGuideKindFor(String category, String productName) {
+// Returns null for products that aren't clothing/footwear/innerwear (e.g.
+// electronics, beauty, appliances, accessories) — caller hides the button then.
+_SizeGuideKind? _sizeGuideKindFor(String category, String productName) {
   final text = '$category $productName'.toLowerCase();
   final isKids = RegExp(
     r'\bkids?\b|\bboys?\b|\bgirls?\b|\binfant\b|\btoddler\b|\bjunior\b',
@@ -56,20 +65,54 @@ _SizeGuideKind _sizeGuideKindFor(String category, String productName) {
   final isBottoms = RegExp(
     r'trouser|jean|\bpant|short|skirt|legging|jogger|palazzo|chino|capri|cargo',
   ).hasMatch(text);
+  final isTops = RegExp(
+    r'shirt|\btop\b|\btops\b|dress|kurti|kurta|blouse|sweater|hoodie|jacket|\bcoat|tunic|co-?ord|bodysuit|jumpsuit|romper|ethnic|clothing set|nightwear|sleepwear',
+  ).hasMatch(text);
+  final isUnisex = RegExp(r'\bunisex\b').hasMatch(text);
+  final isWomen = RegExp(r"\bwomen'?s?\b|\bladies\b|\bfemale\b").hasMatch(text);
+  final isMen = RegExp(r"\bmen'?s?\b|\bgents?\b|\bmale\b").hasMatch(text);
+  final preferMen = isMen && !isWomen;
+  final preferWomen = isWomen && !isMen;
 
   if (isKids && isFootwear) return _SizeGuideKind.kidsFootwear;
   if (isKids) return _SizeGuideKind.kidsApparel;
-  if (isFootwear) return _SizeGuideKind.footwear;
-  if (isInnerwear) return _SizeGuideKind.innerwear;
-  if (isBottoms) return _SizeGuideKind.bottoms;
-  return _SizeGuideKind.tops;
+
+  if (isFootwear) {
+    if (isUnisex || (!preferMen && !preferWomen)) {
+      return _SizeGuideKind.unisexFootwear;
+    }
+    return preferMen
+        ? _SizeGuideKind.menFootwear
+        : _SizeGuideKind.womenFootwear;
+  }
+
+  if (isInnerwear) {
+    final womenHint = RegExp(
+      r'\bbra\b|lingerie|panty|panties|camisole',
+    ).hasMatch(text);
+    final menHint = RegExp(r'\bboxer|\bbrief').hasMatch(text);
+    if (preferMen || (!preferWomen && menHint && !womenHint)) {
+      return _SizeGuideKind.menInnerwear;
+    }
+    return _SizeGuideKind.womenInnerwear;
+  }
+
+  if (isBottoms) {
+    return preferMen ? _SizeGuideKind.menBottoms : _SizeGuideKind.womenBottoms;
+  }
+
+  if (isTops) {
+    return preferMen ? _SizeGuideKind.menTops : _SizeGuideKind.womenTops;
+  }
+
+  return null;
 }
 
 _SizeGuideChart _sizeGuideChartFor(_SizeGuideKind kind) {
   switch (kind) {
-    case _SizeGuideKind.tops:
+    case _SizeGuideKind.menTops:
       return const _SizeGuideChart(
-        title: 'Tops & Dresses',
+        title: "Men's Tops",
         columns: ['Size', 'Chest (in)', 'Length (in)'],
         rows: [
           ['S', '36', '27'],
@@ -84,10 +127,27 @@ _SizeGuideChart _sizeGuideChartFor(_SizeGuideKind kind) {
           'Length: measure from the shoulder seam down to the hem.',
         ],
       );
-    case _SizeGuideKind.bottoms:
+    case _SizeGuideKind.womenTops:
       return const _SizeGuideChart(
-        title: 'Bottoms',
-        columns: ['Size', 'Waist (in)', 'Hip (in)', 'Inseam (in)'],
+        title: "Women's Tops & Dresses",
+        columns: ['Size', 'Bust (in)', 'Waist (in)', 'Length (in)'],
+        rows: [
+          ['XS', '32', '26', '26'],
+          ['S', '34', '28', '27'],
+          ['M', '36', '30', '28'],
+          ['L', '38', '32', '29'],
+          ['XL', '40', '34', '30'],
+          ['XXL', '42', '36', '31'],
+        ],
+        tips: [
+          'Bust: measure around the fullest part of your bust, keeping the tape level.',
+          'Waist: measure around your natural waistline.',
+        ],
+      );
+    case _SizeGuideKind.menBottoms:
+      return const _SizeGuideChart(
+        title: "Men's Bottoms",
+        columns: ['Waist Size', 'Waist (in)', 'Hip (in)', 'Inseam (in)'],
         rows: [
           ['28', '28', '36', '30'],
           ['30', '30', '38', '30'],
@@ -101,9 +161,26 @@ _SizeGuideChart _sizeGuideChartFor(_SizeGuideKind kind) {
           'Hip: measure around the fullest part of your hips.',
         ],
       );
-    case _SizeGuideKind.footwear:
+    case _SizeGuideKind.womenBottoms:
       return const _SizeGuideChart(
-        title: 'Footwear',
+        title: "Women's Bottoms",
+        columns: ['Size', 'Waist (in)', 'Hip (in)'],
+        rows: [
+          ['XS', '26', '36'],
+          ['S', '28', '38'],
+          ['M', '30', '40'],
+          ['L', '32', '42'],
+          ['XL', '34', '44'],
+          ['XXL', '36', '46'],
+        ],
+        tips: [
+          'Waist: measure around your natural waistline, just above the hips.',
+          'Hip: measure around the fullest part of your hips.',
+        ],
+      );
+    case _SizeGuideKind.menFootwear:
+      return const _SizeGuideChart(
+        title: "Men's Footwear",
         columns: ['UK', 'US', 'EU', 'Foot Length (cm)'],
         rows: [
           ['5', '6', '38', '24.1'],
@@ -119,9 +196,61 @@ _SizeGuideChart _sizeGuideChartFor(_SizeGuideKind kind) {
           'If you\'re between sizes, we recommend sizing up.',
         ],
       );
-    case _SizeGuideKind.innerwear:
+    case _SizeGuideKind.womenFootwear:
       return const _SizeGuideChart(
-        title: 'Innerwear',
+        title: "Women's Footwear",
+        columns: ['UK', 'US', 'EU', 'Foot Length (cm)'],
+        rows: [
+          ['3', '5', '36', '22.9'],
+          ['4', '6', '37', '23.5'],
+          ['5', '7', '38', '24.1'],
+          ['6', '8', '39', '24.8'],
+          ['7', '9', '40', '25.4'],
+          ['8', '10', '41', '26.0'],
+        ],
+        tips: [
+          'Foot length: stand on a sheet of paper and measure from heel to the tip of your longest toe.',
+          'If you\'re between sizes, we recommend sizing up.',
+        ],
+      );
+    case _SizeGuideKind.unisexFootwear:
+      return const _SizeGuideChart(
+        title: 'Footwear (Unisex)',
+        columns: ['UK', 'EU', 'Foot Length (cm)'],
+        rows: [
+          ['4', '37', '23.5'],
+          ['5', '38', '24.1'],
+          ['6', '39', '24.8'],
+          ['7', '41', '25.4'],
+          ['8', '42', '26.0'],
+          ['9', '43', '26.7'],
+          ['10', '44', '27.3'],
+          ['11', '45', '27.9'],
+        ],
+        tips: [
+          'Foot length: stand on a sheet of paper and measure from heel to the tip of your longest toe.',
+          'If you\'re between sizes, we recommend sizing up.',
+        ],
+      );
+    case _SizeGuideKind.menInnerwear:
+      return const _SizeGuideChart(
+        title: "Men's Innerwear",
+        columns: ['Size', 'Chest (in)', 'Waist (in)'],
+        rows: [
+          ['S', '36', '30'],
+          ['M', '38', '32'],
+          ['L', '40', '34'],
+          ['XL', '42', '36'],
+          ['XXL', '44', '38'],
+        ],
+        tips: [
+          'Chest: measure around the fullest part of your chest, keeping the tape level.',
+          'Waist: measure around your natural waistline.',
+        ],
+      );
+    case _SizeGuideKind.womenInnerwear:
+      return const _SizeGuideChart(
+        title: "Women's Innerwear",
         columns: ['Size', 'Chest/Bust (in)', 'Waist (in)'],
         rows: [
           ['S', '32-34', '26-28'],
@@ -349,6 +478,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   void _showSizeGuide({required String category, required String productName}) {
     final kind = _sizeGuideKindFor(category, productName);
+    if (kind == null) return;
     final chart = _sizeGuideChartFor(kind);
 
     showModalBottomSheet(
@@ -2967,25 +3097,26 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                         color: Color(0xFF111827),
                       ),
                     ),
-                    TextButton(
-                      onPressed: () => _showSizeGuide(
-                        category: category,
-                        productName: title,
-                      ),
-                      style: TextButton.styleFrom(
-                        padding: EdgeInsets.zero,
-                        minimumSize: Size.zero,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      ),
-                      child: const Text(
-                        'Size Guide',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Color(0xFF16A34A),
-                          fontWeight: FontWeight.w600,
+                    if (_sizeGuideKindFor(category, title) != null)
+                      TextButton(
+                        onPressed: () => _showSizeGuide(
+                          category: category,
+                          productName: title,
+                        ),
+                        style: TextButton.styleFrom(
+                          padding: EdgeInsets.zero,
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          'Size Guide',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF16A34A),
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: 10),
