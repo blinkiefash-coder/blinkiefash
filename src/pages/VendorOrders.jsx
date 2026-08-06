@@ -387,29 +387,6 @@ export default function VendorOrders() {
                     </div>
                   )}
 
-                  {/* Delivery OTP Section - for customer at delivery */}
-                  {order.delivery_otp && (
-                    <div className="vo-otp-section">
-                      <div className="vo-otp-label">
-                        🔐 Delivery OTP
-                        {order.otp_verified_at && (
-                          <span className="vo-otp-verified">✓ Verified</span>
-                        )}
-                      </div>
-                      <div className="vo-otp-code">{order.delivery_otp}</div>
-                      {order.otp_verified_at && (
-                        <div className="vo-otp-time">
-                          Verified at {new Date(order.otp_verified_at).toLocaleString("en-IN", {
-                            day: "2-digit",
-                            month: "short",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  )}
-
                   {/* Vendor tag for admin view */}
                   {isAdmin() && order.items?.[0]?.vendor_name && (
                     <div className="vo-vendor-tag">

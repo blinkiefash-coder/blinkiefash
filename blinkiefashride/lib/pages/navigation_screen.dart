@@ -1047,7 +1047,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: (_photoTaken && !_uploadingPhoto) ? _confirmArrival : null,
+            onPressed: (_photoTaken && !_uploadingPhoto)
+                ? _confirmArrival
+                : null,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF16A34A),
               minimumSize: const Size.fromHeight(50),
