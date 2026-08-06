@@ -364,7 +364,30 @@ export default function VendorOrders() {
                     )}
                   </div>
 
-                  {/* OTP Section */}
+                  {/* Store Pickup OTP Section - for rider to pick up from store */}
+                  {order.store_pickup_otp && (
+                    <div className="vo-otp-section" style={{ background: '#E0E7FF', borderLeft: '4px solid #4F46E5' }}>
+                      <div className="vo-otp-label">
+                        🏪 Store Pickup OTP
+                        {order.store_pickup_verified_at && (
+                          <span className="vo-otp-verified">✓ Verified</span>
+                        )}
+                      </div>
+                      <div className="vo-otp-code">{order.store_pickup_otp}</div>
+                      {order.store_pickup_verified_at && (
+                        <div className="vo-otp-time">
+                          Verified at {new Date(order.store_pickup_verified_at).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Delivery OTP Section - for customer at delivery */}
                   {order.delivery_otp && (
                     <div className="vo-otp-section">
                       <div className="vo-otp-label">

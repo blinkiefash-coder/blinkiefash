@@ -309,6 +309,8 @@ router.get("/:id/orders", async (req, res) => {
          o.final_amount,
          o.delivery_otp,
          o.otp_verified_at,
+         d.store_pickup_otp,
+         d.store_pickup_verified_at,
          o.created_at,
          u.name AS customer_name,
          u.phone AS customer_phone,
@@ -348,9 +350,10 @@ router.get("/:id/orders", async (req, res) => {
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
        LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE p.vendor_id::text = ANY($1::text[])
          AND o.dark_store_id = $2
-       GROUP BY o.id, u.name, u.phone
+       GROUP BY o.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
       [ownerIds, linkedStoreId]
     );
