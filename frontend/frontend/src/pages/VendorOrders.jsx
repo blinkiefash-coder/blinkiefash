@@ -378,8 +378,8 @@ export default function VendorOrders() {
                     )}
                   </div>
 
-                  {/* Store Pickup OTP Section - for rider to pick up from store */}
-                  {order.store_pickup_otp && (
+                  {/* Store Pickup OTP Section - for rider to pick up from store; hide once order is done */}
+                  {order.store_pickup_otp && order.status !== "delivered" && !order.otp_verified_at && (
                     <div className="vo-otp-section" style={{ background: '#E0E7FF', borderLeft: '4px solid #4F46E5' }}>
                       <div className="vo-otp-label">
                         🏪 Store Pickup OTP
