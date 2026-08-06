@@ -233,7 +233,14 @@ export default function VendorOrders() {
   const deliveredCount = orders.filter((o) => o.status === "delivered").length;
   const totalRevenue = orders
     .filter((o) => ["delivered", "completed"].includes(o.status))
-    .reduce((sum, order) => sum + Number(order.final_amount || order.total_amount || 0), 0);
+    .reduce((sum, order) => {
+      // Vendor revenue = only their own item prices, excluding delivery/platform/handling fees
+      const itemsTotal = (order.items || []).reduce(
+        (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
+        0
+      );
+      return sum + itemsTotal;
+    }, 0);
   const metrics = [
     { label: "New orders", value: newCount, tone: "accent" },
     { label: "In progress", value: inProgressCount, tone: "blue" },

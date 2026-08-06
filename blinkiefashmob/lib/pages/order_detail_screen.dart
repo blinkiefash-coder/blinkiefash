@@ -858,11 +858,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                     final url = Uri.parse(
                       '$apiApiBaseUrl/checkout/orders/${order['id']}/invoice',
                     );
-                    if (await canLaunchUrl(url)) {
-                      await launchUrl(
+                    try {
+                      final launched = await launchUrl(
                         url,
                         mode: LaunchMode.externalApplication,
                       );
+                      if (!launched && mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Could not open invoice'),
+                          ),
+                        );
+                      }
+                    } catch (e) {
+                      _debugLog('Invoice launch failed: $e');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Could not open invoice: $e')),
+                        );
+                      }
                     }
                   },
                   icon: const Icon(
