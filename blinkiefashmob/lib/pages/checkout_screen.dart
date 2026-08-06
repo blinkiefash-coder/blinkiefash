@@ -4,6 +4,7 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
+import '../services/wishlist_manager.dart';
 import 'login_screen.dart';
 import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
@@ -81,7 +82,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   // Offers & Discounts state - only one can be selected at a time
   String _selectedFlatOffer = ''; // '', 'spin', 'play', or 'refer'
-  static const double _flatOfferDiscount = 50.0; // 50 rupees flat discount per option
+  static const double _flatOfferDiscount =
+      50.0; // 50 rupees flat discount per option
 
   // Donation modal state
   final _donationItemCtrl = TextEditingController(text: '1');
@@ -395,12 +397,41 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (item.quantity > 1) {
           item.quantity--;
         } else {
+          // Move item to wishlist when removed
           widget.overrideItems!.remove(item);
+          _addToWishlist(item);
         }
       } else {
-        CartManager.instance.decrement(item);
+        if (item.quantity > 1) {
+          CartManager.instance.decrement(item);
+        } else {
+          CartManager.instance.decrement(item);
+          // Move item to wishlist when removed
+          _addToWishlist(item);
+        }
       }
     });
+  }
+
+  void _addToWishlist(CartItem item) {
+    final wishItem = WishlistItem(
+      productId: item.productId,
+      name: item.name,
+      price: item.price,
+      imageUrl: item.imageUrl,
+    );
+    WishlistManager.instance.toggle(wishItem);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '❤️ ${item.name} added to Wishlist',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        duration: const Duration(seconds: 2),
+        backgroundColor: const Color(0xFF166534),
+      ),
+    );
   }
 
   String _slotLabel(TimeOfDay slot) {
@@ -832,7 +863,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ))
         ? _kAutoOffers[_selectedAutoOffer].compute(subtotal)
         : 0.0;
-    final flatOfferDiscount = _selectedFlatOffer.isNotEmpty ? _flatOfferDiscount : 0.0;
+    final flatOfferDiscount = _selectedFlatOffer.isNotEmpty
+        ? _flatOfferDiscount
+        : 0.0;
     final totalOfferDiscount =
         (referralDiscount +
                 clothingDiscount +
@@ -1293,7 +1326,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   isSelected: _selectedFlatOffer == 'spin',
                   onTap: () {
                     setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'spin' ? '' : 'spin';
+                      _selectedFlatOffer = _selectedFlatOffer == 'spin'
+                          ? ''
+                          : 'spin';
                     });
                     if (_selectedFlatOffer == 'spin') {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1314,7 +1349,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   isSelected: _selectedFlatOffer == 'play',
                   onTap: () {
                     setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'play' ? '' : 'play';
+                      _selectedFlatOffer = _selectedFlatOffer == 'play'
+                          ? ''
+                          : 'play';
                     });
                     if (_selectedFlatOffer == 'play') {
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -1335,12 +1372,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   isSelected: _selectedFlatOffer == 'refer',
                   onTap: () {
                     setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'refer' ? '' : 'refer';
+                      _selectedFlatOffer = _selectedFlatOffer == 'refer'
+                          ? ''
+                          : 'refer';
                     });
                     if (_selectedFlatOffer == 'refer') {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('✨ Refer & Earn - ₹50 discount applied!'),
+                          content: Text(
+                            '✨ Refer & Earn - ₹50 discount applied!',
+                          ),
                           duration: Duration(seconds: 2),
                         ),
                       );
@@ -2153,7 +2194,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ),
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isSelected ? const Color(0xFFF59E0B) : const Color(0xFFFCD34D),
+            color: isSelected
+                ? const Color(0xFFF59E0B)
+                : const Color(0xFFFCD34D),
             width: isSelected ? 2 : 1,
           ),
           boxShadow: isSelected
@@ -2166,10 +2209,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 ]
               : null,
         ),
-        padding: const EdgeInsets.symmetric(
-          horizontal: 12,
-          vertical: 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -2181,7 +2221,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isSelected ? const Color(0xFF78350F) : const Color(0xFF92400E),
+                    color: isSelected
+                        ? const Color(0xFF78350F)
+                        : const Color(0xFF92400E),
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -2189,7 +2231,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   description,
                   style: TextStyle(
                     fontSize: 11,
-                    color: isSelected ? const Color(0xFF78350F) : const Color(0xFF92400E),
+                    color: isSelected
+                        ? const Color(0xFF78350F)
+                        : const Color(0xFF92400E),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
