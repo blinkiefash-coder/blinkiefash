@@ -76,6 +76,8 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _brands = const [];
   List<Map<String, dynamic>> _under999 = const [];
   List<Map<String, dynamic>> _under1999 = const [];
+  // Featured first card for New & Trendy, fetched separately by name.
+  Map<String, dynamic>? _pinnedNewAndTrendyProduct;
   List<Map<String, dynamic>> _mensProducts = const [];
   List<Map<String, dynamic>> _womensProducts = const [];
   List<Map<String, dynamic>> _kidsProducts = const [];
@@ -502,6 +504,7 @@ class _HomeScreenState extends State<HomeScreen>
       unawaited(_loadKidsProducts());
       unawaited(_loadElectronicsProducts());
       unawaited(_loadTrendyShoesProducts());
+      unawaited(_loadPinnedNewAndTrendyProduct());
     } catch (_) {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -572,6 +575,21 @@ class _HomeScreenState extends State<HomeScreen>
       fallbackSearch: 'shoes sneakers sandals footwear',
       assign: (products) => _trendyShoesProducts = products,
     );
+  }
+
+  // Fetches "Palermo" shoes specifically so it can be pinned as the first
+  // New & Trendy card, since it may not be among the most recently added
+  // products that make up the default home _products batch.
+  Future<void> _loadPinnedNewAndTrendyProduct() async {
+    try {
+      final result = await _api.fetchAllProducts(search: 'Palermo', limit: 1);
+      if (!mounted) return;
+      final products = (result['products'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      if (products.isEmpty) return;
+      setState(() => _pinnedNewAndTrendyProduct = products.first);
+    } catch (_) {}
   }
 
   Future<void> _loadHomeDataForCurrentSelection() {
@@ -2917,13 +2935,20 @@ class _HomeScreenState extends State<HomeScreen>
       final discPrice =
           double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
       final hasDiscount = price > 0 && discPrice > 0 && discPrice < price;
-      if (!hasDiscount) {
+      final isPalermo = (product['name']?.toString() ?? '')
+          .toLowerCase()
+          .contains('palermo');
+      if (!hasDiscount && !isPalermo) {
         items.add({...product, 'calculated_discount': 0});
       }
     }
     // _products is already newest-first (default backend sort), so this keeps
     // the freshest/trendiest arrivals first without needing a separate sort.
-    return items.take(_kSectionSlideLimit).toList();
+    // Palermo shoes are pinned as the first card (fetched separately since it's
+    // often not among the most-recent products in _products).
+    final pinned = _pinnedNewAndTrendyProduct;
+    final rest = items.take(_kSectionSlideLimit - (pinned != null ? 1 : 0));
+    return [if (pinned != null) pinned, ...rest];
   }
 
   Widget _newAndTrendyCategories() {
