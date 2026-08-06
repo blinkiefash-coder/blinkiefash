@@ -1,14 +1,59 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io' show Platform;
 
 import 'package:flutter/foundation.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../firebase_options.dart';
 import 'api_client.dart';
 import 'user_session.dart';
+
+const _historyPrefsKey = 'notification_history_v1';
+const _historyMaxEntries = 50;
+
+/// A single entry in the in-app notification history/inbox.
+class AppNotificationEntry {
+  AppNotificationEntry({
+    required this.title,
+    required this.body,
+    required this.receivedAt,
+    this.read = false,
+  });
+
+  final String title;
+  final String body;
+  final DateTime receivedAt;
+  final bool read;
+
+  AppNotificationEntry copyWith({bool? read}) => AppNotificationEntry(
+    title: title,
+    body: body,
+    receivedAt: receivedAt,
+    read: read ?? this.read,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'body': body,
+    'receivedAt': receivedAt.toIso8601String(),
+    'read': read,
+  };
+
+  factory AppNotificationEntry.fromJson(Map<String, dynamic> json) {
+    return AppNotificationEntry(
+      title: json['title'] as String? ?? '',
+      body: json['body'] as String? ?? '',
+      receivedAt:
+          DateTime.tryParse(json['receivedAt'] as String? ?? '') ??
+          DateTime.now(),
+      read: json['read'] as bool? ?? false,
+    );
+  }
+}
 
 // v2 channel forces new channel registration on existing devices so that
 // sound/vibration settings take effect even if v1 was created without them.
@@ -154,6 +199,8 @@ class NotificationService {
     if (_initialized) return;
     _initialized = true;
 
+    await _loadHistoryFromPrefs();
+
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
     await _configureLocalNotifications(_local);
@@ -229,6 +276,7 @@ class NotificationService {
 
     // Increment unread notification count
     unreadCountNotifier.value++;
+    unawaited(_addToHistory(title ?? '', body ?? ''));
 
     await _local.show(
       message.hashCode,
@@ -319,5 +367,59 @@ class NotificationService {
 
   void clearUnread() {
     unreadCountNotifier.value = 0;
+  }
+
+  // ── In-app notification history/inbox ─────────────────────────────────────
+  final ValueNotifier<List<AppNotificationEntry>> historyNotifier =
+      ValueNotifier<List<AppNotificationEntry>>(const []);
+
+  Future<void> _loadHistoryFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_historyPrefsKey);
+      if (raw == null || raw.isEmpty) return;
+      final decoded = jsonDecode(raw) as List;
+      historyNotifier.value = decoded
+          .whereType<Map<String, dynamic>>()
+          .map(AppNotificationEntry.fromJson)
+          .toList();
+    } catch (_) {}
+  }
+
+  Future<void> _saveHistoryToPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final encoded = jsonEncode(
+        historyNotifier.value.map((e) => e.toJson()).toList(),
+      );
+      await prefs.setString(_historyPrefsKey, encoded);
+    } catch (_) {}
+  }
+
+  Future<void> _addToHistory(String title, String body) async {
+    if (title.isEmpty && body.isEmpty) return;
+    final updated = [
+      AppNotificationEntry(
+        title: title,
+        body: body,
+        receivedAt: DateTime.now(),
+      ),
+      ...historyNotifier.value,
+    ];
+    historyNotifier.value = updated.length > _historyMaxEntries
+        ? updated.sublist(0, _historyMaxEntries)
+        : updated;
+    await _saveHistoryToPrefs();
+  }
+
+  /// Marks every stored notification as read (called when the notifications
+  /// page is opened) and clears the unread badge count.
+  Future<void> markAllRead() async {
+    unreadCountNotifier.value = 0;
+    if (historyNotifier.value.every((e) => e.read)) return;
+    historyNotifier.value = historyNotifier.value
+        .map((e) => e.copyWith(read: true))
+        .toList();
+    await _saveHistoryToPrefs();
   }
 }

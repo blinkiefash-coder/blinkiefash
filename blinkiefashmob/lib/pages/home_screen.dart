@@ -21,6 +21,7 @@ import 'all_products_screen.dart';
 import 'category_landing_screen.dart';
 import 'cart_screen.dart';
 import 'login_screen.dart';
+import 'notifications_screen.dart';
 import 'orders_screen.dart';
 import 'refer_earn_screen.dart';
 import 'old_clothes_screen.dart';
@@ -1188,7 +1189,8 @@ class _HomeScreenState extends State<HomeScreen>
                                   NotificationService.instance.clearUnread();
                                   Navigator.of(context).push(
                                     MaterialPageRoute(
-                                      builder: (_) => const OrdersScreen(),
+                                      builder: (_) =>
+                                          const NotificationsScreen(),
                                     ),
                                   );
                                 },
