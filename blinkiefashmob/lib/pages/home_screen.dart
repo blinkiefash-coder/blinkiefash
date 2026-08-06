@@ -110,6 +110,10 @@ class _HomeScreenState extends State<HomeScreen>
   final Map<String, bool> _drawerExpandedCats = {};
 
   static const Color _green = Color(0xFF16A34A);
+  // Every horizontal product-card row (Deals of the Day, New & Trendy, the
+  // Men's/Women's/Kids/Electronics/Trendy Shoes carousels, price-range rows)
+  // shows up to this many side-by-side scrollable slides.
+  static const int _kSectionSlideLimit = 10;
 
   static const List<Map<String, String>> _fallbackCategories = [
     {'name': 'WOMEN'},
@@ -382,13 +386,13 @@ class _HomeScreenState extends State<HomeScreen>
           // [3]
           minPrice: 0,
           maxPrice: 999,
-          limit: 10,
+          limit: _kSectionSlideLimit,
         ),
         _api.fetchProductsByPriceRange(
           // [4]
           minPrice: 1000,
           maxPrice: 1999,
-          limit: 10,
+          limit: _kSectionSlideLimit,
         ),
         _api.fetchCategoryMirrors(), // [5]
       ]);
@@ -457,9 +461,11 @@ class _HomeScreenState extends State<HomeScreen>
 
       setState(() {
         _outOfServiceArea = outOfArea;
+        // Keep the full fetched batch (not just a handful) so the Deals of the
+        // Day / New & Trendy filters below have enough products to reliably
+        // fill a 10-slide scroller instead of running out after a few items.
         _products = (storeResult['products'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
-            .take(8)
             .toList();
         _categories =
             cats
@@ -518,7 +524,7 @@ class _HomeScreenState extends State<HomeScreen>
       final result = await _api.fetchAllProducts(
         categoryId: rootCatId,
         search: rootCatId == null ? (fallbackSearch ?? rootCategoryName) : null,
-        limit: 10,
+        limit: _kSectionSlideLimit,
         sort: 'newest',
       );
       if (!mounted) return;
@@ -2450,6 +2456,9 @@ class _HomeScreenState extends State<HomeScreen>
     required List<Map<String, dynamic>> products,
     required List<Map<String, String>> categoryChips,
   }) {
+    final slides = products.length > _kSectionSlideLimit
+        ? products.take(_kSectionSlideLimit).toList()
+        : products;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2523,9 +2532,9 @@ class _HomeScreenState extends State<HomeScreen>
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
-            itemCount: products.length,
+            itemCount: slides.length,
             itemBuilder: (_, i) {
-              final item = products[i];
+              final item = slides[i];
               final name = item['name']?.toString() ?? 'Product';
               final brand = item['brand']?.toString() ?? '';
               final variantData = _getCardVariant(item);
@@ -2886,7 +2895,7 @@ class _HomeScreenState extends State<HomeScreen>
       return discB.compareTo(discA);
     });
 
-    return dealsProducts.take(10).toList();
+    return dealsProducts.take(_kSectionSlideLimit).toList();
   }
 
   // ── Deals of the Day: Top products with maximum discounts ─────────────────
@@ -2914,7 +2923,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
     // _products is already newest-first (default backend sort), so this keeps
     // the freshest/trendiest arrivals first without needing a separate sort.
-    return items.take(10).toList();
+    return items.take(_kSectionSlideLimit).toList();
   }
 
   Widget _newAndTrendyCategories() {
@@ -3193,14 +3202,17 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Shared method for price range cards ────────────────────────────────────
   Widget _buildPriceRangeCards(List<Map<String, dynamic>> items) {
+    final slides = items.length > _kSectionSlideLimit
+        ? items.take(_kSectionSlideLimit).toList()
+        : items;
     return SizedBox(
       height: 300,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        itemCount: items.length,
+        itemCount: slides.length,
         itemBuilder: (_, i) {
-          final item = items[i];
+          final item = slides[i];
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
           final variantData = _getCardVariant(item);
