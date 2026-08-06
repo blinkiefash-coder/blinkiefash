@@ -592,6 +592,19 @@ class ApiService {
     }
   }
 
+  /// Confirm delivery at customer location — no OTP required from customer.
+  Future<Map<String, dynamic>> confirmArrival(String deliveryId) async {
+    try {
+      final res = await http.post(
+        Uri.parse('$baseUrl/delivery/$deliveryId/confirm-arrival'),
+        headers: _headers,
+      );
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    } catch (e) {
+      return {'success': false, 'message': 'Connection failed'};
+    }
+  }
+
   // ══════════════════════════════════════════════════════════════════════════
   // Parcel Delivery Endpoints (for parcel requests)
   // ══════════════════════════════════════════════════════════════════════════

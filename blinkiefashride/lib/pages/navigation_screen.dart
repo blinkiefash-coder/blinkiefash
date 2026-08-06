@@ -8,14 +8,13 @@ import 'package:url_launcher/url_launcher.dart';
 import '../api_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Delivery phases
-// storePickup → navigating → arrived → photoUpload → otpVerified
+// Delivery phases (no customer OTP — photo confirms arrival)
+// storePickup → navigating → photoUpload → otpVerified
 //            → [trialInProgress | completed]
 // ─────────────────────────────────────────────────────────────────────────────
 enum _Phase {
   storePickup,
   navigating,
-  arrived,
   photoUpload,
   otpVerified,
   trialInProgress,
@@ -55,10 +54,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
   final _storeOtpController = TextEditingController();
   String? _storeOtpError;
   bool _storeOtpRequested = false;
-
-  // Delivery OTP entry
-  final _otpController = TextEditingController();
-  String? _otpError;
 
   // Pre-delivery photo
   String? _deliveryPhotoUrl;
@@ -101,13 +96,11 @@ class _NavigationScreenState extends State<NavigationScreen> {
       newPhase = _Phase.otpVerified;
       _isTryOrder = data['is_try_order'] == true;
     } else if (deliveryStatus == 'arrived') {
-      // Photo uploaded already → skip back to arrived (OTP entry)
+      // No customer OTP step — restore photo state if already taken
+      newPhase = _Phase.photoUpload;
       if (deliveryPhotoUrl != null && deliveryPhotoUrl.isNotEmpty) {
-        newPhase = _Phase.arrived;
         _deliveryPhotoUrl = deliveryPhotoUrl;
         _photoTaken = true;
-      } else {
-        newPhase = _Phase.photoUpload;
       }
     } else if (storeVerifiedAt != null ||
         deliveryStatus == 'on_the_way' ||
@@ -169,7 +162,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
     _deliveryCountdownTimer?.cancel();
     _trialCountdownTimer?.cancel();
     _storeOtpController.dispose();
-    _otpController.dispose();
     super.dispose();
   }
 
@@ -305,17 +297,9 @@ class _NavigationScreenState extends State<NavigationScreen> {
     }
   }
 
-  Future<void> _verifyOtp() async {
-    final otp = _otpController.text.trim();
-    if (otp.length != 4) {
-      setState(() => _otpError = 'Enter the 4-digit OTP');
-      return;
-    }
-    setState(() {
-      _loading = true;
-      _otpError = null;
-    });
-    final res = await _api.verifyOtp(widget.deliveryId, otp);
+  Future<void> _confirmArrival() async {
+    setState(() => _loading = true);
+    final res = await _api.confirmArrival(widget.deliveryId);
     if (!mounted) return;
     setState(() => _loading = false);
     if (res['success'] == true) {
@@ -324,7 +308,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
         _phase = _Phase.otpVerified;
       });
     } else {
-      setState(() => _otpError = res['message'] ?? 'Incorrect OTP');
+      _showError(res['message'] ?? 'Failed to confirm delivery');
     }
   }
 
@@ -676,8 +660,6 @@ class _NavigationScreenState extends State<NavigationScreen> {
         return _buildStorePickupPhase();
       case _Phase.navigating:
         return _buildNavigatingPhase();
-      case _Phase.arrived:
-        return _buildArrivedPhase();
       case _Phase.photoUpload:
         return _buildPhotoUploadPhase();
       case _Phase.otpVerified:
@@ -927,84 +909,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
     );
   }
 
-  // ── PHASE: Arrived — OTP entry ────────────────────────────────────────────
-  Widget _buildArrivedPhase() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(12),
-          margin: const EdgeInsets.only(bottom: 14),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFF7ED),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFFED7AA)),
-          ),
-          child: const Row(
-            children: [
-              Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
-              SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Ask the customer for their 4-digit OTP',
-                  style: TextStyle(
-                    color: Color(0xFF92400E),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        TextField(
-          controller: _otpController,
-          keyboardType: TextInputType.number,
-          maxLength: 4,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 16,
-          ),
-          decoration: InputDecoration(
-            hintText: '0000',
-            hintStyle: const TextStyle(
-              fontSize: 28,
-              color: Color(0xFFCBD5E1),
-              letterSpacing: 16,
-            ),
-            counterText: '',
-            errorText: _otpError,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF16A34A), width: 2),
-            ),
-          ),
-          onChanged: (_) => setState(() => _otpError = null),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          width: double.infinity,
-          child: FilledButton(
-            onPressed: _verifyOtp,
-            style: FilledButton.styleFrom(
-              backgroundColor: const Color(0xFF16A34A),
-              minimumSize: const Size.fromHeight(50),
-            ),
-            child: const Text(
-              'Verify OTP',
-              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ── PHASE: Photo Upload (before customer OTP) ────────────────────────────
+  // ── PHASE: Photo Upload (confirms arrival — no customer OTP needed) ──────
   Widget _buildPhotoUploadPhase() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1142,15 +1047,13 @@ class _NavigationScreenState extends State<NavigationScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton(
-            onPressed: (_photoTaken && !_uploadingPhoto)
-                ? () => setState(() => _phase = _Phase.arrived)
-                : null,
+            onPressed: (_photoTaken && !_uploadingPhoto) ? _confirmArrival : null,
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF16A34A),
               minimumSize: const Size.fromHeight(50),
             ),
             child: const Text(
-              'Continue to Verify OTP',
+              'Confirm Delivery',
               style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
             ),
           ),
@@ -1181,7 +1084,7 @@ class _NavigationScreenState extends State<NavigationScreen> {
               ),
               SizedBox(width: 8),
               Text(
-                'OTP Verified!',
+                'Arrived at Customer!',
                 style: TextStyle(
                   color: Color(0xFF166534),
                   fontWeight: FontWeight.w700,
