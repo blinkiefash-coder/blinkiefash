@@ -142,12 +142,15 @@ class _OrdersScreenState extends State<OrdersScreen>
     if (lat == null || lng == null) return;
     final googleUrl = 'https://maps.google.com/maps?q=$lat,$lng';
     try {
-      await launchUrl(Uri.parse(googleUrl), mode: LaunchMode.externalApplication);
+      await launchUrl(
+        Uri.parse(googleUrl),
+        mode: LaunchMode.externalApplication,
+      );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not open maps: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not open maps: $e')));
       }
     }
   }
@@ -160,9 +163,9 @@ class _OrdersScreenState extends State<OrdersScreen>
       await launchUrl(uri);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not make call: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Could not make call: $e')));
       }
     }
   }
@@ -410,7 +413,8 @@ class _OrdersScreenState extends State<OrdersScreen>
                               color: Color(0xFF1E293B),
                             ),
                           ),
-                        if ((d['vendor_address'] as String?)?.isNotEmpty == true)
+                        if ((d['vendor_address'] as String?)?.isNotEmpty ==
+                            true)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
@@ -467,7 +471,8 @@ class _OrdersScreenState extends State<OrdersScreen>
                             const SizedBox(width: 8),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => _makeCall(d['vendor_phone'] as String?),
+                                onTap: () =>
+                                    _makeCall(d['vendor_phone'] as String?),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 6,
@@ -546,7 +551,8 @@ class _OrdersScreenState extends State<OrdersScreen>
                               color: Color(0xFF1E293B),
                             ),
                           ),
-                        if ((d['delivery_address'] as String?)?.isNotEmpty == true)
+                        if ((d['delivery_address'] as String?)?.isNotEmpty ==
+                            true)
                           Padding(
                             padding: const EdgeInsets.only(top: 4),
                             child: Text(
@@ -603,7 +609,8 @@ class _OrdersScreenState extends State<OrdersScreen>
                             const SizedBox(width: 8),
                             Expanded(
                               child: GestureDetector(
-                                onTap: () => _makeCall(d['customer_phone'] as String?),
+                                onTap: () =>
+                                    _makeCall(d['customer_phone'] as String?),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
                                     vertical: 6,

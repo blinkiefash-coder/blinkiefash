@@ -584,6 +584,7 @@ exports.markStoreArrived = async (req, res) => {
 
     // Generate 4-digit store OTP
     const otp = String(Math.floor(1000 + Math.random() * 9000));
+    console.log(`📍 Rider ${req.user.id} arrived at store. Generated OTP: ${otp} for delivery ${id}`);
 
     // Store OTP in deliveries using ALTER-safe approach with DO block
     // First try to update; if column doesn't exist it will silently fail and
@@ -603,9 +604,19 @@ exports.markStoreArrived = async (req, res) => {
       { replacements: { otp, id }, type: QueryTypes.UPDATE }
     );
 
-    // Notify admin (best-effort push to store FCM topic if set up)
-    // For now just return the success with OTP so admin panel can show it
-    res.json({ success: true, message: 'Store OTP generated. Give it to the rider.' });
+    // Verify the OTP was stored
+    const verify = await sequelize.query(
+      `SELECT store_pickup_otp FROM deliveries WHERE id = :id`,
+      { replacements: { id }, type: QueryTypes.SELECT }
+    );
+    console.log(`✓ Verified OTP stored in DB: ${verify[0]?.store_pickup_otp} (for delivery ${id})`);
+
+    // Return OTP so store staff can see it
+    res.json({ 
+      success: true, 
+      message: 'Store OTP generated. Give it to the rider.', 
+      store_pickup_otp: otp 
+    });
   } catch (err) {
     console.error('markStoreArrived error:', err.message);
     res.status(500).json({ success: false, message: err.message });
@@ -616,6 +627,8 @@ exports.markStoreArrived = async (req, res) => {
 exports.verifyStoreOtp = async (req, res) => {
   const { id } = req.params; // delivery id
   const { otp } = req.body;
+  console.log(`🔐 Verifying store OTP for delivery ${id}. Rider entered: ${otp} (type: ${typeof otp})`);
+  
   if (!otp || !/^\d{4}$/.test(String(otp)))
     return res.status(400).json({ success: false, message: 'Invalid OTP format' });
   try {
@@ -625,11 +638,16 @@ exports.verifyStoreOtp = async (req, res) => {
     );
     if (!rows.length) return res.status(404).json({ success: false, message: 'Delivery not found' });
     const row = rows[0];
+    console.log(`📋 Retrieved from DB - OTP: "${row.store_pickup_otp}" (type: ${typeof row.store_pickup_otp}), Rider ID: ${row.rider_id}, Current user: ${req.user.id}`);
+    
     if (row.rider_id !== req.user.id)
       return res.status(403).json({ success: false, message: 'Forbidden' });
-    if (!row.store_pickup_otp || row.store_pickup_otp !== String(otp))
+    if (!row.store_pickup_otp || row.store_pickup_otp !== String(otp)) {
+      console.log(`❌ OTP mismatch! Expected: "${row.store_pickup_otp}", Got: "${String(otp)}"`);
       return res.status(400).json({ success: false, message: 'Incorrect store OTP' });
+    }
 
+    console.log(`✅ OTP verified! Updating status to 'picked' for delivery ${id}`);
     await sequelize.query(
       `UPDATE deliveries SET store_pickup_verified_at = NOW(), status = 'picked' WHERE id = :id`,
       { replacements: { id }, type: QueryTypes.UPDATE }
