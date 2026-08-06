@@ -145,17 +145,37 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     super.dispose();
   }
 
+  // Prefix matches first (so "m" surfaces "Men" before noisier "contains" hits).
+  List<Map<String, dynamic>> _rankedMatches(
+    List<Map<String, dynamic>> items,
+    String lower,
+    int max,
+  ) {
+    final prefixHits = <Map<String, dynamic>>[];
+    final containsHits = <Map<String, dynamic>>[];
+    for (final item in items) {
+      final n = (item['name'] ?? '').toString().toLowerCase();
+      if (n.startsWith(lower)) {
+        prefixHits.add(item);
+      } else if (n.contains(lower)) {
+        containsHits.add(item);
+      }
+      if (prefixHits.length >= max) break;
+    }
+    return [...prefixHits, ...containsHits].take(max).toList();
+  }
+
   void _updateSuggestions(String query) {
     _suggestTimer?.cancel();
     final q = query.trim();
-    if (q.length < 2) {
+    if (q.isEmpty) {
       setState(() {
         _typedSuggestions = const [];
         _showSuggestions = false;
       });
       return;
     }
-    _suggestTimer = Timer(const Duration(milliseconds: 250), () {
+    _suggestTimer = Timer(const Duration(milliseconds: 150), () {
       if (!mounted) return;
       final lower = q.toLowerCase();
       final seen = <String>{};
@@ -164,27 +184,22 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       // 0. Always show "Search for '[query]'" as the first item
       results.add({'text': q, 'type': 'search'});
 
-      // 1. Categories — max 2 that contain query
-      for (final c in _allCats) {
+      // 1. Categories — max 2, prefix matches (e.g. "m" → "Men") before contains
+      for (final c in _rankedMatches(_allCats, lower, 2)) {
         final n = (c['name'] ?? '').toString();
-        if (n.toLowerCase().contains(lower) && seen.add('cat:$n')) {
+        if (seen.add('cat:$n')) {
           results.add({
             'text': n,
             'type': 'category',
             'id': c['id']?.toString() ?? '',
           });
-          if (results.where((r) => r['type'] == 'category').length >= 2) break;
         }
       }
 
       // 2. Brands — matching brands, OR top 2 if none match query
-      final matchingBrands = <Map<String, dynamic>>[];
-      for (final b in _brands) {
-        final n = (b['name'] ?? '').toString();
-        if (n.toLowerCase().contains(lower)) matchingBrands.add(b);
-      }
+      final matchingBrands = _rankedMatches(_brands, lower, 2);
       final brandsToShow = matchingBrands.isNotEmpty
-          ? matchingBrands.take(2).toList()
+          ? matchingBrands
           : _brands.take(2).toList();
       for (final b in brandsToShow) {
         final n = (b['name'] ?? '').toString();
@@ -198,12 +213,11 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         }
       }
 
-      // 3. Product names — max 4 containing query
-      for (final p in _products) {
+      // 3. Product names — max 4, prefix matches before contains
+      for (final p in _rankedMatches(_products, lower, 4)) {
         final n = (p['name'] ?? '').toString();
-        if (n.toLowerCase().contains(lower) && seen.add('prod:$n')) {
+        if (seen.add('prod:$n')) {
           results.add({'text': n, 'type': 'product'});
-          if (results.where((r) => r['type'] == 'product').length >= 4) break;
         }
       }
 

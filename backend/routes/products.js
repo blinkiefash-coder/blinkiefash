@@ -57,6 +57,8 @@ const buildSearchClause = (search, values, startIndex) => {
       lower(p.name) LIKE ANY($${index}::text[]) OR
       lower(b.name) LIKE ANY($${index}::text[]) OR
       lower(c.name) LIKE ANY($${index}::text[]) OR
+      lower(c_parent.name) LIKE ANY($${index}::text[]) OR
+      lower(c_root.name) LIKE ANY($${index}::text[]) OR
       lower(p.description) LIKE ANY($${index}::text[]) OR
       EXISTS (
         SELECT 1 FROM product_variants sv
@@ -849,6 +851,8 @@ router.get("/", async (req, res) => {
       FROM products p
       LEFT JOIN brands b ON b.id = p.brand_id
       LEFT JOIN categories c ON c.id = p.category_id
+      LEFT JOIN categories c_parent ON c_parent.id = c.parent_id
+      LEFT JOIN categories c_root ON c_root.id = c_parent.parent_id
       LEFT JOIN LATERAL (
         SELECT
           DISTINCT ON (lower(COALESCE(v.color, '')))
