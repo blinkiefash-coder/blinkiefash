@@ -79,6 +79,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Auto offers (milestone + buy-more)
   int _selectedAutoOffer = -1; // index in _kAutoOffers, -1 = none
 
+  // Offers & Discounts state
+  final bool _hasAppliedFlatOffer = true; // Flat 50 rupees discount applied by default
+  static const double _flatOfferDiscount = 50.0; // 50 rupees flat discount
+
   // Donation modal state
   final _donationItemCtrl = TextEditingController(text: '1');
   final _donationNotesCtrl = TextEditingController();
@@ -600,6 +604,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         manualOfferDiscount = currentAuto.compute(subtotal);
       }
     }
+    // Add flat offer discount on top
+    if (_hasAppliedFlatOffer) {
+      manualOfferDiscount += _flatOfferDiscount;
+      manualOfferType ??= 'flat';
+    }
 
     final res = await _api.placeOrder(
       userId: userId,
@@ -857,12 +866,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ))
         ? _kAutoOffers[_selectedAutoOffer].compute(subtotal)
         : 0.0;
+    final flatOfferDiscount = _hasAppliedFlatOffer ? _flatOfferDiscount : 0.0;
     final totalOfferDiscount =
         referralDiscount +
         clothingDiscount +
         firstOrderDiscount +
         spinDiscount +
         questDiscount +
+        flatOfferDiscount +
         _couponDiscount +
         autoOfferDiscount;
     final discountedSubtotal = (subtotal - totalOfferDiscount).clamp(
@@ -1273,6 +1284,152 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ],
                   ),
                 ),
+
+          const SizedBox(height: 16),
+
+          // ─── OFFERS & DISCOUNTS SECTION ──────────────────────────────────
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEF3C7),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFF59E0B), width: 1),
+            ),
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.local_offer_outlined,
+                      color: Color(0xFFF59E0B),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    const Expanded(
+                      child: Text(
+                        'Offers & Discounts',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF92400E),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                GestureDetector(
+                  onTap: () {
+                    // Show spin wheel or play and win
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('🎯 Play & Win feature coming soon!'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFCD34D), Color(0xFFFBBF24)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '🎡 Spin Wheel',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF78350F),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              'Get ₹50 discount now',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF92400E),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.8),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          child: const Text(
+                            '✨ Tap',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFF59E0B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.6),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        '✓ Discount Applied',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                      Text(
+                        '- ₹${_flatOfferDiscount.toStringAsFixed(0)}',
+                        style: const TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF15803D),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
 
           const SizedBox(height: 16),
 
