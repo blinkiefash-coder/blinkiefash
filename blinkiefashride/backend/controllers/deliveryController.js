@@ -326,32 +326,49 @@ exports.updateLocation = async (req, res) => {
 // ── Mark arrived: fetch existing OTP and push to customer ──────────────────────
 exports.markArrived = async (req, res) => {
   const { id } = req.params; // delivery id
+  console.log(`\n🎯 [markArrived] Called for delivery ID: ${id}`);
   try {
     // Only the owning rider may call this
     const rows = await sequelize.query(
-      `SELECT d.order_id, o.user_id, o.delivery_otp, d.rider_id
+      `SELECT d.id, d.order_id, d.status AS current_status, o.user_id, o.delivery_otp, d.rider_id
        FROM deliveries d JOIN orders o ON o.id = d.order_id
        WHERE d.id = :id`,
       { replacements: { id }, type: QueryTypes.SELECT }
     );
-    if (!rows.length) return res.status(404).json({ success: false, message: 'Delivery not found' });
-    if (rows[0].rider_id !== req.user.id)
+    if (!rows.length) {
+      console.log(`❌ [markArrived] Delivery not found for ID: ${id}`);
+      return res.status(404).json({ success: false, message: 'Delivery not found' });
+    }
+    
+    const row = rows[0];
+    console.log(`✅ [markArrived] Found delivery:
+      - order_id=${row.order_id}
+      - current_status=${row.current_status}
+      - rider_id=${row.rider_id}
+      - requesting_user_id=${req.user.id}`);
+    
+    if (row.rider_id !== req.user.id) {
+      console.log(`❌ [markArrived] Forbidden: rider_id ${row.rider_id} != user_id ${req.user.id}`);
       return res.status(403).json({ success: false, message: 'Forbidden' });
+    }
 
-    const { order_id, user_id, delivery_otp: otp } = rows[0];
+    const { order_id, user_id, delivery_otp: otp } = row;
     
     if (!otp) {
-      console.warn(`⚠️  No delivery_otp found for order ${order_id}`);
+      console.warn(`⚠️  [markArrived] No delivery_otp found for order ${order_id}`);
       return res.status(400).json({ success: false, message: 'OTP not generated for this order' });
     }
 
-    console.log(`📍 Rider arrived at customer location for order ${order_id}. Using existing OTP: ${otp}`);
+    console.log(`📍 [markArrived] Updating delivery ${id} status to 'arrived'...`);
 
     // Update delivery status to 'arrived'
-    await sequelize.query(
-      `UPDATE deliveries SET status = 'arrived' WHERE id = :id`,
-      { replacements: { id }, type: QueryTypes.UPDATE }
+    const updateResult = await sequelize.query(
+      `UPDATE deliveries SET status = 'arrived' WHERE id = :id RETURNING id, status`,
+      { replacements: { id }, type: QueryTypes.SELECT }
     );
+    
+    console.log(`📝 [markArrived] Database update result: ${JSON.stringify(updateResult)}`);
+    console.log(`🔔 [markArrived] Using existing OTP: ${otp}`);
 
     // Send push to customer with the OTP created at checkout — wrapped in try/catch
     try {
@@ -360,18 +377,23 @@ exports.markArrived = async (req, res) => {
         { replacements: { userId: user_id }, type: QueryTypes.SELECT }
       );
       if (custRow.length && custRow[0].fcm_token) {
+        console.log(`📲 [markArrived] Sending push notification to user ${user_id}`);
         await sendPush(custRow[0].fcm_token, {
           title: '🛵 Rider has arrived!',
           body: `Your delivery OTP is ${otp}. Show this to the rider.`,
           data: { type: 'rider_arrived', orderId: order_id, otp },
-        }).catch(() => {});
+        }).catch((e) => { console.error('Push error:', e.message); });
+      } else {
+        console.log(`⚠️  [markArrived] No FCM token for user ${user_id}`);
       }
-    } catch (_) { /* push is best-effort */ }
+    } catch (e) { 
+      console.error(`⚠️  [markArrived] Push notification failed: ${e.message}`);
+    }
 
-    console.log(`✅ Customer notified. OTP ${otp} visible on web vendor panel.`);
+    console.log(`✅ [markArrived] COMPLETE: Delivery ${id} marked arrived. OTP: ${otp}`);
     res.json({ success: true, message: 'Marked arrived. OTP sent to customer.', delivery_otp: otp });
   } catch (err) {
-    console.error('markArrived error:', err.message);
+    console.error(`❌ [markArrived] ERROR: ${err.message}`);
     res.status(500).json({ success: false, message: err.message });
   }
 };
