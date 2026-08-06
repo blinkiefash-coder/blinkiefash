@@ -434,21 +434,23 @@ class _HomeScreenState extends State<HomeScreen>
           storeResult['locationProvided'] == true ||
           (lat != null && lng != null);
       final distKm = nearestStore?['dist'] as num?;
-      
+
       // Determine delivery radius based on store location
       // Odisha stores support extended delivery (500 km), others default to 45 km
       final storeCity = (nearestStore?['city'] as String?)?.toLowerCase() ?? '';
-      final isOdishaStore = storeCity.contains('bhubaneswar') || 
-                            storeCity.contains('cuttack') ||
-                            storeCity.contains('khordha') ||
-                            storeCity.contains('puri') ||
-                            storeCity.contains('sambalpur') ||
-                            storeCity.contains('balasore') ||
-                            storeCity.contains('baleshwar') ||
-                            storeCity.contains('bhadrak') ||
-                            storeCity.contains('odisha');
-      final radiusKm = (nearestStore?['deliveryRadiusKm'] as num?) ?? 
-                       (isOdishaStore ? 500 : 45);
+      final isOdishaStore =
+          storeCity.contains('bhubaneswar') ||
+          storeCity.contains('cuttack') ||
+          storeCity.contains('khordha') ||
+          storeCity.contains('puri') ||
+          storeCity.contains('sambalpur') ||
+          storeCity.contains('balasore') ||
+          storeCity.contains('baleshwar') ||
+          storeCity.contains('bhadrak') ||
+          storeCity.contains('odisha');
+      final radiusKm =
+          (nearestStore?['deliveryRadiusKm'] as num?) ??
+          (isOdishaStore ? 500 : 45);
       final outOfArea =
           locationProvided &&
           (nearestStore == null || (distKm != null && distKm > radiusKm));
