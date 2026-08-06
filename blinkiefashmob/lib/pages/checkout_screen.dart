@@ -398,14 +398,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _decrementCheckoutItem(CartItem item) {
     setState(() {
-      if (widget.overrideItems != null) {
+      // Check if item is in override items (buy now)
+      if (widget.overrideItems != null && widget.overrideItems!.contains(item)) {
         if (item.quantity > 1) {
           item.quantity--;
         } else {
           widget.overrideItems!.remove(item);
         }
       } else {
-        CartManager.instance.decrement(item);
+        // Item is in cart
+        if (item.quantity > 1) {
+          CartManager.instance.decrement(item);
+        } else {
+          CartManager.instance.decrement(item);
+        }
       }
     });
   }
