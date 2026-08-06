@@ -623,6 +623,7 @@ router.get("/", async (req, res) => {
       min_price,
       max_price,
       min_discount,
+      no_discount,
       color,
       search,
       sort,
@@ -909,6 +910,16 @@ router.get("/", async (req, res) => {
           AND ((v.mrp - v.price) / v.mrp * 100) >= $${index++}
       )`;
       values.push(min_discount);
+    }
+
+    if (no_discount === "true" || no_discount === true) {
+      query += ` AND NOT EXISTS (
+        SELECT 1
+        FROM product_variants v
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          AND v.mrp > 0 AND v.mrp > v.price
+      )`;
     }
 
     if (color) {
