@@ -153,10 +153,28 @@ function shouldNotifyRiders(distanceKm) {
   return distanceKm != null && distanceKm <= 45;
 }
 
+// ── Helper: Get IST time ────────────────────────────────────────────────────
+function getISTTime() {
+  const now = new Date();
+  const istTime = new Date(now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }));
+  return istTime;
+}
+
+// ── Helper: Format delivery time as HH:MM AM/PM ────────────────────────────
+function formatDeliveryTime(etaMinutes) {
+  const now = getISTTime();
+  const deliveryTime = new Date(now.getTime() + etaMinutes * 60000);
+  const hours = deliveryTime.getHours();
+  const mins = String(deliveryTime.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${mins} ${ampm}`;
+}
+
 // ── Calculate delivery information based on Odisha statewide rules ──────────
 // NEW LOGIC:
-// - If 10:00-21:00: Dynamic ETA based on distance (calculate ~2.5min per km)
-// - If after 21:00: Next day or next-to-next day delivery
+// - If 10:00-21:00: Show "Today Delivery" with ETA time
+// - If after 21:00: Show "Next Day Delivery" with time slots
 function calculateDeliveryInfo(distanceKm, city) {
   const result = {
     deliveryPromise: null,
@@ -168,7 +186,7 @@ function calculateDeliveryInfo(distanceKm, city) {
     willNotifyRiders: false, // NEW: flag for rider notification
   };
 
-  const now = new Date();
+  const now = getISTTime();
   const currentHours = now.getHours();
   const currentMinutes = now.getMinutes();
   const currentTimeInMinutes = currentHours * 60 + currentMinutes;
@@ -178,7 +196,7 @@ function calculateDeliveryInfo(distanceKm, city) {
   const operatingEnd = 21 * 60;   // 21:00
   const isOperatingHours = currentTimeInMinutes >= operatingStart && currentTimeInMinutes < operatingEnd;
 
-  // RULE 1: LOCAL DELIVERY (within 25 km) — DYNAMIC ETA DURING HOURS
+  // RULE 1: LOCAL DELIVERY (within 25 km) — TODAY DELIVERY DURING HOURS
   if (distanceKm != null && distanceKm <= 25) {
     result.deliveryType = 'local';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
@@ -187,7 +205,8 @@ function calculateDeliveryInfo(distanceKm, city) {
       // Dynamic ETA: ~2.5 minutes per km + 10 min for accepting + 5 min for rider assignment
       const distanceMinutes = Math.ceil(distanceKm * 2.5);
       const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
-      result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+      const deliveryTime = formatDeliveryTime(estimatedMinutes);
+      result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
       result.etaMinutes = estimatedMinutes;
       result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8));
       result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
@@ -202,7 +221,7 @@ function calculateDeliveryInfo(distanceKm, city) {
     return result;
   }
 
-  // RULE 2: EXTENDED DELIVERY (25km < distance ≤ 45km) — DYNAMIC ETA DURING HOURS
+  // RULE 2: EXTENDED DELIVERY (25km < distance ≤ 45km) — TODAY DELIVERY DURING HOURS
   if (distanceKm != null && distanceKm <= 45) {
     result.deliveryType = 'extended';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
@@ -211,7 +230,8 @@ function calculateDeliveryInfo(distanceKm, city) {
       // Dynamic ETA: ~3 minutes per km + 10 min for accepting + 5 min for rider assignment
       const distanceMinutes = Math.ceil(distanceKm * 3);
       const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
-      result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+      const deliveryTime = formatDeliveryTime(estimatedMinutes);
+      result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
       result.etaMinutes = estimatedMinutes;
       result.etaMinMinutes = Math.max(30, Math.ceil(estimatedMinutes * 0.8));
       result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
@@ -249,13 +269,14 @@ function calculateDeliveryInfo(distanceKm, city) {
   const isMajor = isMajorOdishaCity(city);
 
   if (isOperatingHours) {
-    // During 10:00-21:00: show dynamic ETA even if distance unknown
+    // During 10:00-21:00: show Today Delivery with ETA even if distance unknown
     result.deliveryType = 'local'; // Assume local delivery when distance unknown but in major city
     result.willNotifyRiders = true; // Try to notify riders
     
     // Estimate 45 minutes for delivery in major city (distance ~15km assumption)
     const estimatedMinutes = 45;
-    result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+    const deliveryTime = formatDeliveryTime(estimatedMinutes);
+    result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
     result.etaMinutes = estimatedMinutes;
     result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8)); // ~36 min
     result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2); // ~54 min
