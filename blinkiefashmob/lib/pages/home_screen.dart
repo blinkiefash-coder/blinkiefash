@@ -1331,9 +1331,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ),
-            _products.isNotEmpty
-                ? _mahaBachatCategories()
-                : _stockOutBanner(),
+            _products.isNotEmpty ? _mahaBachatCategories() : _stockOutBanner(),
             const SizedBox(height: 16),
             _banner01Strip(),
             _universeSection(),

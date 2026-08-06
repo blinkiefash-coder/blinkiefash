@@ -622,6 +622,7 @@ router.get("/", async (req, res) => {
       category_id,
       min_price,
       max_price,
+      min_discount,
       color,
       search,
       sort,
@@ -894,6 +895,20 @@ router.get("/", async (req, res) => {
           AND v.price <= $${index++}
       )`;
       values.push(effectiveMaxPrice);
+    }
+
+    if (min_discount) {
+      query += ` AND EXISTS (
+        SELECT 1
+        FROM product_variants v
+        LEFT JOIN inventory inv ON inv.variant_id = v.id
+        WHERE v.product_id = p.id
+          AND v.is_active = true
+          ${storeInvCondition}
+          AND v.mrp > 0 AND v.mrp > v.price
+          AND ((v.mrp - v.price) / v.mrp * 100) >= $${index++}
+      )`;
+      values.push(min_discount);
     }
 
     if (color) {
