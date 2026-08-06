@@ -130,6 +130,17 @@ export default function VendorOrders() {
         list = Array.isArray(data) ? data : [];
       }
 
+      // Debug: Log first order to check OTP field
+      if (list.length > 0) {
+        console.log("📦 First order data:", {
+          id: list[0].id,
+          delivery_otp: list[0].delivery_otp,
+          otp_verified_at: list[0].otp_verified_at,
+          status: list[0].status,
+          all_keys: Object.keys(list[0])
+        });
+      }
+
       // Detect genuinely new orders (not on first load)
       if (!isFirstPoll.current) {
         const newOnes = list.filter(
