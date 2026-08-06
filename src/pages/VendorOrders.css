@@ -318,6 +318,61 @@
 }
 .vo-phone:hover { text-decoration: underline; }
 
+.vo-otp-section {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 1px solid #fcd34d;
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.vo-otp-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #78350f;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.vo-otp-verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #dcfce7;
+  color: #15803d;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+}
+
+.vo-otp-code {
+  font-size: 18px;
+  font-weight: 800;
+  color: #92400e;
+  font-family: monospace;
+  letter-spacing: 2px;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.6);
+  padding: 10px;
+  border-radius: 8px;
+  border: 2px solid #fcd34d;
+}
+
+.vo-otp-time {
+  font-size: 11px;
+  color: #a16207;
+  text-align: center;
+  font-style: italic;
+}
+
 .vo-items {
   background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   border-radius: 14px;
