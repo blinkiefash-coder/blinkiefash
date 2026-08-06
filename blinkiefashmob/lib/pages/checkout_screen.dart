@@ -80,8 +80,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   int _selectedAutoOffer = -1; // index in _kAutoOffers, -1 = none
 
   // Offers & Discounts state
-  final bool _hasAppliedFlatOffer =
-      true; // Flat 50 rupees discount applied by default
+  bool _hasAppliedFlatOffer =
+      false; // Flat 50 rupees discount - applied when Spin & Win is clicked
   static const double _flatOfferDiscount = 50.0; // 50 rupees flat discount
 
   // Donation modal state
@@ -1322,10 +1322,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 const SizedBox(height: 8),
                 GestureDetector(
                   onTap: () {
-                    // Show spin wheel or play and win
+                    // Apply ₹50 discount when Spin & Win is clicked
+                    setState(() {
+                      _hasAppliedFlatOffer = true;
+                    });
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('🎯 Play & Win feature coming soon!'),
+                        content: Text('✨ ₹50 discount applied!'),
                         duration: Duration(seconds: 2),
                       ),
                     );
@@ -1773,163 +1776,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Auto offer cards (horizontal scroll) ──────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 14, 0, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Available Offers',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        height: 108,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.only(right: 14),
-                          itemCount: _kAutoOffers.length,
-                          separatorBuilder: (_, _) => const SizedBox(width: 8),
-                          itemBuilder: (_, i) {
-                            final offer = _kAutoOffers[i];
-                            final eligible = offer.isEligible(
-                              subtotal,
-                              cartItems.length,
-                            );
-                            final selected =
-                                _selectedAutoOffer == i && eligible;
-                            final hint = offer.unlockHint(
-                              subtotal,
-                              cartItems.length,
-                            );
-                            return GestureDetector(
-                              onTap: eligible
-                                  ? () {
-                                      if (selected) {
-                                        _toggleExclusiveOffer('auto', false);
-                                      } else {
-                                        _toggleExclusiveOffer(
-                                          'auto',
-                                          true,
-                                          autoIndex: i,
-                                        );
-                                      }
-                                    }
-                                  : null,
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                width: 130,
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: selected
-                                      ? offer.color.withValues(alpha: 0.08)
-                                      : eligible
-                                      ? const Color(0xFFF8FAFC)
-                                      : const Color(0xFFF1F5F9),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: selected
-                                        ? offer.color
-                                        : eligible
-                                        ? offer.color.withValues(alpha: 0.35)
-                                        : const Color(0xFFE2E8F0),
-                                    width: selected ? 2 : 1.2,
-                                  ),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          offer.emoji,
-                                          style: TextStyle(
-                                            fontSize: 20,
-                                            color: eligible
-                                                ? null
-                                                : Colors.grey,
-                                          ),
-                                        ),
-                                        const Spacer(),
-                                        if (selected)
-                                          Icon(
-                                            Icons.check_circle_rounded,
-                                            color: offer.color,
-                                            size: 16,
-                                          ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      offer.title,
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w800,
-                                        color: eligible
-                                            ? offer.color
-                                            : const Color(0xFF9CA3AF),
-                                      ),
-                                    ),
-                                    Text(
-                                      offer.description,
-                                      style: const TextStyle(
-                                        fontSize: 10.5,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                    const Spacer(),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 6,
-                                        vertical: 2,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: selected
-                                            ? offer.color
-                                            : eligible
-                                            ? offer.color.withValues(
-                                                alpha: 0.12,
-                                              )
-                                            : const Color(0xFFE2E8F0),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        selected
-                                            ? 'Applied ✓'
-                                            : eligible
-                                            ? 'Tap to apply'
-                                            : hint ?? 'Locked',
-                                        style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w700,
-                                          color: selected
-                                              ? Colors.white
-                                              : eligible
-                                              ? offer.color
-                                              : const Color(0xFF9CA3AF),
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const Divider(height: 1),
                 // Coupon code input
                 Padding(
                   padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
