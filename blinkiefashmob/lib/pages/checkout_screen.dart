@@ -7,6 +7,8 @@ import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
 import '../widgets/bf_loader.dart';
 
+// ignore_for_file: deprecated_member_use
+
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({
     super.key,
@@ -84,6 +86,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _deliverTomorrow = false;
   int _selectedTomorrowSlotIndex = 0;
 
+  // Receiver information state
+  String _receiverType = 'own'; // 'own' or 'someone_else'
+  final _receiverNameCtrl = TextEditingController();
+  final _receiverPhoneCtrl = TextEditingController();
+
   static final List<TimeOfDay> _tomorrowSlots = List.generate(28, (i) {
     final totalMinutes = (7 * 60 + 30) + (i * 30);
     return TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
@@ -114,6 +121,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _donationItemCtrl.dispose();
     _donationNotesCtrl.dispose();
     _couponCtrl.dispose();
+    _receiverNameCtrl.dispose();
+    _receiverPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -872,49 +881,262 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: BfSpinner(),
                   ),
                 )
-              : Column(
-                  children: [
-                    if (_addresses.isEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE5E7EB)),
-                        ),
-                        child: const Text(
-                          'No saved addresses. Add one below.',
-                          style: TextStyle(color: Color(0xFF6B7280)),
-                        ),
-                      )
-                    else
-                      ..._addresses.map(
-                        (addr) => _AddressTile(
-                          address: addr,
-                          selected: _selectedAddressId == addr['id'].toString(),
-                          onSelect: () {
+              : Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (_addresses.isEmpty)
+                        Column(
+                          children: [
+                            const Text(
+                              'No saved addresses. Add one to continue.',
+                              style: TextStyle(color: Color(0xFF6B7280)),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF166534),
+                                  minimumSize: const Size.fromHeight(46),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                onPressed: _showAddAddressSheet,
+                                icon: const Icon(Icons.add_location_alt),
+                                label: const Text('Add Address'),
+                              ),
+                            ),
+                          ],
+                        )
+                      else ...[
+                        // Address dropdown
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedAddressId,
+                          decoration: InputDecoration(
+                            labelText: 'Select Address',
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            prefixIcon: const Icon(Icons.location_on, size: 20),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE5E7EB)),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              borderSide:
+                                  const BorderSide(color: Color(0xFFE5E7EB)),
+                            ),
+                          ),
+                          items: _addresses.map((addr) {
                             final id = addr['id'].toString();
-                            setState(() => _selectedAddressId = id);
-                            _fetchDeliveryFee(id);
+                            final line = addr['address_line'] ?? '';
+                            final city = addr['city'] ?? '';
+                            final label = '$line, $city';
+                            return DropdownMenuItem<String>(
+                              value: id,
+                              child: Text(label, maxLines: 1),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _selectedAddressId = value);
+                              _fetchDeliveryFee(value);
+                            }
                           },
                         ),
+                        const SizedBox(height: 12),
+                        // Edit address button
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFF166534),
+                              side: const BorderSide(
+                                color: Color(0xFF166534),
+                              ),
+                              minimumSize: const Size.fromHeight(42),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                            ),
+                            onPressed: _showAddAddressSheet,
+                            icon: const Icon(Icons.edit),
+                            label: const Text('Edit Address'),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+          const SizedBox(height: 16),
+
+          // Receiver section
+          const _SectionHeader(title: 'Receiver'),
+          const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Own receiver option
+                GestureDetector(
+                  onTap: () => setState(() => _receiverType = 'own'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _receiverType == 'own'
+                          ? const Color(0xFFF0FDF4)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _receiverType == 'own'
+                            ? const Color(0xFF166534)
+                            : const Color(0xFFE5E7EB),
                       ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF166534),
-                        side: const BorderSide(color: Color(0xFF166634)),
-                        minimumSize: const Size.fromHeight(46),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: 'own',
+                          groupValue: _receiverType,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _receiverType = value);
+                            }
+                          },
+                          activeColor: const Color(0xFF166534),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Deliver to me',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                // Someone else option
+                GestureDetector(
+                  onTap: () => setState(() => _receiverType = 'someone_else'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 10,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _receiverType == 'someone_else'
+                          ? const Color(0xFFF0FDF4)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _receiverType == 'someone_else'
+                            ? const Color(0xFF166534)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: 'someone_else',
+                          groupValue: _receiverType,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _receiverType = value);
+                            }
+                          },
+                          activeColor: const Color(0xFF166534),
+                        ),
+                        const SizedBox(width: 8),
+                        const Expanded(
+                          child: Text(
+                            'Deliver to someone else',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Show name and phone fields if someone else is selected
+                if (_receiverType == 'someone_else') ...[
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _receiverNameCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Receiver Name',
+                      hintText: 'Enter receiver name',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      prefixIcon: const Icon(Icons.person, size: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5E7EB),
                         ),
                       ),
-                      onPressed: _showAddAddressSheet,
-                      icon: const Icon(Icons.add_location_alt_outlined),
-                      label: const Text('Add New Address'),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 10),
+                  TextField(
+                    controller: _receiverPhoneCtrl,
+                    decoration: InputDecoration(
+                      labelText: 'Receiver Phone',
+                      hintText: 'Enter phone number',
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      prefixIcon: const Icon(Icons.phone, size: 20),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE5E7EB),
+                        ),
+                      ),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                ],
+              ],
+            ),
+          ),
           const SizedBox(height: 16),
 
           const _SectionHeader(title: 'Delivery Time'),
@@ -957,24 +1179,67 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     initialValue: _selectedTomorrowSlotIndex,
                     decoration: InputDecoration(
                       labelText: 'Select delivery time',
+                      labelStyle: const TextStyle(
+                        color: Color(0xFF166534),
+                        fontWeight: FontWeight.w600,
+                      ),
                       filled: true,
-                      fillColor: const Color(0xFFF8FAFC),
+                      fillColor: const Color(0xFFF0FDF4),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        borderSide:
+                            const BorderSide(color: Color(0xFF166534), width: 2),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
-                        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                        borderSide:
+                            const BorderSide(color: Color(0xFF166534), width: 2),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide:
+                            const BorderSide(color: Color(0xFF166534), width: 3),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 14,
+                      ),
+                      suffixIcon: const Padding(
+                        padding: EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.schedule,
+                          color: Color(0xFF166534),
+                          size: 20,
+                        ),
                       ),
                     ),
+                    dropdownColor: Colors.white,
                     items: List.generate(_getSlotList().length, (i) {
                       final label = _slotLabel(_getSlotList()[i]);
+                      final isSelected = i == _selectedTomorrowSlotIndex;
                       return DropdownMenuItem<int>(
                         value: i,
-                        child: Text(
-                          label,
-                          style: const TextStyle(fontSize: 13.5),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFFD1FAE5)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            label,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: isSelected
+                                  ? const Color(0xFF166534)
+                                  : const Color(0xFF1F2937),
+                            ),
+                          ),
                         ),
                       );
                     }),
@@ -1007,28 +1272,73 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       initialValue: _selectedTomorrowSlotIndex,
                       decoration: InputDecoration(
                         labelText: 'Tomorrow delivery slot',
+                        labelStyle: const TextStyle(
+                          color: Color(0xFF166534),
+                          fontWeight: FontWeight.w600,
+                        ),
                         filled: true,
-                        fillColor: const Color(0xFFF8FAFC),
+                        fillColor: const Color(0xFFF0FDF4),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: Color(0xFF166534),
+                            width: 2,
                           ),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(10),
                           borderSide: const BorderSide(
-                            color: Color(0xFFE5E7EB),
+                            color: Color(0xFF166534),
+                            width: 2,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                            color: Color(0xFF166534),
+                            width: 3,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 14,
+                        ),
+                        suffixIcon: const Padding(
+                          padding: EdgeInsets.only(right: 8),
+                          child: Icon(
+                            Icons.schedule,
+                            color: Color(0xFF166534),
+                            size: 20,
                           ),
                         ),
                       ),
+                      dropdownColor: Colors.white,
                       items: List.generate(_tomorrowSlots.length, (i) {
                         final label = _slotLabel(_tomorrowSlots[i]);
+                        final isSelected = i == _selectedTomorrowSlotIndex;
                         return DropdownMenuItem<int>(
                           value: i,
-                          child: Text(
-                            label,
-                            style: const TextStyle(fontSize: 13.5),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFFD1FAE5)
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              label,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: isSelected
+                                    ? const Color(0xFF166534)
+                                    : const Color(0xFF1F2937),
+                              ),
+                            ),
                           ),
                         );
                       }),
@@ -2035,85 +2345,6 @@ class _SectionHeader extends StatelessWidget {
       color: Color(0xFF0F172A),
     ),
   );
-}
-
-class _AddressTile extends StatelessWidget {
-  const _AddressTile({
-    required this.address,
-    required this.selected,
-    required this.onSelect,
-  });
-  final Map<String, dynamic> address;
-  final bool selected;
-  final VoidCallback onSelect;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onSelect,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected ? const Color(0xFF16A34A) : const Color(0xFFE5E7EB),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              selected
-                  ? Icons.radio_button_checked
-                  : Icons.radio_button_unchecked,
-              color: selected
-                  ? const Color(0xFF16A34A)
-                  : const Color(0xFF9CA3AF),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    address['address_line']?.toString() ?? '',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${address['city'] ?? ''} - ${address['pincode'] ?? ''}',
-                    style: const TextStyle(
-                      color: Color(0xFF6B7280),
-                      fontSize: 13,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            if (address['is_default'] == true)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFECFDF5),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Text(
-                  'Default',
-                  style: TextStyle(
-                    color: Color(0xFF16A34A),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
 }
 
 class _CartItemRow extends StatelessWidget {
