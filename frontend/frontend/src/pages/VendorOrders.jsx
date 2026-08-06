@@ -35,7 +35,9 @@ function playAlertSound() {
       osc.start(ctx.currentTime + t);
       osc.stop(ctx.currentTime + t + 0.3);
     });
-  } catch (_) {}
+  } catch {
+    // Web Audio API unavailable/blocked - alert sound is best-effort
+  }
 }
 
 function requestNotificationPermission() {
@@ -188,6 +190,7 @@ export default function VendorOrders() {
     });
 
     // Initial fetch + start polling
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
     fetchOrders();
     const timer = setInterval(fetchOrders, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
