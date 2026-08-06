@@ -1000,9 +1000,12 @@ router.get("/", async (req, res) => {
     }
 
     if (search) {
-      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}) OR lower(c.name) LIKE lower($${index++}) OR lower(p.description) LIKE lower($${index++}))`;
+      query += ` AND (lower(p.name) LIKE lower($${index++}) OR lower(b.name) LIKE lower($${index++}) OR lower(c.name) LIKE lower($${index++}) OR lower(p.description) LIKE lower($${index++}) OR EXISTS (
+        SELECT 1 FROM product_variants sv
+        WHERE sv.product_id = p.id AND lower(sv.barcode) LIKE lower($${index++})
+      ))`;
       const term = `%${search}%`;
-      values.push(term, term, term, term);
+      values.push(term, term, term, term, term);
     }
 
     const sortMap = {
