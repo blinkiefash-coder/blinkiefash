@@ -525,7 +525,9 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS clothing_discount DECIMAL(12, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS bundle_discount DECIMAL(12, 2) DEFAULT 0,
       ADD COLUMN IF NOT EXISTS first_order_discount DECIMAL(12, 2) DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500)
+      ADD COLUMN IF NOT EXISTS cancel_reason VARCHAR(500),
+      ADD COLUMN IF NOT EXISTS delivery_otp VARCHAR(10),
+      ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMPTZ
   `).catch(() => {});
 
   // ── Product feature flags ─────────────────────────────────────────────────

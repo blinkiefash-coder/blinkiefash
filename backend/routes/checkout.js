@@ -708,6 +708,13 @@ router.post("/orders", async (req, res) => {
     );
     const order = orderRows[0];
 
+    // Generate 4-digit OTP for delivery verification
+    const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    await client.query(
+      `UPDATE orders SET delivery_otp = $1 WHERE id = $2`,
+      [deliveryOtp, order.id]
+    );
+
     // Insert order items
     for (const item of items) {
       await client.query(
@@ -786,6 +793,7 @@ router.post("/orders", async (req, res) => {
       manualOfferType: externalOfferType,
       manualOfferDiscount: externalOfferDiscount,
       finalAmount: order.final_amount,
+      deliveryOtp: deliveryOtp,
       distanceKm: distanceKm,
       createdAt: order.created_at,
       darkStoreAssigned: !!darkStoreId,

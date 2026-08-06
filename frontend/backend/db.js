@@ -24,7 +24,12 @@ export const ensureDatabaseTables = async () => {
 
   // Ensure orders has confirmed_at column (used for 60-min delivery SLA timer)
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
-
+  // Add delivery OTP columns for vendor delivery verification
+  await pool.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS delivery_otp VARCHAR(10),
+      ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMPTZ
+  `).catch(() => {});
   await pool.query(`
     CREATE TABLE IF NOT EXISTS sellers (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
