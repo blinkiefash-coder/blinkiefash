@@ -399,7 +399,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _decrementCheckoutItem(CartItem item) {
     setState(() {
       // Check if item is in override items (buy now)
-      if (widget.overrideItems != null && widget.overrideItems!.contains(item)) {
+      if (widget.overrideItems != null &&
+          widget.overrideItems!.contains(item)) {
         if (item.quantity > 1) {
           item.quantity--;
         } else {
@@ -867,6 +868,69 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         _deliveryFee +
         platformFee +
         shippingPackagingHandlingFee;
+
+    // Show empty state if no items
+    if (cartItems.isEmpty) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          title: const Text(
+            'Checkout',
+            style: TextStyle(fontWeight: FontWeight.w700),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF0F172A),
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.shopping_bag_outlined,
+                size: 80,
+                color: const Color(0xFFD1D5DB),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Nothing in Checkout',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Your checkout is empty',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Color(0xFF6B7280),
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.of(context).pop();
+                },
+                icon: const Icon(Icons.shopping_bag_outlined),
+                label: const Text('Start Shopping'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF166534),
+                  foregroundColor: Colors.white,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
