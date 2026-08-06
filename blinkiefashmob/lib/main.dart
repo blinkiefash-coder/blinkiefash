@@ -146,13 +146,13 @@ class _BlinkieFashAppState extends State<BlinkieFashApp> {
       ),
       home: const SplashScreen(),
       onGenerateRoute: (settings) {
-        // Handle deep links: https://blinkiefash.com/product/{id}
+        // Handle deep links: https://blinkiefash.in/product/{id}
         //                    blinkiefash://product/{id}
         final name = settings.name ?? '';
         final uri = Uri.tryParse(name);
         if (uri != null) {
           final segs = uri.pathSegments;
-          // https://blinkiefash.com/product/{id}
+          // https://blinkiefash.in/product/{id}
           if (segs.length >= 2 && segs[0] == 'product') {
             return MaterialPageRoute(
               builder: (_) => ProductDetailScreen(productId: segs[1]),

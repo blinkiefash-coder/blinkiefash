@@ -876,7 +876,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   // ── Share Product ──────────────────────────────────────────────────
   void _shareProduct(String productId, String title, String? imageUrl) {
-    final url = 'https://blinkiefash.com/product/$productId';
+    final url = 'https://blinkiefash.in/product/$productId';
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
