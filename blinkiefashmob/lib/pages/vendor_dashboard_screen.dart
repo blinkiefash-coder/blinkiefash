@@ -10,7 +10,9 @@ import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../api_base.dart';
 import '../services/api_client.dart';
 import '../services/notification_service.dart';
 import '../services/user_session.dart';
@@ -4091,11 +4093,76 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
     return const SizedBox.shrink();
   }
 
+  // Invoice/packing slip — vendor's own items only, no delivery/platform fees
+  Widget _buildInvoiceButton(String orderId) {
+    if (orderId.isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () async {
+          final url = Uri.parse(
+            '$apiApiBaseUrl/vendor/${widget.vendorId}/orders/$orderId/invoice',
+          );
+          try {
+            final launched = await launchUrl(
+              url,
+              mode: LaunchMode.externalApplication,
+            );
+            if (!launched && mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Could not open invoice')),
+              );
+            }
+          } catch (e) {
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Could not open invoice: $e')),
+              );
+            }
+          }
+        },
+        icon: const Icon(
+          Icons.receipt_long_rounded,
+          color: Color(0xFF2563EB),
+        ),
+        label: const Text(
+          'Download Invoice',
+          style: TextStyle(
+            color: Color(0xFF2563EB),
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Color(0xFF2563EB)),
+          minimumSize: const Size.fromHeight(40),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    const activeStatuses = {
+      'placed',
+      'pending',
+      'confirmed',
+      'packed',
+      'out_for_delivery',
+    };
+    // Once delivered or the delivery OTP is verified, drop it out of the active-tracking tabs
+    final visibleOrders = activeStatuses.contains(_statusFilter)
+        ? _orders.where((o) {
+            final s = (o['status'] ?? '').toString().toLowerCase();
+            final otpVerified = (o['otp_verified_at'] ?? '')
+                .toString()
+                .trim()
+                .isNotEmpty;
+            return s != 'delivered' && !otpVerified;
+          }).toList()
+        : _orders;
     final filteredOrders = _statusFilter == 'all'
-        ? _orders
-        : _orders
+        ? visibleOrders
+        : visibleOrders
               .where(
                 (o) =>
                     (o['status'] ?? '').toString().toLowerCase() ==
@@ -4148,20 +4215,33 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
             ...filteredOrders.map((o) {
               final id = (o['id'] ?? '').toString();
               final status = (o['status'] ?? 'pending').toString();
-              final total = (o['final_amount'] ?? o['total_amount'] ?? 0)
-                  .toString();
               final createdAt = (o['created_at'] ?? '').toString();
               final customerName = (o['customer_name'] ?? '').toString().trim();
               final customerPhone = (o['customer_phone'] ?? '')
                   .toString()
                   .trim();
-              final otp = (o['delivery_otp'] ?? '').toString().trim();
+              final storePickupOtp = (o['store_pickup_otp'] ?? '')
+                  .toString()
+                  .trim();
+              final storePickupVerifiedAt = (o['store_pickup_verified_at'] ?? '')
+                  .toString()
+                  .trim();
               final otpVerifiedAt = (o['otp_verified_at'] ?? '')
                   .toString()
                   .trim();
               final items =
                   (o['items'] as List?)?.whereType<Map>().toList() ??
                   const <Map>[];
+              // Vendor's own revenue only — excludes delivery/platform/handling fees
+              final itemsSubtotal = items.fold<double>(
+                0,
+                (sum, item) =>
+                    sum +
+                    (double.tryParse((item['price'] ?? '0').toString()) ?? 0) *
+                        (double.tryParse((item['quantity'] ?? '0').toString()) ??
+                            0),
+              );
+              final total = itemsSubtotal.toStringAsFixed(0);
 
               final isNewState =
                   status.toLowerCase() == 'placed' ||
@@ -4225,7 +4305,7 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                       ),
                     const SizedBox(height: 4),
                     Text(
-                      'Total: ₹$total',
+                      'Your Subtotal: ₹$total',
                       style: const TextStyle(color: Color(0xFF475569)),
                     ),
                     if (createdAt.isNotEmpty)
@@ -4236,19 +4316,23 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                           color: Color(0xFF64748B),
                         ),
                       ),
-                    if (otp.isNotEmpty) ...[
+                    if (storePickupOtp.isNotEmpty &&
+                        status.toLowerCase() != 'delivered' &&
+                        otpVerifiedAt.isEmpty) ...[
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF8FAFC),
+                          color: const Color(0xFFE0E7FF),
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          border: const Border(
+                            left: BorderSide(color: Color(0xFF4F46E5), width: 4),
+                          ),
                         ),
                         child: Text(
-                          otpVerifiedAt.isEmpty
-                              ? 'Delivery OTP: $otp (not verified yet)'
-                              : 'Delivery OTP: $otp (verified)',
+                          storePickupVerifiedAt.isEmpty
+                              ? '🏪 Store Pickup OTP: $storePickupOtp'
+                              : '🏪 Store Pickup OTP: $storePickupOtp (verified)',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF0F172A),
@@ -4343,6 +4427,8 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                     ],
                     const SizedBox(height: 8),
                     _buildActionRow(o),
+                    const SizedBox(height: 8),
+                    _buildInvoiceButton(id),
                   ],
                 ),
               );
