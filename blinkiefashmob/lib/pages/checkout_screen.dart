@@ -4,7 +4,6 @@ import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
-import '../services/wishlist_manager.dart';
 import 'login_screen.dart';
 import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
@@ -403,41 +402,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (item.quantity > 1) {
           item.quantity--;
         } else {
-          // Move item to wishlist when removed
           widget.overrideItems!.remove(item);
-          _addToWishlist(item);
         }
       } else {
-        if (item.quantity > 1) {
-          CartManager.instance.decrement(item);
-        } else {
-          CartManager.instance.decrement(item);
-          // Move item to wishlist when removed
-          _addToWishlist(item);
-        }
+        CartManager.instance.decrement(item);
       }
     });
-  }
-
-  void _addToWishlist(CartItem item) {
-    final wishItem = WishlistItem(
-      productId: item.productId,
-      name: item.name,
-      price: item.price,
-      imageUrl: item.imageUrl,
-    );
-    WishlistManager.instance.toggle(wishItem);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          '❤️ ${item.name} added to Wishlist',
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-        ),
-        duration: const Duration(seconds: 2),
-        backgroundColor: const Color(0xFF166534),
-      ),
-    );
   }
 
   String _slotLabel(TimeOfDay slot) {
