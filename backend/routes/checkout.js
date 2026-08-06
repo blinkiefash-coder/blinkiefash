@@ -244,30 +244,34 @@ function calculateDeliveryInfo(distanceKm, city) {
   }
 
   // RULE 4: City-based fallback (when coordinates not available)
+  // During operating hours: show dynamic ETA with estimated time (~45 mins for local)
+  // After operating hours: show next-day delivery
   const isMajor = isMajorOdishaCity(city);
 
-  // For major cities
-  if (isMajor) {
-    if (isOperatingHours) {
-      if (currentHours < 12 || (currentHours === 12 && currentMinutes === 0)) {
-        result.deliveryPromise = "Same Day Delivery";
-        result.deliveryType = 'sameday';
-      } else {
-        result.deliveryPromise = "Next Day Delivery";
-        result.deliveryType = 'nextday';
-      }
-    } else {
-      result.deliveryPromise = "Next to Next Day Delivery";
-      result.deliveryType = '2days';
-    }
-    result.etaMinutes = null;
-    result.willNotifyRiders = false; // No distance known, so no riders
+  if (isOperatingHours) {
+    // During 10:00-21:00: show dynamic ETA even if distance unknown
+    result.deliveryType = 'local'; // Assume local delivery when distance unknown but in major city
+    result.willNotifyRiders = true; // Try to notify riders
+    
+    // Estimate 45 minutes for delivery in major city (distance ~15km assumption)
+    const estimatedMinutes = 45;
+    result.deliveryPromise = `Delivery in ${estimatedMinutes} minutes`;
+    result.etaMinutes = estimatedMinutes;
+    result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8)); // ~36 min
+    result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2); // ~54 min
     return result;
   }
 
-  // RULE 5: OTHER ODISHA LOCATIONS (2 days)
-  result.deliveryPromise = "Delivery within 2 Days";
-  result.deliveryType = '2days';
+  // After operating hours: next day or next-to-next day
+  if (isMajor) {
+    result.deliveryPromise = "Next Day Delivery";
+    result.deliveryType = 'nextday_scheduled_local'; // Allow time slot selection
+    result.timeSlotStart = '11:00';
+    result.timeSlotEnd = '21:00';
+  } else {
+    result.deliveryPromise = "Delivery within 2 Days";
+    result.deliveryType = '2days';
+  }
   result.etaMinutes = null;
   result.willNotifyRiders = false;
   return result;
