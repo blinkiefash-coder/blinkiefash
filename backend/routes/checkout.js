@@ -264,9 +264,9 @@ function calculateDeliveryInfo(distanceKm, city) {
           result.deliveryType = '1-3days';
         }
       } else {
-        // At or after 12:00 PM: 1-2 days delivery
-        result.deliveryPromise = "Delivery in 1-2 Days";
-        result.deliveryType = '1-2days';
+        // At or after 12:00 PM: 1-3 days delivery
+        result.deliveryPromise = "Delivery in 1-3 Days";
+        result.deliveryType = '1-3days';
       }
     } else {
       // During CLOSED hours (21:01 to 09:59): Same day or 1-3 days
