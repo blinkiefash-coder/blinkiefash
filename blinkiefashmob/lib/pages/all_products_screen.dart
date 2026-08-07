@@ -833,6 +833,10 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       child: TextField(
         controller: _searchCtrl,
         focusNode: _searchFocus,
+        onTap: () {
+          // Show suggestions immediately when field is focused/tapped
+          _updateSuggestions(_searchCtrl.text);
+        },
         onSubmitted: (_) {
           _searchFocus.unfocus();
           setState(() {
