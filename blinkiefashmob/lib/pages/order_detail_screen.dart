@@ -1557,8 +1557,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         order['deliveryPromise'] ??
         order['delivery_promise'] ??
         order['deliverypromise'];
-    final deliveryType = (order['deliveryType'] ?? order['delivery_type'])
-        ?.toString();
+    final deliveryType =
+        (order['deliveryType'] ?? order['delivery_type'])?.toString();
     final distanceKm =
         (order['distanceKm'] as num?) ?? (order['distance_km'] as num?);
 
@@ -1600,8 +1600,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     String deliveryText = deliveryPromise;
-    if (!isDelivered &&
-        (deliveryType == 'local' || deliveryType == 'extended')) {
+    if (!isDelivered && (deliveryType == 'local' || deliveryType == 'extended')) {
       // For dynamic ETAs, show the promise from backend
       deliveryText = deliveryPromise;
     } else if (!isDelivered) {
