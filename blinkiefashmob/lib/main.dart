@@ -8,6 +8,7 @@ import 'pages/login_screen.dart';
 import 'pages/signup_screen.dart';
 import 'pages/home_screen.dart';
 import 'pages/product_detail_screen.dart';
+import 'services/backend_keep_alive_service.dart';
 import 'services/notification_service.dart';
 import 'services/firebase_app_check_config.dart';
 import 'firebase_options.dart';
@@ -64,17 +65,41 @@ class BlinkieFashApp extends StatefulWidget {
   State<BlinkieFashApp> createState() => _BlinkieFashAppState();
 }
 
-class _BlinkieFashAppState extends State<BlinkieFashApp> {
+class _BlinkieFashAppState extends State<BlinkieFashApp>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     BlinkieFashApp.themeModeNotifier.addListener(_onThemeChanged);
+    BackendKeepAliveService.instance.start();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    BackendKeepAliveService.instance.stop();
     BlinkieFashApp.themeModeNotifier.removeListener(_onThemeChanged);
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        BackendKeepAliveService.instance.start();
+        BackendKeepAliveService.instance.pingNow(reason: 'resume');
+        break;
+      case AppLifecycleState.inactive:
+      case AppLifecycleState.paused:
+      case AppLifecycleState.hidden:
+        // Best effort ping before OS throttles/suspends background execution.
+        BackendKeepAliveService.instance.pingNow(reason: 'background');
+        break;
+      case AppLifecycleState.detached:
+        BackendKeepAliveService.instance.stop();
+        break;
+    }
   }
 
   void _onThemeChanged() => setState(() {});
