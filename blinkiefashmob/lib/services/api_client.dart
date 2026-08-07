@@ -1179,4 +1179,20 @@ class ApiClient {
     if (data is Map<String, dynamic>) return data;
     return const {};
   }
+
+  Future<Map<String, dynamic>> fetchRecentlyExplored({
+    String? userId,
+    int limit = 10,
+  }) async {
+    final params = <String, dynamic>{'limit': limit};
+    if (userId != null) {
+      params['user_id'] = userId;
+    }
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/analytics/recently-explored',
+    ).replace(queryParameters: params.map((k, v) => MapEntry(k, v.toString())));
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {'products': [], 'count': 0};
+  }
 }

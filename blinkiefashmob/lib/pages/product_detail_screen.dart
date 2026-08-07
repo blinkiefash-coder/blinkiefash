@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../api_base.dart';
 import '../services/analytics_service.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
+import '../services/user_session.dart';
 import '../services/wishlist_manager.dart';
 import 'cart_screen.dart';
 import 'checkout_address_screen.dart';
@@ -358,6 +360,10 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   List<Map<String, dynamic>> _similarProducts = const [];
   bool _similarLoading = false;
 
+  // Recently explored products
+  List<Map<String, dynamic>> _recentlyExploredProducts = const [];
+  bool _recentlyExploredLoading = false;
+
   // Cached loaded data — used by bottomNavigationBar outside FutureBuilder
   Map<String, dynamic>? _loadedData;
 
@@ -382,6 +388,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
         _selectedSize ??= _findFirstAvailableSize(d);
         setState(() => _loadedData = d);
         _loadSimilarProducts(d);
+        _loadRecentlyExploredProducts();
       }
     });
     _loadReviews();
@@ -1022,6 +1029,30 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       }
     } catch (_) {
       if (mounted) setState(() => _similarLoading = false);
+    }
+  }
+
+  Future<void> _loadRecentlyExploredProducts() async {
+    final userId = UserSession.instance.userId;
+    if (userId == null || userId.isEmpty || !mounted) return;
+    setState(() => _recentlyExploredLoading = true);
+    try {
+      final result = await _apiClient.fetchRecentlyExplored(
+        userId: userId,
+        limit: 10,
+      );
+      if (mounted) {
+        final products = (result['products'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .where((p) => p['id']?.toString() != widget.productId)
+            .toList();
+        setState(() {
+          _recentlyExploredProducts = products;
+          _recentlyExploredLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _recentlyExploredLoading = false);
     }
   }
 
@@ -3926,11 +3957,216 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       ],
                     ),
                   ),
+                if (_recentlyExploredProducts.isNotEmpty)
+                  Column(
+                    children: [
+                      const SizedBox(height: 14),
+                      Container(
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF10B981), Color(0xFF059669)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: const Row(
+                          children: [
+                            Icon(
+                              Icons.history_rounded,
+                              color: Colors.white,
+                              size: 18,
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '✨ Your Discovery Trail',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: _recentlyExploredLoading
+                            ? const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 16),
+                                  child: BfSpinner(),
+                                ),
+                              )
+                            : SizedBox(
+                                height: 285,
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  clipBehavior: Clip.none,
+                                  itemCount: _recentlyExploredProducts.length,
+                                  separatorBuilder: (context, index) =>
+                                      const SizedBox(width: 12),
+                                  itemBuilder: (context, index) =>
+                                      _buildRecentlyExploredCard(
+                                        _recentlyExploredProducts[index],
+                                      ),
+                                ),
+                              ),
+                      ),
+                    ],
+                  ),
                 const SizedBox(height: 14),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildRecentlyExploredCard(Map<String, dynamic> p) {
+    final id = p['id']?.toString() ?? '';
+    final name = (p['name'] ?? '').toString();
+    final price = _formatPrice(p['price']);
+    final discount = (p['discount'] as num?)?.toInt() ?? 0;
+    final imageUrl = p['image']?.toString() ?? '';
+    final rating = (p['rating'] as num?)?.toDouble() ?? 0.0;
+
+    return GestureDetector(
+      onTap: id.isNotEmpty
+          ? () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) =>
+                    ProductDetailScreen(productId: id, initialName: name),
+              ),
+            )
+          : null,
+      child: Container(
+        width: 160,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.08),
+              blurRadius: 12,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F5F9),
+                  borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(16),
+                  ),
+                ),
+                child: Stack(
+                  children: [
+                    if (imageUrl.isNotEmpty)
+                      CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: double.infinity,
+                        placeholder: (_, __) =>
+                            Container(color: const Color(0xFFE2E8F0)),
+                        errorWidget: (_, __, ___) => Container(
+                          color: const Color(0xFFE2E8F0),
+                          child: const Center(
+                            child: Icon(
+                              Icons.image_not_supported,
+                              color: Color(0xFF94A3B8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Discount badge
+                    if (discount > 0)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$discount%',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            // Details
+            Padding(
+              padding: const EdgeInsets.all(10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1E293B),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    price,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF16A34A),
+                    ),
+                  ),
+                  if (rating > 0)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.star,
+                            size: 12,
+                            color: Color(0xFFFBBF24),
+                          ),
+                          const SizedBox(width: 2),
+                          Text(
+                            rating.toStringAsFixed(1),
+                            style: const TextStyle(
+                              fontSize: 10,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -144,4 +144,66 @@ router.get("/suggestions", async (req, res) => {
   }
 });
 
+// GET /api/analytics/recently-explored — fetch recently explored products for a user
+// Only returns data if user has explored more than 3 products
+// Returns: { products: [{id, name, price, discount, image, rating}], count: number }
+router.get("/recently-explored", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 20);
+
+    if (!userId) {
+      return res.json({ products: [], count: 0 });
+    }
+
+    // 1. Count how many products user has clicked/viewed
+    const countRes = await pool.query(
+      `SELECT COUNT(DISTINCT product_id) as total
+       FROM user_activity_events
+       WHERE user_id = $1
+       AND event_type IN ('product_click', 'product_view')
+       AND product_id IS NOT NULL`,
+      [userId]
+    );
+
+    const exploredCount = countRes.rows[0]?.total || 0;
+
+    // Only return results if user explored more than 3 products
+    if (exploredCount <= 3) {
+      return res.json({ products: [], count: 0 });
+    }
+
+    // 2. Get recently explored products (ordered by most recent first)
+    const productsRes = await pool.query(
+      `SELECT DISTINCT ON (p.id) 
+              p.id, p.name, p.price, p.discount, p.main_image as image, 
+              COALESCE(p.rating, 0) as rating
+       FROM user_activity_events e
+       JOIN products p ON e.product_id = p.id
+       WHERE e.user_id = $1
+       AND e.event_type IN ('product_click', 'product_view')
+       AND p.id IS NOT NULL
+       ORDER BY p.id, e.created_at DESC
+       LIMIT $2`,
+      [userId, limit]
+    );
+
+    const products = productsRes.rows.map(p => ({
+      id: p.id,
+      name: p.name,
+      price: parseFloat(p.price || 0),
+      discount: parseInt(p.discount || 0),
+      image: p.image,
+      rating: parseFloat(p.rating || 0),
+    }));
+
+    res.json({ products, count: exploredCount });
+  } catch (err) {
+    console.warn("Failed to fetch recently explored products:", err.message);
+    res.status(500).json({
+      error: "Failed to fetch recently explored products",
+    });
+  }
+});
+
 export default router;
