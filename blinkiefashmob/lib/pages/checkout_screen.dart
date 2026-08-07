@@ -96,7 +96,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _donationScheduled = false;
 
   // Delivery schedule state
-  bool _deliverTomorrow = false;
   int _selectedTomorrowSlotIndex = 0;
 
   // Receiver information state
@@ -552,8 +551,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Send subtotal only — backend calculates final amount with delivery fee
     final subtotal = _effectiveSubtotal;
 
-    // Auto-schedule if delivery type is next-day scheduled (after 21:00, ≤45km)
-    bool isScheduled = _deliverTomorrow;
+    // Auto-schedule only for next-day scheduled delivery types.
+    bool isScheduled = false;
     if (_deliveryType == 'nextday_scheduled_local' ||
         _deliveryType == 'nextday_scheduled_extended') {
       isScheduled = true;
@@ -1589,105 +1588,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     },
                   ),
                 ]
-                // Fast delivery (local and extended): show today/tomorrow with time slot options
+                // Fast delivery (local and extended): fixed immediate delivery promise
                 else ...[
                   _deliveryModeTile(
                     title: _todayDeliveryLabel(),
                     subtitle: _todayDeliverySubtitle(),
-                    selected: !_deliverTomorrow,
-                    enabled: true,
-                    onTap: () => setState(() => _deliverTomorrow = false),
+                    selected: true,
+                    enabled: false,
+                    onTap: () {},
                   ),
-                  const Divider(height: 8),
-                  _deliveryModeTile(
-                    title: 'Schedule for Tomorrow',
-                    subtitle: 'Select a slot between 7:30 AM and 9:00 PM',
-                    selected: _deliverTomorrow,
-                    enabled: true,
-                    onTap: () => setState(() => _deliverTomorrow = true),
-                  ),
-                  if (_deliverTomorrow) ...[
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<int>(
-                      initialValue: _selectedTomorrowSlotIndex,
-                      decoration: InputDecoration(
-                        labelText: 'Tomorrow delivery slot',
-                        labelStyle: const TextStyle(
-                          color: Color(0xFF166534),
-                          fontWeight: FontWeight.w600,
-                        ),
-                        filled: true,
-                        fillColor: const Color(0xFFF0FDF4),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF166534),
-                            width: 2,
-                          ),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF166534),
-                            width: 2,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: const BorderSide(
-                            color: Color(0xFF166534),
-                            width: 3,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 14,
-                        ),
-                        suffixIcon: const Padding(
-                          padding: EdgeInsets.only(right: 8),
-                          child: Icon(
-                            Icons.schedule,
-                            color: Color(0xFF166534),
-                            size: 20,
-                          ),
-                        ),
-                      ),
-                      dropdownColor: Colors.white,
-                      items: List.generate(_tomorrowSlots.length, (i) {
-                        final label = _slotLabel(_tomorrowSlots[i]);
-                        final isSelected = i == _selectedTomorrowSlotIndex;
-                        return DropdownMenuItem<int>(
-                          value: i,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? const Color(0xFFD1FAE5)
-                                  : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: isSelected
-                                    ? const Color(0xFF166534)
-                                    : const Color(0xFF1F2937),
-                              ),
-                            ),
-                          ),
-                        );
-                      }),
-                      onChanged: (value) {
-                        if (value == null) return;
-                        setState(() => _selectedTomorrowSlotIndex = value);
-                      },
-                    ),
-                  ],
                 ],
               ],
             ),
