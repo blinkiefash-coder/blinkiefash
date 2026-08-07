@@ -22,10 +22,16 @@ const insertEvent = async (e) => {
   const { user_id, session_id, event_type } = e || {};
   if (!session_id || !event_type || !ALLOWED_EVENT_TYPES.has(event_type)) return;
 
-  await pool.query(
+  // Log product events for debugging
+  if (e.product_id) {
+    console.log(`[Analytics] Inserting ${event_type} for user ${user_id}, product ${e.product_id}`);
+  }
+
+  const result = await pool.query(
     `INSERT INTO user_activity_events
       (user_id, session_id, event_type, search_query, product_id, category_id, result_count, duration_ms, metadata)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+     RETURNING id`,
     [
       user_id || null,
       session_id,
@@ -38,6 +44,8 @@ const insertEvent = async (e) => {
       e.metadata ? JSON.stringify(e.metadata) : null,
     ]
   );
+
+  return result.rows[0];
 };
 
 // POST /api/analytics/event — log a single search/click/view/dwell event.
@@ -45,12 +53,19 @@ const insertEvent = async (e) => {
 router.post("/event", async (req, res) => {
   try {
     if (!req.body?.session_id || !req.body?.event_type) {
+      console.warn("[Analytics] Missing session_id or event_type in request body:", req.body);
       return res.status(400).json({ error: "session_id and event_type are required" });
     }
+
+    const { user_id, event_type, product_id } = req.body;
+    if (product_id) {
+      console.log(`[Analytics] POST /event: user=${user_id}, event=${event_type}, product=${product_id}`);
+    }
+
     await insertEvent(req.body);
     res.status(204).end();
   } catch (err) {
-    console.warn("Failed to log activity event:", err.message);
+    console.error("[Analytics] Failed to log activity event:", err.message);
     res.status(204).end();
   }
 });

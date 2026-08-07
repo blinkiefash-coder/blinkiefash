@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -36,10 +37,7 @@ class AnalyticsService {
   String _generateId() {
     final rand = Random();
     final ts = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
-    final rnd = List.generate(
-      12,
-      (_) => rand.nextInt(36).toRadixString(36),
-    ).join();
+    final rnd = List.generate(12, (_) => rand.nextInt(36).toRadixString(36)).join();
     return '$ts-$rnd';
   }
 
@@ -60,43 +58,44 @@ class AnalyticsService {
         'session_id': sessionId,
         if (userId != null && userId.isNotEmpty) 'user_id': userId,
         'event_type': eventType,
-        if (searchQuery != null && searchQuery.isNotEmpty)
-          'search_query': searchQuery,
+        if (searchQuery != null && searchQuery.isNotEmpty) 'search_query': searchQuery,
         if (productId != null && productId.isNotEmpty) 'product_id': productId,
-        if (categoryId != null && categoryId.isNotEmpty)
-          'category_id': categoryId,
+        if (categoryId != null && categoryId.isNotEmpty) 'category_id': categoryId,
         if (resultCount != null) 'result_count': resultCount,
         if (durationMs != null) 'duration_ms': durationMs,
         if (metadata != null) 'metadata': metadata,
       });
+
+      if (kDebugMode && (eventType.contains('product') || productId != null)) {
+        print('[Analytics] Sending $eventType event: productId=$productId, userId=$userId');
+      }
+
       unawaited(
         http
-            .post(
-              uri,
-              headers: {'Content-Type': 'application/json'},
-              body: body,
-            )
+            .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
             .timeout(const Duration(seconds: 8))
-            .catchError((_) => http.Response('', 0)),
+            .then((response) {
+              if (kDebugMode && (eventType.contains('product') || productId != null)) {
+                print('[Analytics] Response: ${response.statusCode} for $eventType');
+              }
+            })
+            .catchError((err) {
+              if (kDebugMode) {
+                print('[Analytics] Error sending $eventType: $err');
+              }
+              return http.Response('', 0);
+            }),
       );
-    } catch (_) {
-      // Never let analytics break the UI.
+    } catch (err) {
+      if (kDebugMode) print('[Analytics] Exception in logEvent: $err');
     }
   }
 
   Future<void> logSearch(String query, {int? resultCount}) {
-    return logEvent(
-      eventType: 'search',
-      searchQuery: query,
-      resultCount: resultCount,
-    );
+    return logEvent(eventType: 'search', searchQuery: query, resultCount: resultCount);
   }
 
-  Future<void> logProductClick(
-    String productId, {
-    String? searchQuery,
-    String? source,
-  }) {
+  Future<void> logProductClick(String productId, {String? searchQuery, String? source}) {
     return logEvent(
       eventType: 'product_click',
       productId: productId,
@@ -105,11 +104,7 @@ class AnalyticsService {
     );
   }
 
-  Future<void> logProductView(
-    String productId, {
-    String? searchQuery,
-    String? source,
-  }) {
+  Future<void> logProductView(String productId, {String? searchQuery, String? source}) {
     return logEvent(
       eventType: 'product_view',
       productId: productId,
