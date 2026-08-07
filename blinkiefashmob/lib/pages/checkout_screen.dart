@@ -309,9 +309,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _fetchDeliveryFee(String addressId) async {
     final subtotal = _effectiveSubtotal;
+    final variantIds = _effectiveItems
+        .map((i) => i.productId)
+        .where((id) => id.isNotEmpty)
+        .toSet()
+        .toList();
     final result = await _api.fetchDeliveryFee(
       addressId: addressId,
       subtotal: subtotal,
+      variantIds: variantIds,
     );
     if (!mounted) return;
     setState(() {

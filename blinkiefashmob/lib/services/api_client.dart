@@ -309,12 +309,19 @@ class ApiClient {
   }
 
   /// Calculates delivery fee for a given saved address.
+  /// [variantIds] (optional) lets the backend resolve the SAME store(s) the
+  /// cart will actually check out from, so a multi-store cart shows the real
+  /// multi-stop route distance instead of just the nearest store overall.
   Future<Map<String, dynamic>> fetchDeliveryFee({
     required String addressId,
     required double subtotal,
+    List<String>? variantIds,
   }) async {
+    final variantParam = (variantIds != null && variantIds.isNotEmpty)
+        ? '&variantIds=${variantIds.join(',')}'
+        : '';
     final uri = Uri.parse(
-      '$apiApiBaseUrl/checkout/delivery-fee?addressId=$addressId&subtotal=${subtotal.toStringAsFixed(2)}',
+      '$apiApiBaseUrl/checkout/delivery-fee?addressId=$addressId&subtotal=${subtotal.toStringAsFixed(2)}$variantParam',
     );
     final data = await _getJson(uri);
     if (data is Map<String, dynamic>) return data;

@@ -430,9 +430,14 @@ router.get("/addresses", async (req, res) => {
   }
 });
 
-// ── GET /api/checkout/delivery-fee?addressId=xxx&subtotal=nnn ────────────────
+// ── GET /api/checkout/delivery-fee?addressId=xxx&subtotal=nnn&variantIds=a,b,c ─
+// variantIds (comma-separated product_variants.id list, optional) lets this
+// preview use the SAME store(s) the cart will actually check out from,
+// instead of always guessing the single globally-nearest dark store — a cart
+// spanning multiple stores needs the real multi-stop route distance shown
+// here too, matching what POST /orders will actually charge/promise.
 router.get("/delivery-fee", async (req, res) => {
-  const { addressId, subtotal } = req.query;
+  const { addressId, subtotal, variantIds } = req.query;
   if (!addressId) return res.status(400).json({ success: false, message: "addressId required" });
   try {
     const { rows: addrRows } = await pool.query(
@@ -445,28 +450,61 @@ router.get("/delivery-fee", async (req, res) => {
     let fee = 0;
     let distance = null;
     let deliveryInfo = null;
+    let pickupRoute = null;
+
+    const ids = typeof variantIds === "string"
+      ? variantIds.split(",").map((v) => v.trim()).filter(Boolean)
+      : [];
+    let resolvedStoreRows = [];
+    let resolvedStoreIds = [];
+    if (ids.length) {
+      const resolved = await resolveOrderStore(pool, ids.map((variantId) => ({ variantId })));
+      resolvedStoreRows = resolved.storeRows;
+      resolvedStoreIds = resolved.storeIds;
+    }
 
     if (addrLat != null && addrLng != null) {
-      // Find nearest active dark store by actual distance
-      const { rows: storeRows } = await pool.query(
-        `SELECT id, name, lat, lng FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL`,
-        []
-      );
-      if (storeRows.length) {
-        let nearest = storeRows[0];
-        let minDist = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(nearest.lat), parseFloat(nearest.lng));
-        for (const s of storeRows.slice(1)) {
-          const d = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(s.lat), parseFloat(s.lng));
-          if (d < minDist) { minDist = d; nearest = s; }
-        }
-        distance = Math.round(minDist * 10) / 10;
+      if (resolvedStoreIds.length > 1) {
+        // Multi-store cart — same route-planning used at actual order placement.
+        const uniqueStores = resolvedStoreIds
+          .map((id) => resolvedStoreRows.find((row) => row.dark_store_id === id))
+          .filter(Boolean)
+          .map((row) => ({ id: row.dark_store_id, name: row.name, lat: row.lat, lng: row.lng }));
+        const { orderedStores, totalDistanceKm } = planPickupRoute(uniqueStores, addrLat, addrLng);
+        distance = totalDistanceKm;
+        pickupRoute = orderedStores.map((s, idx) => ({
+          storeId: s.id, name: s.name, lat: s.lat, lng: s.lng, sequence: idx + 1,
+        }));
         fee = calcDeliveryFee(sub, distance);
+      } else if (resolvedStoreIds.length === 1) {
+        // Cart resolves to one specific store — use ITS distance, not whichever
+        // store happens to be geographically nearest overall.
+        const store = resolvedStoreRows.find((row) => row.dark_store_id === resolvedStoreIds[0]);
+        if (store?.lat != null && store?.lng != null) {
+          distance = Math.round(
+            haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(store.lat), parseFloat(store.lng)) * 10
+          ) / 10;
+        }
+        fee = calcDeliveryFee(sub, distance);
+      } else {
+        // No cart context available — fall back to nearest active dark store.
+        const { rows: storeRows } = await pool.query(
+          `SELECT id, name, lat, lng FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL`,
+          []
+        );
+        if (storeRows.length) {
+          let nearest = storeRows[0];
+          let minDist = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(nearest.lat), parseFloat(nearest.lng));
+          for (const s of storeRows.slice(1)) {
+            const d = haversineKm(parseFloat(addrLat), parseFloat(addrLng), parseFloat(s.lat), parseFloat(s.lng));
+            if (d < minDist) { minDist = d; nearest = s; }
+          }
+          distance = Math.round(minDist * 10) / 10;
+          fee = calcDeliveryFee(sub, distance);
+        }
       }
     } else {
       // No coordinates — city-based fallback
-      const { rows: storeRows } = await pool.query(
-        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`, [city]
-      );
       fee = calcDeliveryFee(sub, null);
     }
 
@@ -480,6 +518,8 @@ router.get("/delivery-fee", async (req, res) => {
       success: true,
       fee,
       distance,
+      multiStore: resolvedStoreIds.length > 1,
+      pickupRoute,
       withinRange: deliveryInfo.isAvailable,
       deliveryPromise: deliveryInfo.deliveryPromise,
       deliveryType: deliveryInfo.deliveryType,
