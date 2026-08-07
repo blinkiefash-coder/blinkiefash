@@ -406,168 +406,172 @@ export default function VendorOrders() {
               const isNew = order.status === "placed";
               const busy = actionLoading?.startsWith(order.id);
               return (
-                <div key={order.id} className={`vo-card ${isNew ? "vo-card-new" : ""}`}>
-                  {/* Card header */}
-                  <div className="vo-card-head">
-                    <div>
-                      <span className="vo-order-id">
-                        #{order.id.slice(-8).toUpperCase()}
-                      </span>
-                      <span
-                        className="vo-status-badge"
-                        style={{ color: sl.color, background: sl.bg }}
-                      >
-                        {sl.text}
-                      </span>
-                    </div>
-                    <div className="vo-meta">
-                      <span>
-                        {new Date(order.created_at).toLocaleString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
-                      <span className="vo-amount">₹{Number(order.final_amount || order.total_amount).toFixed(0)}</span>
-                    </div>
-                  </div>
-
-                  {/* Items — shown first so the picker sees what to pack immediately */}
-                  <div className="vo-items-section">
-                    {(order.items || []).map((item, idx) => {
-                      const imageUrl = getItemImageUrl(item);
-                      return (
-                        <div key={idx} className="vo-item">
-                          <div className="vo-item-main">
-                            <div className="vo-item-media">
-                              {imageUrl ? (
-                                <img src={imageUrl} alt={item.product_name || "Product"} />
-                              ) : (
-                                <span>🛍️</span>
-                              )}
-                            </div>
-                            <div className="vo-item-copy">
-                              <span className="vo-item-name">{item.product_name}</span>
-                              <span className="vo-item-detail">
-                                {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
-                              </span>
-                              {item.barcode && (
-                                <span className="vo-item-barcode">🏷️ {item.barcode}</span>
-                              )}
-                              <span className="vo-item-price">₹{Number(item.price || 0).toFixed(0)}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="vo-card-lower">
-                  {/* Customer */}
-                  <div className="vo-customer">
-                    👤 {order.customer_name || "Customer"}
-                    {order.customer_phone && (
-                      <a
-                        href={`tel:${order.customer_phone}`}
-                        className="vo-phone"
-                      >
-                        📞 {/^\d{10}$/.test(String(order.customer_phone).replace(/\D/g, ""))
-                          ? `+91 ${String(order.customer_phone).replace(/\D/g, "").replace(/(\d{5})(\d{5})/, "$1 $2")}`
-                          : order.customer_phone}
-                      </a>
-                    )}
-                  </div>
-
-                  {/* Store Pickup OTP Section - for rider to pick up from store; hide once order is done */}
-                  {order.store_pickup_otp && order.status !== "delivered" && !order.otp_verified_at && (
-                    <div className="vo-otp-section" style={{ background: '#E0E7FF', borderLeft: '4px solid #4F46E5' }}>
-                      <div className="vo-otp-label">
-                        🏪 Store Pickup OTP
-                        {order.store_pickup_verified_at && (
-                          <span className="vo-otp-verified">✓ Verified</span>
-                        )}
+                <div key={order.id} className="vo-order-group">
+                  {/* ── Order card: header + customer + OTP + actions ── */}
+                  <div className={`vo-card ${isNew ? "vo-card-new" : ""}`}>
+                    {/* Card header */}
+                    <div className="vo-card-head">
+                      <div>
+                        <span className="vo-order-id">
+                          #{order.id.slice(-8).toUpperCase()}
+                        </span>
+                        <span
+                          className="vo-status-badge"
+                          style={{ color: sl.color, background: sl.bg }}
+                        >
+                          {sl.text}
+                        </span>
                       </div>
-                      <div className="vo-otp-code">{order.store_pickup_otp}</div>
-                      {order.store_pickup_verified_at && (
-                        <div className="vo-otp-time">
-                          Verified at {new Date(order.store_pickup_verified_at).toLocaleString("en-IN", {
+                      <div className="vo-meta">
+                        <span>
+                          {new Date(order.created_at).toLocaleString("en-IN", {
                             day: "2-digit",
                             month: "short",
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
-                        </div>
+                        </span>
+                        <span className="vo-amount">₹{Number(order.final_amount || order.total_amount).toFixed(0)}</span>
+                      </div>
+                    </div>
+
+                    {/* Customer */}
+                    <div className="vo-customer">
+                      👤 {order.customer_name || "Customer"}
+                      {order.customer_phone && (
+                        <a
+                          href={`tel:${order.customer_phone}`}
+                          className="vo-phone"
+                        >
+                          📞 {/^\d{10}$/.test(String(order.customer_phone).replace(/\D/g, ""))
+                            ? `+91 ${String(order.customer_phone).replace(/\D/g, "").replace(/(\d{5})(\d{5})/, "$1 $2")}`
+                            : order.customer_phone}
+                        </a>
                       )}
                     </div>
-                  )}
 
-                  {/* Vendor tag for admin view */}
-                  {isAdmin() && order.items?.[0]?.vendor_name && (
-                    <div className="vo-vendor-tag">
-                      🏪 {order.items[0].vendor_name}
-                    </div>
-                  )}
+                    {/* Store Pickup OTP Section - for rider to pick up from store; hide once order is done */}
+                    {order.store_pickup_otp && order.status !== "delivered" && !order.otp_verified_at && (
+                      <div className="vo-otp-section" style={{ background: '#E0E7FF', borderLeft: '4px solid #4F46E5' }}>
+                        <div className="vo-otp-label">
+                          🏪 Store Pickup OTP
+                          {order.store_pickup_verified_at && (
+                            <span className="vo-otp-verified">✓ Verified</span>
+                          )}
+                        </div>
+                        <div className="vo-otp-code">{order.store_pickup_otp}</div>
+                        {order.store_pickup_verified_at && (
+                          <div className="vo-otp-time">
+                            Verified at {new Date(order.store_pickup_verified_at).toLocaleString("en-IN", {
+                              day: "2-digit",
+                              month: "short",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                  {/* Actions */}
-                  {isNew && (
-                    <div className="vo-actions">
-                      <button
-                        className="vo-btn vo-btn-accept"
-                        disabled={busy}
-                        onClick={() => updateStatus(order.id, "confirmed")}
-                      >
-                        {busy ? "…" : "✅ Accept"}
-                      </button>
-                      <button
-                        className="vo-btn vo-btn-reject"
-                        disabled={busy}
-                        onClick={() => confirmReject(order.id)}
-                      >
-                        {busy ? "…" : "❌ Reject"}
-                      </button>
-                    </div>
-                  )}
-                  {order.status === "confirmed" && (
-                    <div className="vo-actions">
-                      <button
-                        className="vo-btn vo-btn-accept"
-                        disabled={busy}
-                        onClick={() => updateStatus(order.id, "packed")}
-                      >
-                        {busy ? "…" : "📦 Mark Packed"}
-                      </button>
-                    </div>
-                  )}
-                  {order.status === "packed" && (
-                    <div className="vo-actions">
-                      <button
-                        className="vo-btn vo-btn-accept"
-                        disabled={busy}
-                        onClick={() => updateStatus(order.id, "out_for_delivery")}
-                      >
-                        {busy ? "…" : "🛵 Out for Delivery"}
-                      </button>
-                    </div>
-                  )}
+                    {/* Vendor tag for admin view */}
+                    {isAdmin() && order.items?.[0]?.vendor_name && (
+                      <div className="vo-vendor-tag">
+                        🏪 {order.items[0].vendor_name}
+                      </div>
+                    )}
 
-                  {/* Invoice / packing slip — vendor's own items only, no fees */}
-                  {!isAdmin() && vendorId && (
-                    <div className="vo-actions">
-                      <button
-                        className="vo-btn vo-btn-invoice"
-                        onClick={() =>
-                          window.open(
-                            `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
-                            "_blank"
-                          )
-                        }
-                      >
-                        🧾 Download Invoice
-                      </button>
+                    {/* Actions */}
+                    {isNew && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() => updateStatus(order.id, "confirmed")}
+                        >
+                          {busy ? "…" : "✅ Accept"}
+                        </button>
+                        <button
+                          className="vo-btn vo-btn-reject"
+                          disabled={busy}
+                          onClick={() => confirmReject(order.id)}
+                        >
+                          {busy ? "…" : "❌ Reject"}
+                        </button>
+                      </div>
+                    )}
+                    {order.status === "confirmed" && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() => updateStatus(order.id, "packed")}
+                        >
+                          {busy ? "…" : "📦 Mark Packed"}
+                        </button>
+                      </div>
+                    )}
+                    {order.status === "packed" && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() => updateStatus(order.id, "out_for_delivery")}
+                        >
+                          {busy ? "…" : "🛵 Out for Delivery"}
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Invoice / packing slip — vendor's own items only, no fees */}
+                    {!isAdmin() && vendorId && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-invoice"
+                          onClick={() =>
+                            window.open(
+                              `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          🧾 Download Invoice
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Items panel: separate card below the order card ── */}
+                  {(order.items || []).length > 0 && (
+                    <div className="vo-items-panel">
+                      <div className="vo-items-panel-title">📦 Items</div>
+                      {(order.items || []).map((item, idx) => {
+                        const imageUrl = getItemImageUrl(item);
+                        return (
+                          <div key={idx} className="vo-item">
+                            <div className="vo-item-main">
+                              <div className="vo-item-media">
+                                {imageUrl ? (
+                                  <img src={imageUrl} alt={item.product_name || "Product"} />
+                                ) : (
+                                  <span>🛍️</span>
+                                )}
+                              </div>
+                              <div className="vo-item-copy">
+                                <span className="vo-item-name">{item.product_name}</span>
+                                <span className="vo-item-detail">
+                                  {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
+                                </span>
+                                {item.barcode && (
+                                  <span className="vo-item-barcode">🏷️ {item.barcode}</span>
+                                )}
+                                <span className="vo-item-price">₹{Number(item.price || 0).toFixed(0)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
-                  </div>{/* end vo-card-lower */}
                 </div>
               );
             })}

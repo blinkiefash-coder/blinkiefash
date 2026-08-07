@@ -234,29 +234,20 @@
 .vo-list {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 20px;
 }
 
 .vo-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 20px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px 16px 0 0;
   padding: 16px;
   transition: box-shadow 0.2s ease, transform 0.2s ease;
-  box-shadow: 0 14px 36px rgba(15, 23, 42, 0.06);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
   position: relative;
 }
 .vo-card:hover {
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.10);
-  transform: translateY(-2px);
-}
-.vo-card::before {
-  content: "";
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: linear-gradient(180deg, #cbd5e1 0%, #94a3b8 100%);
-  border-radius: 20px 0 0 20px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.10);
 }
 .vo-card-new {
   border-color: #fdba74;
@@ -471,6 +462,35 @@
   padding-top: 10px;
   border-top: 1px solid #f1f5f9;
   margin-top: 10px;
+}
+
+/* Wrapper that groups an order card with its items panel below */
+.vo-order-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Separate items panel sitting below the order card */
+.vo-items-panel {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: 12px 16px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.05);
+}
+
+.vo-items-panel-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
 }
 
 .vo-date-filter {
