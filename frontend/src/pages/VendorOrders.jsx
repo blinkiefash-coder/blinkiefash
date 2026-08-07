@@ -231,8 +231,14 @@ export default function VendorOrders() {
 
   // Export currently-filtered orders as an Excel-compatible file.
   const generateExcel = () => {
+    const fmtPhone = (p) => {
+      const digits = String(p || "").replace(/\D/g, "");
+      return /^\d{10}$/.test(digits)
+        ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`
+        : p || "";
+    };
     const rows = [
-      ["Order ID", "Date", "Status", "Customer", "Phone", "Product", "Size", "Color", "Barcode", "Qty", "Price (₹)", "Item Total (₹)"],
+      ["Order ID", "Date", "Status", "Customer", "Phone", "Product", "Size", "Color", "Barcode", "Qty", "Price (\u20b9)"],
     ];
     filteredForExport.forEach((order) => {
       (order.items || []).forEach((item) => {
@@ -241,25 +247,22 @@ export default function VendorOrders() {
           new Date(order.created_at).toLocaleString("en-IN"),
           order.status,
           order.customer_name || "",
-          order.customer_phone || "",
+          fmtPhone(order.customer_phone),
           item.product_name || "",
           item.size || "",
           item.color || "",
           item.barcode || "",
           item.quantity || 1,
           Number(item.price || 0).toFixed(2),
-          (Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2),
         ]);
       });
     });
-    // Build tab-separated values wrapped in an XLS-compatible HTML table.
     const table = `<table>${rows.map((r) => `<tr>${r.map((c) => `<td>${String(c).replace(/</g, "&lt;")}</td>`).join("")}</tr>`).join("")}</table>`;
     const blob = new Blob([table], { type: "application/vnd.ms-excel;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    const label = `orders_${dateFrom || "all"}_to_${dateTo || "today"}.xls`;
-    a.download = label;
+    a.download = `orders_${dateFrom || "all"}_to_${dateTo || "today"}.xls`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -363,6 +366,28 @@ export default function VendorOrders() {
               <strong className="vo-metric-value">{metric.value}</strong>
             </div>
           ))}
+        </div>
+
+        <div className="vo-report-bar">
+          <span className="vo-report-bar-title">📅 Filter &amp; Export</span>
+          <div className="vo-date-filter">
+            <label>From
+              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </label>
+            <label>To
+              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            </label>
+            {(dateFrom || dateTo) && (
+              <button className="vo-date-clear" onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>
+            )}
+          </div>
+          <button
+            className="vo-btn vo-btn-excel"
+            onClick={generateExcel}
+            title="Export filtered orders to Excel"
+          >
+            📊 Generate Excel
+          </button>
         </div>
 
         <div className="vo-tabs">
