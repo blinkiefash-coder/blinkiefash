@@ -282,6 +282,12 @@ class ApiClient {
         if (storeName != null && storeName.isNotEmpty) {
           ApiClient.currentStoreName = storeName;
         }
+      } else if (lat != null && lng != null) {
+        // Avoid stale filters from a previous city when a new location cannot
+        // resolve a nearest store in the current response.
+        ApiClient.currentStoreId = null;
+        ApiClient.currentStoreIds = const [];
+        ApiClient.currentStoreName = null;
       } else if (lat == null && lng == null) {
         ApiClient.currentStoreId = null; // reset when no location
         ApiClient.currentStoreIds = const [];
@@ -375,7 +381,25 @@ class ApiClient {
       '$apiApiBaseUrl/products',
     ).replace(queryParameters: params);
     final data = await _getJson(uri);
-    if (data is Map<String, dynamic>) return data;
+    if (data is Map<String, dynamic>) {
+      final products = data['products'];
+      final hasStoreFilter =
+          params.containsKey('store_id') || params.containsKey('store_ids');
+      final isEmpty = products is List && products.isEmpty;
+      if (hasStoreFilter && isEmpty) {
+        // For far/less-covered locations, strict store filtering can return
+        // empty category/search results. Retry once without store filters.
+        final fallbackParams = Map<String, String>.from(params)
+          ..remove('store_id')
+          ..remove('store_ids');
+        final fallbackUri = Uri.parse(
+          '$apiApiBaseUrl/products',
+        ).replace(queryParameters: fallbackParams);
+        final fallbackData = await _getJson(fallbackUri);
+        if (fallbackData is Map<String, dynamic>) return fallbackData;
+      }
+      return data;
+    }
     return const {};
   }
 
@@ -405,6 +429,28 @@ class ApiClient {
         (data2['products'] as List).isNotEmpty) {
       return data2['products'] as List;
     }
+
+    if (storeParam.isNotEmpty) {
+      // Retry without store filter when strict filter has no bestsellers.
+      final uriNoStore = Uri.parse('$apiApiBaseUrl/products/bestsellers?limit=10');
+      final dataNoStore = await _getJson(uriNoStore);
+      if (dataNoStore is Map &&
+          dataNoStore['bestsellers'] is List &&
+          (dataNoStore['bestsellers'] as List).isNotEmpty) {
+        return dataNoStore['bestsellers'] as List;
+      }
+
+      final uriNoStore2 = Uri.parse(
+        '$apiApiBaseUrl/products?is_bestseller=true&limit=10',
+      );
+      final dataNoStore2 = await _getJson(uriNoStore2);
+      if (dataNoStore2 is Map &&
+          dataNoStore2['products'] is List &&
+          (dataNoStore2['products'] as List).isNotEmpty) {
+        return dataNoStore2['products'] as List;
+      }
+    }
+
     return const [];
   }
 
@@ -434,7 +480,24 @@ class ApiClient {
     ).replace(queryParameters: params);
     final data = await _getJson(uri);
     if (data is Map && data['products'] is List) {
-      return data['products'] as List;
+      final products = data['products'] as List;
+      if (products.isNotEmpty) return products;
+
+      final hasStoreFilter =
+          params.containsKey('store_id') || params.containsKey('store_ids');
+      if (hasStoreFilter) {
+        final fallbackParams = Map<String, String>.from(params)
+          ..remove('store_id')
+          ..remove('store_ids');
+        final fallbackUri = Uri.parse(
+          '$apiApiBaseUrl/products',
+        ).replace(queryParameters: fallbackParams);
+        final fallbackData = await _getJson(fallbackUri);
+        if (fallbackData is Map && fallbackData['products'] is List) {
+          return fallbackData['products'] as List;
+        }
+      }
+      return products;
     }
     if (data is List) return data;
     return const [];
