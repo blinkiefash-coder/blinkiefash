@@ -221,9 +221,25 @@ router.get("/recently-explored", async (req, res) => {
       [userId, limit]
     );
 
+    console.log(`[Recently-explored] Query found ${productsRes.rows.length} products from JOIN`);
+
     // If no products found with specific event types, fallback to any event with product_id
     if (productsRes.rows.length === 0) {
       console.log(`[Recently-explored] No products from specific events, trying fallback query...`);
+      
+      // First, check what product_ids exist in events but NOT in products table
+      const eventProdsRes = await pool.query(
+        `SELECT DISTINCT e.product_id FROM user_activity_events e
+         WHERE e.user_id = $1 AND e.product_id IS NOT NULL
+         AND NOT EXISTS (SELECT 1 FROM products p WHERE p.id = e.product_id)`,
+        [userId]
+      );
+      
+      if (eventProdsRes.rows.length > 0) {
+        console.log(`[Recently-explored] Found ${eventProdsRes.rows.length} product_ids in events that don't exist in products table`);
+        console.log(`[Recently-explored] Missing product_ids: ${eventProdsRes.rows.map(r => r.product_id).join(', ')}`);
+      }
+
       productsRes = await pool.query(
         `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
                 COALESCE(p.rating, 0) as rating,
@@ -237,6 +253,8 @@ router.get("/recently-explored", async (req, res) => {
          LIMIT $2`,
         [userId, limit]
       );
+      
+      console.log(`[Recently-explored] Fallback query found ${productsRes.rows.length} products`);
     }
 
     const products = productsRes.rows.map(p => ({
@@ -288,11 +306,37 @@ router.get("/user-events", async (req, res) => {
       [userId]
     );
 
+    // Get distinct product_ids in events
+    const eventProductIds = await pool.query(
+      `SELECT DISTINCT product_id FROM user_activity_events
+       WHERE user_id = $1 AND product_id IS NOT NULL`,
+      [userId]
+    );
+
+    // Check which of those product_ids exist in products table
+    const eventProdIds = eventProductIds.rows.map(r => r.product_id);
+    let existingProducts = [];
+    if (eventProdIds.length > 0) {
+      const existRes = await pool.query(
+        `SELECT id FROM products WHERE id = ANY($1::text[])`,
+        [eventProdIds]
+      );
+      existingProducts = existRes.rows.map(r => r.id);
+    }
+
+    const missingProducts = eventProdIds.filter(id => !existingProducts.includes(id));
+
     res.json({
       userId,
       eventSummary: summary.rows,
       recentProductEvents: recent.rows,
-      totalUniqueProducts: (summary.rows.reduce((sum, r) => sum + (r.products || 0), 0)),
+      totalUniqueProducts: eventProdIds.length,
+      eventProductIds: eventProdIds,
+      productsExistInDB: existingProducts,
+      missingFromProductsTable: missingProducts,
+      matchPercentage: eventProdIds.length > 0 ? 
+        ((existingProducts.length / eventProdIds.length) * 100).toFixed(1) + '%' : 
+        'N/A',
     });
   } catch (err) {
     console.warn("Failed to fetch user events:", err.message);
