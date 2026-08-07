@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart' as gmaps;
 import 'package:latlong2/latlong.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
+import '../services/user_session.dart';
 import '../widgets/bf_loader.dart';
 
 /// Result returned when user confirms a location.
@@ -76,6 +77,17 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
   final TextEditingController _flatCtrl = TextEditingController();
   final TextEditingController _landmarkCtrl = TextEditingController();
   String _addressType = 'home'; // home | work | other
+
+  @override
+  void initState() {
+    super.initState();
+    // Default recipient name/number to the logged-in user's own profile —
+    // still freely editable if delivering under a different name/number.
+    final userName = UserSession.instance.name?.trim() ?? '';
+    final userPhone = UserSession.instance.phone?.trim() ?? '';
+    if (userName.isNotEmpty) _nameCtrl.text = userName;
+    if (userPhone.isNotEmpty) _phoneCtrl.text = userPhone;
+  }
 
   @override
   void dispose() {

@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-// ignore: unused_import
-import 'package:flutter_contacts/flutter_contacts.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
@@ -100,29 +98,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Delivery schedule state
   int _selectedTomorrowSlotIndex = 0;
 
-  // Receiver information state
-  String _receiverType = 'own'; // 'own' or 'someone_else'
-  final _receiverNameCtrl = TextEditingController();
-  final _receiverPhoneCtrl = TextEditingController();
+  // Payment method (display/selection only — order is always COD on the backend today)
+  String _paymentMethod = 'cod'; // 'cod' or 'upi'
 
-  /// Name to display in the address summary — the receiver's name when
-  /// delivering to someone else, otherwise the address's own saved name.
+  /// Name to display in the address summary — falls back to a generic label
+  /// when the saved address has no name on file.
   String get _summaryName {
-    if (_receiverType == 'someone_else' &&
-        _receiverNameCtrl.text.trim().isNotEmpty) {
-      return _receiverNameCtrl.text.trim();
-    }
     final n = widget.selectedAddress['name']?.toString().trim() ?? '';
     return n.isNotEmpty ? n : 'Delivery Address';
   }
 
-  /// Phone to display in the address summary — the receiver's phone when
-  /// delivering to someone else, otherwise the address's own saved phone.
+  /// Phone to display in the address summary — the address's own saved phone.
   String? get _summaryPhone {
-    if (_receiverType == 'someone_else' &&
-        _receiverPhoneCtrl.text.trim().isNotEmpty) {
-      return _receiverPhoneCtrl.text.trim();
-    }
     final p = widget.selectedAddress['phone']?.toString().trim() ?? '';
     return p.isNotEmpty ? p : null;
   }
@@ -157,8 +144,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     _donationItemCtrl.dispose();
     _donationNotesCtrl.dispose();
     _couponCtrl.dispose();
-    _receiverNameCtrl.dispose();
-    _receiverPhoneCtrl.dispose();
     super.dispose();
   }
 
@@ -594,73 +579,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
   }
 
-  Future<void> _selectContact() async {
-    try {
-      // showPicker() without properties = permissionless; we fetch full contact after
-      final contact = await FlutterContacts.native.showPicker();
-      if (contact == null || !mounted) return;
-
-      Contact full = contact;
-
-      // Native picker only returns ID without properties — always fetch full contact
-      if (contact.id?.isNotEmpty ?? false) {
-        final status = await FlutterContacts.permissions.request(
-          PermissionType.read,
-        );
-        if (status == PermissionStatus.granted ||
-            status == PermissionStatus.limited) {
-          final fetched = await FlutterContacts.get(
-            contact.id!,
-            properties: {ContactProperty.phone, ContactProperty.name},
-          );
-          if (fetched != null) full = fetched;
-        }
-      }
-
-      String phone = '';
-      if (full.phones.isNotEmpty) {
-        final normalized = full.phones.first.normalizedNumber;
-        final raw =
-            ((normalized != null && normalized.isNotEmpty)
-                    ? normalized
-                    : full.phones.first.number)
-                .replaceAll(RegExp(r'[^\d]'), '');
-        phone = raw.length > 10 ? raw.substring(raw.length - 10) : raw;
-      }
-
-      final firstName = full.name?.first ?? '';
-      final lastName = full.name?.last ?? '';
-      final composed = [
-        firstName,
-        lastName,
-      ].where((s) => s.isNotEmpty).join(' ').trim();
-      final displayName = full.displayName ?? '';
-      final name = displayName.isNotEmpty ? displayName : composed;
-
-      setState(() {
-        if (name.isNotEmpty) _receiverNameCtrl.text = name;
-        if (phone.isNotEmpty) _receiverPhoneCtrl.text = phone;
-      });
-
-      if (phone.isEmpty && mounted) {
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(
-            const SnackBar(
-              content: Text('Phone not found — please type it manually.'),
-            ),
-          );
-      }
-    } catch (e) {
-      debugPrint('Contact pick error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
-      }
-    }
-  }
-
   void _showDonationModal() {
     showModalBottomSheet(
       context: context,
@@ -966,503 +884,86 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               onDecrement: () => _decrementCheckoutItem(ci),
             ),
           ),
-          const SizedBox(height: 16),
-
-          const _SectionHeader(
-            title: 'Delivery Address',
-            icon: Icons.location_on_outlined,
-          ),
-          const SizedBox(height: 8),
-          Container(
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF0FDF4),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        _addressTypeIcon(
-                          widget.selectedAddress['address_type']?.toString(),
-                        ),
-                        color: const Color(0xFF166534),
-                        size: 18,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _summaryName,
-                                  style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF0F172A),
-                                  ),
-                                ),
-                              ),
-                              if (_receiverType == 'someone_else')
-                                Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFEFF6FF),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: const Color(0xFFBFDBFE),
-                                    ),
-                                  ),
-                                  child: const Text(
-                                    'OTHER',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF1D4ED8),
-                                    ),
-                                  ),
-                                ),
-                              if ((widget.selectedAddress['address_type']
-                                          ?.toString() ??
-                                      '')
-                                  .isNotEmpty)
-                                Container(
-                                  margin: const EdgeInsets.only(left: 6),
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 2,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0FDF4),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: const Color(0xFFBBF7D0),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    (widget.selectedAddress['address_type']
-                                            as String)
-                                        .toUpperCase(),
-                                    style: const TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w700,
-                                      color: Color(0xFF166534),
-                                    ),
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${widget.selectedAddress['address_line'] ?? ''}, '
-                            '${widget.selectedAddress['city'] ?? ''} - '
-                            '${widget.selectedAddress['pincode'] ?? ''}',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF475569),
-                              height: 1.4,
-                            ),
-                          ),
-                          if (_summaryPhone != null) ...[
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(
-                                  Icons.phone_outlined,
-                                  size: 13,
-                                  color: Color(0xFF64748B),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  _summaryPhone!,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Color(0xFF64748B),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      style: TextButton.styleFrom(
-                        foregroundColor: const Color(0xFF166534),
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
-                      ),
-                      child: const Text(
-                        'Change',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: 16),
-                const Divider(thickness: 1, height: 1),
-                const SizedBox(height: 12),
-
-                // Receiver section inside Address
-                const Text(
-                  'Receiver Details',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFF1F2937),
-                  ),
-                ),
-                const SizedBox(height: 8),
-
-                // Own receiver option
-                GestureDetector(
-                  onTap: () => setState(() => _receiverType = 'own'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _receiverType == 'own'
-                          ? const Color(0xFFF0FDF4)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _receiverType == 'own'
-                            ? const Color(0xFF166534)
-                            : const Color(0xFFE5E7EB),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Radio<String>(
-                          value: 'own',
-                          groupValue: _receiverType,
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _receiverType = value);
-                            }
-                          },
-                          activeColor: const Color(0xFF166534),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'Deliver to me',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                // Someone else option
-                GestureDetector(
-                  onTap: () => setState(() => _receiverType = 'someone_else'),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: _receiverType == 'someone_else'
-                          ? const Color(0xFFF0FDF4)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: _receiverType == 'someone_else'
-                            ? const Color(0xFF166534)
-                            : const Color(0xFFE5E7EB),
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Radio<String>(
-                          value: 'someone_else',
-                          groupValue: _receiverType,
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _receiverType = value);
-                            }
-                          },
-                          activeColor: const Color(0xFF166534),
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'Deliver to someone else',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Show contact select and name/phone fields if someone else is selected
-                if (_receiverType == 'someone_else') ...[
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF166534),
-                        foregroundColor: Colors.white,
-                        minimumSize: const Size.fromHeight(36),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: _selectContact,
-                      icon: const Icon(Icons.contacts, size: 16),
-                      label: const Text('Select Contact'),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _receiverNameCtrl,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            labelText: 'Name',
-                            hintText: 'Name',
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            prefixIcon: const Icon(Icons.person, size: 16),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            isDense: true,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _receiverPhoneCtrl,
-                          onChanged: (_) => setState(() {}),
-                          decoration: InputDecoration(
-                            labelText: 'Phone',
-                            hintText: 'Phone',
-                            filled: true,
-                            fillColor: const Color(0xFFF8FAFC),
-                            prefixIcon: const Icon(Icons.phone, size: 16),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 8,
-                            ),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(8),
-                              borderSide: const BorderSide(
-                                color: Color(0xFFE5E7EB),
-                              ),
-                            ),
-                            isDense: true,
-                          ),
-                          keyboardType: TextInputType.phone,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ],
-            ),
-          ),
-
+          const SizedBox(height: 10),
+          _buildPaymentMethodSelector(),
           const SizedBox(height: 16),
 
           // ─── OFFERS & DISCOUNTS SECTION ──────────────────────────────────
-          Container(
-            decoration: BoxDecoration(
-              color: const Color(0xFFFEF3C7),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFF59E0B), width: 1),
-            ),
-            padding: const EdgeInsets.all(12),
-            child: Column(
+          const _SectionHeader(
+            title: 'Offers & Discounts',
+            icon: Icons.local_offer_outlined,
+          ),
+          const SizedBox(height: 8),
+          SizedBox(
+            height: 78,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
               children: [
-                const Row(
-                  children: [
-                    Icon(
-                      Icons.local_offer_outlined,
-                      color: Color(0xFFF59E0B),
-                      size: 20,
-                    ),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Offers & Discounts (Pick One)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF92400E),
-                        ),
-                      ),
-                    ),
-                  ],
+                _offerChip(
+                  emoji: '🚚',
+                  title: 'Free Delivery',
+                  subtitle: 'First 3 orders',
+                  applied: true,
                 ),
-                const SizedBox(height: 8),
-                // Spin & Win option
-                _buildDiscountOption(
-                  title: '🎡 Spin & Win',
-                  description: 'Get ₹50 discount now',
-                  value: 'spin',
-                  isSelected: _selectedFlatOffer == 'spin',
-                  onTap: () {
-                    setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'spin'
-                          ? ''
-                          : 'spin';
-                    });
-                    if (_selectedFlatOffer == 'spin') {
-                      ScaffoldMessenger.of(context)
-                        ..removeCurrentSnackBar()
-                        ..showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              '✨ Spin & Win - ₹50 discount applied!',
-                            ),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                    }
-                  },
+                const SizedBox(width: 8),
+                _offerChip(
+                  emoji: '🎡',
+                  title: 'Spin & Win',
+                  subtitle: '₹50 off',
+                  applied: _selectedFlatOffer == 'spin',
+                  onTap: () => _toggleFlatOffer('spin'),
                 ),
-                const SizedBox(height: 6),
-                // Play & Win option
-                _buildDiscountOption(
-                  title: '🎮 Play & Win',
-                  description: 'Get ₹50 discount now',
-                  value: 'play',
-                  isSelected: _selectedFlatOffer == 'play',
-                  onTap: () {
-                    setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'play'
-                          ? ''
-                          : 'play';
-                    });
-                    if (_selectedFlatOffer == 'play') {
-                      ScaffoldMessenger.of(context)
-                        ..removeCurrentSnackBar()
-                        ..showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              '✨ Play & Win - ₹50 discount applied!',
-                            ),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                    }
-                  },
+                const SizedBox(width: 8),
+                _offerChip(
+                  emoji: '🎮',
+                  title: 'Play & Win',
+                  subtitle: '₹50 off',
+                  applied: _selectedFlatOffer == 'play',
+                  onTap: () => _toggleFlatOffer('play'),
                 ),
-                const SizedBox(height: 6),
-                // Refer & Earn option
-                _buildDiscountOption(
-                  title: '👥 Refer & Earn',
-                  description: 'Get ₹50 discount now',
-                  value: 'refer',
-                  isSelected: _selectedFlatOffer == 'refer',
-                  onTap: () {
-                    setState(() {
-                      _selectedFlatOffer = _selectedFlatOffer == 'refer'
-                          ? ''
-                          : 'refer';
-                    });
-                    if (_selectedFlatOffer == 'refer') {
-                      ScaffoldMessenger.of(context)
-                        ..removeCurrentSnackBar()
-                        ..showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              '✨ Refer & Earn - ₹50 discount applied!',
-                            ),
-                            duration: Duration(seconds: 2),
-                          ),
-                        );
-                    }
-                  },
+                const SizedBox(width: 8),
+                _offerChip(
+                  emoji: '👥',
+                  title: 'Refer & Earn',
+                  subtitle: '₹50 off',
+                  applied: _selectedFlatOffer == 'refer',
+                  onTap: () => _toggleFlatOffer('refer'),
                 ),
-                if (_selectedFlatOffer.isNotEmpty) ...[
-                  const SizedBox(height: 8),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.6),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          '✓ Discount Applied',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                        Text(
-                          '- ₹${_flatOfferDiscount.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
+          if (_selectedFlatOffer.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFF59E0B)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    '✓ Discount Applied',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                  Text(
+                    '- ₹${_flatOfferDiscount.toStringAsFixed(0)}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           const SizedBox(height: 16),
 
@@ -2055,28 +1556,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(color: const Color(0xFF86EFAC)),
             ),
-            child: const Row(
+            child: Row(
               children: [
-                CircleAvatar(
+                const CircleAvatar(
                   backgroundColor: Colors.white,
                   child: Icon(
                     Icons.payments_outlined,
                     color: Color(0xFF16A34A),
                   ),
                 ),
-                SizedBox(width: 12),
+                const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Cash on Delivery',
-                        style: TextStyle(
+                        _paymentMethod == 'upi'
+                            ? 'UPI on Delivery'
+                            : 'Cash on Delivery',
+                        style: const TextStyle(
                           fontWeight: FontWeight.w700,
                           color: Color(0xFF166534),
                         ),
                       ),
-                      Text(
+                      const Text(
                         'Pay when your order arrives',
                         style: TextStyle(
                           color: Color(0xFF4B5563),
@@ -2086,10 +1589,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ],
                   ),
                 ),
-                Icon(Icons.check_circle, color: Color(0xFF16A34A)),
+                const Icon(Icons.check_circle, color: Color(0xFF16A34A)),
               ],
             ),
           ),
+          const SizedBox(height: 16),
+
+          // ─── DELIVERY ADDRESS (moved to the end) ─────────────────────────
+          _buildDeliveryAddressCard(),
           const SizedBox(height: 90),
         ],
       ),
@@ -2177,116 +1684,269 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildDiscountOption({
-    required String title,
-    required String description,
-    required String value,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-                  colors: [Color(0xFFFCD34D), Color(0xFFFBBF24)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : const LinearGradient(
-                  colors: [Color(0xFFFEF3C7), Color(0xFFFDE68A)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected
-                ? const Color(0xFFF59E0B)
-                : const Color(0xFFFCD34D),
-            width: isSelected ? 2 : 1,
-          ),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFFF59E0B).withOpacity(0.3),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildPaymentMethodSelector() {
+    Widget chip(String value, IconData icon, String label) {
+      final selected = _paymentMethod == value;
+      return Expanded(
+        child: GestureDetector(
+          onTap: () => setState(() => _paymentMethod = value),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            decoration: BoxDecoration(
+              color: selected ? const Color(0xFFF0FDF4) : Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: selected
+                    ? const Color(0xFF166534)
+                    : const Color(0xFFE5E7EB),
+                width: selected ? 1.4 : 1,
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isSelected
-                        ? const Color(0xFF78350F)
-                        : const Color(0xFF92400E),
-                  ),
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected
+                      ? const Color(0xFF166534)
+                      : const Color(0xFF6B7280),
                 ),
-                const SizedBox(height: 2),
+                const SizedBox(width: 6),
                 Text(
-                  description,
+                  label,
                   style: TextStyle(
-                    fontSize: 11,
-                    color: isSelected
-                        ? const Color(0xFF78350F)
-                        : const Color(0xFF92400E),
-                    fontWeight: FontWeight.w500,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: selected
+                        ? const Color(0xFF166534)
+                        : const Color(0xFF6B7280),
                   ),
                 ),
               ],
             ),
-            if (isSelected)
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.8),
-                  borderRadius: BorderRadius.circular(6),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        chip('cod', Icons.payments_outlined, 'Cash on Delivery'),
+        const SizedBox(width: 8),
+        chip('upi', Icons.qr_code_scanner, 'UPI on Delivery'),
+      ],
+    );
+  }
+
+  void _toggleFlatOffer(String value) {
+    setState(() {
+      _selectedFlatOffer = _selectedFlatOffer == value ? '' : value;
+    });
+    if (_selectedFlatOffer == value) {
+      const labels = {
+        'spin': '✨ Spin & Win',
+        'play': '✨ Play & Win',
+        'refer': '✨ Refer & Earn',
+      };
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text('${labels[value]} - ₹50 discount applied!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+    }
+  }
+
+  Widget _offerChip({
+    required String emoji,
+    required String title,
+    required String subtitle,
+    required bool applied,
+    VoidCallback? onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 128,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: applied ? const Color(0xFFFEF3C7) : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: applied ? const Color(0xFFF59E0B) : const Color(0xFFE5E7EB),
+            width: applied ? 1.4 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 15)),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF92400E),
+                    ),
+                  ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                child: const Text(
-                  '✓ Selected',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                if (applied)
+                  const Icon(
+                    Icons.check_circle,
+                    size: 14,
                     color: Color(0xFF15803D),
                   ),
-                ),
-              )
-            else
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.6),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                child: const Text(
-                  'Tap',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Color(0xFFF59E0B),
-                  ),
-                ),
-              ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 10.5, color: Color(0xFF78716C)),
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildDeliveryAddressCard() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const _SectionHeader(
+          title: 'Delivery Address',
+          icon: Icons.location_on_outlined,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFF0FDF4),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  _addressTypeIcon(
+                    widget.selectedAddress['address_type']?.toString(),
+                  ),
+                  color: const Color(0xFF166534),
+                  size: 18,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _summaryName,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                        ),
+                        if ((widget.selectedAddress['address_type']
+                                    ?.toString() ??
+                                '')
+                            .isNotEmpty)
+                          Container(
+                            margin: const EdgeInsets.only(left: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF0FDF4),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: const Color(0xFFBBF7D0),
+                              ),
+                            ),
+                            child: Text(
+                              (widget.selectedAddress['address_type'] as String)
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF166534),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${widget.selectedAddress['address_line'] ?? ''}, '
+                      '${widget.selectedAddress['city'] ?? ''} - '
+                      '${widget.selectedAddress['pincode'] ?? ''}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Color(0xFF475569),
+                        height: 1.4,
+                      ),
+                    ),
+                    if (_summaryPhone != null) ...[
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.phone_outlined,
+                            size: 13,
+                            color: Color(0xFF64748B),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _summaryPhone!,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                style: TextButton.styleFrom(
+                  foregroundColor: const Color(0xFF166534),
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                ),
+                child: const Text(
+                  'Change',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
