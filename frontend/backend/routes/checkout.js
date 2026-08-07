@@ -80,7 +80,7 @@ router.get("/addresses", async (req, res) => {
   if (!userId) return res.status(400).json({ success: false, message: "userId required" });
   try {
     const { rows } = await pool.query(
-      `SELECT id, address_line, city, pincode, is_default, lat, lng
+      `SELECT id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type
        FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, id DESC`,
       [userId]
     );
@@ -147,7 +147,7 @@ router.get("/delivery-fee", async (req, res) => {
 
 // ── POST /api/checkout/addresses ─────────────────────────────────────────────
 router.post("/addresses", async (req, res) => {
-  const { userId, address_line, city, pincode, lat, lng } = req.body;
+  const { userId, address_line, city, pincode, lat, lng, name, phone, address_type } = req.body;
   if (!userId || !address_line || !city || !pincode) {
     return res.status(400).json({ success: false, message: "All fields required" });
   }
@@ -159,10 +159,11 @@ router.post("/addresses", async (req, res) => {
     const isDefault = parseInt(existing[0].cnt) === 0;
 
     const { rows } = await pool.query(
-      `INSERT INTO addresses (user_id, address_line, city, pincode, is_default, lat, lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+      `INSERT INTO addresses (user_id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
       [userId, address_line.trim(), city.trim(), pincode.trim(), isDefault,
-       lat ?? null, lng ?? null]
+       lat ?? null, lng ?? null, name?.trim() || null, phone?.trim() || null,
+       address_type || 'home']
     );
     res.json({ success: true, address: rows[0] });
   } catch (err) {
