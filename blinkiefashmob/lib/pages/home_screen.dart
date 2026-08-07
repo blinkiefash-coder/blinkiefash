@@ -45,7 +45,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   static const String _prefDeliveryCity = 'home_delivery_city';
   static const String _prefDeliveryLat = 'home_delivery_lat';
   static const String _prefDeliveryLng = 'home_delivery_lng';
@@ -57,8 +58,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     'google_maps_api_key',
     defaultValue: '',
   );
-  String get _googleMapsApiKey =>
-      _googleMapsApiKeyUpper.isNotEmpty ? _googleMapsApiKeyUpper : _googleMapsApiKeyLower;
+  String get _googleMapsApiKey => _googleMapsApiKeyUpper.isNotEmpty
+      ? _googleMapsApiKeyUpper
+      : _googleMapsApiKeyLower;
   final ApiClient _api = ApiClient();
   int _tab = 0;
   bool _guestStartupLocationPromptShown = false;
@@ -294,7 +296,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  String _avatarPrefKey() => 'selected_avatar_${UserSession.instance.userId ?? 'guest'}';
+  String _avatarPrefKey() =>
+      'selected_avatar_${UserSession.instance.userId ?? 'guest'}';
 
   Future<void> _loadSelectedAvatar() async {
     final prefs = await SharedPreferences.getInstance();
@@ -396,7 +399,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   border: Border.all(
-                    color: selected ? const Color(0xFF16A34A) : Colors.transparent,
+                    color: selected
+                        ? const Color(0xFF16A34A)
+                        : Colors.transparent,
                     width: 2,
                   ),
                 ),
@@ -409,8 +414,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       width: 52,
                       height: 52,
                       fit: BoxFit.cover,
-                      errorWidget: (_, _, _) =>
-                          const Icon(Icons.person_rounded, color: Color(0xFF64748B)),
+                      errorWidget: (_, _, _) => const Icon(
+                        Icons.person_rounded,
+                        color: Color(0xFF64748B),
+                      ),
                     ),
                   ),
                 ),
@@ -472,7 +479,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       if (storeId != null && (under999.isEmpty || under1999.isEmpty)) {
         final priceResults = await Future.wait([
           _api.fetchProductsByPriceRange(minPrice: 0, maxPrice: 999, limit: 10),
-          _api.fetchProductsByPriceRange(minPrice: 1000, maxPrice: 1999, limit: 10),
+          _api.fetchProductsByPriceRange(
+            minPrice: 1000,
+            maxPrice: 1999,
+            limit: 10,
+          ),
         ]);
         if (!mounted) return;
         under999Final = priceResults[0];
@@ -482,7 +493,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       // Check radius configured for the nearest delivery partner.
       final nearestStore = storeResult['nearestStore'] as Map?;
       final locationProvided =
-          storeResult['locationProvided'] == true || (lat != null && lng != null);
+          storeResult['locationProvided'] == true ||
+          (lat != null && lng != null);
       final distKm = nearestStore?['dist'] as num?;
 
       // Determine delivery radius based on store location
@@ -498,9 +510,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           storeCity.contains('baleshwar') ||
           storeCity.contains('bhadrak') ||
           storeCity.contains('odisha');
-      final radiusKm = (nearestStore?['deliveryRadiusKm'] as num?) ?? (isOdishaStore ? 500 : 45);
+      final radiusKm =
+          (nearestStore?['deliveryRadiusKm'] as num?) ??
+          (isOdishaStore ? 500 : 45);
       final outOfArea =
-          locationProvided && (nearestStore == null || (distKm != null && distKm > radiusKm));
+          locationProvided &&
+          (nearestStore == null || (distKm != null && distKm > radiusKm));
 
       setState(() {
         _outOfServiceArea = outOfArea;
@@ -511,7 +526,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             .whereType<Map<String, dynamic>>()
             .toList();
         _categories =
-            cats.whereType<Map<String, dynamic>>().where((c) => c['parent_id'] == null).toList()
+            cats
+                .whereType<Map<String, dynamic>>()
+                .where((c) => c['parent_id'] == null)
+                .toList()
               ..sort((a, b) {
                 final an = (a['name'] ?? '').toString().toLowerCase();
                 final bn = (b['name'] ?? '').toString().toLowerCase();
@@ -594,7 +612,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     try {
       final root = _allCategories.firstWhere(
         (c) =>
-            (c['name']?.toString() ?? '').toLowerCase() == rootCategoryName.toLowerCase() &&
+            (c['name']?.toString() ?? '').toLowerCase() ==
+                rootCategoryName.toLowerCase() &&
             c['parent_id'] == null,
         orElse: () => <String, dynamic>{},
       );
@@ -678,7 +697,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return;
       }
 
-      final result = await _api.fetchRecentlyExplored(userId: userId, limit: 10);
+      final result = await _api.fetchRecentlyExplored(
+        userId: userId,
+        limit: 10,
+      );
       if (kDebugMode) {
         print('[Recently Explored] API result: $result');
       }
@@ -756,7 +778,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         if (mounted) setState(() => _currentLocation = 'Location denied');
         return;
       }
-      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
         await _detectCurrentLocation();
       }
     } catch (_) {
@@ -793,8 +816,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       // Step 1: Show last known position instantly (no GPS wait)
       final lastKnown = await Geolocator.getLastKnownPosition();
       if (lastKnown != null && mounted) {
-        debugPrint('[LOC] Last known position: ${lastKnown.latitude}, ${lastKnown.longitude}');
-        await _reverseGeocodeAndUpdate(lastKnown.latitude, lastKnown.longitude, persist: false);
+        debugPrint(
+          '[LOC] Last known position: ${lastKnown.latitude}, ${lastKnown.longitude}',
+        );
+        await _reverseGeocodeAndUpdate(
+          lastKnown.latitude,
+          lastKnown.longitude,
+          persist: false,
+        );
       }
 
       // Step 2: Get fresh GPS position in background and update
@@ -804,7 +833,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         timeLimit: const Duration(seconds: 15),
       );
       debugPrint('[LOC] GPS success: ${pos.latitude}, ${pos.longitude}');
-      await _reverseGeocodeAndUpdate(pos.latitude, pos.longitude, persist: true);
+      await _reverseGeocodeAndUpdate(
+        pos.latitude,
+        pos.longitude,
+        persist: true,
+      );
     } on TimeoutException {
       debugPrint('[LOC] GPS timeout after 15s');
       if (mounted && _lastKnownLat == null) {
@@ -818,7 +851,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<void> _reverseGeocodeAndUpdate(double lat, double lng, {required bool persist}) async {
+  Future<void> _reverseGeocodeAndUpdate(
+    double lat,
+    double lng, {
+    required bool persist,
+  }) async {
     try {
       final uri = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse'
@@ -892,9 +929,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
       // Navigate to parcel tracking screen
       if (mounted) {
-        Navigator.of(
-          context,
-        ).push(MaterialPageRoute(builder: (_) => ParcelTrackingScreen(requestId: parcelId)));
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => ParcelTrackingScreen(requestId: parcelId),
+          ),
+        );
       }
     }
   }
@@ -954,7 +993,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     ApiClient.currentStoreId = null; // will be refreshed by _loadHomeData
     ApiClient.currentStoreIds = const [];
     if (mounted) {
-      final resolvedCity = city.isNotEmpty ? city : (line.isNotEmpty ? line : 'Selected Location');
+      final resolvedCity = city.isNotEmpty
+          ? city
+          : (line.isNotEmpty ? line : 'Selected Location');
       setState(() {
         _currentLocation = resolvedCity;
         _lastKnownLat = lat;
@@ -1003,7 +1044,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     for (final v in variants) {
       if (v is! Map) continue;
       final variantMap = Map<String, dynamic>.from(v);
-      final stock = int.tryParse(variantMap['available_stock']?.toString() ?? '0') ?? 0;
+      final stock =
+          int.tryParse(variantMap['available_stock']?.toString() ?? '0') ?? 0;
       if (stock > 0) {
         inStockVariant = variantMap;
         break;
@@ -1100,7 +1142,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           type: BottomNavigationBarType.fixed,
           selectedItemColor: _green,
           unselectedItemColor: const Color(0xFF94A3B8),
-          selectedLabelStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
+          selectedLabelStyle: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 11),
           backgroundColor: Colors.white,
           elevation: 12,
@@ -1230,7 +1275,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           const SizedBox(height: 1),
                           Row(
                             children: [
-                              const Icon(Icons.location_on_outlined, size: 13, color: _green),
+                              const Icon(
+                                Icons.location_on_outlined,
+                                size: 13,
+                                color: _green,
+                              ),
                               const SizedBox(width: 2),
                               Flexible(
                                 child: Text(
@@ -1261,7 +1310,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         ValueListenableBuilder<int>(
-                          valueListenable: NotificationService.instance.unreadCountNotifier,
+                          valueListenable:
+                              NotificationService.instance.unreadCountNotifier,
                           builder: (context, unread, _) => Stack(
                             children: [
                               GestureDetector(
@@ -1269,7 +1319,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 onTap: () {
                                   NotificationService.instance.clearUnread();
                                   Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const NotificationsScreen(),
+                                    ),
                                   );
                                 },
                                 child: const SizedBox(
@@ -1308,9 +1361,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         const SizedBox(width: 2),
                         GestureDetector(
                           behavior: HitTestBehavior.opaque,
-                          onTap: () => Navigator.of(
-                            context,
-                          ).push(MaterialPageRoute(builder: (_) => const WishlistScreen())),
+                          onTap: () => Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const WishlistScreen(),
+                            ),
+                          ),
                           child: const SizedBox(
                             width: 26,
                             height: 26,
@@ -1328,9 +1383,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             children: [
                               GestureDetector(
                                 behavior: HitTestBehavior.opaque,
-                                onTap: () => Navigator.of(
-                                  context,
-                                ).push(MaterialPageRoute(builder: (_) => const CartScreen())),
+                                onTap: () => Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => const CartScreen(),
+                                  ),
+                                ),
                                 child: const SizedBox(
                                   width: 26,
                                   height: 26,
@@ -1411,31 +1468,37 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             _sectionHeader(
               'DEALS OF THE DAY',
               actionLabel: 'View All',
-              onAction: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen())),
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+              ),
             ),
-            _products.isNotEmpty ? _dealsOfTheDayCategories() : _stockOutBanner(),
+            _products.isNotEmpty
+                ? _dealsOfTheDayCategories()
+                : _stockOutBanner(),
             const SizedBox(height: 16),
             _sectionHeader(
               'NEW & TRENDY',
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(initialNoDiscount: true, initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    initialNoDiscount: true,
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
-            _products.isNotEmpty ? _newAndTrendyCategories() : _stockOutBanner(),
+            _products.isNotEmpty
+                ? _newAndTrendyCategories()
+                : _stockOutBanner(),
             const SizedBox(height: 16),
             if (_recentlyExploredProducts.isNotEmpty) ...[
               _sectionHeader(
                 '👁️ Recently Viewed',
                 actionLabel: 'View All',
-                onAction: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen())),
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+                ),
               ),
               _buildRecentlyExploredSection(),
               const SizedBox(height: 16),
@@ -1448,19 +1511,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(categoryName: 'Men', initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Men',
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
-            _mensProducts.isNotEmpty ? _mensCreativeSection() : _stockOutBanner(),
+            _mensProducts.isNotEmpty
+                ? _mensCreativeSection()
+                : _stockOutBanner(),
             _sectionHeader(
               'WOMEN\'S COLLECTION',
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(categoryName: 'Women', initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Women',
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
@@ -1476,8 +1545,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(categoryName: 'Kids', initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Kids',
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
@@ -1493,8 +1564,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(initialSearch: 'electronics', initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    initialSearch: 'electronics',
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
@@ -1510,8 +1583,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(categoryName: 'Footwear', initialSort: 'newest'),
+                  builder: (_) => const AllProductsScreen(
+                    categoryName: 'Footwear',
+                    initialSort: 'newest',
+                  ),
                 ),
               ),
             ),
@@ -1525,9 +1600,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             _sectionHeader(
               'UNDER ₹999',
               actionLabel: 'View All',
-              onAction: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen(maxPrice: 999))),
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const AllProductsScreen(maxPrice: 999),
+                ),
+              ),
             ),
             _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
             _sectionHeader(
@@ -1535,7 +1612,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               actionLabel: 'View All',
               onAction: () => Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(minPrice: 999, maxPrice: 1999),
+                  builder: (_) =>
+                      const AllProductsScreen(minPrice: 999, maxPrice: 1999),
                 ),
               ),
             ),
@@ -1543,9 +1621,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             _sectionHeader(
               'TOP BRANDS',
               actionLabel: 'View All',
-              onAction: () => Navigator.of(
-                context,
-              ).push(MaterialPageRoute(builder: (_) => const AllBrandsScreen())),
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+              ),
             ),
             _topBrands(),
             _sectionHeader('MORE TO EXPLORE'),
@@ -1574,7 +1652,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               shape: BoxShape.circle,
               border: Border.all(color: const Color(0xFF86EFAC), width: 2),
             ),
-            child: const Icon(Icons.location_off_outlined, size: 52, color: Color(0xFF16A34A)),
+            child: const Icon(
+              Icons.location_off_outlined,
+              size: 52,
+              color: Color(0xFF16A34A),
+            ),
           ),
           const SizedBox(height: 28),
           const Text(
@@ -1593,7 +1675,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: Text(
               "BlinkieFash isn't available at your location yet.\nWe're expanding fast — stay tuned!",
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.6),
+              style: TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                height: 1.6,
+              ),
             ),
           ),
           const SizedBox(height: 32),
@@ -1610,7 +1696,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             style: FilledButton.styleFrom(
               backgroundColor: const Color(0xFF16A34A),
               minimumSize: const Size(160, 48),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
             ),
           ),
           const SizedBox(height: 14),
@@ -1628,7 +1716,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             },
             child: const Text(
               'Browse without location',
-              style: TextStyle(color: Color(0xFF16A34A), fontWeight: FontWeight.w600, fontSize: 13),
+              style: TextStyle(
+                color: Color(0xFF16A34A),
+                fontWeight: FontWeight.w600,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -1638,7 +1730,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
   // ── Hero Banner (auto-sliding, 5s interval) ──────────────────────────────
   Widget _heroBanner() {
-    final heroHeight = (MediaQuery.of(context).size.width * 0.52).clamp(184.0, 228.0);
+    final heroHeight = (MediaQuery.of(context).size.width * 0.52).clamp(
+      184.0,
+      228.0,
+    );
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -1646,7 +1741,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(15),
         boxShadow: const [
-          BoxShadow(color: Color(0x20000000), blurRadius: 12, offset: Offset(0, 4)),
+          BoxShadow(
+            color: Color(0x20000000),
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -1681,7 +1780,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       width: active ? 18 : 6,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: active ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     );
@@ -1708,7 +1809,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         errorWidget: (ctx, url, err) => Container(
           color: const Color(0xFF16A34A),
           child: const Center(
-            child: Icon(Icons.image_not_supported_outlined, color: Colors.white, size: 40),
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.white,
+              size: 40,
+            ),
           ),
         ),
       );
@@ -1722,7 +1827,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       errorBuilder: (_, _, _) => Container(
         color: const Color(0xFF16A34A),
         child: const Center(
-          child: Icon(Icons.image_not_supported_outlined, color: Colors.white, size: 40),
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: Colors.white,
+            size: 40,
+          ),
         ),
       ),
     );
@@ -1732,35 +1841,53 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final route = card['route'] as String;
     if (route == 'brand') {
       final brand = card['brand'] as String;
-      Navigator.of(
-        context,
-      ).push(MaterialPageRoute(builder: (_) => AllProductsScreen(initialSearch: brand)));
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AllProductsScreen(initialSearch: brand),
+        ),
+      );
     } else if (route == 'mens') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const AllProductsScreen(categoryName: 'Men', initialSort: 'newest'),
+          builder: (_) => const AllProductsScreen(
+            categoryName: 'Men',
+            initialSort: 'newest',
+          ),
         ),
       );
     } else if (route == 'women') {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (_) => const AllProductsScreen(categoryName: 'Women', initialSort: 'newest'),
+          builder: (_) => const AllProductsScreen(
+            categoryName: 'Women',
+            initialSort: 'newest',
+          ),
         ),
       );
     } else if (route == 'accessories') {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AllProductsScreen(initialSearch: 'accessories')),
+        MaterialPageRoute(
+          builder: (_) => const AllProductsScreen(initialSearch: 'accessories'),
+        ),
       );
     } else if (route == 'mensFootwear') {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AllProductsScreen(initialSearch: 'men footwear')),
+        MaterialPageRoute(
+          builder: (_) =>
+              const AllProductsScreen(initialSearch: 'men footwear'),
+        ),
       );
     } else if (route == 'womensFootwear') {
       Navigator.of(context).push(
-        MaterialPageRoute(builder: (_) => const AllProductsScreen(initialSearch: 'women footwear')),
+        MaterialPageRoute(
+          builder: (_) =>
+              const AllProductsScreen(initialSearch: 'women footwear'),
+        ),
       );
     } else {
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AllProductsScreen()));
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen()));
     }
   }
 
@@ -1782,9 +1909,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               children: [
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen())),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const SpinWheelScreen(),
+                      ),
+                    ),
                     child: SizedBox(
                       height: 140,
                       child: ClipRRect(
@@ -1795,34 +1924,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           alignment: Alignment.center,
                           width: double.infinity,
                           height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 155,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFEC4899), Color(0xFFBE185D)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('🎡', style: TextStyle(fontSize: 32)),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Spin & Win',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 155,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFFEC4899),
+                                      Color(0xFFBE185D),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                ],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '🎡',
+                                        style: TextStyle(fontSize: 32),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Spin & Win',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ),
@@ -1831,9 +1967,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 const SizedBox(width: 8),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => const FashionQuestScreen())),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const FashionQuestScreen(),
+                      ),
+                    ),
                     child: SizedBox(
                       height: 140,
                       child: ClipRRect(
@@ -1844,34 +1982,41 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           alignment: Alignment.center,
                           width: double.infinity,
                           height: double.infinity,
-                          errorBuilder: (context, error, stackTrace) => Container(
-                            height: 155,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF7C3AED), Color(0xFF0EA5E9)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text('🎮', style: TextStyle(fontSize: 32)),
-                                  SizedBox(height: 4),
-                                  Text(
-                                    'Fashion Quest',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 13,
-                                    ),
+                          errorBuilder: (context, error, stackTrace) =>
+                              Container(
+                                height: 155,
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF7C3AED),
+                                      Color(0xFF0EA5E9),
+                                    ],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                ],
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '🎮',
+                                        style: TextStyle(fontSize: 32),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Fashion Quest',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 13,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ),
@@ -1951,7 +2096,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 width: 36,
                 height: 1,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Colors.transparent, Color(0xFF16A34A)]),
+                  gradient: LinearGradient(
+                    colors: [Colors.transparent, Color(0xFF16A34A)],
+                  ),
                 ),
               ),
               const SizedBox(width: 10),
@@ -1969,7 +2116,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 width: 36,
                 height: 1,
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(colors: [Color(0xFF16A34A), Colors.transparent]),
+                  gradient: LinearGradient(
+                    colors: [Color(0xFF16A34A), Colors.transparent],
+                  ),
                 ),
               ),
             ],
@@ -2001,7 +2150,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('✦', style: TextStyle(fontSize: 10, color: Color(0xFF16A34A))),
+              Text(
+                '✦',
+                style: TextStyle(fontSize: 10, color: Color(0xFF16A34A)),
+              ),
               SizedBox(width: 6),
               Text(
                 'U N I V E R S E',
@@ -2013,7 +2165,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
               ),
               SizedBox(width: 6),
-              Text('✦', style: TextStyle(fontSize: 10, color: Color(0xFF16A34A))),
+              Text(
+                '✦',
+                style: TextStyle(fontSize: 10, color: Color(0xFF16A34A)),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -2066,7 +2221,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             'assets/images/Pumabanner.jpeg',
             () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => AllProductsScreen(brandId: _pumaBrandId, brandName: 'Puma'),
+                builder: (_) =>
+                    AllProductsScreen(brandId: _pumaBrandId, brandName: 'Puma'),
               ),
             ),
           ),
@@ -2109,28 +2265,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     const SizedBox(height: 12),
                     ListTile(
                       contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.store_outlined, color: Color(0xFF16A34A)),
+                      leading: const Icon(
+                        Icons.store_outlined,
+                        color: Color(0xFF16A34A),
+                      ),
                       title: const Text(
                         'FCUK',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
-                      ),
-                      trailing: const Icon(Icons.chevron_right_rounded),
-                      onTap: () {
-                        Navigator.pop(context);
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => const AllProductsScreen(initialSearch: 'FCUK'),
-                          ),
-                        );
-                      },
-                    ),
-                    const Divider(height: 1),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      leading: const Icon(Icons.store_outlined, color: Color(0xFF16A34A)),
-                      title: const Text(
-                        'French Connection',
-                        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
                       ),
                       trailing: const Icon(Icons.chevron_right_rounded),
                       onTap: () {
@@ -2138,7 +2282,33 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (_) =>
-                                const AllProductsScreen(initialSearch: 'French Connection'),
+                                const AllProductsScreen(initialSearch: 'FCUK'),
+                          ),
+                        );
+                      },
+                    ),
+                    const Divider(height: 1),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: const Icon(
+                        Icons.store_outlined,
+                        color: Color(0xFF16A34A),
+                      ),
+                      title: const Text(
+                        'French Connection',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                      trailing: const Icon(Icons.chevron_right_rounded),
+                      onTap: () {
+                        Navigator.pop(context);
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const AllProductsScreen(
+                              initialSearch: 'French Connection',
+                            ),
                           ),
                         );
                       },
@@ -2158,8 +2328,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     'assets/images/libasbanner.jpeg',
                     () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) =>
-                            const AllProductsScreen(initialSearch: 'Libas Kurti Kurta Set'),
+                        builder: (_) => const AllProductsScreen(
+                          initialSearch: 'Libas Kurti Kurta Set',
+                        ),
                       ),
                     ),
                   ),
@@ -2170,7 +2341,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     'assets/images/mkbanner.jpeg',
                     () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const AllProductsScreen(initialSearch: 'MK'),
+                        builder: (_) =>
+                            const AllProductsScreen(initialSearch: 'MK'),
                       ),
                     ),
                   ),
@@ -2184,7 +2356,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             'assets/images/asscerroiesbanner.jpeg',
             () => Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (_) => const AllProductsScreen(categoryName: 'Accessories'),
+                builder: (_) =>
+                    const AllProductsScreen(categoryName: 'Accessories'),
               ),
             ),
           ),
@@ -2194,7 +2367,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   // ── Section Header ────────────────────────────────────────────────────────
-  Widget _sectionHeader(String title, {String? actionLabel, VoidCallback? onAction}) {
+  Widget _sectionHeader(
+    String title, {
+    String? actionLabel,
+    VoidCallback? onAction,
+  }) {
     if (title.toUpperCase() == 'SHOP BY CATEGORY' ||
         title.toUpperCase() == 'DEALS OF THE DAY' ||
         title.toUpperCase() == 'NEW & TRENDY' ||
@@ -2219,7 +2396,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 onTap: onAction,
                 borderRadius: BorderRadius.circular(16),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 2,
+                    vertical: 2,
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -2232,7 +2412,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                       ),
                       const SizedBox(width: 1),
-                      const Icon(Icons.chevron_right_rounded, size: 14, color: Color(0xFF15803D)),
+                      const Icon(
+                        Icons.chevron_right_rounded,
+                        size: 14,
+                        color: Color(0xFF15803D),
+                      ),
                     ],
                   ),
                 ),
@@ -2275,7 +2459,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             GestureDetector(
               onTap: onAction,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 7,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(20),
@@ -2293,7 +2480,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       ),
                     ),
                     const SizedBox(width: 4),
-                    const Icon(Icons.arrow_forward_ios_rounded, size: 10, color: Color(0xFF16A34A)),
+                    const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 10,
+                      color: Color(0xFF16A34A),
+                    ),
                   ],
                 ),
               ),
@@ -2308,7 +2499,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final cats = _categories.isNotEmpty
         ? _categories
         : _fallbackCategories
-              .map((m) => <String, dynamic>{'name': m['name'], '_localImage': m['image']})
+              .map(
+                (m) => <String, dynamic>{
+                  'name': m['name'],
+                  '_localImage': m['image'],
+                },
+              )
               .toList();
 
     final items = <Map<String, dynamic>>[...cats];
@@ -2340,7 +2536,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               if (catId == null && catName.isNotEmpty) {
                 final match = _allCategories.firstWhere(
                   (c) =>
-                      (c['name']?.toString() ?? '').toUpperCase() == catName.toUpperCase() &&
+                      (c['name']?.toString() ?? '').toUpperCase() ==
+                          catName.toUpperCase() &&
                       c['parent_id'] == null,
                   orElse: () => <String, dynamic>{},
                 );
@@ -2349,14 +2546,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               if (catId != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        CategoryLandingScreen(categoryId: catId!, categoryName: catName),
+                    builder: (_) => CategoryLandingScreen(
+                      categoryId: catId!,
+                      categoryName: catName,
+                    ),
                   ),
                 );
               } else {
-                Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => AllProductsScreen(categoryName: catName)));
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AllProductsScreen(categoryName: catName),
+                  ),
+                );
               }
             },
             child: Container(
@@ -2372,7 +2573,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: const Color(0xFFF1F5F9)),
                       boxShadow: const [
-                        BoxShadow(color: Color(0x0D000000), blurRadius: 4, offset: Offset(0, 1)),
+                        BoxShadow(
+                          color: Color(0x0D000000),
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
                       ],
                     ),
                     child: ClipRRect(
@@ -2383,8 +2588,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ? CachedNetworkImage(
                               imageUrl: netImg,
                               fit: BoxFit.cover,
-                              errorWidget: (context, url, error) =>
-                                  const Icon(Icons.category_outlined, color: _green),
+                              errorWidget: (context, url, error) => const Icon(
+                                Icons.category_outlined,
+                                color: _green,
+                              ),
                             )
                           : const Icon(Icons.category_outlined, color: _green),
                     ),
@@ -2502,9 +2709,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   ? 'footwear $label'
                   : '$audienceLabel $label';
               return GestureDetector(
-                onTap: () => Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => AllProductsScreen(initialSearch: query))),
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => AllProductsScreen(initialSearch: query),
+                  ),
+                ),
                 child: Container(
                   width: 68,
                   margin: const EdgeInsets.only(right: 8),
@@ -2516,10 +2725,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         decoration: BoxDecoration(
                           color: const Color(0xFFF0FDF4),
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFFBBF7D0), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFFBBF7D0),
+                            width: 1.5,
+                          ),
                         ),
                         child: Center(
-                          child: Text(cat['emoji'] ?? '🛍️', style: const TextStyle(fontSize: 24)),
+                          child: Text(
+                            cat['emoji'] ?? '🛍️',
+                            style: const TextStyle(fontSize: 24),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 5),
@@ -2594,7 +2809,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         child: Stack(
                           children: [
                             ClipRRect(
-                              borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(18),
+                              ),
                               child: img != null
                                   ? CachedNetworkImage(
                                       imageUrl: img,
@@ -2602,16 +2819,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                       alignment: Alignment.center,
                                       width: double.infinity,
                                       height: double.infinity,
-                                      placeholder: (context, url) =>
-                                          Container(color: const Color(0xFFF1F5F9)),
-                                      errorWidget: (context, url, error) => Container(
+                                      placeholder: (context, url) => Container(
                                         color: const Color(0xFFF1F5F9),
-                                        child: const Icon(
-                                          Icons.checkroom_outlined,
-                                          size: 40,
-                                          color: Color(0xFFCBD5E1),
-                                        ),
                                       ),
+                                      errorWidget: (context, url, error) =>
+                                          Container(
+                                            color: const Color(0xFFF1F5F9),
+                                            child: const Icon(
+                                              Icons.checkroom_outlined,
+                                              size: 40,
+                                              color: Color(0xFFCBD5E1),
+                                            ),
+                                          ),
                                     )
                                   : Container(
                                       color: const Color(0xFFF1F5F9),
@@ -2647,7 +2866,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   decoration: const BoxDecoration(
                                     color: Colors.white,
                                     shape: BoxShape.circle,
-                                    boxShadow: [BoxShadow(color: Color(0x18000000), blurRadius: 6)],
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Color(0x18000000),
+                                        blurRadius: 6,
+                                      ),
+                                    ],
                                   ),
                                   child: Icon(
                                     WishlistManager.instance.isWishlisted(
@@ -2790,7 +3014,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           end: Alignment.centerRight,
         ),
         borderRadius: BorderRadius.circular(20),
-        boxShadow: const [BoxShadow(color: Color(0x55F59E0B), blurRadius: 6, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x55F59E0B),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: const Row(
         mainAxisSize: MainAxisSize.min,
@@ -2820,7 +3050,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 8, offset: Offset(0, 2))],
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x08000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -2830,7 +3066,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               color: const Color(0xFFFFF7ED),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.inventory_2_outlined, color: Color(0xFFF97316), size: 28),
+            child: const Icon(
+              Icons.inventory_2_outlined,
+              color: Color(0xFFF97316),
+              size: 28,
+            ),
           ),
           const SizedBox(width: 16),
           const Expanded(
@@ -2848,7 +3088,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 SizedBox(height: 4),
                 Text(
                   'No products available at this location right now. Check back soon!',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                    height: 1.4,
+                  ),
                 ),
               ],
             ),
@@ -2865,7 +3109,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     for (final product in _products) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
-      final discPrice = double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
+      final discPrice =
+          double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
 
       if (price > discPrice && price > 0) {
         final discount = ((price - discPrice) / price * 100).round();
@@ -2900,9 +3145,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final items = <Map<String, dynamic>>[];
     for (final product in _products) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
-      final discPrice = double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
+      final discPrice =
+          double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
       final hasDiscount = price > 0 && discPrice > 0 && discPrice < price;
-      final isPalermo = (product['name']?.toString() ?? '').toLowerCase().contains('palermo');
+      final isPalermo = (product['name']?.toString() ?? '')
+          .toLowerCase()
+          .contains('palermo');
       if (!hasDiscount && !isPalermo) {
         items.add({...product, 'calculated_discount': 0});
       }
@@ -2919,7 +3167,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   Widget _newAndTrendyCategories() {
     final trendy = _newAndTrendyProducts();
     if (trendy.isEmpty) return _stockOutBanner();
-    return _buildDiscountDealCards(trendy, ribbonText: 'NEW', ribbonColor: const Color(0xFF2563EB));
+    return _buildDiscountDealCards(
+      trendy,
+      ribbonText: 'NEW',
+      ribbonColor: const Color(0xFF2563EB),
+    );
   }
 
   Widget _buildRecentlyExploredSection() {
@@ -2949,7 +3201,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             onTap: item['id'] != null
                 ? () => Navigator.of(context).push(
                     MaterialPageRoute(
-                      builder: (_) => ProductDetailScreen(productId: item['id']?.toString() ?? ''),
+                      builder: (_) => ProductDetailScreen(
+                        productId: item['id']?.toString() ?? '',
+                      ),
                     ),
                   )
                 : null,
@@ -2981,7 +3235,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
+                          ),
                           child: img.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: img,
@@ -2991,14 +3247,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   height: double.infinity,
                                   placeholder: (context, url) =>
                                       Container(color: const Color(0xFFF1F5F9)),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: const Color(0xFFF1F5F9),
-                                    child: const Icon(
-                                      Icons.checkroom_outlined,
-                                      size: 40,
-                                      color: Color(0xFFCBD5E1),
-                                    ),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.checkroom_outlined,
+                                          size: 40,
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
                                 )
                               : Container(
                                   color: const Color(0xFFF1F5F9),
@@ -3015,7 +3272,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             top: 8,
                             right: 8,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
                               decoration: BoxDecoration(
                                 color: const Color(0xFFDC2626),
                                 borderRadius: BorderRadius.circular(4),
@@ -3035,13 +3295,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           bottom: 8,
                           right: 8,
                           child: GestureDetector(
-                            onTap: () => WishlistManager.instance.toggle(wishItem),
+                            onTap: () =>
+                                WishlistManager.instance.toggle(wishItem),
                             child: ValueListenableBuilder<int>(
-                              valueListenable: WishlistManager.instance.countNotifier,
+                              valueListenable:
+                                  WishlistManager.instance.countNotifier,
                               builder: (context, count, _) {
-                                final isWishlisted = WishlistManager.instance.isWishlisted(
-                                  wishItem.productId,
-                                );
+                                final isWishlisted = WishlistManager.instance
+                                    .isWishlisted(wishItem.productId);
                                 return Container(
                                   width: 36,
                                   height: 36,
@@ -3050,14 +3311,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     shape: BoxShape.circle,
                                     boxShadow: [
                                       BoxShadow(
-                                        color: const Color(0xFF0F172A).withValues(alpha: 0.1),
+                                        color: const Color(
+                                          0xFF0F172A,
+                                        ).withValues(alpha: 0.1),
                                         blurRadius: 8,
                                         offset: const Offset(0, 2),
                                       ),
                                     ],
                                   ),
                                   child: Icon(
-                                    isWishlisted ? Icons.favorite : Icons.favorite_outline,
+                                    isWishlisted
+                                        ? Icons.favorite
+                                        : Icons.favorite_outline,
                                     color: isWishlisted
                                         ? const Color(0xFFDC2626)
                                         : const Color(0xFF64748B),
@@ -3174,7 +3439,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
+                          ),
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
@@ -3184,14 +3451,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   height: double.infinity,
                                   placeholder: (context, url) =>
                                       Container(color: const Color(0xFFF1F5F9)),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: const Color(0xFFF1F5F9),
-                                    child: const Icon(
-                                      Icons.checkroom_outlined,
-                                      size: 40,
-                                      color: Color(0xFFCBD5E1),
-                                    ),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.checkroom_outlined,
+                                          size: 40,
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
                                 )
                               : Container(
                                   color: const Color(0xFFF1F5F9),
@@ -3210,7 +3478,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             angle: -0.785,
                             child: Container(
                               width: 90,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
                                 color: ribbonColor,
                                 boxShadow: [
@@ -3248,10 +3519,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
-                                boxShadow: [BoxShadow(color: Color(0x18000000), blurRadius: 6)],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x18000000),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
                               child: Icon(
-                                WishlistManager.instance.isWishlisted(item['id']?.toString() ?? '')
+                                WishlistManager.instance.isWishlisted(
+                                      item['id']?.toString() ?? '',
+                                    )
                                     ? Icons.favorite_rounded
                                     : Icons.favorite_border_rounded,
                                 size: 16,
@@ -3404,7 +3682,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(18),
                 boxShadow: const [
-                  BoxShadow(color: Color(0x0F000000), blurRadius: 12, offset: Offset(0, 4)),
+                  BoxShadow(
+                    color: Color(0x0F000000),
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                  ),
                 ],
               ),
               child: Column(
@@ -3415,7 +3697,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     child: Stack(
                       children: [
                         ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(18),
+                          ),
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
@@ -3425,13 +3709,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   height: double.infinity,
                                   placeholder: (context, url) =>
                                       Container(color: const Color(0xFFF1F5F9)),
-                                  errorWidget: (context, url, error) => Container(
-                                    color: const Color(0xFFF1F5F9),
-                                    child: const Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: Color(0xFFCBD5E1),
-                                    ),
-                                  ),
+                                  errorWidget: (context, url, error) =>
+                                      Container(
+                                        color: const Color(0xFFF1F5F9),
+                                        child: const Icon(
+                                          Icons.image_not_supported_outlined,
+                                          color: Color(0xFFCBD5E1),
+                                        ),
+                                      ),
                                 )
                               : Container(
                                   color: const Color(0xFFF1F5F9),
@@ -3451,7 +3736,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             children: [
                               if (item['is_bestseller'] == true)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 7,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFFDC2626),
                                     borderRadius: BorderRadius.circular(6),
@@ -3468,10 +3756,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 )
                               else if (item['is_try_and_buy'] == true)
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     gradient: const LinearGradient(
-                                      colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                                      colors: [
+                                        Color(0xFFF59E0B),
+                                        Color(0xFFEF4444),
+                                      ],
                                       begin: Alignment.centerLeft,
                                       end: Alignment.centerRight,
                                     ),
@@ -3487,7 +3781,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('✨', style: TextStyle(fontSize: 7, height: 1)),
+                                      Text(
+                                        '✨',
+                                        style: TextStyle(
+                                          fontSize: 7,
+                                          height: 1,
+                                        ),
+                                      ),
                                       SizedBox(width: 3),
                                       Text(
                                         'Try & Buy',
@@ -3503,7 +3803,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 )
                               else
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: const Color(0xFF16A34A),
                                     borderRadius: BorderRadius.circular(20),
@@ -3511,7 +3814,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   child: const Row(
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      Text('⚡', style: TextStyle(fontSize: 7, height: 1)),
+                                      Text(
+                                        '⚡',
+                                        style: TextStyle(
+                                          fontSize: 7,
+                                          height: 1,
+                                        ),
+                                      ),
                                       SizedBox(width: 3),
                                       Text(
                                         '+60 MIN',
@@ -3544,10 +3853,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               decoration: const BoxDecoration(
                                 color: Colors.white,
                                 shape: BoxShape.circle,
-                                boxShadow: [BoxShadow(color: Color(0x18000000), blurRadius: 6)],
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x18000000),
+                                    blurRadius: 6,
+                                  ),
+                                ],
                               ),
                               child: Icon(
-                                WishlistManager.instance.isWishlisted(item['id']?.toString() ?? '')
+                                WishlistManager.instance.isWishlisted(
+                                      item['id']?.toString() ?? '',
+                                    )
                                     ? Icons.favorite_rounded
                                     : Icons.favorite_border_rounded,
                                 size: 16,
@@ -3622,14 +3938,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 height: 30,
                                 decoration: BoxDecoration(
                                   gradient: const LinearGradient(
-                                    colors: [Color(0xFF16A34A), Color(0xFF15803D)],
+                                    colors: [
+                                      Color(0xFF16A34A),
+                                      Color(0xFF15803D),
+                                    ],
                                     begin: Alignment.topLeft,
                                     end: Alignment.bottomRight,
                                   ),
                                   borderRadius: BorderRadius.circular(9),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                                      color: const Color(
+                                        0xFF16A34A,
+                                      ).withValues(alpha: 0.3),
                                       blurRadius: 6,
                                       offset: const Offset(0, 2),
                                     ),
@@ -3645,7 +3966,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 5),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFDCFCE7),
                               borderRadius: BorderRadius.circular(6),
@@ -3715,14 +4039,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               width: double.infinity,
               child: OutlinedButton.icon(
                 onPressed: () => _loadShopProducts(),
-                icon: const Icon(Icons.expand_more_rounded, size: 18, color: _green),
+                icon: const Icon(
+                  Icons.expand_more_rounded,
+                  size: 18,
+                  color: _green,
+                ),
                 label: const Text(
                   'Show More Products',
-                  style: TextStyle(color: _green, fontWeight: FontWeight.w700, fontSize: 14),
+                  style: TextStyle(
+                    color: _green,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 14,
+                  ),
                 ),
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 13),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   side: const BorderSide(color: _green, width: 1.5),
                 ),
               ),
@@ -3750,7 +4084,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // Build chips: "All" + one per root category
     final chips = <Map<String, String?>>[
       {'id': null, 'name': 'All'},
-      ..._categories.map((c) => {'id': c['id']?.toString(), 'name': (c['name'] ?? '').toString()}),
+      ..._categories.map(
+        (c) => {
+          'id': c['id']?.toString(),
+          'name': (c['name'] ?? '').toString(),
+        },
+      ),
     ];
     return SizedBox(
       height: 42,
@@ -3780,7 +4119,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               decoration: BoxDecoration(
                 color: selected ? _green : Colors.white,
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: selected ? _green : const Color(0xFFE2E8F0), width: 1.5),
+                border: Border.all(
+                  color: selected ? _green : const Color(0xFFE2E8F0),
+                  width: 1.5,
+                ),
                 boxShadow: selected
                     ? [
                         const BoxShadow(
@@ -3789,7 +4131,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           offset: Offset(0, 2),
                         ),
                       ]
-                    : const [BoxShadow(color: Color(0x08000000), blurRadius: 4)],
+                    : const [
+                        BoxShadow(color: Color(0x08000000), blurRadius: 4),
+                      ],
               ),
               child: Text(
                 chip['name'] ?? '',
@@ -3818,16 +4162,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             child: GestureDetector(
               onTap: _showShopSortSheet,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 9,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: const Color(0xFFE2E8F0)),
-                  boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 4)],
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x08000000), blurRadius: 4),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.sort_rounded, size: 16, color: Color(0xFF64748B)),
+                    const Icon(
+                      Icons.sort_rounded,
+                      size: 16,
+                      color: Color(0xFF64748B),
+                    ),
                     const SizedBox(width: 6),
                     Text(
                       _shopSortLabels[_shopSort] ?? 'Newest',
@@ -3857,15 +4210,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               decoration: BoxDecoration(
                 color: activeFilters ? _green : Colors.white,
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: activeFilters ? _green : const Color(0xFFE2E8F0)),
-                boxShadow: const [BoxShadow(color: Color(0x08000000), blurRadius: 4)],
+                border: Border.all(
+                  color: activeFilters ? _green : const Color(0xFFE2E8F0),
+                ),
+                boxShadow: const [
+                  BoxShadow(color: Color(0x08000000), blurRadius: 4),
+                ],
               ),
               child: Row(
                 children: [
                   Icon(
                     Icons.tune_rounded,
                     size: 16,
-                    color: activeFilters ? Colors.white : const Color(0xFF64748B),
+                    color: activeFilters
+                        ? Colors.white
+                        : const Color(0xFF64748B),
                   ),
                   const SizedBox(width: 6),
                   Text(
@@ -3873,7 +4232,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: activeFilters ? Colors.white : const Color(0xFF374151),
+                      color: activeFilters
+                          ? Colors.white
+                          : const Color(0xFF374151),
                     ),
                   ),
                   if (activeFilters) ...[
@@ -3886,7 +4247,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         });
                         _loadShopProducts(reset: true);
                       },
-                      child: const Icon(Icons.close_rounded, size: 14, color: Colors.white),
+                      child: const Icon(
+                        Icons.close_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ],
@@ -3932,11 +4297,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   },
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 6),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 13,
+                    ),
                     decoration: BoxDecoration(
-                      color: selected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                      color: selected
+                          ? const Color(0xFFECFDF5)
+                          : const Color(0xFFF8FAFC),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: selected ? _green : const Color(0xFFE2E8F0)),
+                      border: Border.all(
+                        color: selected ? _green : const Color(0xFFE2E8F0),
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -3950,7 +4322,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ),
                         const Spacer(),
                         if (selected)
-                          const Icon(Icons.check_circle_rounded, color: _green, size: 18),
+                          const Icon(
+                            Icons.check_circle_rounded,
+                            color: _green,
+                            size: 18,
+                          ),
                       ],
                     ),
                   ),
@@ -3986,7 +4362,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         return StatefulBuilder(
           builder: (ctx2, setSheetState) {
             return Padding(
-              padding: EdgeInsets.fromLTRB(20, 20, 20, 20 + MediaQuery.of(ctx2).viewInsets.bottom),
+              padding: EdgeInsets.fromLTRB(
+                20,
+                20,
+                20,
+                20 + MediaQuery.of(ctx2).viewInsets.bottom,
+              ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -4010,7 +4391,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                             tempMax = null;
                           });
                         },
-                        child: const Text('Clear', style: TextStyle(color: Color(0xFF94A3B8))),
+                        child: const Text(
+                          'Clear',
+                          style: TextStyle(color: Color(0xFF94A3B8)),
+                        ),
                       ),
                     ],
                   ),
@@ -4027,7 +4411,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   const SizedBox(height: 10),
                   ...priceRanges.map((r) {
                     final isSelected =
-                        tempMin == (r['min'] as double?) && tempMax == (r['max'] as double?);
+                        tempMin == (r['min'] as double?) &&
+                        tempMax == (r['max'] as double?);
                     return GestureDetector(
                       onTap: () {
                         setSheetState(() {
@@ -4042,11 +4427,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       },
                       child: Container(
                         margin: const EdgeInsets.only(bottom: 6),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFECFDF5) : const Color(0xFFF8FAFC),
+                          color: isSelected
+                              ? const Color(0xFFECFDF5)
+                              : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: isSelected ? _green : const Color(0xFFE2E8F0)),
+                          border: Border.all(
+                            color: isSelected
+                                ? _green
+                                : const Color(0xFFE2E8F0),
+                          ),
                         ),
                         child: Row(
                           children: [
@@ -4055,12 +4449,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: isSelected ? _green : const Color(0xFF374151),
+                                color: isSelected
+                                    ? _green
+                                    : const Color(0xFF374151),
                               ),
                             ),
                             const Spacer(),
                             if (isSelected)
-                              const Icon(Icons.check_circle_rounded, color: _green, size: 18),
+                              const Icon(
+                                Icons.check_circle_rounded,
+                                color: _green,
+                                size: 18,
+                              ),
                           ],
                         ),
                       ),
@@ -4081,7 +4481,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _green,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                         elevation: 0,
                       ),
                       child: const Text(
@@ -4148,7 +4550,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             boxShadow: const [
-              BoxShadow(color: Color(0x0F000000), blurRadius: 10, offset: Offset(0, 3)),
+              BoxShadow(
+                color: Color(0x0F000000),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
             ],
           ),
           child: Column(
@@ -4160,7 +4566,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 child: Stack(
                   children: [
                     ClipRRect(
-                      borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(16),
+                      ),
                       child: img != null
                           ? CachedNetworkImage(
                               imageUrl: img,
@@ -4168,7 +4576,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               alignment: Alignment.center,
                               width: double.infinity,
                               height: double.infinity,
-                              placeholder: (ctx, url) => Container(color: const Color(0xFFF1F5F9)),
+                              placeholder: (ctx, url) =>
+                                  Container(color: const Color(0xFFF1F5F9)),
                               errorWidget: (ctx, url, err) => Container(
                                 color: const Color(0xFFF1F5F9),
                                 child: const Icon(
@@ -4213,15 +4622,24 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           decoration: const BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: Color(0x18000000), blurRadius: 6)],
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x18000000),
+                                blurRadius: 6,
+                              ),
+                            ],
                           ),
                           child: Icon(
-                            WishlistManager.instance.isWishlisted(item['id']?.toString() ?? '')
+                            WishlistManager.instance.isWishlisted(
+                                  item['id']?.toString() ?? '',
+                                )
                                 ? Icons.favorite_rounded
                                 : Icons.favorite_border_rounded,
                             size: 16,
                             color:
-                                WishlistManager.instance.isWishlisted(item['id']?.toString() ?? '')
+                                WishlistManager.instance.isWishlisted(
+                                  item['id']?.toString() ?? '',
+                                )
                                 ? const Color(0xFFE11D48)
                                 : const Color(0xFF94A3B8),
                           ),
@@ -4284,7 +4702,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         ],
                         const Spacer(),
                         GestureDetector(
-                          onTap: item['id'] != null ? () => _openProduct(item) : null,
+                          onTap: item['id'] != null
+                              ? () => _openProduct(item)
+                              : null,
                           child: Container(
                             width: 30,
                             height: 30,
@@ -4297,7 +4717,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               borderRadius: BorderRadius.circular(9),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF16A34A).withValues(alpha: 0.3),
+                                  color: const Color(
+                                    0xFF16A34A,
+                                  ).withValues(alpha: 0.3),
                                   blurRadius: 6,
                                   offset: const Offset(0, 2),
                                 ),
@@ -4314,7 +4736,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 5),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFFDCFCE7),
                         borderRadius: BorderRadius.circular(6),
@@ -4353,7 +4778,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: const [
-            BoxShadow(color: Color(0x55F59E0B), blurRadius: 6, offset: Offset(0, 2)),
+            BoxShadow(
+              color: Color(0x55F59E0B),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
           ],
         ),
         child: const Row(
@@ -4379,7 +4808,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final displayLabel = label.replaceAll('⚡ ', '').replaceAll('✨ ', '');
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -4424,20 +4856,35 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: _green.withValues(alpha: 0.4)),
                     ),
-                    child: const Center(child: Icon(Icons.add_rounded, color: _green, size: 24)),
+                    child: const Center(
+                      child: Icon(Icons.add_rounded, color: _green, size: 24),
+                    ),
                   ),
                   const SizedBox(height: 5),
                   const Text(
                     '+ More',
-                    style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: _green),
+                    style: TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: _green,
+                    ),
                   ),
                 ],
               ),
             );
           }
-          const fallbackNames = ['Nike', 'Adidas', 'Puma', "Levi's", 'Zara', 'H&M'];
+          const fallbackNames = [
+            'Nike',
+            'Adidas',
+            'Puma',
+            "Levi's",
+            'Zara',
+            'H&M',
+          ];
           final brand = _brands.isNotEmpty ? _brands[i] : <String, dynamic>{};
-          final name = brand['name']?.toString() ?? fallbackNames[i % fallbackNames.length];
+          final name =
+              brand['name']?.toString() ??
+              fallbackNames[i % fallbackNames.length];
           final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
 
           return GestureDetector(
@@ -4445,14 +4892,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               if (brand['id'] != null) {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) =>
-                        AllProductsScreen(brandId: brand['id']?.toString(), brandName: name),
+                    builder: (_) => AllProductsScreen(
+                      brandId: brand['id']?.toString(),
+                      brandName: name,
+                    ),
                   ),
                 );
               } else {
-                Navigator.of(
-                  context,
-                ).push(MaterialPageRoute(builder: (_) => const AllBrandsScreen()));
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+                );
               }
             },
             child: Container(
@@ -4581,8 +5030,14 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
                       hintText: 'Enter your email',
-                      hintStyle: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
-                      contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                      hintStyle: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontSize: 13,
+                      ),
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 0,
+                      ),
                       border: InputBorder.none,
                     ),
                   ),
@@ -4601,7 +5056,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     backgroundColor: Colors.white,
                     foregroundColor: _green,
                     elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     padding: const EdgeInsets.symmetric(horizontal: 18),
                   ),
                   child: const Text(
@@ -4662,7 +5119,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           const SizedBox(height: 6),
           const Text(
             'Fashion delivered in 60 minutes — quality you trust.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF64748B), height: 1.4),
+            style: TextStyle(
+              fontSize: 12,
+              color: Color(0xFF64748B),
+              height: 1.4,
+            ),
           ),
           const Divider(height: 24, color: Color(0xFFE5E7EB)),
           GridView.count(
@@ -4675,12 +5136,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: policies
                 .map(
                   (p) => GestureDetector(
-                    onTap: () => Navigator.of(
-                      context,
-                    ).push(MaterialPageRoute(builder: (_) => const PoliciesScreen())),
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PoliciesScreen()),
+                    ),
                     child: Row(
                       children: [
-                        Icon(p['icon'] as IconData, size: 16, color: const Color(0xFF64748B)),
+                        Icon(
+                          p['icon'] as IconData,
+                          size: 16,
+                          color: const Color(0xFF64748B),
+                        ),
                         const SizedBox(width: 6),
                         Text(
                           p['label'] as String,
@@ -4745,7 +5210,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           errorWidget: (_, _, _) => Container(
             width: 30,
             height: 30,
-            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(8),
+            ),
             child: Icon(icon, size: 16, color: ic),
           ),
         ),
@@ -4754,7 +5222,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Container(
       width: 30,
       height: 30,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Center(child: Icon(icon, size: 16, color: ic)),
     );
   }
@@ -4775,8 +5246,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           errorWidget: (_, _, _) => Container(
             width: 24,
             height: 24,
-            decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-            child: Center(child: Icon(Icons.category_rounded, size: 13, color: ic)),
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Center(
+              child: Icon(Icons.category_rounded, size: 13, color: ic),
+            ),
           ),
         ),
       );
@@ -4784,8 +5260,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return Container(
       width: 24,
       height: 24,
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
-      child: Center(child: Icon(Icons.subdirectory_arrow_right_rounded, size: 13, color: ic)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.subdirectory_arrow_right_rounded,
+          size: 13,
+          color: ic,
+        ),
+      ),
     );
   }
 
@@ -4831,8 +5316,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   width: 104,
                   height: 104,
                   fit: BoxFit.cover,
-                  errorWidget: (_, _, _) =>
-                      const Icon(Icons.person_rounded, size: 52, color: Color(0xFF16A34A)),
+                  errorWidget: (_, _, _) => const Icon(
+                    Icons.person_rounded,
+                    size: 52,
+                    color: Color(0xFF16A34A),
+                  ),
                 ),
               ),
             ),
@@ -4849,7 +5337,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Text(
               msg,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5),
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF64748B),
+                height: 1.5,
+              ),
             ),
             const SizedBox(height: 18),
             SizedBox(
@@ -4864,7 +5356,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 style: OutlinedButton.styleFrom(
                   foregroundColor: const Color(0xFF166534),
                   side: const BorderSide(color: Color(0xFF16A34A)),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
@@ -4892,7 +5386,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     const Color(0xFFDCFCE7),
                     const Color(0xFF16A34A),
                     ctx,
-                    const AllProductsScreen(categoryName: 'New Arrivals', initialSort: 'newest'),
+                    const AllProductsScreen(
+                      categoryName: 'New Arrivals',
+                      initialSort: 'newest',
+                    ),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -4934,14 +5431,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       },
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 14),
-        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Column(
           children: [
             Icon(icon, size: 24, color: ic),
             const SizedBox(height: 6),
             Text(
               label,
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: ic),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: ic,
+              ),
             ),
           ],
         ),
@@ -4972,11 +5476,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 children: [
                   Row(
                     children: [
-                      Image.asset('assets/images/logo.png', width: 36, height: 36),
+                      Image.asset(
+                        'assets/images/logo.png',
+                        width: 36,
+                        height: 36,
+                      ),
                       const SizedBox(width: 10),
                       RichText(
                         text: const TextSpan(
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 20),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 20,
+                          ),
                           children: [
                             TextSpan(
                               text: 'BLINKIE',
@@ -5029,7 +5540,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 decoration: BoxDecoration(
                                   color: const Color(0xFF4ADE80),
                                   shape: BoxShape.circle,
-                                  border: Border.all(color: const Color(0xFF0F172A), width: 2),
+                                  border: Border.all(
+                                    color: const Color(0xFF0F172A),
+                                    width: 2,
+                                  ),
                                 ),
                               ),
                             ),
@@ -5068,7 +5582,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   borderRadius: BorderRadius.circular(10),
                                   onTap: () => _showAvatarPickerSheet(context),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
                                     decoration: BoxDecoration(
                                       color: const Color(0xFF166534),
                                       borderRadius: BorderRadius.circular(10),
@@ -5128,8 +5645,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                 final c = entry.value;
                                 final catId = c['id']?.toString() ?? '';
                                 final catName = c['name']?.toString() ?? '';
-                                final children = _displaySubCategoriesForRoot(c);
-                                final expanded = _drawerExpandedCats[catId] == true;
+                                final children = _displaySubCategoriesForRoot(
+                                  c,
+                                );
+                                final expanded =
+                                    _drawerExpandedCats[catId] == true;
                                 if (children.isEmpty) {
                                   return ListTile(
                                     dense: true,
@@ -5176,35 +5696,49 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                             ? Icons.keyboard_arrow_up_rounded
                                             : Icons.keyboard_arrow_down_rounded,
                                         size: 18,
-                                        color: expanded ? _green : const Color(0xFF94A3B8),
+                                        color: expanded
+                                            ? _green
+                                            : const Color(0xFF94A3B8),
                                       ),
                                       title: Text(
                                         catName,
                                         style: TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: expanded ? _green : const Color(0xFF0F172A),
+                                          color: expanded
+                                              ? _green
+                                              : const Color(0xFF0F172A),
                                         ),
                                       ),
-                                      contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 16,
-                                        vertical: 2,
-                                      ),
+                                      contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            horizontal: 16,
+                                            vertical: 2,
+                                          ),
                                       visualDensity: VisualDensity.compact,
-                                      onTap: () =>
-                                          setState(() => _drawerExpandedCats[catId] = !expanded),
+                                      onTap: () => setState(
+                                        () => _drawerExpandedCats[catId] =
+                                            !expanded,
+                                      ),
                                     ),
                                     if (expanded)
                                       Container(
                                         color: const Color(0xFFF8FAFC),
                                         child: Column(
-                                          children: children.asMap().entries.map((subEntry) {
+                                          children: children.asMap().entries.map((
+                                            subEntry,
+                                          ) {
                                             final sub = subEntry.value;
                                             return ListTile(
                                               dense: true,
                                               leading: Padding(
-                                                padding: const EdgeInsets.only(left: 12),
-                                                child: _drawerSubCatAvatar(sub, idx),
+                                                padding: const EdgeInsets.only(
+                                                  left: 12,
+                                                ),
+                                                child: _drawerSubCatAvatar(
+                                                  sub,
+                                                  idx,
+                                                ),
                                               ),
                                               title: Text(
                                                 sub['name']?.toString() ?? '',
@@ -5219,19 +5753,25 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                                 size: 11,
                                                 color: Color(0xFFCBD5E1),
                                               ),
-                                              contentPadding: const EdgeInsets.only(
-                                                left: 16,
-                                                right: 16,
-                                              ),
-                                              visualDensity: VisualDensity.compact,
+                                              contentPadding:
+                                                  const EdgeInsets.only(
+                                                    left: 16,
+                                                    right: 16,
+                                                  ),
+                                              visualDensity:
+                                                  VisualDensity.compact,
                                               onTap: () {
                                                 Navigator.pop(context);
                                                 Navigator.of(context).push(
                                                   MaterialPageRoute(
-                                                    builder: (_) => AllProductsScreen(
-                                                      categoryId: sub['id']?.toString(),
-                                                      categoryName: sub['name']?.toString(),
-                                                    ),
+                                                    builder: (_) =>
+                                                        AllProductsScreen(
+                                                          categoryId: sub['id']
+                                                              ?.toString(),
+                                                          categoryName:
+                                                              sub['name']
+                                                                  ?.toString(),
+                                                        ),
                                                   ),
                                                 );
                                               },
@@ -5247,9 +5787,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         : [
                                 {'name': 'Women', 'icon': Icons.woman_rounded},
                                 {'name': 'Men', 'icon': Icons.man_rounded},
-                                {'name': 'Kids', 'icon': Icons.child_care_rounded},
-                                {'name': 'Beauty', 'icon': Icons.face_retouching_natural},
-                                {'name': 'Home & Living', 'icon': Icons.home_rounded},
+                                {
+                                  'name': 'Kids',
+                                  'icon': Icons.child_care_rounded,
+                                },
+                                {
+                                  'name': 'Beauty',
+                                  'icon': Icons.face_retouching_natural,
+                                },
+                                {
+                                  'name': 'Home & Living',
+                                  'icon': Icons.home_rounded,
+                                },
                               ]
                               .asMap()
                               .entries
@@ -5260,14 +5809,18 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     width: 30,
                                     height: 30,
                                     decoration: BoxDecoration(
-                                      color: _drawerCatColors[e.key % _drawerCatColors.length][0],
+                                      color:
+                                          _drawerCatColors[e.key %
+                                              _drawerCatColors.length][0],
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Center(
                                       child: Icon(
                                         e.value['icon'] as IconData,
                                         size: 16,
-                                        color: _drawerCatColors[e.key % _drawerCatColors.length][1],
+                                        color:
+                                            _drawerCatColors[e.key %
+                                                _drawerCatColors.length][1],
                                       ),
                                     ),
                                   ),
@@ -5302,7 +5855,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               .take(6)
                               .map(
                                 (b) => _DrawerItem(
-                                  imageUrl: _imgUrl(b['logo_url'] ?? b['image']),
+                                  imageUrl: _imgUrl(
+                                    b['logo_url'] ?? b['image'],
+                                  ),
                                   icon: Icons.storefront_outlined,
                                   label: b['name']?.toString() ?? '',
                                   onTap: () {
@@ -5311,7 +5866,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                       MaterialPageRoute(
                                         builder: (_) => AllProductsScreen(
                                           brandId: b['id']?.toString(),
-                                          brandName: b['name']?.toString() ?? '',
+                                          brandName:
+                                              b['name']?.toString() ?? '',
                                         ),
                                       ),
                                     );
@@ -5328,7 +5884,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                     Navigator.pop(context);
                                     Navigator.of(context).push(
                                       MaterialPageRoute(
-                                        builder: (_) => AllProductsScreen(brandName: n),
+                                        builder: (_) =>
+                                            AllProductsScreen(brandName: n),
                                       ),
                                     );
                                   },
@@ -5346,9 +5903,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         label: 'Refer & Earn',
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.of(
-                            context,
-                          ).push(MaterialPageRoute(builder: (_) => const ReferEarnScreen()));
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ReferEarnScreen(),
+                            ),
+                          );
                         },
                       ),
                       _DrawerItem(
@@ -5357,9 +5916,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         label: 'Donate Old Clothes',
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.of(
-                            context,
-                          ).push(MaterialPageRoute(builder: (_) => const OldClothesScreen()));
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const OldClothesScreen(),
+                            ),
+                          );
                         },
                       ),
                       _DrawerItem(
@@ -5424,7 +5985,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           Navigator.pop(context);
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (_) => const LoginScreen(startAsVendor: true),
+                              builder: (_) =>
+                                  const LoginScreen(startAsVendor: true),
                             ),
                           );
                         },
@@ -5444,9 +6006,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         label: 'Privacy Policy',
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.of(
-                            context,
-                          ).push(MaterialPageRoute(builder: (_) => const PoliciesScreen()));
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const PoliciesScreen(),
+                            ),
+                          );
                         },
                       ),
                       _DrawerItem(
@@ -5455,9 +6019,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         label: 'Terms of Service',
                         onTap: () {
                           Navigator.pop(context);
-                          Navigator.of(
-                            context,
-                          ).push(MaterialPageRoute(builder: (_) => const PoliciesScreen()));
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const PoliciesScreen(),
+                            ),
+                          );
                         },
                       ),
                     ],
@@ -5474,11 +6040,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   nav.pop();
                   await NotificationService.instance.clearForCurrentUser();
                   UserSession.instance.clear();
-                  nav.pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+                  nav.pushReplacement(
+                    MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  );
                 },
                 child: const Row(
                   children: [
-                    Icon(Icons.logout_rounded, color: Color(0xFFEF4444), size: 20),
+                    Icon(
+                      Icons.logout_rounded,
+                      color: Color(0xFFEF4444),
+                      size: 20,
+                    ),
                     SizedBox(width: 10),
                     Text(
                       'Logout',
@@ -5536,15 +6108,21 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     for (final raw in rows) {
       if (raw is! Map) continue;
       final row = Map<String, dynamic>.from(raw);
-      final source = (row['source_root_id'] ?? row['sourceRootId'] ?? '').toString().trim();
-      final target = (row['target_root_id'] ?? row['targetRootId'] ?? '').toString().trim();
+      final source = (row['source_root_id'] ?? row['sourceRootId'] ?? '')
+          .toString()
+          .trim();
+      final target = (row['target_root_id'] ?? row['targetRootId'] ?? '')
+          .toString()
+          .trim();
       if (source.isEmpty || target.isEmpty) continue;
       map.putIfAbsent(source, () => <String>{}).add(target);
     }
     return map;
   }
 
-  List<Map<String, dynamic>> _displaySubCategoriesForRoot(Map<String, dynamic> root) {
+  List<Map<String, dynamic>> _displaySubCategoriesForRoot(
+    Map<String, dynamic> root,
+  ) {
     final rootId = root['id']?.toString() ?? '';
     var subs = _allCategories
         .where((c) => c['parent_id']?.toString() == rootId)
@@ -5553,7 +6131,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     // Men and Footwear should mirror shoe-like navigation items.
     if (_isMenRootCategory(root) || _isFootwearRootCategory(root)) {
-      final mirroredRootIds = _categoryMirrorRootIds[rootId] ?? const <String>{};
+      final mirroredRootIds =
+          _categoryMirrorRootIds[rootId] ?? const <String>{};
 
       final counterpartRoots = _categories.where((c) {
         final id = c['id']?.toString() ?? '';
@@ -5602,7 +6181,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     final roots = _categories.isNotEmpty
         ? _categories
         : _fallbackCategories
-              .map((m) => <String, dynamic>{'name': m['name'], '_localImage': m['image']})
+              .map(
+                (m) => <String, dynamic>{
+                  'name': m['name'],
+                  '_localImage': m['image'],
+                },
+              )
               .toList();
 
     if (roots.isEmpty) {
@@ -5638,16 +6222,23 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 },
                 child: Container(
                   color: isSelected ? Colors.white : Colors.transparent,
-                  padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 14,
+                    horizontal: 8,
+                  ),
                   child: Column(
                     children: [
                       Container(
                         width: 52,
                         height: 52,
                         decoration: BoxDecoration(
-                          color: isSelected ? const Color(0xFFDCFCE7) : const Color(0xFFE2E8F0),
+                          color: isSelected
+                              ? const Color(0xFFDCFCE7)
+                              : const Color(0xFFE2E8F0),
                           borderRadius: BorderRadius.circular(14),
-                          border: isSelected ? Border.all(color: _green, width: 2) : null,
+                          border: isSelected
+                              ? Border.all(color: _green, width: 2)
+                              : null,
                         ),
                         child: ClipRRect(
                           borderRadius: BorderRadius.circular(13),
@@ -5657,11 +6248,19 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                               ? CachedNetworkImage(
                                   imageUrl: netImg,
                                   fit: BoxFit.cover,
-                                  placeholder: (_, _) => Container(color: const Color(0xFFE2E8F0)),
-                                  errorWidget: (_, _, _) =>
-                                      const Icon(Icons.category_outlined, color: _green, size: 22),
+                                  placeholder: (_, _) =>
+                                      Container(color: const Color(0xFFE2E8F0)),
+                                  errorWidget: (_, _, _) => const Icon(
+                                    Icons.category_outlined,
+                                    color: _green,
+                                    size: 22,
+                                  ),
                                 )
-                              : const Icon(Icons.category_outlined, color: _green, size: 22),
+                              : const Icon(
+                                  Icons.category_outlined,
+                                  color: _green,
+                                  size: 22,
+                                ),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -5719,7 +6318,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.grid_view_rounded, color: _green, size: 22),
+                          const Icon(
+                            Icons.grid_view_rounded,
+                            color: _green,
+                            size: 22,
+                          ),
                           const SizedBox(width: 8),
                           Text(
                             'View All ${selectedRoot['name'] ?? ''}',
@@ -5742,13 +6345,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           MaterialPageRoute(
                             builder: (_) => CategoryLandingScreen(
                               categoryId: selectedId,
-                              categoryName: selectedRoot['name']?.toString() ?? '',
+                              categoryName:
+                                  selectedRoot['name']?.toString() ?? '',
                             ),
                           ),
                         ),
                         child: Container(
                           margin: const EdgeInsets.only(bottom: 10),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
                             color: const Color(0xFFDCFCE7),
                             borderRadius: BorderRadius.circular(12),
@@ -5756,7 +6363,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.apps_rounded, color: _green, size: 18),
+                              const Icon(
+                                Icons.apps_rounded,
+                                color: _green,
+                                size: 18,
+                              ),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -5768,7 +6379,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                   ),
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: _green),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 12,
+                                color: _green,
+                              ),
                             ],
                           ),
                         ),
@@ -5777,29 +6392,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: subs.length,
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          childAspectRatio: 0.85,
-                          crossAxisSpacing: 10,
-                          mainAxisSpacing: 10,
-                        ),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 2,
+                              childAspectRatio: 0.85,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                            ),
                         itemBuilder: (_, i) {
                           final sub = subs[i];
                           final subId = sub['id']?.toString() ?? '';
                           final subName = sub['name']?.toString() ?? '';
-                          final subImg = _imgUrl(sub['category_url'] ?? sub['image']);
+                          final subImg = _imgUrl(
+                            sub['category_url'] ?? sub['image'],
+                          );
                           return GestureDetector(
                             onTap: () => Navigator.of(context).push(
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    AllProductsScreen(categoryId: subId, categoryName: subName),
+                                builder: (_) => AllProductsScreen(
+                                  categoryId: subId,
+                                  categoryName: subName,
+                                ),
                               ),
                             ),
                             child: Container(
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF8FAFC),
                                 borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                                border: Border.all(
+                                  color: const Color(0xFFE2E8F0),
+                                ),
                               ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -5814,16 +6436,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                                           ? CachedNetworkImage(
                                               imageUrl: subImg,
                                               fit: BoxFit.cover,
-                                              placeholder: (_, _) =>
-                                                  Container(color: const Color(0xFFE2E8F0)),
-                                              errorWidget: (_, _, _) => Container(
-                                                color: const Color(0xFFDCFCE7),
-                                                child: const Icon(
-                                                  Icons.category_outlined,
-                                                  color: _green,
-                                                  size: 28,
-                                                ),
+                                              placeholder: (_, _) => Container(
+                                                color: const Color(0xFFE2E8F0),
                                               ),
+                                              errorWidget: (_, _, _) =>
+                                                  Container(
+                                                    color: const Color(
+                                                      0xFFDCFCE7,
+                                                    ),
+                                                    child: const Icon(
+                                                      Icons.category_outlined,
+                                                      color: _green,
+                                                      size: 28,
+                                                    ),
+                                                  ),
                                             )
                                           : Container(
                                               color: const Color(0xFFDCFCE7),
@@ -5915,7 +6541,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         final permission = await Geolocator.checkPermission();
         if (permission == LocationPermission.whileInUse ||
             permission == LocationPermission.always) {
-          final pos = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.low);
+          final pos = await Geolocator.getCurrentPosition(
+            desiredAccuracy: LocationAccuracy.low,
+          );
           lat = pos.latitude;
           lng = pos.longitude;
         }
@@ -5969,7 +6597,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
 
     for (int i = 0; i < 2; i++) {
       if (_deliverRoutePoints.length >= 2) {
-        final idx = (_deliverLiveTick * 2 + i * 23) % _deliverRoutePoints.length;
+        final idx =
+            (_deliverLiveTick * 2 + i * 23) % _deliverRoutePoints.length;
         riders.add(_deliverRoutePoints[idx]);
         continue;
       }
@@ -6001,7 +6630,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _deliverLiveTimer = null;
   }
 
-  double _deliverHaversineKm(double lat1, double lng1, double lat2, double lng2) {
+  double _deliverHaversineKm(
+    double lat1,
+    double lng1,
+    double lat2,
+    double lng2,
+  ) {
     const r = 6371.0;
     final dLat = (lat2 - lat1) * math.pi / 180.0;
     final dLng = (lng2 - lng1) * math.pi / 180.0;
@@ -6061,7 +6695,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         '?overview=full&geometries=geojson',
       );
 
-      final res = await http.get(uri, headers: const {'User-Agent': 'BlinkieFashApp/1.0'});
+      final res = await http.get(
+        uri,
+        headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+      );
 
       if (!mounted) return;
 
@@ -6078,7 +6715,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       }
 
       final decoded = jsonDecode(res.body);
-      final routes = decoded is Map ? (decoded['routes'] as List? ?? const []) : const [];
+      final routes = decoded is Map
+          ? (decoded['routes'] as List? ?? const [])
+          : const [];
       if (routes.isEmpty) {
         setState(() => _deliverRoutePoints = fallback);
         _recalculateDeliverEta();
@@ -6087,7 +6726,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       }
 
       final geometry = routes.first['geometry'];
-      final coords = geometry is Map ? (geometry['coordinates'] as List? ?? const []) : const [];
+      final coords = geometry is Map
+          ? (geometry['coordinates'] as List? ?? const [])
+          : const [];
 
       final points = <LatLng>[];
       for (final c in coords) {
@@ -6121,7 +6762,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     }
   }
 
-  Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(String query) async {
+  Future<List<Map<String, dynamic>>> _buildDeliverSuggestions(
+    String query,
+  ) async {
     _deliverLastGoogleApiStatus = null;
     final seen = <String>{};
     final suggestions = <Map<String, dynamic>>[];
@@ -6136,7 +6779,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       final key = '${lat.toStringAsFixed(5)},${lng.toStringAsFixed(5)}';
       if (seen.contains(key)) return;
       seen.add(key);
-      suggestions.add({'title': title, 'subtitle': subtitle, 'lat': lat, 'lng': lng});
+      suggestions.add({
+        'title': title,
+        'subtitle': subtitle,
+        'lat': lat,
+        'lng': lng,
+      });
     }
 
     Future<void> addGeocodingSuggestions() async {
@@ -6148,7 +6796,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           '&components=country:IN'
           '&key=${Uri.encodeComponent(_googleMapsApiKey)}',
         );
-        final geoRes = await http.get(geoUri, headers: const {'User-Agent': 'BlinkieFashApp/1.0'});
+        final geoRes = await http.get(
+          geoUri,
+          headers: const {'User-Agent': 'BlinkieFashApp/1.0'},
+        );
         if (geoRes.statusCode != 200) {
           _deliverLastGoogleApiStatus = 'HTTP_${geoRes.statusCode}';
           return;
@@ -6172,7 +6823,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           if (lat == null || lng == null) continue;
 
           final formatted = (m['formatted_address'] ?? '').toString().trim();
-          final title = formatted.isNotEmpty ? formatted.split(',').first.trim() : query;
+          final title = formatted.isNotEmpty
+              ? formatted.split(',').first.trim()
+              : query;
           await addSuggestion(
             title: title,
             subtitle: formatted.isNotEmpty ? formatted : 'Tap to select',
@@ -6258,7 +6911,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           'Tap to select')
                       .toString();
 
-              await addSuggestion(title: title, subtitle: subtitle, lat: lat, lng: lng);
+              await addSuggestion(
+                title: title,
+                subtitle: subtitle,
+                lat: lat,
+                lng: lng,
+              );
             } catch (_) {
               // Keep processing other predictions.
             }
@@ -6276,7 +6934,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     return suggestions;
   }
 
-  Future<void> _searchDeliverSuggestions(String query, {required bool pickup}) async {
+  Future<void> _searchDeliverSuggestions(
+    String query, {
+    required bool pickup,
+  }) async {
     final q = query.trim();
     if (q.length < 2) {
       if (!mounted) return;
@@ -6293,7 +6954,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
       return;
     }
 
-    final token = pickup ? ++_deliverPickupSearchToken : ++_deliverDropSearchToken;
+    final token = pickup
+        ? ++_deliverPickupSearchToken
+        : ++_deliverDropSearchToken;
 
     if (_googleMapsApiKey.isEmpty && !_shownDeliverGoogleSearchConfigWarning) {
       _shownDeliverGoogleSearchConfigWarning = true;
@@ -6325,7 +6988,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           _deliverGoogleSearchStatus = 'Connected';
         } else {
           final last = _deliverLastGoogleApiStatus;
-          if (last != null && last.isNotEmpty && last != 'OK' && last != 'ZERO_RESULTS') {
+          if (last != null &&
+              last.isNotEmpty &&
+              last != 'OK' &&
+              last != 'ZERO_RESULTS') {
             _deliverGoogleSearchStatus = 'API error: $last';
           } else {
             _deliverGoogleSearchStatus = 'No results';
@@ -6370,7 +7036,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     if (!blocked.contains(status)) return;
     _deliverGoogleSearchStatus = 'API error: $status';
     _shownDeliverGoogleSearchConfigWarning = true;
-    _snack('Google location search failed ($status). Check API key and Places/Geocoding APIs.');
+    _snack(
+      'Google location search failed ($status). Check API key and Places/Geocoding APIs.',
+    );
   }
 
   Color _deliverGoogleSearchStatusColor() {
@@ -6414,7 +7082,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     _autoEstimateDeliverIfReady();
   }
 
-  void _selectDeliverSuggestion(Map<String, dynamic> suggestion, {required bool pickup}) {
+  void _selectDeliverSuggestion(
+    Map<String, dynamic> suggestion, {
+    required bool pickup,
+  }) {
     final title = (suggestion['title'] ?? '').toString();
     final subtitle = (suggestion['subtitle'] ?? '').toString();
     final text = subtitle.trim().isEmpty ? title : '$title, $subtitle';
@@ -6442,14 +7113,17 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Future<void> _pickDeliverLocationFromMap({required bool pickup}) async {
-    final picked = await Navigator.of(
-      context,
-    ).push<PickedAddress>(MaterialPageRoute(builder: (_) => const LocationPickerScreen()));
+    final picked = await Navigator.of(context).push<PickedAddress>(
+      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+    );
     if (!mounted || picked == null) return;
 
     final text = picked.addressLine.trim().isNotEmpty
         ? picked.addressLine.trim()
-        : [picked.city, picked.pincode].where((e) => e.trim().isNotEmpty).join(', ');
+        : [
+            picked.city,
+            picked.pincode,
+          ].where((e) => e.trim().isNotEmpty).join(', ');
 
     setState(() {
       _deliverEstimate = null;
@@ -6471,7 +7145,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
   }
 
   Widget _deliverSuggestionList({required bool pickup}) {
-    final suggestions = pickup ? _deliverPickupSuggestions : _deliverDropSuggestions;
+    final suggestions = pickup
+        ? _deliverPickupSuggestions
+        : _deliverDropSuggestions;
     if (suggestions.isEmpty) return const SizedBox.shrink();
 
     return Material(
@@ -6590,7 +7266,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             children: [
               Text(
                 'Parcel Service',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w800, color: Colors.white),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
               ),
               SizedBox(height: 6),
               Text(
@@ -6723,7 +7403,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             child: Row(
               children: [
-                const Icon(Icons.route_rounded, color: Color(0xFF16A34A), size: 18),
+                const Icon(
+                  Icons.route_rounded,
+                  color: Color(0xFF16A34A),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -6753,10 +7437,15 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               style: FilledButton.styleFrom(
                 backgroundColor: const Color(0xFF16A34A),
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
               onPressed: () => _openParcelCheckout(estimate),
-              icon: const Icon(Icons.arrow_forward_rounded, color: Colors.white),
+              icon: const Icon(
+                Icons.arrow_forward_rounded,
+                color: Colors.white,
+              ),
               label: Text(
                 'Continue — ₹$fare  •  $distance km',
                 style: const TextStyle(
@@ -6779,7 +7468,8 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
     // Pre-populate email from session (or fetch from API if missing)
     final emailCtrl = TextEditingController(text: session.email ?? '');
     // If session email is empty, try to fetch from API in background
-    if ((session.email == null || session.email!.isEmpty) && session.userId != null) {
+    if ((session.email == null || session.email!.isEmpty) &&
+        session.userId != null) {
       _api
           .fetchUserProfile(session.userId!)
           .then((profile) {
@@ -6811,7 +7501,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('My Profile', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+              const Text(
+                'My Profile',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+              ),
               const SizedBox(height: 20),
               TextField(
                 controller: nameCtrl,
@@ -6849,10 +7542,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           final res = await _api.updateUserProfile(
                             userId: session.userId ?? '',
                             name: name,
-                            email: emailCtrl.text.trim().isNotEmpty ? emailCtrl.text.trim() : null,
+                            email: emailCtrl.text.trim().isNotEmpty
+                                ? emailCtrl.text.trim()
+                                : null,
                           );
                           setSheetState(() => saving = false);
-                          if (res['success'] == true || res['message'] == null) {
+                          if (res['success'] == true ||
+                              res['message'] == null) {
                             session.name = name;
                             setState(() {});
                           }
@@ -6867,11 +7563,20 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     backgroundColor: _green,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: saving
-                      ? const SizedBox(height: 18, width: 18, child: BfSpinner())
-                      : const Text('Save Changes', style: TextStyle(fontWeight: FontWeight.w700)),
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: BfSpinner(),
+                        )
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
             ],
@@ -6944,9 +7649,16 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                         decoration: BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
-                          border: Border.all(color: const Color(0xFF16A34A), width: 1.5),
+                          border: Border.all(
+                            color: const Color(0xFF16A34A),
+                            width: 1.5,
+                          ),
                         ),
-                        child: const Icon(Icons.edit_rounded, size: 12, color: Color(0xFF16A34A)),
+                        child: const Icon(
+                          Icons.edit_rounded,
+                          size: 12,
+                          color: Color(0xFF16A34A),
+                        ),
                       ),
                     ),
                   ],
@@ -6967,17 +7679,28 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                     ),
                     if (phone.isNotEmpty) ...[
                       const SizedBox(height: 3),
-                      Text(phone, style: const TextStyle(fontSize: 13, color: Color(0xFFBBF7D0))),
+                      Text(
+                        phone,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color(0xFFBBF7D0),
+                        ),
+                      ),
                     ],
                     const SizedBox(height: 10),
                     GestureDetector(
                       onTap: () => _showEditProfileSheet(context),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 5,
+                        ),
                         decoration: BoxDecoration(
                           color: Colors.white.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.5)),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.5),
+                          ),
                         ),
                         child: const Text(
                           'Edit Profile',
@@ -7012,8 +7735,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           label: 'Wishlist',
           subtitle: 'Products you have saved',
           color: const Color(0xFFEC4899),
-          onTap: () =>
-              Navigator.of(context).push(MaterialPageRoute(builder: (_) => const WishlistScreen())),
+          onTap: () => Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => const WishlistScreen())),
         ),
         _ProfileTile(
           icon: Icons.local_offer_outlined,
@@ -7041,7 +7765,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           color: const Color(0xFF0EA5E9),
           onTap: () => Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (_) => AddressScreen(userId: UserSession.instance.userId ?? '', api: _api),
+              builder: (_) => AddressScreen(
+                userId: UserSession.instance.userId ?? '',
+                api: _api,
+              ),
             ),
           ),
         ),
@@ -7066,19 +7793,22 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
           icon: Icons.gavel_outlined,
           label: 'Terms & Conditions',
           color: const Color(0xFF6B7280),
-          onTap: () => _showPolicySheet(context, 'Terms & Conditions', _termsContent),
+          onTap: () =>
+              _showPolicySheet(context, 'Terms & Conditions', _termsContent),
         ),
         _ProfileTile(
           icon: Icons.privacy_tip_outlined,
           label: 'Privacy Policy',
           color: const Color(0xFF6B7280),
-          onTap: () => _showPolicySheet(context, 'Privacy Policy', _privacyContent),
+          onTap: () =>
+              _showPolicySheet(context, 'Privacy Policy', _privacyContent),
         ),
         _ProfileTile(
           icon: Icons.business_outlined,
           label: 'Company Policy',
           color: const Color(0xFF6B7280),
-          onTap: () => _showPolicySheet(context, 'Company Policy', _companyContent),
+          onTap: () =>
+              _showPolicySheet(context, 'Company Policy', _companyContent),
         ),
 
         const SizedBox(height: 16),
@@ -7092,28 +7822,36 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 NotificationService.instance.clearForCurrentUser();
                 UserSession.instance.clear();
               }
-              Navigator.of(
-                context,
-              ).pushReplacement(MaterialPageRoute(builder: (_) => const LoginScreen()));
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (_) => const LoginScreen()),
+              );
             },
             icon: Icon(
               isLoggedIn ? Icons.logout_rounded : Icons.login_rounded,
-              color: isLoggedIn ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+              color: isLoggedIn
+                  ? const Color(0xFFEF4444)
+                  : const Color(0xFF16A34A),
             ),
             label: Text(
               isLoggedIn ? 'Log Out' : 'Log In',
               style: TextStyle(
-                color: isLoggedIn ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+                color: isLoggedIn
+                    ? const Color(0xFFEF4444)
+                    : const Color(0xFF16A34A),
                 fontWeight: FontWeight.w700,
                 fontSize: 15,
               ),
             ),
             style: OutlinedButton.styleFrom(
               side: BorderSide(
-                color: isLoggedIn ? const Color(0xFFEF4444) : const Color(0xFF16A34A),
+                color: isLoggedIn
+                    ? const Color(0xFFEF4444)
+                    : const Color(0xFF16A34A),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
               minimumSize: const Size(double.infinity, 0),
             ),
           ),
@@ -7122,7 +7860,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
         const SizedBox(height: 32),
 
         const Center(
-          child: Text('BlinkieFash v2.0', style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12)),
+          child: Text(
+            'BlinkieFash v2.0',
+            style: TextStyle(color: Color(0xFFCBD5E1), fontSize: 12),
+          ),
         ),
         const SizedBox(height: 24),
       ],
@@ -7182,7 +7923,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             ),
             const Text(
               'My Offers & Rewards',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF0F172A)),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF0F172A),
+              ),
             ),
             const SizedBox(height: 4),
             const Text(
@@ -7197,7 +7942,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               'Earn \u20b950 for every friend you invite',
               const Color(0xFFEA580C),
               () {
-                Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => const ReferEarnScreen()));
+                Navigator.of(ctx).push(
+                  MaterialPageRoute(builder: (_) => const ReferEarnScreen()),
+                );
               },
             ),
             _offerSheetTile(
@@ -7207,7 +7954,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               'Give back old clothes & earn up to 5% off',
               const Color(0xFF059669),
               () {
-                Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => const OldClothesScreen()));
+                Navigator.of(ctx).push(
+                  MaterialPageRoute(builder: (_) => const OldClothesScreen()),
+                );
               },
             ),
             _offerSheetTile(
@@ -7217,7 +7966,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               'Spin the wheel daily — win discounts & big prizes!',
               const Color(0xFFEC4899),
               () {
-                Navigator.of(ctx).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen()));
+                Navigator.of(ctx).push(
+                  MaterialPageRoute(builder: (_) => const SpinWheelScreen()),
+                );
               },
             ),
             _offerSheetTile(
@@ -7227,9 +7978,9 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
               '1000 levels \u2022 10/day \u2022 Complete levels = +5% off daily',
               const Color(0xFF7C3AED),
               () {
-                Navigator.of(
-                  ctx,
-                ).push(MaterialPageRoute(builder: (_) => const FashionQuestScreen()));
+                Navigator.of(ctx).push(
+                  MaterialPageRoute(builder: (_) => const FashionQuestScreen()),
+                );
               },
             ),
             _offerSheetTile(
@@ -7274,8 +8025,13 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             Container(
               width: 44,
               height: 44,
-              decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(12)),
-              child: Center(child: Text(emoji, style: const TextStyle(fontSize: 22))),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Center(
+                child: Text(emoji, style: const TextStyle(fontSize: 22)),
+              ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -7293,7 +8049,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.85)),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: color.withValues(alpha: 0.85),
+                    ),
                   ),
                 ],
               ),
@@ -7309,7 +8068,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 ),
                 child: Text(
                   'Auto',
-                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: color),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
                 ),
               ),
           ],
@@ -7347,7 +8110,10 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                 padding: const EdgeInsets.all(16),
                 child: Text(
                   title,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const Divider(height: 1),
@@ -7357,7 +8123,11 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     body,
-                    style: const TextStyle(fontSize: 14, height: 1.7, color: Color(0xFF374151)),
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.7,
+                      color: Color(0xFF374151),
+                    ),
                   ),
                 ),
               ),
@@ -7507,12 +8277,22 @@ class _ProfileTile extends StatelessWidget {
                   ),
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
-                    Text(subtitle!, style: const TextStyle(fontSize: 12, color: Color(0xFF9CA3AF))),
+                    Text(
+                      subtitle!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, color: Color(0xFFD1D5DB), size: 20),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: Color(0xFFD1D5DB),
+              size: 20,
+            ),
           ],
         ),
       ),
@@ -7581,7 +8361,10 @@ class _AddressListSheetState extends State<_AddressListSheet> {
         else if (_addresses.isEmpty)
           const Expanded(
             child: Center(
-              child: Text('No addresses saved yet.', style: TextStyle(color: Color(0xFF64748B))),
+              child: Text(
+                'No addresses saved yet.',
+                style: TextStyle(color: Color(0xFF64748B)),
+              ),
             ),
           )
         else
@@ -7602,7 +8385,11 @@ class _AddressListSheetState extends State<_AddressListSheet> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, color: Color(0xFF16A34A), size: 22),
+                      const Icon(
+                        Icons.location_on_outlined,
+                        color: Color(0xFF16A34A),
+                        size: 22,
+                      ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Column(
@@ -7610,15 +8397,22 @@ class _AddressListSheetState extends State<_AddressListSheet> {
                           children: [
                             Text(
                               a['address_line']?.toString() ?? '',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
                             ),
                             const SizedBox(height: 2),
                             Text(
-                              [
-                                a['city'],
-                                a['pincode'],
-                              ].where((s) => s != null && s.toString().isNotEmpty).join(', '),
-                              style: const TextStyle(color: Color(0xFF64748B), fontSize: 12),
+                              [a['city'], a['pincode']]
+                                  .where(
+                                    (s) => s != null && s.toString().isNotEmpty,
+                                  )
+                                  .join(', '),
+                              style: const TextStyle(
+                                color: Color(0xFF64748B),
+                                fontSize: 12,
+                              ),
                             ),
                           ],
                         ),
@@ -7630,7 +8424,12 @@ class _AddressListSheetState extends State<_AddressListSheet> {
             ),
           ),
         Padding(
-          padding: EdgeInsets.fromLTRB(16, 8, 16, MediaQuery.of(context).viewInsets.bottom + 16),
+          padding: EdgeInsets.fromLTRB(
+            16,
+            8,
+            16,
+            MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
           child: SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -7652,7 +8451,11 @@ class _AddressListSheetState extends State<_AddressListSheet> {
 
 // ── Ticket step widget ────────────────────────────────────────────────────────
 class _TicketStep extends StatelessWidget {
-  const _TicketStep({required this.icon, required this.label, required this.done});
+  const _TicketStep({
+    required this.icon,
+    required this.label,
+    required this.done,
+  });
 
   final IconData icon;
   final String label;
@@ -7667,10 +8470,16 @@ class _TicketStep extends StatelessWidget {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: done ? const Color(0xFF4ADE80) : Colors.white.withValues(alpha: 0.15),
+              color: done
+                  ? const Color(0xFF4ADE80)
+                  : Colors.white.withValues(alpha: 0.15),
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 16, color: done ? const Color(0xFF052E16) : Colors.white54),
+            child: Icon(
+              icon,
+              size: 16,
+              color: done ? const Color(0xFF052E16) : Colors.white54,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -7704,7 +8513,11 @@ class _TicketDivider extends StatelessWidget {
 
 // ── Drawer Section ────────────────────────────────────────────────────────────
 class _DrawerSection extends StatelessWidget {
-  const _DrawerSection({required this.title, required this.children, this.sectionIcon});
+  const _DrawerSection({
+    required this.title,
+    required this.children,
+    this.sectionIcon,
+  });
   final String title;
   final List<Widget> children;
   final IconData? sectionIcon;
@@ -7726,7 +8539,11 @@ class _DrawerSection extends StatelessWidget {
                       color: const Color(0xFFF1F5F9),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Icon(sectionIcon, size: 14, color: const Color(0xFF475569)),
+                    child: Icon(
+                      sectionIcon,
+                      size: 14,
+                      color: const Color(0xFF475569),
+                    ),
                   ),
                   const SizedBox(width: 8),
                 ]),
@@ -7735,7 +8552,9 @@ class _DrawerSection extends StatelessWidget {
                 style: TextStyle(
                   fontSize: sectionIcon != null ? 13 : 10,
                   fontWeight: FontWeight.w800,
-                  color: sectionIcon != null ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+                  color: sectionIcon != null
+                      ? const Color(0xFF1E293B)
+                      : const Color(0xFF94A3B8),
                   letterSpacing: 0.8,
                 ),
               ),
@@ -7774,26 +8593,40 @@ class _DrawerItem extends StatelessWidget {
           width: 26,
           height: 26,
           fit: BoxFit.cover,
-          errorBuilder: (_, _, _) =>
-              Icon(icon ?? Icons.storefront_outlined, size: 18, color: const Color(0xFF374151)),
+          errorBuilder: (_, _, _) => Icon(
+            icon ?? Icons.storefront_outlined,
+            size: 18,
+            color: const Color(0xFF374151),
+          ),
         ),
       );
     } else if (iconBg != null) {
       leading = Container(
         width: 32,
         height: 32,
-        decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(9)),
+        decoration: BoxDecoration(
+          color: iconBg,
+          borderRadius: BorderRadius.circular(9),
+        ),
         child: Icon(icon ?? Icons.circle, size: 17, color: Colors.white),
       );
     } else {
-      leading = Icon(icon ?? Icons.chevron_right_rounded, size: 18, color: const Color(0xFF374151));
+      leading = Icon(
+        icon ?? Icons.chevron_right_rounded,
+        size: 18,
+        color: const Color(0xFF374151),
+      );
     }
     return ListTile(
       dense: true,
       leading: leading,
       title: Text(
         label,
-        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF0F172A)),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF0F172A),
+        ),
       ),
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
@@ -7889,7 +8722,11 @@ class _LocationSheetState extends State<_LocationSheet> {
                   color: const Color(0xFFDCFCE7),
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.my_location_rounded, color: _green, size: 20),
+                child: const Icon(
+                  Icons.my_location_rounded,
+                  color: _green,
+                  size: 20,
+                ),
               ),
               title: const Text(
                 'Use Current Location',
@@ -7900,7 +8737,10 @@ class _LocationSheetState extends State<_LocationSheet> {
                 style: TextStyle(color: Color(0xFF64748B), fontSize: 12),
               ),
               onTap: widget.onCurrentLocation,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 20,
+                vertical: 2,
+              ),
             ),
             if (_loading)
               const Padding(
@@ -7932,7 +8772,10 @@ class _LocationSheetState extends State<_LocationSheet> {
                     : Icons.home_outlined;
                 final city = (addr['city'] ?? '').toString().trim();
                 final line = (addr['address_line'] ?? '').toString().trim();
-                final subtitle = [line, city].where((s) => s.isNotEmpty).join(', ');
+                final subtitle = [
+                  line,
+                  city,
+                ].where((s) => s.isNotEmpty).join(', ');
                 return ListTile(
                   leading: Container(
                     padding: const EdgeInsets.all(8),
@@ -7954,13 +8797,19 @@ class _LocationSheetState extends State<_LocationSheet> {
                     subtitle,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: Color(0xFF475569), fontSize: 12),
+                    style: const TextStyle(
+                      color: Color(0xFF475569),
+                      fontSize: 12,
+                    ),
                   ),
                   onTap: () {
                     Navigator.pop(context);
                     widget.onAddressSelected(addr);
                   },
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 2,
+                  ),
                 );
               }).toList()),
             ],
@@ -7974,13 +8823,18 @@ class _LocationSheetState extends State<_LocationSheet> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AddressScreen(userId: widget.userId!, api: widget.api),
+                        builder: (_) => AddressScreen(
+                          userId: widget.userId!,
+                          api: widget.api,
+                        ),
                       ),
                     );
                   } else {
                     Navigator.push<PickedAddress>(
                       context,
-                      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => const LocationPickerScreen(),
+                      ),
                     ).then((picked) {
                       if (picked == null) return;
                       widget.onAddressSelected({
@@ -7994,7 +8848,10 @@ class _LocationSheetState extends State<_LocationSheet> {
                 },
                 borderRadius: BorderRadius.circular(14),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     border: Border.all(color: _green, width: 1.5),
                     borderRadius: BorderRadius.circular(14),
@@ -8002,11 +8859,19 @@ class _LocationSheetState extends State<_LocationSheet> {
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.add_location_alt_outlined, color: _green, size: 20),
+                      Icon(
+                        Icons.add_location_alt_outlined,
+                        color: _green,
+                        size: 20,
+                      ),
                       SizedBox(width: 8),
                       Text(
                         '+ Add New Location',
-                        style: TextStyle(color: _green, fontWeight: FontWeight.w700, fontSize: 14),
+                        style: TextStyle(
+                          color: _green,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -8084,7 +8949,11 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
       if (!ok && mounted) {
         ScaffoldMessenger.of(context)
           ..removeCurrentSnackBar()
-          ..showSnackBar(const SnackBar(content: Text('Could not open app. Please try manually.')));
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Could not open app. Please try manually.'),
+            ),
+          );
       }
     } catch (_) {
       // Try without mode
@@ -8118,7 +8987,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
 
   Future<void> _openEmail() async {
     final subject = Uri.encodeComponent('Support Request - BlinkieFash');
-    final body = Uri.encodeComponent('Hi BlinkieFash Support,\n\nI need help with:\n\n');
+    final body = Uri.encodeComponent(
+      'Hi BlinkieFash Support,\n\nI need help with:\n\n',
+    );
     final uri = Uri.parse('mailto:$_emailAddr?subject=$subject&body=$body');
     try {
       await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -8128,9 +8999,11 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
   }
 
   void _openInAppChat() {
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute<void>(builder: (_) => SupportChatScreen(api: widget.api)));
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => SupportChatScreen(api: widget.api),
+      ),
+    );
   }
 
   Future<void> _submitTicket() async {
@@ -8138,7 +9011,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
     if (msg.isEmpty) {
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Please describe your issue')));
+        ..showSnackBar(
+          const SnackBar(content: Text('Please describe your issue')),
+        );
       return;
     }
     if (_submitting) return;
@@ -8165,7 +9040,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
 
       // API returned an error — fall back to email
       final errMsg =
-          result['error']?.toString() ?? result['message']?.toString() ?? 'Failed to submit';
+          result['error']?.toString() ??
+          result['message']?.toString() ??
+          'Failed to submit';
       debugPrint('Ticket submit failed: $errMsg');
       await _emailFallback(msg);
     } catch (e) {
@@ -8179,8 +9056,12 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
 
   Future<void> _emailFallback(String msg) async {
     final subject = Uri.encodeComponent('[$_category] Support Ticket');
-    final order = _selectedOrderId != null ? 'Order: $_selectedOrderLabel\n' : '';
-    final body = Uri.encodeComponent('Category: $_category\n${order}Issue:\n$msg');
+    final order = _selectedOrderId != null
+        ? 'Order: $_selectedOrderLabel\n'
+        : '';
+    final body = Uri.encodeComponent(
+      'Category: $_category\n${order}Issue:\n$msg',
+    );
     await _launch('mailto:$_emailAddr?subject=$subject&body=$body');
     if (mounted) {
       setState(() {
@@ -8224,7 +9105,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
             Expanded(
               child: SingleChildScrollView(
                 controller: scrollCtrl,
-                padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -8270,7 +9153,10 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                               SizedBox(height: 2),
                               Text(
                                 'We are here for you 24/7',
-                                style: TextStyle(color: Color(0xFFBBF7D0), fontSize: 12),
+                                style: TextStyle(
+                                  color: Color(0xFFBBF7D0),
+                                  fontSize: 12,
+                                ),
                               ),
                             ],
                           ),
@@ -8336,7 +9222,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                             child: _ContactCard(
                               icon: Icons.confirmation_number_outlined,
                               label: 'Create Ticket',
-                              subtitle: _showTicket ? 'Tap to collapse' : 'Fill & submit issue',
+                              subtitle: _showTicket
+                                  ? 'Tap to collapse'
+                                  : 'Fill & submit issue',
                               color: const Color(0xFFF59E0B),
                               onTap: () => setState(() {
                                 _showTicket = !_showTicket;
@@ -8363,7 +9251,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                             backgroundColor: const Color(0xFF2563EB),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
                           ),
                         ),
                       ),
@@ -8417,7 +9307,8 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                                   const SizedBox(width: 14),
                                   const Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           'Ticket Raised!',
@@ -8430,7 +9321,10 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                                         SizedBox(height: 2),
                                         Text(
                                           'We will respond within 2–4 hours',
-                                          style: TextStyle(color: Color(0xFFBBF7D0), fontSize: 12),
+                                          style: TextStyle(
+                                            color: Color(0xFFBBF7D0),
+                                            fontSize: 12,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -8440,7 +9334,10 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                               if (_submittedTicketId != null) ...[
                                 const SizedBox(height: 16),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 10,
+                                  ),
                                   decoration: BoxDecoration(
                                     color: Colors.white.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(10),
@@ -8510,15 +9407,22 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                             scrollDirection: Axis.horizontal,
                             padding: const EdgeInsets.symmetric(horizontal: 16),
                             itemCount: _categories.length,
-                            separatorBuilder: (_, _) => const SizedBox(width: 8),
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(width: 8),
                             itemBuilder: (_, i) {
                               final sel = _categories[i] == _category;
                               return GestureDetector(
-                                onTap: () => setState(() => _category = _categories[i]),
+                                onTap: () =>
+                                    setState(() => _category = _categories[i]),
                                 child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 7,
+                                  ),
                                   decoration: BoxDecoration(
-                                    color: sel ? const Color(0xFF16A34A) : const Color(0xFFF3F4F6),
+                                    color: sel
+                                        ? const Color(0xFF16A34A)
+                                        : const Color(0xFFF3F4F6),
                                     borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: sel
@@ -8531,7 +9435,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                                     style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
-                                      color: sel ? Colors.white : const Color(0xFF374151),
+                                      color: sel
+                                          ? Colors.white
+                                          : const Color(0xFF374151),
                                     ),
                                   ),
                                 ),
@@ -8554,14 +9460,20 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                         ),
                         if (_loadingOrders)
                           const Center(
-                            child: Padding(padding: EdgeInsets.all(8), child: BfSpinner(size: 20)),
+                            child: Padding(
+                              padding: EdgeInsets.all(8),
+                              child: BfSpinner(size: 20),
+                            ),
                           )
                         else if (_orders.isEmpty)
                           const Padding(
                             padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
                             child: Text(
                               'No recent orders found',
-                              style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                              style: TextStyle(
+                                color: Color(0xFF9CA3AF),
+                                fontSize: 13,
+                              ),
                             ),
                           )
                         else
@@ -8569,9 +9481,12 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                             height: 44,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               itemCount: _orders.length + 1,
-                              separatorBuilder: (_, _) => const SizedBox(width: 8),
+                              separatorBuilder: (_, _) =>
+                                  const SizedBox(width: 8),
                               itemBuilder: (_, i) {
                                 if (i == 0) {
                                   final sel = _selectedOrderId == null;
@@ -8609,10 +9524,14 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                                     ),
                                   );
                                 }
-                                final order = _orders[i - 1] as Map<String, dynamic>;
+                                final order =
+                                    _orders[i - 1] as Map<String, dynamic>;
                                 final oid = order['id']?.toString() ?? '';
-                                final short = oid.length > 8 ? '#${oid.substring(0, 8)}' : '#$oid';
-                                final status = order['status']?.toString() ?? '';
+                                final short = oid.length > 8
+                                    ? '#${oid.substring(0, 8)}'
+                                    : '#$oid';
+                                final status =
+                                    order['status']?.toString() ?? '';
                                 final label = '$short · $status';
                                 final sel = _selectedOrderId == oid;
                                 return GestureDetector(
@@ -8670,14 +9589,17 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                             decoration: BoxDecoration(
                               color: const Color(0xFFF9FAFB),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFE5E7EB)),
+                              border: Border.all(
+                                color: const Color(0xFFE5E7EB),
+                              ),
                             ),
                             child: TextField(
                               controller: _msgCtrl,
                               maxLines: 5,
                               style: const TextStyle(fontSize: 14),
                               decoration: const InputDecoration(
-                                hintText: 'E.g. My order was not delivered, Item was damaged...',
+                                hintText:
+                                    'E.g. My order was not delivered, Item was damaged...',
                                 hintStyle: TextStyle(color: Color(0xFFD1D5DB)),
                                 border: InputBorder.none,
                                 contentPadding: EdgeInsets.all(14),
@@ -8701,16 +9623,22 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
                                   : const Icon(Icons.send_rounded, size: 16),
                               label: Text(
                                 _submitting ? 'Submitting...' : 'Submit Ticket',
-                                style: const TextStyle(fontWeight: FontWeight.w800),
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: const Color(0xFFF59E0B),
                                 foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 14,
+                                ),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                disabledBackgroundColor: const Color(0xFFE5E7EB),
+                                disabledBackgroundColor: const Color(
+                                  0xFFE5E7EB,
+                                ),
                               ),
                             ),
                           ),
@@ -8774,7 +9702,10 @@ class _ContactCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 3),
-            Text(subtitle, style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF))),
+            Text(
+              subtitle,
+              style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+            ),
           ],
         ),
       ),

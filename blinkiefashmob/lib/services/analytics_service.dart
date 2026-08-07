@@ -37,7 +37,10 @@ class AnalyticsService {
   String _generateId() {
     final rand = Random();
     final ts = DateTime.now().microsecondsSinceEpoch.toRadixString(36);
-    final rnd = List.generate(12, (_) => rand.nextInt(36).toRadixString(36)).join();
+    final rnd = List.generate(
+      12,
+      (_) => rand.nextInt(36).toRadixString(36),
+    ).join();
     return '$ts-$rnd';
   }
 
@@ -58,9 +61,11 @@ class AnalyticsService {
         'session_id': sessionId,
         if (userId != null && userId.isNotEmpty) 'user_id': userId,
         'event_type': eventType,
-        if (searchQuery != null && searchQuery.isNotEmpty) 'search_query': searchQuery,
+        if (searchQuery != null && searchQuery.isNotEmpty)
+          'search_query': searchQuery,
         if (productId != null && productId.isNotEmpty) 'product_id': productId,
-        if (categoryId != null && categoryId.isNotEmpty) 'category_id': categoryId,
+        if (categoryId != null && categoryId.isNotEmpty)
+          'category_id': categoryId,
         if (resultCount != null) 'result_count': resultCount,
         if (durationMs != null) 'duration_ms': durationMs,
         if (metadata != null) 'metadata': metadata,
@@ -68,17 +73,26 @@ class AnalyticsService {
 
       if (kDebugMode && (eventType.contains('product') || productId != null)) {
         // ignore: avoid_print
-        print('[Analytics] Sending $eventType event: productId=$productId, userId=$userId');
+        print(
+          '[Analytics] Sending $eventType event: productId=$productId, userId=$userId',
+        );
       }
 
       unawaited(
         http
-            .post(uri, headers: {'Content-Type': 'application/json'}, body: body)
+            .post(
+              uri,
+              headers: {'Content-Type': 'application/json'},
+              body: body,
+            )
             .timeout(const Duration(seconds: 8))
             .then((response) {
-              if (kDebugMode && (eventType.contains('product') || productId != null)) {
+              if (kDebugMode &&
+                  (eventType.contains('product') || productId != null)) {
                 // ignore: avoid_print
-                print('[Analytics] Response: ${response.statusCode} for $eventType');
+                print(
+                  '[Analytics] Response: ${response.statusCode} for $eventType',
+                );
               }
             })
             .catchError((err) {
@@ -93,10 +107,18 @@ class AnalyticsService {
   }
 
   Future<void> logSearch(String query, {int? resultCount}) {
-    return logEvent(eventType: 'search', searchQuery: query, resultCount: resultCount);
+    return logEvent(
+      eventType: 'search',
+      searchQuery: query,
+      resultCount: resultCount,
+    );
   }
 
-  Future<void> logProductClick(String productId, {String? searchQuery, String? source}) {
+  Future<void> logProductClick(
+    String productId, {
+    String? searchQuery,
+    String? source,
+  }) {
     return logEvent(
       eventType: 'product_click',
       productId: productId,
@@ -105,7 +127,11 @@ class AnalyticsService {
     );
   }
 
-  Future<void> logProductView(String productId, {String? searchQuery, String? source}) {
+  Future<void> logProductView(
+    String productId, {
+    String? searchQuery,
+    String? source,
+  }) {
     return logEvent(
       eventType: 'product_view',
       productId: productId,
