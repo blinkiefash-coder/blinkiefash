@@ -432,7 +432,9 @@ class ApiClient {
 
     if (storeParam.isNotEmpty) {
       // Retry without store filter when strict filter has no bestsellers.
-      final uriNoStore = Uri.parse('$apiApiBaseUrl/products/bestsellers?limit=10');
+      final uriNoStore = Uri.parse(
+        '$apiApiBaseUrl/products/bestsellers?limit=10',
+      );
       final dataNoStore = await _getJson(uriNoStore);
       if (dataNoStore is Map &&
           dataNoStore['bestsellers'] is List &&
