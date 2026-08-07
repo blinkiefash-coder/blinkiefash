@@ -444,6 +444,57 @@
   white-space: nowrap;
 }
 
+.vo-item-price {
+  font-size: 12px;
+  font-weight: 700;
+  color: #16a34a;
+  white-space: nowrap;
+}
+
+.vo-date-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.vo-date-filter label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.vo-date-filter input[type="date"] {
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 13px;
+  color: #1e293b;
+  background: #fff;
+  cursor: pointer;
+}
+
+.vo-date-clear {
+  background: none;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 12px;
+  color: #64748b;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vo-date-clear:hover { background: #f1f5f9; }
+
+.vo-btn-excel {
+  background: linear-gradient(135deg, #16a34a, #15803d);
+  color: #fff;
+}
+
 .vo-actions {
   display: flex;
   gap: 10px;

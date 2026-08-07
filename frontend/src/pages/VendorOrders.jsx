@@ -89,10 +89,12 @@ export default function VendorOrders() {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [statusFilter, setStatusFilter] = useState("placed");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [actionLoading, setActionLoading] = useState(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
   const knownOrderIds = useRef(new Set());
   const isFirstPoll = useRef(true);
 
@@ -227,12 +229,56 @@ export default function VendorOrders() {
     updateStatus(orderId, "cancelled", reason || "Rejected by store");
   };
 
+  // Export currently-filtered orders as an Excel-compatible file.
+  const generateExcel = () => {
+    const rows = [
+      ["Order ID", "Date", "Status", "Customer", "Phone", "Product", "Size", "Color", "Barcode", "Qty", "Price (₹)", "Item Total (₹)"],
+    ];
+    filteredForExport.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        rows.push([
+          `#${order.id.slice(-8).toUpperCase()}`,
+          new Date(order.created_at).toLocaleString("en-IN"),
+          order.status,
+          order.customer_name || "",
+          order.customer_phone || "",
+          item.product_name || "",
+          item.size || "",
+          item.color || "",
+          item.barcode || "",
+          item.quantity || 1,
+          Number(item.price || 0).toFixed(2),
+          (Number(item.price || 0) * Number(item.quantity || 1)).toFixed(2),
+        ]);
+      });
+    });
+    // Build tab-separated values wrapped in an XLS-compatible HTML table.
+    const table = `<table>${rows.map((r) => `<tr>${r.map((c) => `<td>${String(c).replace(/</g, "&lt;")}</td>`).join("")}</tr>`).join("")}</table>`;
+    const blob = new Blob([table], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const label = `orders_${dateFrom || "all"}_to_${dateTo || "today"}.xls`;
+    a.download = label;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const ACTIVE_TABS = ["placed", "confirmed", "packed", "out_for_delivery"];
   const filtered = orders.filter((o) => {
     // Once delivered or the delivery OTP is verified, drop it out of the active-tracking tabs
     if (ACTIVE_TABS.includes(statusFilter) && (o.status === "delivered" || o.otp_verified_at)) {
       return false;
     }
+    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
+    return true;
+  });
+  // For Excel export: same date filter but no status restriction.
+  const filteredForExport = orders.filter((o) => {
+    if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
     return statusFilter === "all" ? true : o.status === statusFilter;
   });
 
@@ -283,8 +329,24 @@ export default function VendorOrders() {
             <div className={`vo-live-pill ${refreshing ? "busy" : "online"}`}>
               <span className="vo-live-dot" />
               {refreshing ? "Syncing…" : `Updated ${lastUpdatedAt || "just now"}`}
+            </div>            <div className="vo-date-filter">
+              <label>From
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+              </label>
+              <label>To
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+              </label>
+              {(dateFrom || dateTo) && (
+                <button className="vo-date-clear" onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>
+              )}
             </div>
             <button
+              className="vo-btn vo-btn-excel"
+              onClick={generateExcel}
+              title="Export filtered orders to Excel"
+            >
+              📊 Generate Excel
+            </button>            <button
               className="vo-refresh-btn"
               onClick={() => fetchOrders()}
               disabled={loading || refreshing}
@@ -304,7 +366,7 @@ export default function VendorOrders() {
         </div>
 
         <div className="vo-tabs">
-          {["placed", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled", "all"].map(
+          {["all", "placed", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"].map(
             (s) => (
               <button
                 key={s}
@@ -432,8 +494,7 @@ export default function VendorOrders() {
                               </span>
                               {item.barcode && (
                                 <span className="vo-item-barcode">🏷️ {item.barcode}</span>
-                              )}
-                            </div>
+                              )}                              <span className="vo-item-price">₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(0)} ({item.quantity} × ₹{Number(item.price || 0).toFixed(0)})</span>                            </div>
                           </div>
                         </div>
                       );
