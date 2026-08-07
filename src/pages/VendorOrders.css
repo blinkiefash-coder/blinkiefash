@@ -308,13 +308,16 @@
   font-size: 13px;
   color: #475569;
   margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
 .vo-phone {
   color: #16a34a;
   text-decoration: none;
   font-weight: 600;
-  margin-left: 8px;
+  margin-left: 0;
 }
 .vo-phone:hover { text-decoration: underline; }
 
@@ -449,6 +452,25 @@
   font-weight: 700;
   color: #16a34a;
   white-space: nowrap;
+}
+
+/* Items at the top of the card, light neutral background to visually separate from metadata below */
+.vo-items-section {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+/* Lower portion of card (customer, OTP, actions) separated from items */
+.vo-card-lower {
+  padding-top: 10px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 10px;
 }
 
 .vo-date-filter {

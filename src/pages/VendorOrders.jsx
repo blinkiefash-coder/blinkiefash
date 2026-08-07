@@ -433,12 +433,48 @@ export default function VendorOrders() {
                     </div>
                   </div>
 
+                  {/* Items — shown first so the picker sees what to pack immediately */}
+                  <div className="vo-items-section">
+                    {(order.items || []).map((item, idx) => {
+                      const imageUrl = getItemImageUrl(item);
+                      return (
+                        <div key={idx} className="vo-item">
+                          <div className="vo-item-main">
+                            <div className="vo-item-media">
+                              {imageUrl ? (
+                                <img src={imageUrl} alt={item.product_name || "Product"} />
+                              ) : (
+                                <span>🛍️</span>
+                              )}
+                            </div>
+                            <div className="vo-item-copy">
+                              <span className="vo-item-name">{item.product_name}</span>
+                              <span className="vo-item-detail">
+                                {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
+                              </span>
+                              {item.barcode && (
+                                <span className="vo-item-barcode">🏷️ {item.barcode}</span>
+                              )}
+                              <span className="vo-item-price">₹{Number(item.price || 0).toFixed(0)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="vo-card-lower">
                   {/* Customer */}
                   <div className="vo-customer">
-                    👤 {order.customer_name || "Customer"}{" "}
+                    👤 {order.customer_name || "Customer"}
                     {order.customer_phone && (
-                      <a href={`tel:${order.customer_phone}`} className="vo-phone">
-                        📞 {order.customer_phone}
+                      <a
+                        href={`tel:${order.customer_phone}`}
+                        className="vo-phone"
+                      >
+                        📞 {/^\d{10}$/.test(String(order.customer_phone).replace(/\D/g, ""))
+                          ? `+91 ${String(order.customer_phone).replace(/\D/g, "").replace(/(\d{5})(\d{5})/, "$1 $2")}`
+                          : order.customer_phone}
                       </a>
                     )}
                   </div>
@@ -472,34 +508,6 @@ export default function VendorOrders() {
                       🏪 {order.items[0].vendor_name}
                     </div>
                   )}
-
-                  {/* Items */}
-                  <div className="vo-items">
-                    {(order.items || []).map((item, idx) => {
-                      const imageUrl = getItemImageUrl(item);
-                      return (
-                        <div key={idx} className="vo-item">
-                          <div className="vo-item-main">
-                            <div className="vo-item-media">
-                              {imageUrl ? (
-                                <img src={imageUrl} alt={item.product_name || "Product"} />
-                              ) : (
-                                <span>🛍️</span>
-                              )}
-                            </div>
-                            <div className="vo-item-copy">
-                              <span className="vo-item-name">{item.product_name}</span>
-                              <span className="vo-item-detail">
-                                {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
-                              </span>
-                              {item.barcode && (
-                                <span className="vo-item-barcode">🏷️ {item.barcode}</span>
-                              )}                              <span className="vo-item-price">₹{(Number(item.price || 0) * Number(item.quantity || 1)).toFixed(0)} ({item.quantity} × ₹{Number(item.price || 0).toFixed(0)})</span>                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
 
                   {/* Actions */}
                   {isNew && (
@@ -559,6 +567,7 @@ export default function VendorOrders() {
                       </button>
                     </div>
                   )}
+                  </div>{/* end vo-card-lower */}
                 </div>
               );
             })}
