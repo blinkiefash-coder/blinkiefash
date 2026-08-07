@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
@@ -1034,24 +1035,37 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
 
   Future<void> _loadRecentlyExploredProducts() async {
     final userId = UserSession.instance.userId;
-    if (userId == null || userId.isEmpty || !mounted) return;
+    if (kDebugMode) {
+      print('[Recently Explored PDP] userId=$userId');
+    }
+    if (userId == null || userId.isEmpty || !mounted) {
+      if (kDebugMode) print('[Recently Explored PDP] No userId or not mounted');
+      return;
+    }
     setState(() => _recentlyExploredLoading = true);
     try {
       final result = await _apiClient.fetchRecentlyExplored(
         userId: userId,
         limit: 10,
       );
+      if (kDebugMode) {
+        print('[Recently Explored PDP] API result: $result');
+      }
       if (mounted) {
         final products = (result['products'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
             .where((p) => p['id']?.toString() != widget.productId)
             .toList();
+        if (kDebugMode) {
+          print('[Recently Explored PDP] Found ${products.length} products');
+        }
         setState(() {
           _recentlyExploredProducts = products;
           _recentlyExploredLoading = false;
         });
       }
-    } catch (_) {
+    } catch (e) {
+      if (kDebugMode) print('[Recently Explored PDP] Error: $e');
       if (mounted) setState(() => _recentlyExploredLoading = false);
     }
   }

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -688,22 +689,37 @@ class _HomeScreenState extends State<HomeScreen>
   Future<void> _loadRecentlyExploredProducts() async {
     try {
       final userId = UserSession.instance.userId;
-      if (userId == null || userId.isEmpty) return;
+      if (kDebugMode) {
+        print('[Recently Explored] userId=$userId');
+      }
+      if (userId == null || userId.isEmpty) {
+        if (kDebugMode) print('[Recently Explored] No userId, skipping');
+        return;
+      }
 
       final result = await _api.fetchRecentlyExplored(
         userId: userId,
         limit: 10,
       );
+      if (kDebugMode) {
+        print('[Recently Explored] API result: $result');
+      }
       if (!mounted) return;
 
       final products = (result['products'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
           .toList();
 
+      if (kDebugMode) {
+        print('[Recently Explored] Found ${products.length} products');
+      }
+
       if (mounted) {
         setState(() => _recentlyExploredProducts = products);
       }
-    } catch (_) {}
+    } catch (e) {
+      if (kDebugMode) print('[Recently Explored] Error: $e');
+    }
   }
 
   Future<void> _loadHomeDataForCurrentSelection() {

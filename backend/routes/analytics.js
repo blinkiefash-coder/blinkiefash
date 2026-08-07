@@ -175,15 +175,16 @@ router.get("/recently-explored", async (req, res) => {
 
     // 2. Get recently explored products (ordered by most recent first)
     const productsRes = await pool.query(
-      `SELECT DISTINCT ON (p.id) 
-              p.id, p.name, p.price, p.discount, p.main_image as image, 
-              COALESCE(p.rating, 0) as rating
+      `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
+              COALESCE(p.rating, 0) as rating,
+              MAX(e.created_at) as last_viewed
        FROM user_activity_events e
        JOIN products p ON e.product_id = p.id
        WHERE e.user_id = $1
        AND e.event_type IN ('product_click', 'product_view')
        AND p.id IS NOT NULL
-       ORDER BY p.id, e.created_at DESC
+       GROUP BY p.id, p.name, p.price, p.discount, p.main_image, p.rating
+       ORDER BY last_viewed DESC
        LIMIT $2`,
       [userId, limit]
     );
