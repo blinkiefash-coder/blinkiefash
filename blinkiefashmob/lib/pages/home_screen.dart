@@ -3036,11 +3036,12 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
                           right: 8,
                           child: GestureDetector(
                             onTap: () => WishlistManager.instance.toggle(wishItem),
-                            child: StreamBuilder<Set<String>>(
-                              stream: WishlistManager.instance.stream,
-                              builder: (context, snapshot) {
-                                final isWishlisted =
-                                    snapshot.data?.contains(wishItem.productId) ?? false;
+                            child: ValueListenableBuilder<int>(
+                              valueListenable: WishlistManager.instance.countNotifier,
+                              builder: (context, count, _) {
+                                final isWishlisted = WishlistManager.instance.isWishlisted(
+                                  wishItem.productId,
+                                );
                                 return Container(
                                   width: 36,
                                   height: 36,
