@@ -545,7 +545,44 @@ class _HomeScreenState extends State<HomeScreen>
               });
         _allCategories = (cats).whereType<Map<String, dynamic>>().toList();
         _categoryMirrorRootIds = _buildCategoryMirrorRootIds(mirrorLinks);
-        _brands = brs.whereType<Map<String, dynamic>>().take(8).toList();
+        _brands = brs.whereType<Map<String, dynamic>>().toList()
+          ..sort((a, b) {
+            final an = (a['name'] ?? '').toString().toLowerCase().trim();
+            final bn = (b['name'] ?? '').toString().toLowerCase().trim();
+            // Well-known clothing brands surface first so shoppers
+            // recognise names instantly; everything else follows.
+            const knownBrands = [
+              'nike',
+              'adidas',
+              'puma',
+              "levi's",
+              'levis',
+              'zara',
+              'h&m',
+              'reebok',
+              'tommy hilfiger',
+              'calvin klein',
+              'us polo',
+              'us polo assn',
+              'allen solly',
+              'peter england',
+              'van heusen',
+              'raymond',
+              'pepe jeans',
+              'wrangler',
+              'jack & jones',
+              'vero moda',
+              'biba',
+              'fabindia',
+            ];
+            final ap = knownBrands.indexOf(an);
+            final bp = knownBrands.indexOf(bn);
+            final apr = ap == -1 ? knownBrands.length : ap;
+            final bpr = bp == -1 ? knownBrands.length : bp;
+            if (apr != bpr) return apr.compareTo(bpr);
+            return an.compareTo(bn);
+          });
+        _brands = _brands.take(8).toList();
         _under999 = under999Final.whereType<Map<String, dynamic>>().toList();
         _under1999 = under1999Final.whereType<Map<String, dynamic>>().toList();
         _pumaBrandId = pumaBrandId;
