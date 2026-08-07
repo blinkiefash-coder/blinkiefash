@@ -537,6 +537,27 @@
   color: #fff;
 }
 
+/* Dedicated filter + export bar between metrics and tabs */
+.vo-report-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.vo-report-bar-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+  white-space: nowrap;
+  margin-right: 4px;
+}
+
 .vo-actions {
   display: flex;
   gap: 10px;
