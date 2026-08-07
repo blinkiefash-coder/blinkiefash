@@ -530,12 +530,27 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS otp_verified_at TIMESTAMPTZ
   `).catch(() => {});
 
+  // ── Multi-store order support: ordered pickup route (store→store→customer)
+  // and its total planned distance, for carts spanning >1 dark store ────────
+  await pool.query(`
+    ALTER TABLE orders
+      ADD COLUMN IF NOT EXISTS pickup_route JSONB,
+      ADD COLUMN IF NOT EXISTS route_distance_km DECIMAL(6, 2)
+  `).catch(() => {});
+
   // ── Deliveries table: Store pickup OTP for rider verification ──────────────
   await pool.query(`
     ALTER TABLE deliveries
       ADD COLUMN IF NOT EXISTS store_pickup_otp VARCHAR(4),
       ADD COLUMN IF NOT EXISTS store_pickup_verified_at TIMESTAMPTZ,
       ADD COLUMN IF NOT EXISTS delivery_photo_url TEXT
+  `).catch(() => {});
+
+  // ── Deliveries table: per-stop pickup progress for multi-store orders ──────
+  // (null/unused for ordinary single-store deliveries)
+  await pool.query(`
+    ALTER TABLE deliveries
+      ADD COLUMN IF NOT EXISTS pickup_progress JSONB
   `).catch(() => {});
 
   // ── Product feature flags ─────────────────────────────────────────────────

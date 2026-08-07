@@ -55,10 +55,27 @@ class _NavigationScreenState extends State<NavigationScreen> {
   String? _storeOtpError;
   bool _storeOtpRequested = false;
 
+  // Multi-store pickup progress (unused/empty for ordinary single-store orders)
+  int _currentStopIndex = 0;
+  int? _totalStops;
+
   // Pre-delivery photo
   String? _deliveryPhotoUrl;
   bool _uploadingPhoto = false;
   bool _photoTaken = false; // true even if upload failed — allows Continue
+
+  /// Ordered list of store stops for this order (empty for single-store
+  /// orders, since `pickup_route` is only populated when a cart spans more
+  /// than one dark store).
+  List<Map<String, dynamic>> get _pickupStops {
+    final raw = widget.order['pickup_route'];
+    if (raw is List) {
+      return raw.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+    }
+    return const [];
+  }
+
+  bool get _isMultiStore => _pickupStops.length > 1;
 
   @override
   void initState() {
@@ -86,6 +103,20 @@ class _NavigationScreenState extends State<NavigationScreen> {
     final tryBuyStarted = data['try_buy_started_at'];
     final tryBuyDecision = data['try_buy_decision'];
 
+    // Resume mid multi-store pickup: find the first unverified stop (if any)
+    // in the stored pickup_progress and whether an OTP is already pending.
+    bool multiStorePendingOtp = false;
+    final pickupProgress = data['pickup_progress'];
+    if (pickupProgress is List && pickupProgress.isNotEmpty) {
+      final stops = pickupProgress.whereType<Map>().toList();
+      final idx = stops.indexWhere((s) => s['verifiedAt'] == null);
+      if (idx != -1) {
+        _currentStopIndex = idx;
+        _totalStops = stops.length;
+        multiStorePendingOtp = stops[idx]['otp'] != null;
+      }
+    }
+
     _Phase newPhase;
     if (tryBuyDecision != null) {
       newPhase = _Phase.completed;
@@ -106,6 +137,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
         deliveryStatus == 'on_the_way' ||
         deliveryStatus == 'picked') {
       newPhase = _Phase.navigating;
+    } else if (_isMultiStore && multiStorePendingOtp) {
+      // OTP was generated for the current stop but not yet verified.
+      newPhase = _Phase.storePickup;
+      _storeOtpRequested = true;
     } else if (data['store_pickup_otp'] != null) {
       // OTP was generated but not yet verified → show OTP entry
       newPhase = _Phase.storePickup;
@@ -220,7 +255,15 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (res['success'] == true) {
-      setState(() => _storeOtpRequested = true);
+      setState(() {
+        _storeOtpRequested = true;
+        if (res['stopIndex'] != null) {
+          _currentStopIndex = res['stopIndex'] as int;
+        }
+        if (res['totalStops'] != null) {
+          _totalStops = res['totalStops'] as int;
+        }
+      });
     } else {
       _showError(res['message'] ?? 'Failed to request store OTP');
     }
@@ -240,6 +283,18 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (res['success'] == true) {
+      final allStopsComplete = res['allStopsComplete'] != false; // default true for single-store
+      if (!allStopsComplete) {
+        // More stores left to pick up from — move to the next stop and
+        // show the "I've arrived" button again instead of navigating away.
+        setState(() {
+          _currentStopIndex = ((res['stopIndex'] as int?) ?? _currentStopIndex) + 1;
+          if (res['totalStops'] != null) _totalStops = res['totalStops'] as int;
+          _storeOtpRequested = false;
+          _storeOtpController.clear();
+        });
+        return;
+      }
       // Move to navigating phase + update delivery status
       await _api.updateDeliveryStatus(widget.deliveryId, 'on_the_way');
       setState(() => _phase = _Phase.navigating);
@@ -673,12 +728,47 @@ class _NavigationScreenState extends State<NavigationScreen> {
 
   // ── PHASE: Store Pickup ───────────────────────────────────────────────────
   Widget _buildStorePickupPhase() {
-    final storeName = widget.order['store_name'] as String? ?? 'Dark Store';
-    final storeAddr = widget.order['store_address'] as String? ?? '';
+    final stops = _pickupStops;
+    final isMulti = stops.length > 1;
+    final currentStop = isMulti && _currentStopIndex < stops.length
+        ? stops[_currentStopIndex]
+        : null;
+    final storeName = currentStop != null
+        ? (currentStop['name'] as String? ?? 'Dark Store')
+        : (widget.order['store_name'] as String? ?? 'Dark Store');
+    final storeAddr = isMulti
+        ? '' // per-stop address isn't tracked in pickup_route, name is enough
+        : (widget.order['store_address'] as String? ?? '');
     final distance = widget.order['distance'];
     final distStr = distance != null ? '${distance} km' : null;
+    final totalStops = _totalStops ?? stops.length;
     return Column(
       children: [
+        if (isMulti)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.route, color: Color(0xFF2563EB), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  'Store ${_currentStopIndex + 1} of $totalStops · This order needs pickup from multiple stores',
+                  style: const TextStyle(
+                    color: Color(0xFF1D4ED8),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
         Container(
           width: double.infinity,
           padding: const EdgeInsets.all(14),

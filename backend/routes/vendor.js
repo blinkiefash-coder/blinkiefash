@@ -360,7 +360,6 @@ router.get("/:id/orders", async (req, res) => {
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE p.vendor_id::text = ANY($1::text[])
-         AND o.dark_store_id = $2
        GROUP BY o.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
       [ownerIds, linkedStoreId]
@@ -396,9 +395,9 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
        FROM orders o
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
-       WHERE o.id = $1 AND o.dark_store_id = $2
+       WHERE o.id = $1
        LIMIT 1`,
-      [orderId, linkedStoreId]
+      [orderId]
     );
     if (!orderRows.length) return res.status(404).send("Order not found");
     const order = orderRows[0];

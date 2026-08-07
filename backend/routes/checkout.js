@@ -67,6 +67,57 @@ function haversineKm(lat1, lng1, lat2, lng2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+// ── Multi-store pickup route planner ────────────────────────────────────────
+// When a cart spans more than one dark store, ONE rider still handles the
+// whole order — they just visit every store first, then the customer. This
+// picks the visiting order (of the handful of stores involved) that minimizes
+// total travel distance (store→store legs + the final store→customer leg),
+// so the delivery ETA/fee reflects the real route instead of a single store's
+// distance. Brute-force permutations are fine since a cart realistically only
+// ever spans a small number of stores.
+function planPickupRoute(stores, addrLat, addrLng) {
+  if (!stores.length) return { orderedStores: [], totalDistanceKm: null };
+  const hasAllCoords =
+    addrLat != null &&
+    addrLng != null &&
+    stores.every((s) => s.lat != null && s.lng != null);
+  if (!hasAllCoords) {
+    // Coordinates missing somewhere — keep given order, distance unknown
+    // (falls back to the city-based delivery rule downstream).
+    return { orderedStores: stores, totalDistanceKm: null };
+  }
+
+  const permute = (arr) => {
+    if (arr.length <= 1) return [arr];
+    const out = [];
+    for (let i = 0; i < arr.length; i++) {
+      const rest = [...arr.slice(0, i), ...arr.slice(i + 1)];
+      for (const p of permute(rest)) out.push([arr[i], ...p]);
+    }
+    return out;
+  };
+
+  let bestOrder = stores;
+  let bestDist = Infinity;
+  for (const order of permute(stores)) {
+    let dist = 0;
+    let lat = parseFloat(order[0].lat);
+    let lng = parseFloat(order[0].lng);
+    for (let i = 1; i < order.length; i++) {
+      dist += haversineKm(lat, lng, parseFloat(order[i].lat), parseFloat(order[i].lng));
+      lat = parseFloat(order[i].lat);
+      lng = parseFloat(order[i].lng);
+    }
+    dist += haversineKm(lat, lng, parseFloat(addrLat), parseFloat(addrLng));
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestOrder = order;
+    }
+  }
+
+  return { orderedStores: bestOrder, totalDistanceKm: Math.round(bestDist * 10) / 10 };
+}
+
 // ── Bundle pricing rules ────────────────────────────────────────────────────
 // Check bundle offers from database for cart items
 // Returns discount amount (positive value to subtract from subtotal)
@@ -320,7 +371,7 @@ function calculateDeliveryInfo(distanceKm, city) {
 async function resolveOrderStore(client, items) {
   const variantIds = [...new Set(items.map((item) => item.variantId).filter(Boolean))];
   if (variantIds.length === 0) {
-    return { storeId: null, storeRows: [] };
+    return { storeId: null, storeRows: [], storeIds: [] };
   }
 
   const { rows: storeRows } = await client.query(
@@ -341,20 +392,20 @@ async function resolveOrderStore(client, items) {
   );
 
   if (!storeRows.length) {
-    return { storeId: null, storeRows: [] };
+    return { storeId: null, storeRows: [], storeIds: [] };
   }
 
   const hasOfflineVendor = storeRows.some((row) => row.is_operational === false);
   if (hasOfflineVendor) {
-    return { storeId: null, storeRows, vendorOffline: true };
+    return { storeId: null, storeRows, storeIds: [], vendorOffline: true };
   }
 
+  // Cart items may come from multiple vendors linked to different dark stores.
+  // Return ALL distinct store ids — the caller now supports multi-store orders
+  // (one rider picks up from every store, then delivers to the customer)
+  // instead of blocking checkout.
   const storeIds = [...new Set(storeRows.map((row) => row.dark_store_id).filter(Boolean))];
-  if (storeIds.length > 1) {
-    return { storeId: null, storeRows, mixedStores: true };
-  }
-
-  return { storeId: storeIds[0] || null, storeRows };
+  return { storeId: storeIds[0] || null, storeRows, storeIds, multiStore: storeIds.length > 1 };
 }
 
 // ── GET /api/checkout/addresses?userId=xxx ──────────────────────────────────
@@ -560,14 +611,7 @@ router.post("/orders", async (req, res) => {
     const addrLat = addrRows[0]?.lat;
     const addrLng = addrRows[0]?.lng;
 
-    let { storeId: darkStoreId, storeRows, mixedStores, vendorOffline } = await resolveOrderStore(client, items);
-    if (mixedStores) {
-      await client.query("ROLLBACK");
-      return res.status(400).json({
-        success: false,
-        message: "Cart contains items from multiple stores. Please checkout one store at a time.",
-      });
-    }
+    let { storeId: darkStoreId, storeRows, storeIds, multiStore, vendorOffline } = await resolveOrderStore(client, items);
     if (vendorOffline) {
       await client.query("ROLLBACK");
       return res.status(400).json({
@@ -577,23 +621,43 @@ router.post("/orders", async (req, res) => {
     }
 
     let distanceKm = null;
-    const primaryStore = storeRows[0] || null;
-    if (primaryStore?.lat != null && primaryStore?.lng != null && addrLat != null && addrLng != null) {
-      distanceKm = Math.round(
-        haversineKm(
-          parseFloat(addrLat),
-          parseFloat(addrLng),
-          parseFloat(primaryStore.lat),
-          parseFloat(primaryStore.lng)
-        ) * 10
-      ) / 10;
-    } else if (!darkStoreId) {
-      // Fallback: city match only if no vendor-linked store could be resolved.
-      const { rows: cityStore } = await client.query(
-        `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`,
-        [city]
-      );
-      darkStoreId = cityStore.length ? cityStore[0].id : null;
+    let pickupRoute = null; // only set for multi-store orders
+    if (multiStore) {
+      // Cart spans multiple dark stores \u2014 plan a single-rider pickup route
+      // (store \u2192 store \u2192 ... \u2192 customer) instead of rejecting checkout.
+      const uniqueStores = storeIds
+        .map((id) => storeRows.find((row) => row.dark_store_id === id))
+        .filter(Boolean)
+        .map((row) => ({ id: row.dark_store_id, name: row.name, lat: row.lat, lng: row.lng }));
+      const { orderedStores, totalDistanceKm } = planPickupRoute(uniqueStores, addrLat, addrLng);
+      distanceKm = totalDistanceKm;
+      pickupRoute = orderedStores.map((s, idx) => ({
+        storeId: s.id,
+        name: s.name,
+        lat: s.lat,
+        lng: s.lng,
+        sequence: idx + 1,
+      }));
+      darkStoreId = pickupRoute[0]?.storeId || null; // first pickup stop is still "the" store for legacy columns
+    } else {
+      const primaryStore = storeRows[0] || null;
+      if (primaryStore?.lat != null && primaryStore?.lng != null && addrLat != null && addrLng != null) {
+        distanceKm = Math.round(
+          haversineKm(
+            parseFloat(addrLat),
+            parseFloat(addrLng),
+            parseFloat(primaryStore.lat),
+            parseFloat(primaryStore.lng)
+          ) * 10
+        ) / 10;
+      } else if (!darkStoreId) {
+        // Fallback: city match only if no vendor-linked store could be resolved.
+        const { rows: cityStore } = await client.query(
+          `SELECT id FROM dark_stores WHERE is_active = true AND lower(city) = lower($1) LIMIT 1`,
+          [city]
+        );
+        darkStoreId = cityStore.length ? cityStore[0].id : null;
+      }
     }
 
     // Calculate delivery fee
@@ -700,11 +764,13 @@ router.post("/orders", async (req, res) => {
       `INSERT INTO orders
          (user_id, address_id, status, total_amount, final_amount,
           payment_method, dark_store_id, is_try_order,
-          referral_discount, clothing_discount, bundle_discount, first_order_discount)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10)
+          referral_discount, clothing_discount, bundle_discount, first_order_discount,
+          pickup_route, route_distance_km)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10, $11, $12)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
-       referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount]
+       referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
+       pickupRoute ? JSON.stringify(pickupRoute) : null, multiStore ? distanceKm : null]
     );
     const order = orderRows[0];
 
@@ -797,6 +863,8 @@ router.post("/orders", async (req, res) => {
       distanceKm: distanceKm,
       createdAt: order.created_at,
       darkStoreAssigned: !!darkStoreId,
+      multiStore: !!multiStore,
+      pickupRoute: pickupRoute,
       deliveryPromise: deliveryInfo.deliveryPromise,
       deliveryType: deliveryInfo.deliveryType,
       etaMinutes: deliveryInfo.etaMinutes,
@@ -885,6 +953,8 @@ router.get("/orders/:orderId", async (req, res) => {
          o.is_try_order,
          o.created_at,
          o.confirmed_at,
+         o.pickup_route,
+         o.route_distance_km,
          ${cancelReasonSelect}
          u.name   AS customer_name,
          u.phone  AS customer_phone,
@@ -930,8 +1000,14 @@ router.get("/orders/:orderId", async (req, res) => {
     const orderData = orderRows[0];
     let distanceKm = null;
     let deliveryInfo = null;
-    
-    if (orderData.address_lat && orderData.address_lng && orderData.dark_store_lat && orderData.dark_store_lng) {
+    const pickupRoute = orderData.pickup_route || null;
+
+    if (Array.isArray(pickupRoute) && pickupRoute.length > 1 && orderData.route_distance_km != null) {
+      // Multi-store order — use the stored total pickup-route distance
+      // (store→store legs + final store→customer leg), not just a single
+      // store's direct distance to the customer.
+      distanceKm = parseFloat(orderData.route_distance_km);
+    } else if (orderData.address_lat && orderData.address_lng && orderData.dark_store_lat && orderData.dark_store_lng) {
       distanceKm = Math.round(
         haversineKm(
           parseFloat(orderData.address_lat),
@@ -949,6 +1025,8 @@ router.get("/orders/:orderId", async (req, res) => {
       order: { 
         ...orderData, 
         items: itemRows,
+        pickupRoute,
+        multiStore: Array.isArray(pickupRoute) && pickupRoute.length > 1,
         deliveryPromise: deliveryInfo.deliveryPromise,
         deliveryType: deliveryInfo.deliveryType,
         deliveryEtaMinutes: deliveryInfo.etaMinutes,
