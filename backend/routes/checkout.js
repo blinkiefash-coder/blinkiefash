@@ -69,12 +69,16 @@ function haversineKm(lat1, lng1, lat2, lng2) {
 
 // ── Multi-store pickup route planner ────────────────────────────────────────
 // When a cart spans more than one dark store, ONE rider still handles the
-// whole order — they just visit every store first, then the customer. This
-// picks the visiting order (of the handful of stores involved) that minimizes
-// total travel distance (store→store legs + the final store→customer leg),
-// so the delivery ETA/fee reflects the real route instead of a single store's
-// distance. Brute-force permutations are fine since a cart realistically only
-// ever spans a small number of stores.
+// whole order — they just visit every store first, then the customer. Total
+// distance = (store→store legs) + a flat rider-approach buffer (we don't know
+// the rider's live location at checkout time, so an average 2km is added for
+// them to reach the first store) + the final store→customer leg. Route order
+// (of the handful of stores involved) is picked to minimize the store→store +
+// store→customer legs — the flat buffer doesn't affect which order is best,
+// since it's the same regardless of permutation. Brute-force permutations are
+// fine since a cart realistically only ever spans a small number of stores.
+const RIDER_APPROACH_BUFFER_KM = 2;
+
 function planPickupRoute(stores, addrLat, addrLng) {
   if (!stores.length) return { orderedStores: [], totalDistanceKm: null };
   const hasAllCoords =
@@ -115,7 +119,8 @@ function planPickupRoute(stores, addrLat, addrLng) {
     }
   }
 
-  return { orderedStores: bestOrder, totalDistanceKm: Math.round(bestDist * 10) / 10 };
+  const totalDistanceKm = Math.round((bestDist + RIDER_APPROACH_BUFFER_KM) * 10) / 10;
+  return { orderedStores: bestOrder, totalDistanceKm };
 }
 
 // ── Bundle pricing rules ────────────────────────────────────────────────────
