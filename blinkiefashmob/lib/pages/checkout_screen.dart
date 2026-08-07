@@ -85,10 +85,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   // Auto offers (milestone + buy-more)
   int _selectedAutoOffer = -1; // index in _kAutoOffers, -1 = none
 
-  // Offers & Discounts state - only one can be selected at a time
-  String _selectedFlatOffer = ''; // '', 'spin', 'play', or 'refer'
-  static const double _flatOfferDiscount =
-      50.0; // 50 rupees flat discount per option
+  // Maximum combined discount allowed from the offers above, in rupees
+  static const double _flatOfferDiscount = 50.0;
 
   // Donation modal state
   final _donationItemCtrl = TextEditingController(text: '1');
@@ -538,10 +536,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
     // Cap total discount at ₹50 maximum
     manualOfferDiscount = manualOfferDiscount.clamp(0.0, _flatOfferDiscount);
-    if (manualOfferType == null && _selectedFlatOffer.isNotEmpty) {
-      manualOfferType = 'flat';
-      manualOfferDiscount = _flatOfferDiscount;
-    }
 
     final res = await _api.placeOrder(
       userId: userId,
@@ -736,16 +730,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             ))
         ? _kAutoOffers[_selectedAutoOffer].compute(subtotal)
         : 0.0;
-    final flatOfferDiscount = _selectedFlatOffer.isNotEmpty
-        ? _flatOfferDiscount
-        : 0.0;
     final totalOfferDiscount =
         (referralDiscount +
                 clothingDiscount +
                 firstOrderDiscount +
                 spinDiscount +
                 questDiscount +
-                flatOfferDiscount +
                 _couponDiscount +
                 autoOfferDiscount)
             .clamp(0.0, _flatOfferDiscount); // Cap at ₹50 maximum
@@ -909,30 +899,39 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 _offerChip(
                   emoji: '🎡',
                   title: 'Spin & Win',
-                  subtitle: '₹50 off',
-                  applied: _selectedFlatOffer == 'spin',
-                  onTap: () => _toggleFlatOffer('spin'),
+                  subtitle: _spinRewardPct > 0
+                      ? '${_spinRewardPct.toStringAsFixed(0)}% off'
+                      : 'Play to unlock',
+                  applied: _useSpinReward,
+                  available: _spinRewardPct > 0,
+                  onTap: () => _toggleExclusiveOffer('spin', !_useSpinReward),
                 ),
                 const SizedBox(width: 8),
                 _offerChip(
                   emoji: '🎮',
                   title: 'Play & Win',
-                  subtitle: '₹50 off',
-                  applied: _selectedFlatOffer == 'play',
-                  onTap: () => _toggleFlatOffer('play'),
+                  subtitle: _questRewardPct > 0
+                      ? '${_questRewardPct.toStringAsFixed(0)}% off'
+                      : 'Play to unlock',
+                  applied: _useQuestReward,
+                  available: _questRewardPct > 0,
+                  onTap: () => _toggleExclusiveOffer('quest', !_useQuestReward),
                 ),
                 const SizedBox(width: 8),
                 _offerChip(
                   emoji: '👥',
                   title: 'Refer & Earn',
-                  subtitle: '₹50 off',
-                  applied: _selectedFlatOffer == 'refer',
-                  onTap: () => _toggleFlatOffer('refer'),
+                  subtitle: _availableReferralAmount > 0
+                      ? '₹${_availableReferralAmount.toStringAsFixed(0)} off'
+                      : 'Refer a friend',
+                  applied: _useReferral,
+                  available: _availableReferralAmount > 0,
+                  onTap: () => _toggleExclusiveOffer('referral', !_useReferral),
                 ),
               ],
             ),
           ),
-          if (_selectedFlatOffer.isNotEmpty) ...[
+          if (_useSpinReward || _useQuestReward || _useReferral) ...[
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -953,7 +952,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                   ),
                   Text(
-                    '- ₹${_flatOfferDiscount.toStringAsFixed(0)}',
+                    '- ₹${(_useSpinReward
+                        ? spinDiscount
+                        : _useQuestReward
+                        ? questDiscount
+                        : referralDiscount).toStringAsFixed(0)}',
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -1739,81 +1742,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  void _toggleFlatOffer(String value) {
-    setState(() {
-      _selectedFlatOffer = _selectedFlatOffer == value ? '' : value;
-    });
-    if (_selectedFlatOffer == value) {
-      const labels = {
-        'spin': '✨ Spin & Win',
-        'play': '✨ Play & Win',
-        'refer': '✨ Refer & Earn',
-      };
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text('${labels[value]} - ₹50 discount applied!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-    }
-  }
-
   Widget _offerChip({
     required String emoji,
     required String title,
     required String subtitle,
     required bool applied,
+    bool available = true,
     VoidCallback? onTap,
   }) {
+    final disabled = !available;
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 128,
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: applied ? const Color(0xFFFEF3C7) : Colors.white,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: applied ? const Color(0xFFF59E0B) : const Color(0xFFE5E7EB),
-            width: applied ? 1.4 : 1,
+      onTap: disabled ? null : onTap,
+      child: Opacity(
+        opacity: disabled ? 0.55 : 1,
+        child: Container(
+          width: 128,
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: disabled
+                ? const Color(0xFFF3F4F6)
+                : applied
+                ? const Color(0xFFFEF3C7)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: disabled
+                  ? const Color(0xFFD1D5DB)
+                  : applied
+                  ? const Color(0xFFF59E0B)
+                  : const Color(0xFFE5E7EB),
+              width: applied && !disabled ? 1.4 : 1,
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 15)),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      fontSize: 11.5,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF92400E),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Row(
+                children: [
+                  Text(emoji, style: const TextStyle(fontSize: 15)),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: disabled
+                            ? const Color(0xFF9CA3AF)
+                            : const Color(0xFF92400E),
+                      ),
                     ),
                   ),
+                  if (applied && !disabled)
+                    const Icon(
+                      Icons.check_circle,
+                      size: 14,
+                      color: Color(0xFF15803D),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 10.5,
+                  color: disabled
+                      ? const Color(0xFF9CA3AF)
+                      : const Color(0xFF78716C),
                 ),
-                if (applied)
-                  const Icon(
-                    Icons.check_circle,
-                    size: 14,
-                    color: Color(0xFF15803D),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(fontSize: 10.5, color: Color(0xFF78716C)),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
