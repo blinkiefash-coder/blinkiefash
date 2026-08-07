@@ -5,7 +5,6 @@ import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
 import 'login_screen.dart';
-import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
 import '../widgets/bf_loader.dart';
 
@@ -14,11 +13,17 @@ import '../widgets/bf_loader.dart';
 class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({
     super.key,
+    required this.selectedAddressId,
+    required this.selectedAddress,
     this.isTryOrder = false,
     this.overrideItems,
   });
 
   final bool isTryOrder;
+
+  /// The address chosen on the address-selection page (page 1).
+  final String selectedAddressId;
+  final Map<String, dynamic> selectedAddress;
 
   /// When provided, these items are used instead of the shared cart.
   /// The shared cart is not cleared after checkout.
@@ -48,9 +53,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return sum + p * i.quantity;
   });
 
-  List<Map<String, dynamic>> _addresses = [];
-  String? _selectedAddressId;
-  bool _loadingAddresses = true;
   bool _placingOrder = false;
   String? _error;
 
@@ -161,7 +163,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _startCheckoutFlow() {
     if (UserSession.instance.isLoggedIn) {
-      _loadAddresses();
+      _fetchDeliveryFee(widget.selectedAddressId);
       _loadRewards();
       _loadEarnedOffers();
       _refreshVariantAvailability();
@@ -173,6 +175,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       MaterialPageRoute<void>(
         builder: (_) => LoginScreen(
           redirectBuilder: (_) => CheckoutScreen(
+            selectedAddressId: widget.selectedAddressId,
+            selectedAddress: widget.selectedAddress,
             isTryOrder: widget.isTryOrder,
             overrideItems: _clonedOverrideItems(),
           ),
@@ -272,41 +276,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (_) {}
   }
 
-  Future<void> _loadAddresses() async {
-    final userId = UserSession.instance.userId;
-    if (userId == null) {
-      setState(() {
-        _loadingAddresses = false;
-      });
-      return;
-    }
-    try {
-      final list = await _api.fetchAddresses(userId);
-      if (!mounted) return;
-      final parsed = list.whereType<Map<String, dynamic>>().toList();
-      String? defaultId;
-      for (final a in parsed) {
-        if (a['is_default'] == true) {
-          defaultId = a['id'].toString();
-          break;
-        }
-      }
-      defaultId ??= parsed.isNotEmpty ? parsed.first['id'].toString() : null;
-      setState(() {
-        _addresses = parsed;
-        _selectedAddressId = defaultId;
-        _loadingAddresses = false;
-      });
-      // Fetch delivery fee for the default address
-      if (defaultId != null) _fetchDeliveryFee(defaultId);
-    } catch (_) {
-      if (!mounted) return;
-      setState(() {
-        _loadingAddresses = false;
-      });
-    }
-  }
-
   Future<void> _fetchDeliveryFee(String addressId) async {
     final subtotal = _effectiveSubtotal;
     final variantIds = _effectiveItems
@@ -332,42 +301,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _deliveryPromise = result['deliveryPromise']?.toString();
       _deliveryType = result['deliveryType']?.toString();
     });
-  }
-
-  Future<void> _showAddAddressSheet() async {
-    final result = await Navigator.of(context).push<PickedAddress>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-    );
-    if (result == null) return;
-    final userId = UserSession.instance.userId;
-    if (userId == null) return;
-
-    setState(() {
-      _loadingAddresses = true;
-      _error = null;
-    });
-    final res = await _api.addAddress(
-      userId: userId,
-      addressLine: result.addressLine,
-      city: result.city,
-      pincode: result.pincode,
-      lat: result.lat,
-      lng: result.lng,
-    );
-    if (!mounted) return;
-    if (res['success'] == true) {
-      await _loadAddresses();
-      if (_addresses.isNotEmpty && _selectedAddressId == null) {
-        final newId = _addresses.first['id'].toString();
-        setState(() => _selectedAddressId = newId);
-        _fetchDeliveryFee(newId);
-      }
-    } else {
-      setState(() {
-        _loadingAddresses = false;
-        _error = res['message']?.toString() ?? 'Failed to save address';
-      });
-    }
   }
 
   bool _hasUnavailableItems() {
@@ -420,6 +353,18 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       }
     });
+  }
+
+  IconData _addressTypeIcon(String? type) {
+    switch (type) {
+      case 'work':
+        return Icons.work_outline;
+      case 'other':
+        return Icons.location_on_outlined;
+      case 'home':
+      default:
+        return Icons.home_outlined;
+    }
   }
 
   String _slotLabel(TimeOfDay slot) {
@@ -510,10 +455,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Future<void> _placeOrder() async {
-    if (_selectedAddressId == null) {
-      setState(() => _error = 'Please select a delivery address');
-      return;
-    }
     if (!_deliveryAvailable) {
       setState(
         () => _error =
@@ -597,7 +538,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     final res = await _api.placeOrder(
       userId: userId,
-      addressId: _selectedAddressId!,
+      addressId: widget.selectedAddressId,
       items: items,
       totalAmount: subtotal,
       isTryOrder: widget.isTryOrder,
@@ -1010,338 +951,330 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             icon: Icons.location_on_outlined,
           ),
           const SizedBox(height: 8),
-          _loadingAddresses
-              ? const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(16),
-                    child: BfSpinner(),
-                  ),
-                )
-              : Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: const Color(0xFFE5E7EB)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      if (_addresses.isEmpty)
-                        Column(
-                          children: [
-                            const Text(
-                              'No saved addresses. Add one to continue.',
-                              style: TextStyle(color: Color(0xFF6B7280)),
-                            ),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF166534),
-                                  minimumSize: const Size.fromHeight(46),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFF0FDF4),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        _addressTypeIcon(
+                          widget.selectedAddress['address_type']?.toString(),
+                        ),
+                        color: const Color(0xFF166534),
+                        size: 18,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  (widget.selectedAddress['name']
+                                                  ?.toString()
+                                                  .trim() ??
+                                              '')
+                                          .isNotEmpty
+                                      ? widget.selectedAddress['name']
+                                            .toString()
+                                      : 'Delivery Address',
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0F172A),
                                   ),
                                 ),
-                                onPressed: _showAddAddressSheet,
-                                icon: const Icon(Icons.add_location_alt),
-                                label: const Text('Add Address'),
                               ),
+                              if ((widget.selectedAddress['address_type']
+                                          ?.toString() ??
+                                      '')
+                                  .isNotEmpty)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0FDF4),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: const Color(0xFFBBF7D0),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    (widget.selectedAddress['address_type']
+                                            as String)
+                                        .toUpperCase(),
+                                    style: const TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF166534),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${widget.selectedAddress['address_line'] ?? ''}, '
+                            '${widget.selectedAddress['city'] ?? ''} - '
+                            '${widget.selectedAddress['pincode'] ?? ''}',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF475569),
+                              height: 1.4,
+                            ),
+                          ),
+                          if ((widget.selectedAddress['phone']
+                                      ?.toString()
+                                      .trim() ??
+                                  '')
+                              .isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.phone_outlined,
+                                  size: 13,
+                                  color: Color(0xFF64748B),
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  widget.selectedAddress['phone'].toString(),
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                        )
-                      else ...[
-                        // Address dropdown
-                        DropdownButtonFormField<String>(
-                          initialValue: _selectedAddressId,
-                          isExpanded: true,
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(),
+                      style: TextButton.styleFrom(
+                        foregroundColor: const Color(0xFF166534),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                      ),
+                      child: const Text(
+                        'Change',
+                        style: TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 16),
+                const Divider(thickness: 1, height: 1),
+                const SizedBox(height: 12),
+
+                // Receiver section inside Address
+                const Text(
+                  'Receiver Details',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                // Own receiver option
+                GestureDetector(
+                  onTap: () => setState(() => _receiverType = 'own'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _receiverType == 'own'
+                          ? const Color(0xFFF0FDF4)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _receiverType == 'own'
+                            ? const Color(0xFF166534)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: 'own',
+                          groupValue: _receiverType,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _receiverType = value);
+                            }
+                          },
+                          activeColor: const Color(0xFF166534),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'Deliver to me',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                // Someone else option
+                GestureDetector(
+                  onTap: () => setState(() => _receiverType = 'someone_else'),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: _receiverType == 'someone_else'
+                          ? const Color(0xFFF0FDF4)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: _receiverType == 'someone_else'
+                            ? const Color(0xFF166534)
+                            : const Color(0xFFE5E7EB),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Radio<String>(
+                          value: 'someone_else',
+                          groupValue: _receiverType,
+                          onChanged: (value) {
+                            if (value != null) {
+                              setState(() => _receiverType = value);
+                            }
+                          },
+                          activeColor: const Color(0xFF166534),
+                        ),
+                        const Expanded(
+                          child: Text(
+                            'Deliver to someone else',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                // Show contact select and name/phone fields if someone else is selected
+                if (_receiverType == 'someone_else') ...[
+                  const SizedBox(height: 8),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF166534),
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size.fromHeight(36),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: _selectContact,
+                      icon: const Icon(Icons.contacts, size: 16),
+                      label: const Text('Select Contact'),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _receiverNameCtrl,
                           decoration: InputDecoration(
-                            labelText: 'Select Address',
+                            labelText: 'Name',
+                            hintText: 'Name',
                             filled: true,
                             fillColor: const Color(0xFFF8FAFC),
-                            prefixIcon: const Icon(Icons.location_on, size: 20),
+                            prefixIcon: const Icon(Icons.person, size: 16),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 8,
+                            ),
                             border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                               borderSide: const BorderSide(
                                 color: Color(0xFFE5E7EB),
                               ),
                             ),
                             enabledBorder: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10),
+                              borderRadius: BorderRadius.circular(8),
                               borderSide: const BorderSide(
                                 color: Color(0xFFE5E7EB),
                               ),
                             ),
-                          ),
-                          items: _addresses.map((addr) {
-                            final id = addr['id'].toString();
-                            final line = addr['address_line'] ?? '';
-                            final city = addr['city'] ?? '';
-                            final label = '$line, $city';
-                            return DropdownMenuItem<String>(
-                              value: id,
-                              child: Tooltip(
-                                message: label,
-                                child: Text(
-                                  label,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            if (value != null) {
-                              setState(() => _selectedAddressId = value);
-                              _fetchDeliveryFee(value);
-                            }
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        // Edit and Add address buttons
-                        Row(
-                          children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: const Color(0xFF166534),
-                                  side: const BorderSide(
-                                    color: Color(0xFF166534),
-                                  ),
-                                  minimumSize: const Size.fromHeight(42),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: _showAddAddressSheet,
-                                icon: const Icon(Icons.edit),
-                                label: const Text('Edit'),
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: ElevatedButton.icon(
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF166534),
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size.fromHeight(42),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                ),
-                                onPressed: _showAddAddressSheet,
-                                icon: const Icon(
-                                  Icons.add_location_alt,
-                                  size: 18,
-                                ),
-                                label: const Text('Add New'),
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 16),
-                        const Divider(thickness: 1, height: 1),
-                        const SizedBox(height: 12),
-
-                        // Receiver section inside Address
-                        const Text(
-                          'Receiver Details',
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
+                            isDense: true,
                           ),
                         ),
-                        const SizedBox(height: 8),
-
-                        // Own receiver option
-                        GestureDetector(
-                          onTap: () => setState(() => _receiverType = 'own'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _receiverPhoneCtrl,
+                          decoration: InputDecoration(
+                            labelText: 'Phone',
+                            hintText: 'Phone',
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            prefixIcon: const Icon(Icons.phone, size: 16),
+                            contentPadding: const EdgeInsets.symmetric(
                               horizontal: 10,
-                              vertical: 6,
+                              vertical: 8,
                             ),
-                            decoration: BoxDecoration(
-                              color: _receiverType == 'own'
-                                  ? const Color(0xFFF0FDF4)
-                                  : Colors.transparent,
+                            border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _receiverType == 'own'
-                                    ? const Color(0xFF166534)
-                                    : const Color(0xFFE5E7EB),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Radio<String>(
-                                  value: 'own',
-                                  groupValue: _receiverType,
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() => _receiverType = value);
-                                    }
-                                  },
-                                  activeColor: const Color(0xFF166534),
-                                ),
-                                const Expanded(
-                                  child: Text(
-                                    'Deliver to me',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Someone else option
-                        GestureDetector(
-                          onTap: () =>
-                              setState(() => _receiverType = 'someone_else'),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: _receiverType == 'someone_else'
-                                  ? const Color(0xFFF0FDF4)
-                                  : Colors.transparent,
+                            enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: _receiverType == 'someone_else'
-                                    ? const Color(0xFF166534)
-                                    : const Color(0xFFE5E7EB),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE5E7EB),
                               ),
                             ),
-                            child: Row(
-                              children: [
-                                Radio<String>(
-                                  value: 'someone_else',
-                                  groupValue: _receiverType,
-                                  onChanged: (value) {
-                                    if (value != null) {
-                                      setState(() => _receiverType = value);
-                                    }
-                                  },
-                                  activeColor: const Color(0xFF166534),
-                                ),
-                                const Expanded(
-                                  child: Text(
-                                    'Deliver to someone else',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
+                            isDense: true,
                           ),
+                          keyboardType: TextInputType.phone,
                         ),
-                        // Show contact select and name/phone fields if someone else is selected
-                        if (_receiverType == 'someone_else') ...[
-                          const SizedBox(height: 8),
-                          SizedBox(
-                            width: double.infinity,
-                            child: ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF166534),
-                                foregroundColor: Colors.white,
-                                minimumSize: const Size.fromHeight(36),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                              ),
-                              onPressed: _selectContact,
-                              icon: const Icon(Icons.contacts, size: 16),
-                              label: const Text('Select Contact'),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextField(
-                                  controller: _receiverNameCtrl,
-                                  decoration: InputDecoration(
-                                    labelText: 'Name',
-                                    hintText: 'Name',
-                                    filled: true,
-                                    fillColor: const Color(0xFFF8FAFC),
-                                    prefixIcon: const Icon(
-                                      Icons.person,
-                                      size: 16,
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    isDense: true,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: TextField(
-                                  controller: _receiverPhoneCtrl,
-                                  decoration: InputDecoration(
-                                    labelText: 'Phone',
-                                    hintText: 'Phone',
-                                    filled: true,
-                                    fillColor: const Color(0xFFF8FAFC),
-                                    prefixIcon: const Icon(
-                                      Icons.phone,
-                                      size: 16,
-                                    ),
-                                    contentPadding: const EdgeInsets.symmetric(
-                                      horizontal: 10,
-                                      vertical: 8,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    enabledBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                      borderSide: const BorderSide(
-                                        color: Color(0xFFE5E7EB),
-                                      ),
-                                    ),
-                                    isDense: true,
-                                  ),
-                                  keyboardType: TextInputType.phone,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
+                      ),
                     ],
                   ),
-                ),
+                ],
+              ],
+            ),
+          ),
 
           const SizedBox(height: 16),
 

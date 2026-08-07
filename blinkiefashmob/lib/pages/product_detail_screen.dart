@@ -9,7 +9,7 @@ import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/wishlist_manager.dart';
 import 'cart_screen.dart';
-import 'checkout_screen.dart';
+import 'checkout_address_screen.dart';
 import 'try_buy_screen.dart';
 import 'wishlist_screen.dart';
 import '../widgets/bf_loader.dart';
@@ -1450,7 +1450,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     Navigator.of(context)
         .push(
           MaterialPageRoute<void>(
-            builder: (_) => CheckoutScreen(overrideItems: [singleItem]),
+            builder: (_) => CheckoutAddressScreen(overrideItems: [singleItem]),
           ),
         )
         .then((_) {

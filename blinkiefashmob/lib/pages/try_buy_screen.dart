@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'checkout_screen.dart';
+import 'checkout_address_screen.dart';
 import '../services/cart_manager.dart';
 
 class TryBuyScreen extends StatelessWidget {
@@ -147,8 +147,10 @@ class TryBuyScreen extends StatelessWidget {
               );
               Navigator.of(context).push(
                 MaterialPageRoute<void>(
-                  builder: (_) =>
-                      CheckoutScreen(isTryOrder: true, overrideItems: [item]),
+                  builder: (_) => CheckoutAddressScreen(
+                    isTryOrder: true,
+                    overrideItems: [item],
+                  ),
                 ),
               );
             },

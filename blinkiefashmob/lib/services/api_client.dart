@@ -143,6 +143,9 @@ class ApiClient {
     required String pincode,
     double? lat,
     double? lng,
+    String? name,
+    String? phone,
+    String? addressType,
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/checkout/addresses');
     return _postJson(uri, {
@@ -152,6 +155,9 @@ class ApiClient {
       'pincode': pincode,
       'lat': lat,
       'lng': lng,
+      'name': name,
+      'phone': phone,
+      'address_type': addressType,
     });
   }
 

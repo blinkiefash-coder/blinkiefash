@@ -88,6 +88,9 @@ class _AddressListSheetState extends State<_AddressListSheet> {
       pincode: result.pincode,
       lat: result.lat,
       lng: result.lng,
+      name: result.name,
+      phone: result.phone,
+      addressType: result.addressType,
     );
     if (!mounted) return;
     if (res['success'] == true) {

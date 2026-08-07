@@ -17,6 +17,8 @@ class PickedAddress {
     this.lat,
     this.lng,
     this.addressType = 'home',
+    this.name,
+    this.phone,
   });
   final String addressLine;
   final String city;
@@ -24,6 +26,8 @@ class PickedAddress {
   final double? lat;
   final double? lng;
   final String addressType;
+  final String? name;
+  final String? phone;
 }
 
 /// Blinkit-style address picker.
@@ -67,6 +71,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
 
   // ── Details form ─────────────────────────────────────────────────────────
   final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameCtrl = TextEditingController();
+  final TextEditingController _phoneCtrl = TextEditingController();
   final TextEditingController _flatCtrl = TextEditingController();
   final TextEditingController _landmarkCtrl = TextEditingController();
   String _addressType = 'home'; // home | work | other
@@ -77,6 +83,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
     _searchFocus.dispose();
     _debounce?.cancel();
     _reverseDebounce?.cancel();
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
     _flatCtrl.dispose();
     _landmarkCtrl.dispose();
     _mapController.dispose();
@@ -391,6 +399,8 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
         lat: _confirmedLat,
         lng: _confirmedLng,
         addressType: _addressType,
+        name: _nameCtrl.text.trim(),
+        phone: _phoneCtrl.text.trim(),
       ),
     );
   }
@@ -952,6 +962,42 @@ class _LocationPickerScreenState extends State<LocationPickerScreen> {
               ),
             ),
 
+            const SizedBox(height: 20),
+            const Text(
+              'Who should we deliver to?',
+              style: TextStyle(fontWeight: FontWeight.w700, fontSize: 16),
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _nameCtrl,
+              textCapitalization: TextCapitalization.words,
+              decoration: _deco(
+                label: 'Recipient Name',
+                hint: 'e.g. Priya Sharma',
+                icon: Icons.person_outline,
+              ),
+              validator: (v) =>
+                  (v?.trim().isEmpty ?? true) ? 'Please enter a name' : null,
+            ),
+            const SizedBox(height: 12),
+            TextFormField(
+              controller: _phoneCtrl,
+              keyboardType: TextInputType.phone,
+              maxLength: 10,
+              decoration: _deco(
+                label: 'Mobile Number',
+                hint: '10-digit mobile number',
+                icon: Icons.phone_outlined,
+              ),
+              validator: (v) {
+                final digits = v?.trim() ?? '';
+                if (digits.isEmpty) return 'Please enter a mobile number';
+                if (digits.length != 10) {
+                  return 'Enter a valid 10-digit mobile number';
+                }
+                return null;
+              },
+            ),
             const SizedBox(height: 20),
             // Address type selector (Home / Work / Other)
             const Text(

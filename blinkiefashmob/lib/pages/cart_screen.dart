@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import 'all_products_screen.dart';
-import 'checkout_screen.dart';
+import 'checkout_address_screen.dart';
 
 class CartScreen extends StatefulWidget {
   const CartScreen({super.key});
@@ -248,7 +248,7 @@ class _CartScreenState extends State<CartScreen> {
                       : () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                              builder: (_) => const CheckoutScreen(),
+                              builder: (_) => const CheckoutAddressScreen(),
                             ),
                           );
                         },

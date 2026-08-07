@@ -82,6 +82,11 @@ export const ensureDatabaseTables = async () => {
   // Ensure orders has confirmed_at column (used for 60-min delivery SLA timer)
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
 
+  // Recipient name/phone + address type (home/work/other) per saved address
+  await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS name VARCHAR(255)`).catch(() => {});
+  await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`).catch(() => {});
+  await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS address_type VARCHAR(20) DEFAULT 'home'`).catch(() => {});
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS vendors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
