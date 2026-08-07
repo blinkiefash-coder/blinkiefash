@@ -145,7 +145,8 @@ router.get("/suggestions", async (req, res) => {
 });
 
 // GET /api/analytics/recently-explored — fetch recently explored products for a user
-// Only returns data if user has explored more than 3 products
+// Returns products based on any product interaction (click, view, dwell, cart, wishlist)
+// Only returns data if user has interacted with more than 3 products
 // Returns: { products: [{id, name, price, discount, image, rating}], count: number }
 router.get("/recently-explored", async (req, res) => {
   try {
@@ -153,41 +154,75 @@ router.get("/recently-explored", async (req, res) => {
     const limit = Math.min(parseInt(req.query.limit) || 10, 20);
 
     if (!userId) {
+      console.log("[Recently-explored] No userId provided");
       return res.json({ products: [], count: 0 });
     }
 
-    // 1. Count how many products user has clicked/viewed
+    // 1. Count how many products user has interacted with (any event type)
     const countRes = await pool.query(
       `SELECT COUNT(DISTINCT product_id) as total
        FROM user_activity_events
        WHERE user_id = $1
-       AND event_type IN ('product_click', 'product_view')
-       AND product_id IS NOT NULL`,
+       AND product_id IS NOT NULL
+       AND event_type IN ('product_click', 'product_view', 'product_dwell', 'add_to_cart', 'wishlist_add')`,
       [userId]
     );
 
-    const exploredCount = countRes.rows[0]?.total || 0;
+    let exploredCount = countRes.rows[0]?.total || 0;
+    console.log(`[Recently-explored] userId=${userId} has ${exploredCount} distinct products`);
+
+    // If no products found, try fallback: count ANY event with product_id
+    if (exploredCount === 0) {
+      const countFallbackRes = await pool.query(
+        `SELECT COUNT(DISTINCT product_id) as total
+         FROM user_activity_events
+         WHERE user_id = $1
+         AND product_id IS NOT NULL`,
+        [userId]
+      );
+      exploredCount = countFallbackRes.rows[0]?.total || 0;
+      console.log(`[Recently-explored] Fallback: found ${exploredCount} distinct products (any event type)`);
+    }
 
     // Only return results if user explored more than 3 products
     if (exploredCount <= 3) {
+      console.log(`[Recently-explored] Threshold not met (${exploredCount} <= 3)`);
       return res.json({ products: [], count: 0 });
     }
 
     // 2. Get recently explored products (ordered by most recent first)
-    const productsRes = await pool.query(
+    let productsRes = await pool.query(
       `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
               COALESCE(p.rating, 0) as rating,
               MAX(e.created_at) as last_viewed
        FROM user_activity_events e
        JOIN products p ON e.product_id = p.id
        WHERE e.user_id = $1
-       AND e.event_type IN ('product_click', 'product_view')
-       AND p.id IS NOT NULL
+       AND product_id IS NOT NULL
+       AND e.event_type IN ('product_click', 'product_view', 'product_dwell', 'add_to_cart', 'wishlist_add')
        GROUP BY p.id, p.name, p.price, p.discount, p.main_image, p.rating
        ORDER BY last_viewed DESC
        LIMIT $2`,
       [userId, limit]
     );
+
+    // If no products found with specific event types, fallback to any event with product_id
+    if (productsRes.rows.length === 0) {
+      console.log(`[Recently-explored] No products from specific events, trying fallback query...`);
+      productsRes = await pool.query(
+        `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
+                COALESCE(p.rating, 0) as rating,
+                MAX(e.created_at) as last_viewed
+         FROM user_activity_events e
+         JOIN products p ON e.product_id = p.id
+         WHERE e.user_id = $1
+         AND product_id IS NOT NULL
+         GROUP BY p.id, p.name, p.price, p.discount, p.main_image, p.rating
+         ORDER BY last_viewed DESC
+         LIMIT $2`,
+        [userId, limit]
+      );
+    }
 
     const products = productsRes.rows.map(p => ({
       id: p.id,
@@ -198,6 +233,7 @@ router.get("/recently-explored", async (req, res) => {
       rating: parseFloat(p.rating || 0),
     }));
 
+    console.log(`[Recently-explored] Returning ${products.length} products for userId=${userId}`);
     res.json({ products, count: exploredCount });
   } catch (err) {
     console.warn("Failed to fetch recently explored products:", err.message);
