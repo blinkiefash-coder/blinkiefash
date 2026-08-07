@@ -881,7 +881,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     // Show empty state if no items
     if (cartItems.isEmpty) {
       return Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           title: const Text(
             'Checkout',
@@ -941,7 +941,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF8FAFC),
       appBar: AppBar(
         title: const Text(
           'Checkout',
@@ -993,6 +993,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _SectionHeader(
             title:
                 'Order Summary (${cartItems.length} item${cartItems.length != 1 ? "s" : ""})',
+            icon: Icons.shopping_bag_outlined,
           ),
           const SizedBox(height: 8),
           ...cartItems.map(
@@ -1004,7 +1005,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
           const SizedBox(height: 16),
 
-          const _SectionHeader(title: 'Delivery Address'),
+          const _SectionHeader(
+            title: 'Delivery Address',
+            icon: Icons.location_on_outlined,
+          ),
           const SizedBox(height: 8),
           _loadingAddresses
               ? const Center(
@@ -1492,7 +1496,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
           const SizedBox(height: 16),
 
-          const _SectionHeader(title: 'Delivery Time'),
+          const _SectionHeader(
+            title: 'Delivery Time',
+            icon: Icons.schedule_outlined,
+          ),
           const SizedBox(height: 8),
           Container(
             padding: const EdgeInsets.all(14),
@@ -1630,7 +1637,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFBDCFCE7)),
+                border: Border.all(color: const Color(0xFFDCFCE7)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -1683,7 +1690,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFFF0FDF4),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFBDCFCE7)),
+                border: Border.all(color: const Color(0xFFDCFCE7)),
               ),
               child: Row(
                 children: [
@@ -1729,7 +1736,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           const SizedBox(height: 16),
 
           if (_availableReferralAmount > 0 || _availableClothingItems > 0) ...[
-            const _SectionHeader(title: 'Rewards & Offers'),
+            const _SectionHeader(
+              title: 'Rewards & Offers',
+              icon: Icons.card_giftcard_outlined,
+            ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
@@ -1780,7 +1790,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 16),
           ],
 
-          const _SectionHeader(title: 'Bill Summary'),
+          const _SectionHeader(
+            title: 'Bill Summary',
+            icon: Icons.receipt_long_outlined,
+          ),
           const SizedBox(height: 4),
           const Padding(
             padding: EdgeInsets.only(bottom: 8),
@@ -2111,34 +2124,84 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ],
       ),
       bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              FilledButton(
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A),
-                  minimumSize: const Size.fromHeight(52),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                ),
-                onPressed: (_placingOrder || _hasUnavailableItems())
-                    ? null
-                    : _placeOrder,
-                child: _placingOrder
-                    ? const SizedBox(width: 24, height: 24, child: BfSpinner())
-                    : Text(
-                        'Place Order  ₹${total.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 14,
+                offset: const Offset(0, -4),
               ),
             ],
           ),
+          child: _placingOrder
+              ? FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    minimumSize: const Size.fromHeight(52),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  onPressed: null,
+                  child: const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: BfSpinner(),
+                  ),
+                )
+              : Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            '₹${total.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0F172A),
+                            ),
+                          ),
+                          Text(
+                            '${cartItems.length} item${cartItems.length == 1 ? '' : 's'} • Total',
+                            style: const TextStyle(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF6B7280),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF16A34A),
+                          minimumSize: const Size.fromHeight(52),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        onPressed: _hasUnavailableItems() ? null : _placeOrder,
+                        icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                        label: const Text(
+                          'Place Order',
+                          style: TextStyle(
+                            fontSize: 15.5,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -2319,7 +2382,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 // ── Helper Widgets ────────────────────────────────────────────────────────────
 
 class _SectionHeader extends StatelessWidget {
-  const _SectionHeader({required this.title});
+  const _SectionHeader({required this.title, this.icon});
+  final String title;
+  final IconData? icon;
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      if (icon != null) ...[
+        Container(
+          width: 26,
+          height: 26,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 15, color: const Color(0xFF16A34A)),
+        ),
+        const SizedBox(width: 8),
+      ],
+      Expanded(child: _SectionHeaderText(title: title)),
+    ],
+  );
+}
+
+class _SectionHeaderText extends StatelessWidget {
+  const _SectionHeaderText({required this.title});
   final String title;
   @override
   Widget build(BuildContext context) => Text(
