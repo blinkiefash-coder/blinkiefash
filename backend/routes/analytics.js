@@ -207,15 +207,30 @@ router.get("/recently-explored", async (req, res) => {
 
     // 2. Get recently explored products (ordered by most recent first)
     let productsRes = await pool.query(
-      `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
-              COALESCE(p.rating, 0) as rating,
+      `SELECT DISTINCT
+              p.id, 
+              p.name,
+              MIN(COALESCE(pv.mrp, pv.price, 0)) as price,
+              MIN(COALESCE(pv.price, 0)) as discount_price,
+              COALESCE(
+                (SELECT pm.url FROM product_media pm
+                 JOIN product_variants pv2 ON pv2.id = pm.variant_id
+                 WHERE pv2.product_id = p.id AND pm.is_primary = true
+                 LIMIT 1),
+                (SELECT pm.url FROM product_media pm
+                 JOIN product_variants pv2 ON pv2.id = pm.variant_id
+                 WHERE pv2.product_id = p.id
+                 LIMIT 1)
+              ) as image,
+              0 as rating,
               MAX(e.created_at) as last_viewed
        FROM user_activity_events e
        JOIN products p ON e.product_id = p.id
+       LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active = true
        WHERE e.user_id = $1
-       AND product_id IS NOT NULL
+       AND e.product_id IS NOT NULL
        AND e.event_type IN ('product_click', 'product_view', 'product_dwell', 'add_to_cart', 'wishlist_add')
-       GROUP BY p.id, p.name, p.price, p.discount, p.main_image, p.rating
+       GROUP BY p.id, p.name
        ORDER BY last_viewed DESC
        LIMIT $2`,
       [userId, limit]
@@ -226,29 +241,31 @@ router.get("/recently-explored", async (req, res) => {
     // If no products found with specific event types, fallback to any event with product_id
     if (productsRes.rows.length === 0) {
       console.log(`[Recently-explored] No products from specific events, trying fallback query...`);
-      
-      // First, check what product_ids exist in events but NOT in products table
-      const eventProdsRes = await pool.query(
-        `SELECT DISTINCT e.product_id FROM user_activity_events e
-         WHERE e.user_id = $1 AND e.product_id IS NOT NULL
-         AND NOT EXISTS (SELECT 1 FROM products p WHERE p.id = e.product_id)`,
-        [userId]
-      );
-      
-      if (eventProdsRes.rows.length > 0) {
-        console.log(`[Recently-explored] Found ${eventProdsRes.rows.length} product_ids in events that don't exist in products table`);
-        console.log(`[Recently-explored] Missing product_ids: ${eventProdsRes.rows.map(r => r.product_id).join(', ')}`);
-      }
 
       productsRes = await pool.query(
-        `SELECT p.id, p.name, p.price, p.discount, p.main_image as image, 
-                COALESCE(p.rating, 0) as rating,
+        `SELECT DISTINCT
+                p.id, 
+                p.name,
+                MIN(COALESCE(pv.mrp, pv.price, 0)) as price,
+                MIN(COALESCE(pv.price, 0)) as discount_price,
+                COALESCE(
+                  (SELECT pm.url FROM product_media pm
+                   JOIN product_variants pv2 ON pv2.id = pm.variant_id
+                   WHERE pv2.product_id = p.id AND pm.is_primary = true
+                   LIMIT 1),
+                  (SELECT pm.url FROM product_media pm
+                   JOIN product_variants pv2 ON pv2.id = pm.variant_id
+                   WHERE pv2.product_id = p.id
+                   LIMIT 1)
+                ) as image,
+                0 as rating,
                 MAX(e.created_at) as last_viewed
          FROM user_activity_events e
          JOIN products p ON e.product_id = p.id
+         LEFT JOIN product_variants pv ON pv.product_id = p.id AND pv.is_active = true
          WHERE e.user_id = $1
-         AND product_id IS NOT NULL
-         GROUP BY p.id, p.name, p.price, p.discount, p.main_image, p.rating
+         AND e.product_id IS NOT NULL
+         GROUP BY p.id, p.name
          ORDER BY last_viewed DESC
          LIMIT $2`,
         [userId, limit]
@@ -257,14 +274,21 @@ router.get("/recently-explored", async (req, res) => {
       console.log(`[Recently-explored] Fallback query found ${productsRes.rows.length} products`);
     }
 
-    const products = productsRes.rows.map(p => ({
-      id: p.id,
-      name: p.name,
-      price: parseFloat(p.price || 0),
-      discount: parseInt(p.discount || 0),
-      image: p.image,
-      rating: parseFloat(p.rating || 0),
-    }));
+    const products = productsRes.rows.map(p => {
+      const mrp = parseFloat(p.price || 0);
+      const discountPrice = parseFloat(p.discount_price || 0);
+      const discount = mrp > 0 ? Math.round(((mrp - discountPrice) / mrp) * 100) : 0;
+      
+      return {
+        id: p.id,
+        name: p.name,
+        price: discountPrice,
+        originalPrice: mrp,
+        discount: discount,
+        image: p.image,
+        rating: parseFloat(p.rating || 0),
+      };
+    });
 
     console.log(`[Recently-explored] Returning ${products.length} products for userId=${userId}`);
     res.json({ products, count: exploredCount });
