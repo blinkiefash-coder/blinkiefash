@@ -189,21 +189,8 @@ class _HomeScreenState extends State<HomeScreen>
     for (final card in _heroCards) {
       final image = card['image'] as String;
       if (!image.startsWith('http')) continue;
-      precacheImage(
-        CachedNetworkImageProvider(_optimizedHeroUrl(image)),
-        context,
-      );
+      precacheImage(CachedNetworkImageProvider(image), context);
     }
-  }
-
-  // Asks Cloudinary to serve an auto-format, auto-quality, width-capped
-  // version instead of the full-size original upload, cutting load time.
-  String _optimizedHeroUrl(String url) {
-    const marker = '/upload/';
-    final idx = url.indexOf(marker);
-    if (idx == -1) return url;
-    final insertAt = idx + marker.length;
-    return '${url.substring(0, insertAt)}f_auto,q_auto,w_900${url.substring(insertAt)}';
   }
 
   // Advances the hero banner one slide every 5 seconds, looping back to the
@@ -1721,7 +1708,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (image.startsWith('http')) {
       final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
       return CachedNetworkImage(
-        imageUrl: _optimizedHeroUrl(image),
+        imageUrl: image,
         fit: BoxFit.fitWidth,
         alignment: Alignment.center,
         width: double.infinity,
