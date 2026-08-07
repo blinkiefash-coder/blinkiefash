@@ -100,12 +100,35 @@ class _HomeScreenState extends State<HomeScreen>
 
   static const _heroCards = [
     {'image': 'assets/images/hero_main.jpeg', 'route': 'allProducts'},
-    {'image': 'assets/images/accessories.jpeg', 'route': 'accessories'},
-    {'image': 'assets/images/mens_hero.jpeg', 'route': 'mens'},
-    {'image': 'assets/images/womens_hero.jpeg', 'route': 'women'},
-    {'image': 'assets/images/mens_footwear.jpeg', 'route': 'mensFootwear'},
-    {'image': 'assets/images/womens_footwear.jpeg', 'route': 'womensFootwear'},
+    {
+      'image':
+          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+      'route': 'brand',
+      'brand': 'Puma',
+    },
+    {
+      'image':
+          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
+      'route': 'brand',
+      'brand': 'Nike',
+    },
+    {
+      'image':
+          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099597/file_00000000b408820bb1ef180a5b19df30_scfowa.png',
+      'route': 'brand',
+      'brand': 'Adidas',
+    },
+    {
+      'image':
+          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
+      'route': 'brand',
+      'brand': 'US Polo',
+    },
   ];
+
+  final PageController _heroPageController = PageController();
+  int _heroPageIndex = 0;
+  Timer? _heroAutoTimer;
 
   // Categories tab: index of selected root category
   int _catSelectedIndex = 0;
@@ -156,6 +179,21 @@ class _HomeScreenState extends State<HomeScreen>
     super.initState();
     _loadSelectedAvatar();
     _initializeHome();
+    _startHeroAutoSlide();
+  }
+
+  // Advances the hero banner one slide every 5 seconds, looping back to the
+  // first slide after the last one.
+  void _startHeroAutoSlide() {
+    _heroAutoTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!mounted || !_heroPageController.hasClients) return;
+      final next = (_heroPageIndex + 1) % _heroCards.length;
+      _heroPageController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 450),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   Future<void> _initializeHome() async {
@@ -233,6 +271,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   void dispose() {
+    _heroAutoTimer?.cancel();
+    _heroPageController.dispose();
     _deliverLiveTimer?.cancel();
     _deliverPickupDebounce?.cancel();
     _deliverDropDebounce?.cancel();
@@ -1586,14 +1626,12 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
-  // ── Hero Banner (main card only) ─────────────────────────────────────────
+  // ── Hero Banner (auto-sliding, 5s interval) ──────────────────────────────
   Widget _heroBanner() {
     final heroHeight = (MediaQuery.of(context).size.width * 0.52).clamp(
       184.0,
       228.0,
     );
-    final card = _heroCards.first;
-    final route = card['route'] as String;
 
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
@@ -1611,73 +1649,141 @@ class _HomeScreenState extends State<HomeScreen>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(15),
         clipBehavior: Clip.antiAlias,
-        child: GestureDetector(
-          onTap: () {
-            if (route == 'mens') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Men',
-                    initialSort: 'newest',
-                  ),
-                ),
-              );
-            } else if (route == 'women') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Women',
-                    initialSort: 'newest',
-                  ),
-                ),
-              );
-            } else if (route == 'accessories') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(initialSearch: 'accessories'),
-                ),
-              );
-            } else if (route == 'mensFootwear') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(initialSearch: 'men footwear'),
-                ),
-              );
-            } else if (route == 'womensFootwear') {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(initialSearch: 'women footwear'),
-                ),
-              );
-            } else {
-              Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
-              );
-            }
-          },
-          child: Image.asset(
-            card['image'] as String,
-            fit: BoxFit.fitWidth,
-            alignment: Alignment.center,
-            filterQuality: FilterQuality.high,
-            width: double.infinity,
-            errorBuilder: (_, _, _) => Container(
-              color: const Color(0xFF16A34A),
-              child: const Center(
-                child: Icon(
-                  Icons.image_not_supported_outlined,
-                  color: Colors.white,
-                  size: 40,
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _heroPageController,
+              itemCount: _heroCards.length,
+              onPageChanged: (i) => setState(() => _heroPageIndex = i),
+              itemBuilder: (context, index) {
+                final card = _heroCards[index];
+                return GestureDetector(
+                  onTap: () => _handleHeroTap(card),
+                  child: _heroSlideImage(card['image'] as String),
+                );
+              },
+            ),
+            if (_heroCards.length > 1)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_heroCards.length, (i) {
+                    final active = i == _heroPageIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
                 ),
               ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _heroSlideImage(String image) {
+    if (image.startsWith('http')) {
+      return CachedNetworkImage(
+        imageUrl: image,
+        fit: BoxFit.fitWidth,
+        alignment: Alignment.center,
+        width: double.infinity,
+        placeholder: (ctx, url) => Container(color: const Color(0xFFF1F5F9)),
+        errorWidget: (ctx, url, err) => Container(
+          color: const Color(0xFF16A34A),
+          child: const Center(
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              color: Colors.white,
+              size: 40,
             ),
+          ),
+        ),
+      );
+    }
+    return Image.asset(
+      image,
+      fit: BoxFit.fitWidth,
+      alignment: Alignment.center,
+      filterQuality: FilterQuality.high,
+      width: double.infinity,
+      errorBuilder: (_, _, _) => Container(
+        color: const Color(0xFF16A34A),
+        child: const Center(
+          child: Icon(
+            Icons.image_not_supported_outlined,
+            color: Colors.white,
+            size: 40,
           ),
         ),
       ),
     );
+  }
+
+  void _handleHeroTap(Map<String, String> card) {
+    final route = card['route'] as String;
+    if (route == 'brand') {
+      final brand = card['brand'] as String;
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => AllProductsScreen(initialSearch: brand),
+        ),
+      );
+    } else if (route == 'mens') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AllProductsScreen(
+            categoryName: 'Men',
+            initialSort: 'newest',
+          ),
+        ),
+      );
+    } else if (route == 'women') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AllProductsScreen(
+            categoryName: 'Women',
+            initialSort: 'newest',
+          ),
+        ),
+      );
+    } else if (route == 'accessories') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) => const AllProductsScreen(initialSearch: 'accessories'),
+        ),
+      );
+    } else if (route == 'mensFootwear') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              const AllProductsScreen(initialSearch: 'men footwear'),
+        ),
+      );
+    } else if (route == 'womensFootwear') {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (_) =>
+              const AllProductsScreen(initialSearch: 'women footwear'),
+        ),
+      );
+    } else {
+      Navigator.of(
+        context,
+      ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen()));
+    }
   }
 
   // ── Spin / Play / Refer unified light container ────────────────────────────
