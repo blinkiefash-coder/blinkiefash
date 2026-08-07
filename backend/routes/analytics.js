@@ -243,4 +243,46 @@ router.get("/recently-explored", async (req, res) => {
   }
 });
 
+// DEBUG: GET /api/analytics/user-events — check what events exist for a user
+// Returns raw event data for debugging purposes
+router.get("/user-events", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    if (!userId) {
+      return res.json({ error: "user_id required", events: [] });
+    }
+
+    // Get summary of events for this user
+    const summary = await pool.query(
+      `SELECT event_type, COUNT(*) as count, COUNT(DISTINCT product_id) as products
+       FROM user_activity_events
+       WHERE user_id = $1
+       GROUP BY event_type
+       ORDER BY count DESC`,
+      [userId]
+    );
+
+    // Get recent product events
+    const recent = await pool.query(
+      `SELECT event_type, product_id, created_at
+       FROM user_activity_events
+       WHERE user_id = $1
+       AND product_id IS NOT NULL
+       ORDER BY created_at DESC
+       LIMIT 20`,
+      [userId]
+    );
+
+    res.json({
+      userId,
+      eventSummary: summary.rows,
+      recentProductEvents: recent.rows,
+      totalUniqueProducts: (summary.rows.reduce((sum, r) => sum + (r.products || 0), 0)),
+    });
+  } catch (err) {
+    console.warn("Failed to fetch user events:", err.message);
+    res.status(500).json({ error: "Failed to fetch user events" });
+  }
+});
+
 export default router;
