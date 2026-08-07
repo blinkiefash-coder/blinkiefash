@@ -155,9 +155,13 @@ const startServer = async () => {
   // ── Self-ping every 14 minutes to prevent Render free-tier cold starts ──
   const selfUrl = process.env.RENDER_EXTERNAL_URL;
   if (selfUrl) {
+    // Render URLs are https:// — the http module can't request them (it
+    // throws synchronously, which was being swallowed by the catch below),
+    // so pick the module that actually matches the URL's protocol.
+    const pingModuleName = selfUrl.startsWith('https:') ? 'node:https' : 'node:http';
     setInterval(() => {
-      import('node:http').then(({ default: http }) => {
-        http.get(`${selfUrl}/health`, (res) => { res.resume(); }).on('error', () => {});
+      import(pingModuleName).then(({ default: client }) => {
+        client.get(`${selfUrl}/health`, (res) => { res.resume(); }).on('error', () => {});
       }).catch(() => {});
     }, 14 * 60 * 1000);
     console.log('⏰ Self-ping scheduler active (every 14 min) →', selfUrl);
