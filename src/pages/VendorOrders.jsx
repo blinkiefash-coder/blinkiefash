@@ -332,24 +332,8 @@ export default function VendorOrders() {
             <div className={`vo-live-pill ${refreshing ? "busy" : "online"}`}>
               <span className="vo-live-dot" />
               {refreshing ? "Syncing…" : `Updated ${lastUpdatedAt || "just now"}`}
-            </div>            <div className="vo-date-filter">
-              <label>From
-                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
-              </label>
-              <label>To
-                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
-              </label>
-              {(dateFrom || dateTo) && (
-                <button className="vo-date-clear" onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>
-              )}
             </div>
             <button
-              className="vo-btn vo-btn-excel"
-              onClick={generateExcel}
-              title="Export filtered orders to Excel"
-            >
-              📊 Generate Excel
-            </button>            <button
               className="vo-refresh-btn"
               onClick={() => fetchOrders()}
               disabled={loading || refreshing}
