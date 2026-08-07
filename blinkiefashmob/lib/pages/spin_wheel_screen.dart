@@ -300,11 +300,11 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
             children: [
               const Text('😅', style: TextStyle(fontSize: 72)),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 'Not This Time!',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
                   color: Colors.white,
                 ),
               ),
@@ -324,8 +324,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                 child: Text(
                   msg,
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFF94A3B8),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF94A3B8),
                     fontSize: 13.5,
                     height: 1.5,
                   ),
@@ -344,9 +344,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'See You Tomorrow! 👋',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
                   ),
                 ),
               ),
@@ -373,12 +376,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
             children: [
               Text(seg.emoji, style: const TextStyle(fontSize: 72)),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 '🎊 You Won!',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF0F172A),
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
                 ),
               ),
               const SizedBox(height: 10),
@@ -394,20 +397,20 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                 ),
                 child: Text(
                   seg.label,
-                  style: TextStyle(
-                    fontSize: 20,
+                  style: GoogleFonts.inter(
+                    fontSize: 19,
                     fontWeight: FontWeight.w800,
                     color: seg.fg,
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              const Text(
+              Text(
                 'Your reward has been added to your account.\nApply it on your next order! 🛍️',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: GoogleFonts.inter(
                   fontSize: 12.5,
-                  color: Color(0xFF64748B),
+                  color: const Color(0xFF64748B),
                   height: 1.5,
                 ),
               ),
@@ -424,9 +427,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Awesome! 🎉',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -464,13 +470,13 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
             children: [
               const Text('🚗', style: TextStyle(fontSize: 80)),
               const SizedBox(height: 14),
-              const Text(
+              Text(
                 '🎊 YOU WIN A CAR! 🎊',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF431407),
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF431407),
                 ),
               ),
               const SizedBox(height: 12),
@@ -480,11 +486,11 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                   color: Colors.white.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(16),
                 ),
-                child: const Text(
+                child: Text(
                   'Unbelievable! You\'ve just won a brand-new car! 🏆\n\nOur team will contact you within 24 hours to confirm and arrange delivery.',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFF431407),
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFF431407),
                     fontSize: 13,
                     height: 1.5,
                     fontWeight: FontWeight.w600,
@@ -504,9 +510,12 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                       borderRadius: BorderRadius.circular(14),
                     ),
                   ),
-                  child: const Text(
+                  child: Text(
                     'I Can\'t Believe It! 🚗🎉',
-                    style: TextStyle(fontWeight: FontWeight.w700, fontSize: 15),
+                    style: GoogleFonts.inter(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 15,
+                    ),
                   ),
                 ),
               ),
@@ -991,11 +1000,11 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                               color: Colors.white.withValues(alpha: 0.18),
                             ),
                           ),
-                          child: const Text(
+                          child: Text(
                             '✅ Done for today. Come back tomorrow!',
-                            style: TextStyle(
+                            style: GoogleFonts.inter(
                               color: Colors.white,
-                              fontSize: 14.5,
+                              fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -1265,65 +1274,59 @@ class _WheelPainter extends CustomPainter {
       canvas.translate(c.dx, c.dy);
       canvas.rotate(startA + sa / 2);
 
+      // Soft badge sits behind the icon (drawn first so it never washes it out).
+      final badgeCenter = Offset(r * 0.52, 0);
+      canvas.drawCircle(
+        badgeCenter,
+        15,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              Colors.white.withValues(alpha: 0.28),
+              Colors.white.withValues(alpha: 0.0),
+            ],
+          ).createShader(Rect.fromCircle(center: badgeCenter, radius: 18)),
+      );
+
       final icon = _segmentIcon(i);
       final iconPainter = TextPainter(
         text: TextSpan(
           text: String.fromCharCode(icon.codePoint),
           style: TextStyle(
-            fontSize: 21,
+            fontSize: 19,
             color: Colors.white,
             fontFamily: icon.fontFamily,
             package: icon.fontPackage,
-            shadows: const [Shadow(color: Color(0xAA000000), blurRadius: 8)],
+            shadows: const [Shadow(color: Color(0xAA000000), blurRadius: 6)],
           ),
         ),
         textDirection: TextDirection.ltr,
       )..layout();
       iconPainter.paint(
         canvas,
-        Offset(r * 0.48 - iconPainter.width / 2, -iconPainter.height / 2 - 2),
+        Offset(
+          badgeCenter.dx - iconPainter.width / 2,
+          badgeCenter.dy - iconPainter.height / 2,
+        ),
       );
 
-      final glowChip = Paint()
-        ..shader =
-            RadialGradient(
-              colors: [
-                Colors.white.withValues(alpha: 0.33),
-                Colors.white.withValues(alpha: 0.0),
-              ],
-            ).createShader(
-              Rect.fromCircle(center: Offset(r * 0.48, 0), radius: 20),
-            );
-      canvas.drawCircle(Offset(r * 0.48, 0), 17, glowChip);
-
-      final tp = TextPainter(
-        text: TextSpan(
-          text: (i == 9 && !carUnlocked) ? 'LOCK' : seg.emoji,
-          style: const TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-          ),
-        ),
-        textDirection: TextDirection.ltr,
-      )..layout();
-      tp.paint(canvas, Offset(r * 0.48 - tp.width / 2, 12));
-
+      // A single clean label per segment — one line, one font, no clutter.
       final lp = TextPainter(
         text: TextSpan(
           text: _shortLabel(i),
           style: TextStyle(
             color: Colors.white,
-            fontSize: i == 8 ? 8.0 : 9.4,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.45,
+            fontFamily: GoogleFonts.inter().fontFamily,
+            fontSize: i == 8 ? 8.6 : 10.2,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
             shadows: const [Shadow(color: Color(0xAA000000), blurRadius: 6)],
           ),
         ),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center,
-      )..layout(maxWidth: r * 0.40);
-      lp.paint(canvas, Offset(r * 0.67 - lp.width / 2, tp.height / 2 + 7));
+      )..layout(maxWidth: r * 0.42);
+      lp.paint(canvas, Offset(r * 0.75 - lp.width / 2, -lp.height / 2));
 
       canvas.restore();
 
