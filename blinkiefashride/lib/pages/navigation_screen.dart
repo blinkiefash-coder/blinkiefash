@@ -70,7 +70,10 @@ class _NavigationScreenState extends State<NavigationScreen> {
   List<Map<String, dynamic>> get _pickupStops {
     final raw = widget.order['pickup_route'];
     if (raw is List) {
-      return raw.whereType<Map>().map((e) => e.cast<String, dynamic>()).toList();
+      return raw
+          .whereType<Map>()
+          .map((e) => e.cast<String, dynamic>())
+          .toList();
     }
     return const [];
   }
@@ -283,12 +286,14 @@ class _NavigationScreenState extends State<NavigationScreen> {
     if (!mounted) return;
     setState(() => _loading = false);
     if (res['success'] == true) {
-      final allStopsComplete = res['allStopsComplete'] != false; // default true for single-store
+      final allStopsComplete =
+          res['allStopsComplete'] != false; // default true for single-store
       if (!allStopsComplete) {
         // More stores left to pick up from — move to the next stop and
         // show the "I've arrived" button again instead of navigating away.
         setState(() {
-          _currentStopIndex = ((res['stopIndex'] as int?) ?? _currentStopIndex) + 1;
+          _currentStopIndex =
+              ((res['stopIndex'] as int?) ?? _currentStopIndex) + 1;
           if (res['totalStops'] != null) _totalStops = res['totalStops'] as int;
           _storeOtpRequested = false;
           _storeOtpController.clear();
