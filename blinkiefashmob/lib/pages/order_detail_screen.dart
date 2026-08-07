@@ -1539,13 +1539,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   Widget _estimatedDelivery(String status, Map<String, dynamic> order) {
     final isDelivered = status == 'delivered' || status == 'completed';
-    final deliveryPromise =
-        order['deliveryPromise']?.toString() ?? 'Today, within 60 minutes';
-    final deliveryType = order['deliveryType']?.toString();
-    final distanceKm = order['distanceKm'] as num?;
+    final rawPromise =
+        order['deliveryPromise'] ??
+        order['delivery_promise'] ??
+        order['deliverypromise'];
+    final deliveryType =
+        (order['deliveryType'] ?? order['delivery_type'])?.toString();
+    final distanceKm =
+        (order['distanceKm'] as num?) ?? (order['distance_km'] as num?);
+
+    String fallbackPromise = 'Today, within 60 minutes';
+    switch (deliveryType) {
+      case '1-3days':
+        fallbackPromise = 'Delivery in 1-3 Days';
+        break;
+      case '2days':
+        fallbackPromise = 'Delivery within 2 Days';
+        break;
+      case 'nextday':
+        fallbackPromise = 'Next Day Delivery';
+        break;
+      case 'sameday':
+        fallbackPromise = 'Same Day Delivery Available';
+        break;
+      case 'nextday_scheduled_local':
+      case 'nextday_scheduled_extended':
+        fallbackPromise =
+            'Store opens at 10:00 AM. Select your delivery time slot for today';
+        break;
+      default:
+        if (distanceKm != null && distanceKm > 45) {
+          fallbackPromise = 'Delivery in 1-3 Days';
+        }
+        break;
+    }
+
+    final deliveryPromise = (rawPromise?.toString().trim().isNotEmpty ?? false)
+        ? rawPromise.toString().trim()
+        : fallbackPromise;
 
     String deliveryText = deliveryPromise;
-    if (!isDelivered && deliveryType == 'local' || deliveryType == 'extended') {
+    if (!isDelivered && (deliveryType == 'local' || deliveryType == 'extended')) {
       // For dynamic ETAs, show the promise from backend
       deliveryText = deliveryPromise;
     } else if (!isDelivered) {
