@@ -1543,7 +1543,6 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         order['deliveryPromise'] ??
         order['delivery_promise'] ??
         order['deliverypromise'];
-<<<<<<< HEAD
     final deliveryType = (order['deliveryType'] ?? order['delivery_type'])
         ?.toString();
     final distanceKm =
