@@ -108,8 +108,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // Delivery countdown
   int _deliverySecondsLeft = 0;
-  int _extraDilationSeconds = 0;
   Timer? _deliveryCountdownTimer;
+  int _countdownTotalSecs = 60 * 60;
+  bool _usingLiveEta = false;
 
   // Full order auto-refresh (every 15 s while order is active)
   Timer? _orderRefreshTimer;
@@ -442,39 +443,42 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       setState(() => _deliverySecondsLeft = 0);
       return;
     }
-    // Use confirmed_at as the start of the 60-min SLA, fall back to created_at
+    // Base the countdown on the same distance-based ETA shown on the
+    // "Estimated Delivery" card above (backend-computed from real distance)
+    // instead of a flat 60-minute SLA, so both stay consistent. Falls back
+    // to 60 min only if no ETA range was returned.
+    final etaMin = (order['deliveryEtaMinMinutes'] as num?)?.toInt();
+    final etaMax = (order['deliveryEtaMaxMinutes'] as num?)?.toInt();
+    int baseMinutes;
+    if (etaMin != null && etaMax != null) {
+      baseMinutes = ((etaMin + etaMax) / 2).round();
+    } else {
+      baseMinutes = etaMax ?? etaMin ?? 60;
+    }
+    baseMinutes = baseMinutes.clamp(10, 120);
+    _countdownTotalSecs = baseMinutes * 60;
+    _usingLiveEta = false;
+
+    // Use confirmed_at as the start of the estimate window, fall back to created_at
     final baseIso =
         order['confirmed_at']?.toString() ?? order['created_at']?.toString();
     final base = DateTime.tryParse(baseIso ?? '');
     final deadline = base != null
-        ? base.toLocal().add(const Duration(minutes: 60))
-        : DateTime.now().add(const Duration(minutes: 60));
+        ? base.toLocal().add(Duration(minutes: baseMinutes))
+        : DateTime.now().add(Duration(minutes: baseMinutes));
     final left = deadline.difference(DateTime.now()).inSeconds;
-    // Show timer for up to 60 minutes from order
+    // Show timer for up to 10 minutes past the estimate before hiding it
     if (left < -600) return;
-    setState(() => _deliverySecondsLeft = left.clamp(0, 3600));
+    setState(() => _deliverySecondsLeft = left.clamp(0, _countdownTotalSecs));
     if (left <= 0) return; // already expired, just show 0
     _deliveryCountdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(() {
-        if (_deliverySecondsLeft > 0) {
-          _deliverySecondsLeft--;
-          // Smart dilation: if rider > 1 km away and < 8 min left, add 1 min every 20 s
-          final rLoc = _riderLoc;
-          final aLoc = _addrLoc;
-          if (rLoc != null && aLoc != null && _deliverySecondsLeft < 480) {
-            final dLat = rLoc.latitude - aLoc.latitude;
-            final dLng = rLoc.longitude - aLoc.longitude;
-            final approxKm = ((dLat * dLat + dLng * dLng) * 12321.0).clamp(
-              0,
-              100,
-            );
-            if (approxKm > 1.0 && _deliverySecondsLeft % 20 == 0) {
-              _deliverySecondsLeft += 60;
-              _extraDilationSeconds += 60;
-            }
-          }
-        }
+        // Once a rider is assigned and moving, `_fetchRoute` keeps
+        // `_liveRouteEtaSeconds` fresh from his actual road-route distance;
+        // the timer just ticks that value down between updates so it feels
+        // real-time instead of resetting on every rider-location poll.
+        if (_deliverySecondsLeft > 0) _deliverySecondsLeft--;
       });
     });
   }
@@ -569,7 +573,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           if (lat != null && lng != null) {
             final initLoc = LatLng(lat, lng);
             setState(() => _riderLoc = initLoc);
-            if (_addrLoc != null) _fetchRoute(initLoc, _addrLoc!);
+            if (_addrLoc != null) {
+              _fetchRoute(initLoc, _addrLoc!, isRiderRoute: true);
+            }
             try {
               _mapController.move(initLoc, 14);
             } catch (_) {}
@@ -606,7 +612,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             final newLoc = LatLng(lat, lng);
             setState(() => _riderLoc = newLoc);
             // Fetch road route from rider's current position to customer address
-            if (_addrLoc != null) _fetchRoute(newLoc, _addrLoc!);
+            if (_addrLoc != null) {
+              _fetchRoute(newLoc, _addrLoc!, isRiderRoute: true);
+            }
             try {
               _mapController.move(
                 newLoc,
@@ -619,7 +627,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
   }
 
-  Future<void> _fetchRoute(LatLng from, LatLng to) async {
+  // Rider-to-customer approach/handover buffer added on top of OSRM's raw
+  // driving duration, mirroring the backend's RIDER_APPROACH_BUFFER_KM logic.
+  static const int _riderApproachBufferSecs = 90;
+
+  Future<void> _fetchRoute(
+    LatLng from,
+    LatLng to, {
+    bool isRiderRoute = false,
+  }) async {
     try {
       final url = Uri.parse(
         'https://router.project-osrm.org/route/v1/driving/'
@@ -629,7 +645,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       final resp = await http.get(url).timeout(const Duration(seconds: 6));
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body);
-        final coords = data['routes']?[0]?['geometry']?['coordinates'] as List?;
+        final route = data['routes']?[0];
+        final coords = route?['geometry']?['coordinates'] as List?;
         if (coords != null && coords.isNotEmpty && mounted) {
           setState(() {
             _routePoints = coords
@@ -641,6 +658,21 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 )
                 .toList();
           });
+        }
+        // Once the rider is actively tracked, replace the static estimate
+        // with a real-time ETA derived from his actual road-route distance.
+        if (isRiderRoute && mounted) {
+          final durationSecs = (route?['duration'] as num?)?.toDouble();
+          if (durationSecs != null) {
+            final liveSecs = durationSecs.round() + _riderApproachBufferSecs;
+            setState(() {
+              _deliverySecondsLeft = liveSecs;
+              _usingLiveEta = true;
+              if (liveSecs > _countdownTotalSecs) {
+                _countdownTotalSecs = liveSecs;
+              }
+            });
+          }
         }
       }
     } catch (_) {}
@@ -1025,8 +1057,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
 
   // ── Delivery countdown card ───────────────────────────────────────────────
   Widget _deliveryCountdownCard() {
-    const totalSecs = 60 * 60; // 60-minute base window
-    final displayed = _deliverySecondsLeft + _extraDilationSeconds;
+    final totalSecs = _countdownTotalSecs;
+    final displayed = _deliverySecondsLeft;
     final elapsed = (totalSecs - _deliverySecondsLeft).clamp(0, totalSecs);
     final progress = (elapsed / totalSecs).clamp(0.0, 1.0);
     final m = displayed ~/ 60;
@@ -1088,9 +1120,11 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Time remaining for delivery',
-            style: TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
+          Text(
+            _usingLiveEta
+                ? "Live estimate based on your delivery partner's location"
+                : 'Time remaining for delivery',
+            style: const TextStyle(fontSize: 11, color: Color(0xFF9CA3AF)),
           ),
         ],
       ),
