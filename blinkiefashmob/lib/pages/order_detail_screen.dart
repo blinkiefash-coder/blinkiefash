@@ -384,19 +384,25 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         _deliveryStatusTimer?.cancel();
         _deliveryCountdownTimer?.cancel();
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Order cancelled'),
-          backgroundColor: Color(0xFFEF4444),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Order cancelled'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res['message']?.toString() ?? 'Failed to cancel order'),
-          backgroundColor: const Color(0xFFEF4444),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              res['message']?.toString() ?? 'Failed to cancel order',
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
     }
   }
 
@@ -1557,8 +1563,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         order['deliveryPromise'] ??
         order['delivery_promise'] ??
         order['deliverypromise'];
-    final deliveryType =
-        (order['deliveryType'] ?? order['delivery_type'])?.toString();
+    final deliveryType = (order['deliveryType'] ?? order['delivery_type'])
+        ?.toString();
     final distanceKm =
         (order['distanceKm'] as num?) ?? (order['distance_km'] as num?);
 
@@ -1600,7 +1606,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     }
 
     String deliveryText = deliveryPromise;
-    if (!isDelivered && (deliveryType == 'local' || deliveryType == 'extended')) {
+    if (!isDelivered &&
+        (deliveryType == 'local' || deliveryType == 'extended')) {
       // For dynamic ETAs, show the promise from backend
       deliveryText = deliveryPromise;
     } else if (!isDelivered) {

@@ -69,9 +69,13 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error detecting location: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Error detecting location: ${e.toString()}'),
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _detectingLocation = false);
@@ -118,16 +122,16 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     final pincode = _pincodeController.text.trim();
 
     if (address.isEmpty || city.isEmpty || pincode.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     if (widget.userId == null || widget.userId!.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('User ID not found')));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('User ID not found')));
       return;
     }
 
@@ -148,12 +152,14 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
         if (response.isNotEmpty && response['id'] != null) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Address saved successfully'),
-                duration: Duration(seconds: 2),
-              ),
-            );
+            ScaffoldMessenger.of(context)
+              ..removeCurrentSnackBar()
+              ..showSnackBar(
+                const SnackBar(
+                  content: Text('Address saved successfully'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
 
             widget.onAddressAdded?.call();
             Navigator.pop(context, {
@@ -166,17 +172,19 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
             });
           }
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Failed to save address')),
-          );
+          ScaffoldMessenger.of(context)
+            ..removeCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(content: Text('Failed to save address')),
+            );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     }
   }

@@ -680,18 +680,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       });
 
       if (phone.isEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Phone not found — please type it manually.'),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Phone not found — please type it manually.'),
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Contact pick error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     }
   }
@@ -777,11 +779,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           final count =
                               int.tryParse(_donationItemCtrl.text) ?? 0;
                           if (count < 1 || count > 5) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Please enter 1-5 pieces'),
-                              ),
-                            );
+                            ScaffoldMessenger.of(context)
+                              ..removeCurrentSnackBar()
+                              ..showSnackBar(
+                                const SnackBar(
+                                  content: Text('Please enter 1-5 pieces'),
+                                ),
+                              );
                             return;
                           }
                           setState(() {
@@ -1381,12 +1385,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           : 'spin';
                     });
                     if (_selectedFlatOffer == 'spin') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✨ Spin & Win - ₹50 discount applied!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                      ScaffoldMessenger.of(context)
+                        ..removeCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '✨ Spin & Win - ₹50 discount applied!',
+                            ),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                     }
                   },
                 ),
@@ -1404,12 +1412,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           : 'play';
                     });
                     if (_selectedFlatOffer == 'play') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('✨ Play & Win - ₹50 discount applied!'),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                      ScaffoldMessenger.of(context)
+                        ..removeCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '✨ Play & Win - ₹50 discount applied!',
+                            ),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
                     }
                   },
                 ),
@@ -1427,14 +1439,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           : 'refer';
                     });
                     if (_selectedFlatOffer == 'refer') {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            '✨ Refer & Earn - ₹50 discount applied!',
+                      ScaffoldMessenger.of(context)
+                        ..removeCurrentSnackBar()
+                        ..showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              '✨ Refer & Earn - ₹50 discount applied!',
+                            ),
+                            duration: Duration(seconds: 2),
                           ),
-                          duration: Duration(seconds: 2),
-                        ),
-                      );
+                        );
                     }
                   },
                 ),

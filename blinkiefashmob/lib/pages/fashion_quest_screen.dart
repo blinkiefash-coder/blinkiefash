@@ -212,12 +212,14 @@ class _FashionQuestScreenState extends State<FashionQuestScreen>
     final userId = _userId;
     if (userId == null) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to save Fashion Quest progress.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please login to save Fashion Quest progress.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
       return;
     }
 
@@ -242,14 +244,16 @@ class _FashionQuestScreenState extends State<FashionQuestScreen>
           _halfPct += 1;
           _todayCount = (_todayCount + 1).clamp(0, _dailyLimit);
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Saved locally for now. Progress will sync when network is stable.',
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Saved locally for now. Progress will sync when network is stable.',
+              ),
+              backgroundColor: Color(0xFFB45309),
             ),
-            backgroundColor: Color(0xFFB45309),
-          ),
-        );
+          );
 
         await Future.delayed(const Duration(milliseconds: 500));
         if (!mounted) return;
@@ -271,12 +275,14 @@ class _FashionQuestScreenState extends State<FashionQuestScreen>
           _todayCount = todayCount;
         });
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(message),
-          backgroundColor: const Color(0xFFDC2626),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(message),
+            backgroundColor: const Color(0xFFDC2626),
+          ),
+        );
       return;
     }
 

@@ -162,25 +162,31 @@ class _ParcelTrackingScreenState extends State<ParcelTrackingScreen> {
       if (!mounted) return;
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       if (body['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Delivery cancelled successfully')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Delivery cancelled successfully')),
+          );
         _timer?.cancel();
         setState(() => _cancelling = false);
         await Future.delayed(const Duration(seconds: 1));
         if (mounted) Navigator.of(context).pop();
       } else {
         setState(() => _cancelling = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(body['message'] ?? 'Cancellation failed')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text(body['message'] ?? 'Cancellation failed')),
+          );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _cancelling = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString().substring(0, 50)}')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text('Error: ${e.toString().substring(0, 50)}')),
+          );
       }
     }
   }

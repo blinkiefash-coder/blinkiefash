@@ -116,15 +116,15 @@ class _SupportChatScreenState extends State<SupportChatScreen> {
         await _loadTickets(silent: true);
       } else {
         final error = result['error']?.toString() ?? 'Failed to send message';
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(error)));
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text(error)));
       }
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Failed to send message')));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(const SnackBar(content: Text('Failed to send message')));
     } finally {
       if (mounted) setState(() => _sending = false);
     }

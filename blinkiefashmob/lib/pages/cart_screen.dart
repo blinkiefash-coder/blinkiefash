@@ -164,13 +164,15 @@ class _CartScreenState extends State<CartScreen> {
                     onIncrement: () {
                       final ok = CartManager.instance.increment(item);
                       if (!ok) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${item.name}: stock limit reached for selected size/color',
+                        ScaffoldMessenger.of(context)
+                          ..removeCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${item.name}: stock limit reached for selected size/color',
+                              ),
                             ),
-                          ),
-                        );
+                          );
                         return;
                       }
                       setState(() {});

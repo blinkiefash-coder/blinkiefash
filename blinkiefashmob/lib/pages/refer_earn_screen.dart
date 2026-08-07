@@ -157,9 +157,9 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
     if (_code == null) return;
     await Clipboard.setData(ClipboardData(text: _code!));
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('Referral code copied')));
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(const SnackBar(content: Text('Referral code copied')));
   }
 
   void _share() {
@@ -167,9 +167,11 @@ class _ReferEarnScreenState extends State<ReferEarnScreen> {
     final msg =
         'Hey! Use my referral code $_code on BlinkieFash and we both get ₹$_perReferralReward off our next order. Download the app now!';
     Clipboard.setData(ClipboardData(text: msg));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Invite message copied — paste & share!')),
-    );
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(content: Text('Invite message copied — paste & share!')),
+      );
   }
 
   @override

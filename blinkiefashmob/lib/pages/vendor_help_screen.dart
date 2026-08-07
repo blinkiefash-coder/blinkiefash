@@ -9,6 +9,7 @@ class VendorHelpScreen extends StatelessWidget {
   static const String _supportEmail = 'support@blinkiefash.in';
 
   void _showLaunchError(ScaffoldMessengerState? messenger, String message) {
+    messenger?.removeCurrentSnackBar();
     messenger?.showSnackBar(SnackBar(content: Text(message)));
   }
 

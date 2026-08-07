@@ -111,12 +111,14 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Scan feature coming soon!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Scan feature coming soon!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
               },
               child: const Padding(
                 padding: EdgeInsets.symmetric(horizontal: 6),
@@ -132,12 +134,14 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
             GestureDetector(
               behavior: HitTestBehavior.opaque,
               onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Voice search coming soon!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Voice search coming soon!'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
               },
               child: const Padding(
                 padding: EdgeInsets.only(left: 8),

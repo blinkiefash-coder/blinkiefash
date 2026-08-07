@@ -383,12 +383,14 @@ class _HomeScreenState extends State<HomeScreen>
               onTap: () {
                 _setSelectedAvatar(url);
                 Navigator.pop(sheetCtx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Profile avatar updated'),
-                    backgroundColor: Color(0xFF16A34A),
-                  ),
-                );
+                ScaffoldMessenger.of(context)
+                  ..removeCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(
+                      content: Text('Profile avatar updated'),
+                      backgroundColor: Color(0xFF16A34A),
+                    ),
+                  );
               },
               child: Container(
                 padding: const EdgeInsets.all(2),
@@ -930,7 +932,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _snack(String msg) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg)));
     }
   }
 
@@ -8648,11 +8652,13 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
     try {
       final ok = await launchUrl(uri, mode: LaunchMode.externalApplication);
       if (!ok && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Could not open app. Please try manually.'),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Could not open app. Please try manually.'),
+            ),
+          );
       }
     } catch (_) {
       // Try without mode
@@ -8660,9 +8666,9 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
         await launchUrl(uri);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context)
+            ..removeCurrentSnackBar()
+            ..showSnackBar(SnackBar(content: Text('Error: $e')));
         }
       }
     }
@@ -8708,9 +8714,11 @@ class _HelpSupportSheetState extends State<_HelpSupportSheet> {
   Future<void> _submitTicket() async {
     final msg = _msgCtrl.text.trim();
     if (msg.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please describe your issue')),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Please describe your issue')),
+        );
       return;
     }
     if (_submitting) return;

@@ -155,12 +155,14 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     if (_spinning || _hasSpunToday || _loading) return;
     final userId = _userId;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please login to spin and claim rewards.'),
-          backgroundColor: Color(0xFFDC2626),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Please login to spin and claim rewards.'),
+            backgroundColor: Color(0xFFDC2626),
+          ),
+        );
       return;
     }
 
@@ -184,16 +186,18 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
       setState(() {
         if (isDailyLimit) _hasSpunToday = true;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            isDailyLimit
-                ? 'You already used today\'s spin. Try again tomorrow.'
-                : 'Spin service is busy. Please try again in a moment.',
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              isDailyLimit
+                  ? 'You already used today\'s spin. Try again tomorrow.'
+                  : 'Spin service is busy. Please try again in a moment.',
+            ),
+            backgroundColor: const Color(0xFFDC2626),
           ),
-          backgroundColor: const Color(0xFFDC2626),
-        ),
-      );
+        );
       return;
     }
 

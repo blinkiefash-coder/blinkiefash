@@ -80,34 +80,40 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             ? (res['vendor'] as Map)['is_operational'] as bool
             : value;
         setState(() => _isOperational = returnedStatus);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              returnedStatus
-                  ? 'Store is now LIVE. Customers can place new orders.'
-                  : 'Store is now PAUSED. Products are hidden for shoppers.',
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                returnedStatus
+                    ? 'Store is now LIVE. Customers can place new orders.'
+                    : 'Store is now PAUSED. Products are hidden for shoppers.',
+              ),
             ),
-          ),
-        );
+          );
       } else {
         setState(() => _isOperational = previousValue);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['message'] ?? res['error'] ?? 'Unable to update status')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['message'] ?? res['error'] ?? 'Unable to update status')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } catch (_) {
       if (!mounted) return;
       setState(() => _isOperational = previousValue);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to update store status. Please try again.'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Unable to update store status. Please try again.'),
+          ),
+        );
     } finally {
       if (mounted) setState(() => _statusUpdating = false);
     }
@@ -370,7 +376,9 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
 
   void _snack(String msg) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(msg)));
   }
 
   Future<Location?> _geocodeVendorAddressWithGoogle(String query) async {
@@ -1370,18 +1378,22 @@ class _VendorDeliverTabState extends State<_VendorDeliverTab> {
       );
       if (!mounted) return;
       if (res['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Parcel request marked $newStatus')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text('Parcel request marked $newStatus')),
+          );
         await _load();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['message'] ?? res['error'] ?? 'Update failed').toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['message'] ?? res['error'] ?? 'Update failed').toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } finally {
       if (mounted) setState(() => _updating = false);
@@ -1775,9 +1787,11 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
     if (!_formKey.currentState!.validate()) return;
     final messenger = ScaffoldMessenger.of(context);
     if (_selectedCategoryId == null || _selectedCategoryId!.isEmpty) {
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please select a category')),
-      );
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Please select a category')),
+        );
       return;
     }
 
@@ -1794,13 +1808,15 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
             mrp <= 0 ||
             qty == null ||
             qty < 0) {
-          messenger.showSnackBar(
-            const SnackBar(
-              content: Text(
-                'Please enter valid variant price/MRP/stock values. You can use a direct number or a percentage like 40%.',
+          messenger
+            ..removeCurrentSnackBar()
+            ..showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Please enter valid variant price/MRP/stock values. You can use a direct number or a percentage like 40%.',
+                ),
               ),
-            ),
-          );
+            );
           setState(() => _submitting = false);
           return;
         }
@@ -1858,24 +1874,30 @@ class _VendorAddProductTabState extends State<_VendorAddProductTab> {
           _buy4At999 = false;
         });
         _loadRecentProducts();
-        messenger.showSnackBar(
-          const SnackBar(content: Text('Product created successfully')),
-        );
+        messenger
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Product created successfully')),
+          );
       } else {
-        messenger.showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['message'] ?? res['error'] ?? 'Unable to create product')
-                  .toString(),
+        messenger
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['message'] ?? res['error'] ?? 'Unable to create product')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Please review details and try again.')),
-      );
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Please review details and try again.')),
+        );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -2508,11 +2530,13 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
   }) async {
     final resolvedPrice = _resolvePriceValue(rawValue, mrp);
     if (resolvedPrice == null || resolvedPrice <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter a valid selling price or percentage'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Enter a valid selling price or percentage'),
+          ),
+        );
       return;
     }
 
@@ -2539,18 +2563,22 @@ class _VendorStockMonitoringTabState extends State<_VendorStockMonitoringTab> {
             }
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Price updated for this variant')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Price updated for this variant')),
+          );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['error'] ?? res['message'] ?? 'Price update failed')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['error'] ?? res['message'] ?? 'Price update failed')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } finally {
       if (mounted) setState(() => _updating = false);
@@ -2955,9 +2983,11 @@ class _VendorEditProductsTabState extends State<_VendorEditProductsTab> {
     final resolvedPrice = _resolvePriceValue(priceCtrl.text.trim(), mrp);
     final qty = int.tryParse(stockCtrl.text.trim());
     if (resolvedPrice == null || resolvedPrice <= 0 || qty == null || qty < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid price and stock value')),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Enter a valid price and stock value')),
+        );
       return;
     }
 
@@ -2984,18 +3014,22 @@ class _VendorEditProductsTabState extends State<_VendorEditProductsTab> {
             }
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Variant updated successfully')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Variant updated successfully')),
+          );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['error'] ?? res['message'] ?? 'Unable to update variant')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['error'] ?? res['message'] ?? 'Unable to update variant')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -3257,9 +3291,11 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
     required int qty,
   }) async {
     if (qty < 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Quantity cannot be negative')),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Quantity cannot be negative')),
+        );
       return;
     }
 
@@ -3283,20 +3319,24 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
             }
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Stock updated and synced to store inventory'),
-          ),
-        );
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['error'] ?? res['message'] ?? 'Stock update failed')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Stock updated and synced to store inventory'),
             ),
-          ),
-        );
+          );
+      } else {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['error'] ?? res['message'] ?? 'Stock update failed')
+                    .toString(),
+              ),
+            ),
+          );
       }
     } finally {
       if (mounted) setState(() => _updating = false);
@@ -3311,11 +3351,13 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
   }) async {
     final resolvedPrice = _resolvePriceValue(rawValue, mrp);
     if (resolvedPrice == null || resolvedPrice <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Enter a valid selling price or percentage'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Enter a valid selling price or percentage'),
+          ),
+        );
       return;
     }
 
@@ -3342,18 +3384,22 @@ class _VendorStockUpdateTabState extends State<_VendorStockUpdateTab> {
             }
           }
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Price updated for this variant')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Price updated for this variant')),
+          );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['error'] ?? res['message'] ?? 'Price update failed')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['error'] ?? res['message'] ?? 'Price update failed')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } finally {
       if (mounted) setState(() => _updating = false);
@@ -3853,11 +3899,13 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       if (newOrderIds.isNotEmpty) {
         await _showIncomingOrderAlert(newOrderIds.length);
       } else if (statusChanges.isNotEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Order status updated (${statusChanges.length})'),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text('Order status updated (${statusChanges.length})'),
+            ),
+          );
       }
     } finally {
       if (!silent && mounted) {
@@ -3965,19 +4013,25 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       if (!mounted) return;
 
       if (result['success'] == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order marked as ${status.toUpperCase()}')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(content: Text('Order marked as ${status.toUpperCase()}')),
+          );
         await _load(silent: true);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (result['message'] ?? result['error'] ?? 'Unable to update order')
-                  .toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (result['message'] ??
+                        result['error'] ??
+                        'Unable to update order')
+                    .toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } finally {
       if (mounted) {
@@ -4109,15 +4163,19 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               mode: LaunchMode.externalApplication,
             );
             if (!launched && mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Could not open invoice')),
-              );
+              ScaffoldMessenger.of(context)
+                ..removeCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(content: Text('Could not open invoice')),
+                );
             }
           } catch (e) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Could not open invoice: $e')),
-              );
+              ScaffoldMessenger.of(context)
+                ..removeCurrentSnackBar()
+                ..showSnackBar(
+                  SnackBar(content: Text('Could not open invoice: $e')),
+                );
             }
           }
         },

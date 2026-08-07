@@ -95,18 +95,20 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
       });
 
       if (phone.isEmpty && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Phone not found — please type it manually.'),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(
+              content: Text('Phone not found — please type it manually.'),
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Contact pick error: $e');
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     }
   }
@@ -146,23 +148,29 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
         Navigator.of(
           context,
         ).pop(parcelId); // Return parcel ID instead of just true
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Parcel booked successfully!')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Parcel booked successfully!')),
+          );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              (res['message'] ?? res['error'] ?? 'Booking failed').toString(),
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (res['message'] ?? res['error'] ?? 'Booking failed').toString(),
+              ),
             ),
-          ),
-        );
+          );
       }
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Booking failed. Please try again.')),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            const SnackBar(content: Text('Booking failed. Please try again.')),
+          );
       }
     } finally {
       if (mounted) setState(() => _submitting = false);

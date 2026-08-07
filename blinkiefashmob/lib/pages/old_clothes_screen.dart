@@ -125,13 +125,15 @@ class _OldClothesScreenState extends State<OldClothesScreen> {
     if (res['success'] == true) {
       _itemCtrl.text = '5';
       _notesCtrl.clear();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Pickup scheduled. Once collected, up to 5% discount will be available for your next order.',
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Pickup scheduled. Once collected, up to 5% discount will be available for your next order.',
+            ),
           ),
-        ),
-      );
+        );
       await _load();
     } else {
       setState(() {

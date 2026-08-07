@@ -94,11 +94,15 @@ class _AddressListSheetState extends State<_AddressListSheet> {
       _load();
     } else {
       setState(() => _loading = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(res['message']?.toString() ?? 'Failed to save address'),
-        ),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              res['message']?.toString() ?? 'Failed to save address',
+            ),
+          ),
+        );
     }
   }
 

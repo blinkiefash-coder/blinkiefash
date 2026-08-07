@@ -848,23 +848,27 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
       ),
     );
     if (!added) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This variant is out of stock')),
-      );
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('This variant is out of stock')),
+        );
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Added to cart'),
-        duration: const Duration(seconds: 2),
-        action: SnackBarAction(
-          label: 'View Cart',
-          onPressed: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute<void>(builder: (_) => const CartScreen())),
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: const Text('Added to cart'),
+          duration: const Duration(seconds: 2),
+          action: SnackBarAction(
+            label: 'View Cart',
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute<void>(builder: (_) => const CartScreen())),
+          ),
         ),
-      ),
-    );
+      );
   }
 
   void _openWishlist() {
@@ -1024,9 +1028,11 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   Future<void> _submitReview(String productId) async {
     final text = _reviewTextCtrl.text.trim();
     if (text.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please write your review')));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Please write your review')),
+        );
       return;
     }
     setState(() => _submittingReview = true);
@@ -1060,24 +1066,28 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           _newReviewRating = 5;
           _pickedReviewImage = null;
         });
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('Review submitted!')));
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Review submitted!')));
         _loadReviews();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(result['message']?.toString() ?? 'Failed to submit'),
-          ),
-        );
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                result['message']?.toString() ?? 'Failed to submit',
+              ),
+            ),
+          );
       }
     } catch (e) {
       debugPrint('Review submission error: $e');
       if (!mounted) return;
       setState(() => _submittingReview = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
     }
   }
 
@@ -1449,12 +1459,14 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
           if (mounted) {
             final added = CartManager.instance.addItem(singleItem);
             if (added) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Item saved to your cart 🛍️'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+              ScaffoldMessenger.of(context)
+                ..removeCurrentSnackBar()
+                ..showSnackBar(
+                  const SnackBar(
+                    content: Text('Item saved to your cart 🛍️'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
             }
           }
         });

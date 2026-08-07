@@ -381,12 +381,16 @@ class _LoginScreenState extends State<LoginScreen> {
       }
 
       final msg = (res['message'] ?? 'Vendor login failed').toString();
-      messenger.showSnackBar(SnackBar(content: Text(msg)));
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text(msg)));
     } catch (_) {
       if (!mounted) return;
-      messenger.showSnackBar(
-        const SnackBar(content: Text('Unable to login. Please try again.')),
-      );
+      messenger
+        ..removeCurrentSnackBar()
+        ..showSnackBar(
+          const SnackBar(content: Text('Unable to login. Please try again.')),
+        );
     } finally {
       if (mounted) {
         setState(() => _loading = false);
