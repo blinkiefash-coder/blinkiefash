@@ -1431,7 +1431,7 @@ class _HomeScreenState extends State<HomeScreen> with SingleTickerProviderStateM
             const SizedBox(height: 16),
             if (_recentlyExploredProducts.isNotEmpty) ...[
               _sectionHeader(
-                '✨ YOUR DISCOVERY TRAIL',
+                '👁️ Recently Viewed',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(
                   context,
