@@ -83,7 +83,6 @@ class AnalyticsService {
               if (kDebugMode) {
                 print('[Analytics] Error sending $eventType: $err');
               }
-              return http.Response('', 0);
             }),
       );
     } catch (err) {
