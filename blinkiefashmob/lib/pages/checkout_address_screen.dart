@@ -230,6 +230,24 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
     }
   }
 
+  Future<void> _openEditAddress(Map<String, dynamic> address) async {
+    final updated = await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _EditAddressSheet(api: _api, address: address),
+    );
+    if (updated != true || !mounted) return;
+    final keepId = _selectedAddressId;
+    setState(() => _loading = true);
+    await _loadAddresses();
+    if (!mounted) return;
+    if (keepId != null && _addresses.any((a) => a['id'].toString() == keepId)) {
+      setState(() => _selectedAddressId = keepId);
+      _fetchEstimate(keepId);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -330,6 +348,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
                         setState(() => _selectedAddressId = id);
                         _fetchEstimate(id);
                       },
+                      onEdit: () => _openEditAddress(addr),
                     ),
                   ),
                 const SizedBox(height: 8),
@@ -361,7 +380,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
                   color: Colors.white,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.06),
+                      color: Colors.black.withValues(alpha: 0.06),
                       blurRadius: 12,
                       offset: const Offset(0, -4),
                     ),
@@ -399,6 +418,7 @@ class _AddressCard extends StatelessWidget {
     required this.isSelected,
     required this.onTap,
     required this.typeIcon,
+    required this.onEdit,
     this.estimateLabel,
   });
 
@@ -406,6 +426,7 @@ class _AddressCard extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
   final IconData typeIcon;
+  final VoidCallback onEdit;
   final String? estimateLabel;
 
   @override
@@ -498,6 +519,19 @@ class _AddressCard extends StatelessWidget {
                           ),
                         ),
                       ],
+                      const SizedBox(width: 4),
+                      InkWell(
+                        onTap: onEdit,
+                        borderRadius: BorderRadius.circular(20),
+                        child: const Padding(
+                          padding: EdgeInsets.all(4),
+                          child: Icon(
+                            Icons.edit_outlined,
+                            size: 16,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -567,6 +601,297 @@ class _AddressCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EditAddressSheet extends StatefulWidget {
+  const _EditAddressSheet({required this.api, required this.address});
+  final ApiClient api;
+  final Map<String, dynamic> address;
+
+  @override
+  State<_EditAddressSheet> createState() => _EditAddressSheetState();
+}
+
+class _EditAddressSheetState extends State<_EditAddressSheet> {
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _phoneCtrl;
+  late final TextEditingController _addressLineCtrl;
+  late final TextEditingController _cityCtrl;
+  late final TextEditingController _pincodeCtrl;
+  late String _addressType;
+  bool _saving = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(
+      text: widget.address['name']?.toString() ?? '',
+    );
+    _phoneCtrl = TextEditingController(
+      text: widget.address['phone']?.toString() ?? '',
+    );
+    _addressLineCtrl = TextEditingController(
+      text: widget.address['address_line']?.toString() ?? '',
+    );
+    _cityCtrl = TextEditingController(
+      text: widget.address['city']?.toString() ?? '',
+    );
+    _pincodeCtrl = TextEditingController(
+      text: widget.address['pincode']?.toString() ?? '',
+    );
+    _addressType = widget.address['address_type']?.toString() ?? 'home';
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _phoneCtrl.dispose();
+    _addressLineCtrl.dispose();
+    _cityCtrl.dispose();
+    _pincodeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    final addressLine = _addressLineCtrl.text.trim();
+    final city = _cityCtrl.text.trim();
+    final pincode = _pincodeCtrl.text.trim();
+    if (addressLine.isEmpty || city.isEmpty || pincode.isEmpty) {
+      setState(() => _error = 'Address, city and pincode are required');
+      return;
+    }
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+    final res = await widget.api.updateAddress(
+      addressId: widget.address['id'].toString(),
+      addressLine: addressLine,
+      city: city,
+      pincode: pincode,
+      name: _nameCtrl.text.trim(),
+      phone: _phoneCtrl.text.trim(),
+      addressType: _addressType,
+    );
+    if (!mounted) return;
+    if (res['success'] == true) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _saving = false;
+        _error = res['message']?.toString() ?? 'Failed to update address';
+      });
+    }
+  }
+
+  Widget _typeChip(String value, IconData icon, String label) {
+    final selected = _addressType == value;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _addressType = value),
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFF0FDF4) : Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: selected
+                  ? const Color(0xFF16A34A)
+                  : const Color(0xFFE5E7EB),
+              width: selected ? 1.5 : 1,
+            ),
+          ),
+          child: Column(
+            children: [
+              Icon(
+                icon,
+                size: 18,
+                color: selected
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF64748B),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: selected
+                      ? const Color(0xFF166534)
+                      : const Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _field(
+    TextEditingController ctrl,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+    TextInputType? keyboardType,
+  }) {
+    return TextField(
+      controller: ctrl,
+      maxLines: maxLines,
+      keyboardType: keyboardType,
+      decoration: InputDecoration(
+        labelText: label,
+        filled: true,
+        fillColor: const Color(0xFFF8FAFC),
+        prefixIcon: Icon(icon, size: 18),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 12,
+          vertical: 12,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+        ),
+        isDense: true,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+              const Text(
+                'Edit Address',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+              ),
+              const SizedBox(height: 14),
+              if (_error != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Text(
+                    _error!,
+                    style: const TextStyle(
+                      color: Color(0xFFDC2626),
+                      fontSize: 12.5,
+                    ),
+                  ),
+                ),
+              Row(
+                children: [
+                  _typeChip('home', Icons.home_outlined, 'Home'),
+                  _typeChip('work', Icons.work_outline, 'Work'),
+                  _typeChip('other', Icons.location_on_outlined, 'Other'),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _field(_nameCtrl, 'Name', Icons.person_outline),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _field(
+                      _phoneCtrl,
+                      'Phone',
+                      Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              _field(
+                _addressLineCtrl,
+                'House / Street / Area',
+                Icons.home_work_outlined,
+                maxLines: 2,
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Expanded(
+                    child: _field(
+                      _cityCtrl,
+                      'City / District',
+                      Icons.location_city_outlined,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _field(
+                      _pincodeCtrl,
+                      'Pincode',
+                      Icons.pin_drop_outlined,
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _save,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF16A34A),
+                    minimumSize: const Size.fromHeight(50),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _saving
+                      ? const SizedBox(
+                          width: 22,
+                          height: 22,
+                          child: BfSpinner(),
+                        )
+                      : const Text(
+                          'Save Changes',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 15,
+                          ),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

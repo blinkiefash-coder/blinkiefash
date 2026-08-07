@@ -166,6 +166,26 @@ class ApiClient {
     return _deleteJson(uri);
   }
 
+  Future<Map<String, dynamic>> updateAddress({
+    required String addressId,
+    required String addressLine,
+    required String city,
+    required String pincode,
+    String? name,
+    String? phone,
+    String? addressType,
+  }) async {
+    final uri = Uri.parse('$apiApiBaseUrl/checkout/addresses/$addressId');
+    return _patchJson(uri, {
+      'address_line': addressLine,
+      'city': city,
+      'pincode': pincode,
+      'name': name,
+      'phone': phone,
+      'address_type': addressType,
+    });
+  }
+
   // ── Orders ─────────────────────────────────────────────────────────────────
 
   Future<Map<String, dynamic>> placeOrder({

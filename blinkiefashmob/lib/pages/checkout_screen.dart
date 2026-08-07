@@ -105,6 +105,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   final _receiverNameCtrl = TextEditingController();
   final _receiverPhoneCtrl = TextEditingController();
 
+  /// Name to display in the address summary — the receiver's name when
+  /// delivering to someone else, otherwise the address's own saved name.
+  String get _summaryName {
+    if (_receiverType == 'someone_else' &&
+        _receiverNameCtrl.text.trim().isNotEmpty) {
+      return _receiverNameCtrl.text.trim();
+    }
+    final n = widget.selectedAddress['name']?.toString().trim() ?? '';
+    return n.isNotEmpty ? n : 'Delivery Address';
+  }
+
+  /// Phone to display in the address summary — the receiver's phone when
+  /// delivering to someone else, otherwise the address's own saved phone.
+  String? get _summaryPhone {
+    if (_receiverType == 'someone_else' &&
+        _receiverPhoneCtrl.text.trim().isNotEmpty) {
+      return _receiverPhoneCtrl.text.trim();
+    }
+    final p = widget.selectedAddress['phone']?.toString().trim() ?? '';
+    return p.isNotEmpty ? p : null;
+  }
+
   static final List<TimeOfDay> _tomorrowSlots = List.generate(28, (i) {
     final totalMinutes = (7 * 60 + 30) + (i * 30);
     return TimeOfDay(hour: totalMinutes ~/ 60, minute: totalMinutes % 60);
@@ -987,14 +1009,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  (widget.selectedAddress['name']
-                                                  ?.toString()
-                                                  .trim() ??
-                                              '')
-                                          .isNotEmpty
-                                      ? widget.selectedAddress['name']
-                                            .toString()
-                                      : 'Delivery Address',
+                                  _summaryName,
                                   style: const TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -1002,11 +1017,35 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                                 ),
                               ),
+                              if (_receiverType == 'someone_else')
+                                Container(
+                                  margin: const EdgeInsets.only(left: 6),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFEFF6FF),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: const Color(0xFFBFDBFE),
+                                    ),
+                                  ),
+                                  child: const Text(
+                                    'OTHER',
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: Color(0xFF1D4ED8),
+                                    ),
+                                  ),
+                                ),
                               if ((widget.selectedAddress['address_type']
                                           ?.toString() ??
                                       '')
                                   .isNotEmpty)
                                 Container(
+                                  margin: const EdgeInsets.only(left: 6),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 8,
                                     vertical: 2,
@@ -1042,11 +1081,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               height: 1.4,
                             ),
                           ),
-                          if ((widget.selectedAddress['phone']
-                                      ?.toString()
-                                      .trim() ??
-                                  '')
-                              .isNotEmpty) ...[
+                          if (_summaryPhone != null) ...[
                             const SizedBox(height: 4),
                             Row(
                               children: [
@@ -1057,7 +1092,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
-                                  widget.selectedAddress['phone'].toString(),
+                                  _summaryPhone!,
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF64748B),
@@ -1212,6 +1247,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Expanded(
                         child: TextField(
                           controller: _receiverNameCtrl,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Name',
                             hintText: 'Name',
@@ -1242,6 +1278,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       Expanded(
                         child: TextField(
                           controller: _receiverPhoneCtrl,
+                          onChanged: (_) => setState(() {}),
                           decoration: InputDecoration(
                             labelText: 'Phone',
                             hintText: 'Phone',

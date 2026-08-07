@@ -565,6 +565,29 @@ router.post("/addresses", async (req, res) => {
   }
 });
 
+// ── PATCH /api/checkout/addresses/:id ─────────────────────────────────────────
+router.patch("/addresses/:id", async (req, res) => {
+  const { id } = req.params;
+  const { address_line, city, pincode, name, phone, address_type } = req.body;
+  if (!id) return res.status(400).json({ success: false, message: "Address ID required" });
+  if (!address_line || !city || !pincode) {
+    return res.status(400).json({ success: false, message: "All fields required" });
+  }
+  try {
+    const { rows } = await pool.query(
+      `UPDATE addresses SET address_line = $1, city = $2, pincode = $3, name = $4, phone = $5, address_type = $6
+       WHERE id = $7 RETURNING *`,
+      [address_line.trim(), city.trim(), pincode.trim(), name?.trim() || null,
+       phone?.trim() || null, address_type || 'home', id]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Address not found" });
+    res.json({ success: true, address: rows[0] });
+  } catch (err) {
+    console.error("PATCH address error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // ── DELETE /api/checkout/addresses/:id ────────────────────────────────────────
 router.delete("/addresses/:id", async (req, res) => {
   const { id } = req.params;
