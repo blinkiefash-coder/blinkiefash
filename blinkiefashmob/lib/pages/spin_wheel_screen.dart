@@ -50,6 +50,9 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
   late AnimationController _pointerSnapCtrl;
   late Animation<double> _pointerTiltAnim;
   late Animation<double> _pointerDropAnim;
+  // Idle ambience so the screen feels alive even before the user spins.
+  late AnimationController _ambientCtrl;
+  late AnimationController _shimmerCtrl;
 
   double _startAngle = 0;
   double _targetAngle = 0;
@@ -110,6 +113,16 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
         TweenSequenceItem(tween: Tween(begin: 5.0, end: 0.0), weight: 40),
       ],
     ).animate(CurvedAnimation(parent: _pointerSnapCtrl, curve: Curves.easeOut));
+
+    _ambientCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 5200),
+    )..repeat(reverse: true);
+
+    _shimmerCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
 
     _init();
   }
@@ -510,6 +523,8 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     _pulseCtrl.dispose();
     _confettiCtrl.dispose();
     _pointerSnapCtrl.dispose();
+    _ambientCtrl.dispose();
+    _shimmerCtrl.dispose();
     super.dispose();
   }
 
@@ -557,9 +572,16 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
             )
           : Stack(
               children: [
-                Positioned(
-                  top: -140,
-                  right: -120,
+                AnimatedBuilder(
+                  animation: _ambientCtrl,
+                  builder: (_, child) => Positioned(
+                    top: -140 + (_ambientCtrl.value * 14),
+                    right: -120,
+                    child: Opacity(
+                      opacity: 0.7 + _ambientCtrl.value * 0.3,
+                      child: child,
+                    ),
+                  ),
                   child: Container(
                     width: 340,
                     height: 340,
@@ -574,9 +596,16 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                     ),
                   ),
                 ),
-                Positioned(
-                  bottom: -170,
-                  left: -110,
+                AnimatedBuilder(
+                  animation: _ambientCtrl,
+                  builder: (_, child) => Positioned(
+                    bottom: -170 + (_ambientCtrl.value * 14),
+                    left: -110,
+                    child: Opacity(
+                      opacity: 1.0 - _ambientCtrl.value * 0.3,
+                      child: child,
+                    ),
+                  ),
                   child: Container(
                     width: 360,
                     height: 360,
@@ -599,24 +628,48 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                         margin: const EdgeInsets.symmetric(horizontal: 20),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 16,
-                          vertical: 10,
+                          vertical: 12,
                         ),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [
-                              Colors.white.withValues(alpha: 0.12),
-                              Colors.white.withValues(alpha: 0.05),
-                            ],
+                            colors: _hasSpunToday
+                                ? [
+                                    Colors.white.withValues(alpha: 0.10),
+                                    Colors.white.withValues(alpha: 0.04),
+                                  ]
+                                : [
+                                    const Color(
+                                      0xFFEC4899,
+                                    ).withValues(alpha: 0.22),
+                                    const Color(
+                                      0xFF7C3AED,
+                                    ).withValues(alpha: 0.14),
+                                  ],
                           ),
                           borderRadius: BorderRadius.circular(20),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
+                            color:
+                                (_hasSpunToday
+                                        ? Colors.white
+                                        : const Color(0xFFEC4899))
+                                    .withValues(alpha: 0.28),
                           ),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Text('✨ ', style: TextStyle(fontSize: 15)),
+                            Icon(
+                              _userId == null
+                                  ? Icons.lock_outline_rounded
+                                  : _hasSpunToday
+                                  ? Icons.check_circle_rounded
+                                  : Icons.auto_awesome_rounded,
+                              size: 16,
+                              color: _hasSpunToday
+                                  ? const Color(0xFF86EFAC)
+                                  : const Color(0xFFF9A8D4),
+                            ),
+                            const SizedBox(width: 8),
                             Flexible(
                               child: Text(
                                 _userId == null
@@ -625,7 +678,7 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                     ? 'You\'ve spun today — see you tomorrow!'
                                     : 'Your daily luck window is open. Spin now!',
                                 style: GoogleFonts.inter(
-                                  color: const Color(0xFFC7D2FE),
+                                  color: const Color(0xFFE2E8F0),
                                   fontSize: 12.8,
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.15,
@@ -711,6 +764,33 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                         spreadRadius: 16,
                                       ),
                                     ],
+                                  ),
+                                ),
+                              )
+                            else
+                              AnimatedBuilder(
+                                animation: _ambientCtrl,
+                                builder: (_, _) => Padding(
+                                  padding: const EdgeInsets.only(top: 22),
+                                  child: Container(
+                                    width: 244,
+                                    height: 244,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFFFBBF24)
+                                              .withValues(
+                                                alpha:
+                                                    0.10 +
+                                                    _ambientCtrl.value * 0.14,
+                                              ),
+                                          blurRadius: 46,
+                                          spreadRadius:
+                                              6 + _ambientCtrl.value * 6,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
@@ -833,27 +913,66 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
                                           ),
                                         ],
                                 ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(
-                                      Icons.casino_rounded,
-                                      color: Colors.white,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      _spinning
-                                          ? 'SPINNING...'
-                                          : 'SPIN FOR REWARD',
-                                      style: GoogleFonts.orbitron(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.9,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(31),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          const Icon(
+                                            Icons.casino_rounded,
+                                            color: Colors.white,
+                                            size: 20,
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            _spinning
+                                                ? 'SPINNING...'
+                                                : 'SPIN FOR REWARD',
+                                            style: GoogleFonts.orbitron(
+                                              color: Colors.white,
+                                              fontSize: 15,
+                                              fontWeight: FontWeight.w900,
+                                              letterSpacing: 0.9,
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                    ),
-                                  ],
+                                      if (!_spinning)
+                                        AnimatedBuilder(
+                                          animation: _shimmerCtrl,
+                                          builder: (_, _) => Positioned(
+                                            left:
+                                                -80 + _shimmerCtrl.value * 400,
+                                            child: Transform.rotate(
+                                              angle: -0.5,
+                                              child: Container(
+                                                width: 36,
+                                                height: 120,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Colors.white.withValues(
+                                                        alpha: 0.0,
+                                                      ),
+                                                      Colors.white.withValues(
+                                                        alpha: 0.28,
+                                                      ),
+                                                      Colors.white.withValues(
+                                                        alpha: 0.0,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -886,27 +1005,57 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
 
                       Container(
                         margin: const EdgeInsets.fromLTRB(14, 0, 14, 28),
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.07),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Colors.white.withValues(alpha: 0.08),
+                              Colors.white.withValues(alpha: 0.04),
+                            ],
+                          ),
                           borderRadius: BorderRadius.circular(22),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.12),
+                            color: Colors.white.withValues(alpha: 0.14),
                           ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
-                              'Possible Rewards',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w800,
-                                fontSize: 13.5,
-                                letterSpacing: 0.2,
-                              ),
+                            Row(
+                              children: [
+                                Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFFF43F5E),
+                                        Color(0xFF7C3AED),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: const Icon(
+                                    Icons.card_giftcard_rounded,
+                                    color: Colors.white,
+                                    size: 15,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Text(
+                                  'Possible Rewards',
+                                  style: GoogleFonts.inter(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 14,
+                                    letterSpacing: 0.2,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 12),
                             Wrap(
                               spacing: 8,
                               runSpacing: 8,
@@ -983,27 +1132,42 @@ class _SpinWheelScreenState extends State<SpinWheelScreen>
     required IconData icon,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.14),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.42)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.20),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: color.withValues(alpha: 0.45)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 16)),
-          const SizedBox(width: 5),
           Container(
-            width: 18,
-            height: 18,
+            width: 22,
+            height: 22,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.18),
-              borderRadius: BorderRadius.circular(5),
+              color: color.withValues(alpha: 0.22),
+              borderRadius: BorderRadius.circular(7),
             ),
             child: Icon(icon, size: 13, color: color),
           ),
           const SizedBox(width: 6),
+          Text(emoji, style: const TextStyle(fontSize: 14)),
+          const SizedBox(width: 5),
           Text(
             label,
             style: GoogleFonts.inter(
