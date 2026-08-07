@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../api_base.dart';
 import '../services/analytics_service.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
+import '../services/user_session.dart';
 import '../services/wishlist_manager.dart';
 import 'cart_screen.dart';
 import 'product_detail_screen.dart';
@@ -177,13 +179,72 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   void _updateSuggestions(String query) {
     _suggestTimer?.cancel();
     final q = query.trim();
+
+    // If search is empty, show recent/trending searches without delay
     if (q.isEmpty) {
-      setState(() {
-        _typedSuggestions = const [];
-        _showSuggestions = false;
+      _suggestTimer = Timer(const Duration(milliseconds: 50), () async {
+        if (!mounted) return;
+        final userId = UserSession.instance.userId;
+        try {
+          final suggData = await _api.fetchSearchSuggestions(
+            userId: userId,
+            limit: 5,
+          );
+          if (!mounted) return;
+
+          final results = <Map<String, String>>[];
+
+          // Show recent searches first
+          if (suggData['recentSearches'] is List) {
+            for (final search in (suggData['recentSearches'] as List)) {
+              final text = search.toString().trim();
+              if (text.isNotEmpty) {
+                results.add({
+                  'text': text,
+                  'type': 'search',
+                  'subtitle': 'Recent search',
+                });
+              }
+            }
+          }
+
+          // Then show trending searches
+          if (suggData['trendingSearches'] is List && results.length < 8) {
+            for (final search in (suggData['trendingSearches'] as List)) {
+              final text = search.toString().trim();
+              if (text.isNotEmpty &&
+                  !results.any(
+                    (r) => r['text']?.toLowerCase() == text.toLowerCase(),
+                  )) {
+                results.add({
+                  'text': text,
+                  'type': 'search',
+                  'subtitle': 'Trending',
+                });
+              }
+            }
+          }
+
+          if (mounted) {
+            setState(() {
+              _typedSuggestions = results;
+              _showSuggestions = results.isNotEmpty;
+            });
+          }
+        } catch (e) {
+          if (kDebugMode) print('Failed to fetch suggestions: $e');
+          if (mounted) {
+            setState(() {
+              _showSuggestions = false;
+              _typedSuggestions = const [];
+            });
+          }
+        }
       });
       return;
     }
+
+    // For non-empty queries, show typed suggestions (categories, brands, products)
     _suggestTimer = Timer(const Duration(milliseconds: 150), () {
       if (!mounted) return;
       final lower = q.toLowerCase();
@@ -320,6 +381,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           final s = _typedSuggestions[i];
           final text = s['text']!;
           final type = s['type'] ?? 'product';
+          final subtitle = s['subtitle'] ?? '';
           final lower = text.toLowerCase();
           final matchStart = lower.indexOf(query);
           IconData icon;
@@ -329,8 +391,10 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           switch (type) {
             case 'search':
               icon = Icons.search_rounded;
-              badge = '';
-              badgeColor = Colors.transparent;
+              badge = subtitle.isNotEmpty ? subtitle : '';
+              badgeColor = subtitle == 'Recent search'
+                  ? const Color(0xFF4B5563)
+                  : const Color(0xFFF59E0B);
               iconColor = const Color(0xFF16A34A);
             case 'category':
               icon = Icons.grid_view_rounded;

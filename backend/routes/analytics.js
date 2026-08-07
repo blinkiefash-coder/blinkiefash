@@ -71,4 +71,77 @@ router.post("/events", async (req, res) => {
   }
 });
 
+// GET /api/analytics/suggestions — fetch search suggestions based on user activity
+// Returns: { recentSearches: [...], trendingSearches: [...], suggestedProducts: [...] }
+router.get("/suggestions", async (req, res) => {
+  try {
+    const userId = req.query.user_id;
+    const limit = Math.min(parseInt(req.query.limit) || 5, 20);
+
+    const suggestions = {
+      recentSearches: [],
+      trendingSearches: [],
+      suggestedProducts: [],
+    };
+
+    // 1. Get recent searches by this user (last 7 days, unique, limit 5)
+    if (userId) {
+      const recentSearchRes = await pool.query(
+        `SELECT DISTINCT search_query 
+         FROM user_activity_events 
+         WHERE user_id = $1 
+         AND event_type = 'search' 
+         AND search_query IS NOT NULL 
+         AND search_query != '' 
+         AND created_at > now() - interval '7 days'
+         ORDER BY created_at DESC 
+         LIMIT $2`,
+        [userId, limit]
+      );
+      suggestions.recentSearches = recentSearchRes.rows.map(r => r.search_query);
+    }
+
+    // 2. Get trending searches (most common in last 7 days, across all users)
+    const trendingRes = await pool.query(
+      `SELECT search_query, COUNT(*) as count 
+       FROM user_activity_events 
+       WHERE event_type = 'search' 
+       AND search_query IS NOT NULL 
+       AND search_query != '' 
+       AND created_at > now() - interval '7 days'
+       GROUP BY search_query 
+       ORDER BY count DESC 
+       LIMIT $1`,
+      [limit]
+    );
+    suggestions.trendingSearches = trendingRes.rows.map(r => r.search_query);
+
+    // 3. Get most clicked/viewed products (top products from clicks, last 30 days)
+    const topProductsRes = await pool.query(
+      `SELECT p.id, p.name, COUNT(*) as interactions
+       FROM user_activity_events e
+       JOIN products p ON e.product_id = p.id
+       WHERE e.event_type IN ('product_click', 'product_view')
+       AND e.created_at > now() - interval '30 days'
+       AND p.id IS NOT NULL
+       GROUP BY p.id, p.name
+       ORDER BY interactions DESC
+       LIMIT $1`,
+      [limit]
+    );
+    suggestions.suggestedProducts = topProductsRes.rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      clicks: r.interactions,
+    }));
+
+    res.json(suggestions);
+  } catch (err) {
+    console.warn("Failed to fetch search suggestions:", err.message);
+    res.status(500).json({
+      error: "Failed to fetch suggestions",
+    });
+  }
+});
+
 export default router;

@@ -1163,4 +1163,20 @@ class ApiClient {
     final uri = Uri.parse('$apiApiBaseUrl/gamification/quest/complete-level');
     return _postJson(uri, {'userId': userId});
   }
+
+  Future<Map<String, dynamic>> fetchSearchSuggestions({
+    String? userId,
+    int limit = 5,
+  }) async {
+    final params = <String, dynamic>{'limit': limit};
+    if (userId != null) {
+      params['user_id'] = userId;
+    }
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/analytics/suggestions',
+    ).replace(queryParameters: params.map((k, v) => MapEntry(k, v.toString())));
+    final data = await _getJson(uri);
+    if (data is Map<String, dynamic>) return data;
+    return const {};
+  }
 }
