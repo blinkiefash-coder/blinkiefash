@@ -430,6 +430,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ];
     final status = order['status']?.toString() ?? '';
     if (terminalStatuses.contains(status)) return;
+    if (_isLongDistanceOrMultiDay(order)) return;
     final scheduledAt = _scheduledFor(order);
     if (scheduledAt != null && scheduledAt.isAfter(DateTime.now())) {
       setState(() => _deliverySecondsLeft = 0);
@@ -717,6 +718,18 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     return type == 'scheduled';
   }
 
+  // Long-distance (>45km) orders — and any order whose deliveryType is a
+  // multi-day promise — must never show the 60-minute countdown timer.
+  bool _isLongDistanceOrMultiDay(Map<String, dynamic> order) {
+    final deliveryType = (order['deliveryType'] ?? order['delivery_type'])
+        ?.toString();
+    final distanceKm =
+        (order['distanceKm'] as num?) ?? (order['distance_km'] as num?);
+    if (distanceKm != null && distanceKm > 45) return true;
+    const multiDayTypes = {'1-3days', '2days', 'sameday'};
+    return deliveryType != null && multiDayTypes.contains(deliveryType);
+  }
+
   String? _resolveImageUrl(dynamic raw) {
     final value = raw?.toString().trim();
     if (value == null || value.isEmpty) return null;
@@ -845,7 +858,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   'completed',
                   'trial_completed',
                 ].contains(status) &&
-                !_isScheduled(order)) ...[
+                !_isScheduled(order) &&
+                !_isLongDistanceOrMultiDay(order)) ...[
               _deliveryCountdownCard(),
               const SizedBox(height: 12),
             ],
@@ -1574,9 +1588,16 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         break;
     }
 
-    final deliveryPromise = (rawPromise?.toString().trim().isNotEmpty ?? false)
+    var deliveryPromise = (rawPromise?.toString().trim().isNotEmpty ?? false)
         ? rawPromise.toString().trim()
         : fallbackPromise;
+
+    // Hard override: any order more than 45 km from the store must always
+    // show a 1-3 day delivery promise, never a minutes-based ETA — even if
+    // the backend sends a stale/incorrect promise string.
+    if (!isDelivered && distanceKm != null && distanceKm > 45) {
+      deliveryPromise = 'Delivery in 1-3 Days';
+    }
 
     String deliveryText = deliveryPromise;
     if (!isDelivered &&
