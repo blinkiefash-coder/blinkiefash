@@ -2088,6 +2088,7 @@ class _CartItemRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
                 item.imageUrl!,
+                cacheWidth: (108 * MediaQuery.of(context).devicePixelRatio).round(),
                 width: 54,
                 height: 54,
                 fit: BoxFit.cover,

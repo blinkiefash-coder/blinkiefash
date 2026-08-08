@@ -1141,6 +1141,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     : imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: imageUrl,
+                        memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                         fit: BoxFit.cover,
                         placeholder: (_, _) =>
                             Container(color: const Color(0xFFF1F5F9)),
@@ -1320,6 +1321,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     child: img != null
                         ? CachedNetworkImage(
                             imageUrl: img,
+                            memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                             fit: BoxFit.contain,
                             alignment: Alignment.center,
                             fadeInDuration: const Duration(milliseconds: 200),

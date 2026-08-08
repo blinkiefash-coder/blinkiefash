@@ -300,6 +300,9 @@ class _CartItemTile extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     child: Image.network(
                       item.imageUrl!,
+                      cacheWidth:
+                          (300 * MediaQuery.of(context).devicePixelRatio)
+                              .round(),
                       fit: BoxFit.cover,
                       errorBuilder: (ctx, err, st) =>
                           const Icon(Icons.image_outlined),

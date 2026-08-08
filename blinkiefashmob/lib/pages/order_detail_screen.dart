@@ -1825,6 +1825,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             child: image != null && image.isNotEmpty
                 ? CachedNetworkImage(
                     imageUrl: image,
+                    memCacheWidth: (128 * MediaQuery.of(context).devicePixelRatio).round(),
                     width: 64,
                     height: 64,
                     fit: BoxFit.cover,

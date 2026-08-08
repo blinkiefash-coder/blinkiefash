@@ -411,6 +411,7 @@ class _HomeScreenState extends State<HomeScreen>
                   child: ClipOval(
                     child: CachedNetworkImage(
                       imageUrl: url,
+                      memCacheWidth: (104 * MediaQuery.of(context).devicePixelRatio).round(),
                       width: 52,
                       height: 52,
                       fit: BoxFit.cover,
@@ -2587,6 +2588,7 @@ class _HomeScreenState extends State<HomeScreen>
                           : netImg != null
                           ? CachedNetworkImage(
                               imageUrl: netImg,
+                              memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                               fit: BoxFit.cover,
                               errorWidget: (context, url, error) => const Icon(
                                 Icons.category_outlined,
@@ -2815,6 +2817,7 @@ class _HomeScreenState extends State<HomeScreen>
                               child: img != null
                                   ? CachedNetworkImage(
                                       imageUrl: img,
+                                      memCacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
                                       fit: BoxFit.contain,
                                       alignment: Alignment.center,
                                       width: double.infinity,
@@ -3243,6 +3246,7 @@ class _HomeScreenState extends State<HomeScreen>
                           child: img.isNotEmpty
                               ? CachedNetworkImage(
                                   imageUrl: img,
+                                  memCacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
                                   fit: BoxFit.contain,
                                   alignment: Alignment.center,
                                   width: double.infinity,
@@ -3494,6 +3498,7 @@ class _HomeScreenState extends State<HomeScreen>
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
+                                  memCacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
                                   fit: BoxFit.contain,
                                   alignment: Alignment.center,
                                   width: double.infinity,
@@ -3752,6 +3757,7 @@ class _HomeScreenState extends State<HomeScreen>
                           child: img != null
                               ? CachedNetworkImage(
                                   imageUrl: img,
+                                  memCacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
                                   fit: BoxFit.contain,
                                   alignment: Alignment.center,
                                   width: double.infinity,
@@ -4621,6 +4627,7 @@ class _HomeScreenState extends State<HomeScreen>
                       child: img != null
                           ? CachedNetworkImage(
                               imageUrl: img,
+                              memCacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
                               fit: BoxFit.contain,
                               alignment: Alignment.center,
                               width: double.infinity,
@@ -4971,6 +4978,7 @@ class _HomeScreenState extends State<HomeScreen>
                       child: imgUrl != null
                           ? CachedNetworkImage(
                               imageUrl: imgUrl,
+                              memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                               fit: BoxFit.contain,
                               placeholder: (ctx, u) => const Center(
                                 child: Icon(
@@ -5253,6 +5261,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(8),
         child: CachedNetworkImage(
           imageUrl: imgUrl,
+          memCacheWidth: (60 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 30,
           height: 30,
           fit: BoxFit.cover,
@@ -5289,6 +5298,7 @@ class _HomeScreenState extends State<HomeScreen>
         borderRadius: BorderRadius.circular(6),
         child: CachedNetworkImage(
           imageUrl: imgUrl,
+          memCacheWidth: (48 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 24,
           height: 24,
           fit: BoxFit.cover,
@@ -5362,6 +5372,7 @@ class _HomeScreenState extends State<HomeScreen>
               child: ClipOval(
                 child: CachedNetworkImage(
                   imageUrl: _currentUserAvatarUrl(),
+                  memCacheWidth: (208 * MediaQuery.of(context).devicePixelRatio).round(),
                   width: 104,
                   height: 104,
                   fit: BoxFit.cover,
@@ -5564,6 +5575,7 @@ class _HomeScreenState extends State<HomeScreen>
                               child: ClipOval(
                                 child: CachedNetworkImage(
                                   imageUrl: _currentUserAvatarUrl(),
+                                  memCacheWidth: (96 * MediaQuery.of(context).devicePixelRatio).round(),
                                   width: 48,
                                   height: 48,
                                   fit: BoxFit.cover,
@@ -6296,6 +6308,7 @@ class _HomeScreenState extends State<HomeScreen>
                               : netImg != null
                               ? CachedNetworkImage(
                                   imageUrl: netImg,
+                                  memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                                   fit: BoxFit.cover,
                                   placeholder: (_, _) =>
                                       Container(color: const Color(0xFFE2E8F0)),
@@ -6484,6 +6497,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       child: subImg != null
                                           ? CachedNetworkImage(
                                               imageUrl: subImg,
+                                              memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                                               fit: BoxFit.cover,
                                               placeholder: (_, _) => Container(
                                                 color: const Color(0xFFE2E8F0),
@@ -7667,6 +7681,7 @@ class _HomeScreenState extends State<HomeScreen>
                       child: ClipOval(
                         child: CachedNetworkImage(
                           imageUrl: _currentUserAvatarUrl(),
+                          memCacheWidth: (144 * MediaQuery.of(context).devicePixelRatio).round(),
                           width: 72,
                           height: 72,
                           fit: BoxFit.cover,
@@ -8639,6 +8654,7 @@ class _DrawerItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(6),
         child: Image.network(
           imageUrl!,
+          cacheWidth: (52 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 26,
           height: 26,
           fit: BoxFit.cover,

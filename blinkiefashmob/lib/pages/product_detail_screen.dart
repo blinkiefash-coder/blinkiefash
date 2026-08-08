@@ -1566,6 +1566,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       borderRadius: BorderRadius.circular(12),
                       child: Image.network(
                         selectedImage,
+                        cacheWidth:
+                            (144 * MediaQuery.of(context).devicePixelRatio)
+                                .round(),
                         width: 72,
                         height: 72,
                         fit: BoxFit.cover,
@@ -2325,6 +2328,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                   children: [
                                     Image.network(
                                       image,
+                                      cacheWidth:
+                                          (320 *
+                                                  MediaQuery.of(
+                                                    context,
+                                                  ).devicePixelRatio)
+                                              .round(),
                                       fit: BoxFit.cover,
                                       errorBuilder:
                                           (context, error, stackTrace) {
@@ -2923,6 +2932,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                             child: imageUrl != null
                                 ? Image.network(
                                     imageUrl,
+                                    cacheWidth:
+                                        (320 *
+                                                MediaQuery.of(
+                                                  context,
+                                                ).devicePixelRatio)
+                                            .round(),
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, _, _) => Container(
                                       color: const Color(0xFFF1F5F9),
@@ -3783,6 +3798,12 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                                                                         .path
                                                                   : _pickedReviewImage!
                                                                         .path,
+                                                              cacheWidth:
+                                                                  (320 *
+                                                                          MediaQuery.of(
+                                                                            context,
+                                                                          ).devicePixelRatio)
+                                                                      .round(),
                                                               fit: BoxFit.cover,
                                                               errorBuilder:
                                                                   (
@@ -4087,6 +4108,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     if (imageUrl.isNotEmpty)
                       CachedNetworkImage(
                         imageUrl: imageUrl,
+                        memCacheWidth:
+                            (900 * MediaQuery.of(context).devicePixelRatio)
+                                .round(),
                         fit: BoxFit.cover,
                         width: double.infinity,
                         height: double.infinity,
@@ -4225,6 +4249,9 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   child: imageUrl != null
                       ? Image.network(
                           imageUrl,
+                          cacheWidth:
+                              (900 * MediaQuery.of(context).devicePixelRatio)
+                                  .round(),
                           height: 165,
                           width: double.infinity,
                           fit: BoxFit.cover,
@@ -4494,6 +4521,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
               borderRadius: BorderRadius.circular(10),
               child: Image.network(
                 imageUrl,
+                cacheWidth: (260 * MediaQuery.of(context).devicePixelRatio)
+                    .round(),
                 height: 130,
                 width: 130,
                 fit: BoxFit.cover,
@@ -5235,6 +5264,7 @@ class _ImagePreviewScreenState extends State<_ImagePreviewScreen> {
             child: Center(
               child: Image.network(
                 widget.images[index],
+                // intentionally NOT downsampled — pinch-to-zoom needs full resolution
                 fit: BoxFit.contain,
                 errorBuilder: (context, error, stackTrace) {
                   return const Icon(

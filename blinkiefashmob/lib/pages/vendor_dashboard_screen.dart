@@ -4448,6 +4448,12 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                                       )
                                     : Image.network(
                                         imageUrl,
+                                        cacheWidth:
+                                            (100 *
+                                                    MediaQuery.of(
+                                                      context,
+                                                    ).devicePixelRatio)
+                                                .round(),
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, _, _) => const Icon(
                                           Icons.broken_image_outlined,

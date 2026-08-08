@@ -46,6 +46,31 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
 
   static const _green = Color(0xFF16A34A);
 
+  Future<void> _onTapSelectContact() async {
+    final proceed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Access Contacts'),
+        content: const Text(
+          'To auto-fill the receiver\'s name and phone number, BlinkieFash needs '
+          'permission to read the contact you pick. We only use the single contact '
+          'you select \u2014 your full contact list is never accessed, uploaded, or stored.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Continue'),
+          ),
+        ],
+      ),
+    );
+    if (proceed == true) await _selectContact();
+  }
+
   Future<void> _selectContact() async {
     try {
       // showPicker() without properties = permissionless; we fetch full contact after
@@ -233,7 +258,7 @@ class _ParcelCheckoutScreenState extends State<ParcelCheckoutScreen> {
                   color: _green,
                   size: 20,
                 ),
-                onPressed: _selectContact,
+                onPressed: _onTapSelectContact,
                 tooltip: 'Select from contacts',
               ),
               validator: (v) {

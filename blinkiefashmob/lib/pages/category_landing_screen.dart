@@ -847,6 +847,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                     : imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: imageUrl,
+                        memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                         fit: BoxFit.cover,
                         placeholder: (_, _) =>
                             Container(color: const Color(0xFFF1F5F9)),
@@ -968,6 +969,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                     : imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: imageUrl,
+                        memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                         fit: BoxFit.cover,
                         placeholder: (_, _) =>
                             Container(color: const Color(0xFFF1F5F9)),
@@ -1142,6 +1144,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
                     child: img != null
                         ? CachedNetworkImage(
                             imageUrl: img,
+                            memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                             fit: BoxFit.contain,
                             alignment: Alignment.center,
                             placeholder: (_, _) =>

@@ -17,7 +17,7 @@ export default function PrivacyPolicy() {
           <div className="info-hero-left">
             <h2 className="info-page-title">PRIVACY POLICY</h2>
             <h3 className="info-page-subtitle">Your data. Your rights. Our responsibility.</h3>
-            <p>Effective Date: 7 June 2026 &nbsp;·&nbsp; Last Updated: 26 July 2026</p>
+            <p>Effective Date: 7 June 2026 &nbsp;·&nbsp; Last Updated: 8 August 2026</p>
           </div>
           <div className="info-hero-visual info-policy-visual" aria-hidden="true" />
         </section>
@@ -53,6 +53,7 @@ export default function PrivacyPolicy() {
               <li><strong>Address Data:</strong> delivery addresses including flat / house number, street, city, state, PIN code, and landmark.</li>
               <li><strong>Order &amp; Transaction Data:</strong> items ordered, quantities, prices, discount codes applied, payment method (card type / UPI ID — we do <em>not</em> store full card numbers), transaction reference IDs, order status, returns and refunds history.</li>
               <li><strong>Communications:</strong> messages sent to our support team via chat, email, or phone; reviews and ratings you submit; referral codes you generate or redeem.</li>
+              <li><strong>Contacts (Optional):</strong> If you use the "Select from Contacts" feature when booking a Parcel Delivery, we access only the single contact you choose from your device's address book to pre-fill the recipient's name and phone number. We do not access, upload, or store your full contact list — only the name and phone number of the specific contact you select are sent to us as part of that delivery request.</li>
             </ul>
 
             <p className="sub">B. Information Collected Automatically</p>

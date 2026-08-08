@@ -1314,6 +1314,7 @@ class _DeliveryPhotoBox extends StatelessWidget {
             ),
             child: Image.network(
               photoUrl,
+              cacheWidth: (900 * MediaQuery.of(context).devicePixelRatio).round(),
               height: 140,
               width: double.infinity,
               fit: BoxFit.cover,

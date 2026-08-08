@@ -21,7 +21,9 @@ val hasReleaseSigningConfig =
 
 android {
     namespace = "com.blinkiefash.app"
-    compileSdk = flutter.compileSdkVersion
+    // Explicit (not flutter.compileSdkVersion) - some transitive androidx deps
+    // require compileSdk 34+, which AGP 8.13's stricter AAR checks now enforce.
+    compileSdk = 36
     buildToolsVersion = "36.0.0"
     ndkVersion = flutter.ndkVersion
 
@@ -39,7 +41,7 @@ android {
         applicationId = "com.blinkiefash.app"
         minSdk = 24
         targetSdk = flutter.targetSdkVersion
-        versionCode = 11466
+        versionCode = 11469
         versionName = "2.0.3"
     }
 
@@ -91,6 +93,15 @@ dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.media:media:1.0.1")
+}
+
+// firebase_app_check only ever activates AndroidProvider.playIntegrity in this app
+// (see lib/services/firebase_app_check_config.dart) - the SafetyNet provider library
+// is pulled in transitively but never used, and Play Console flags it since Google
+// deprecated the SafetyNet Attestation API.
+configurations.all {
+    exclude(group = "com.google.android.gms", module = "play-services-safetynet")
+    exclude(group = "com.google.firebase", module = "firebase-appcheck-safetynet")
 }
 
 // Suppress deprecation and unchecked warnings from third-party plugins

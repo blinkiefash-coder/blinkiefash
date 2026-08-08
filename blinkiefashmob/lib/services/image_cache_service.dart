@@ -66,6 +66,12 @@ class OptimizedNetworkImage extends StatelessWidget {
       fit: fit,
       width: width,
       height: height,
+      memCacheWidth: width != null
+          ? (width! * MediaQuery.of(context).devicePixelRatio).round()
+          : (900 * MediaQuery.of(context).devicePixelRatio).round(),
+      memCacheHeight: height != null
+          ? (height! * MediaQuery.of(context).devicePixelRatio).round()
+          : null,
       placeholder: (_, _) => Container(
         color: const Color(0xFFF0F0F0),
         child: const Center(

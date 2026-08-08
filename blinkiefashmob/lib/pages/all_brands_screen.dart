@@ -234,6 +234,7 @@ class _AllBrandsScreenState extends State<AllBrandsScreen> {
                 child: imgUrl != null
                     ? CachedNetworkImage(
                         imageUrl: imgUrl,
+                        memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
                         fit: BoxFit.contain,
                         placeholder: (_, _) => const Center(
                           child: BfSpinner(),

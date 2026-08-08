@@ -222,6 +222,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   child: firstImage != null && firstImage.isNotEmpty
                       ? CachedNetworkImage(
                           imageUrl: firstImage,
+                          memCacheWidth: (120 * MediaQuery.of(context).devicePixelRatio).round(),
                           width: 60,
                           height: 60,
                           fit: BoxFit.cover,

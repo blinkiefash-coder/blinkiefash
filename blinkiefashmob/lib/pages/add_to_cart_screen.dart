@@ -70,10 +70,18 @@ class AddToCartScreen extends StatelessWidget {
                         ? const Icon(Icons.image_outlined)
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(12),
-                            child: Image.network(imageUrl!, fit: BoxFit.cover),
+                            child: Image.network(
+                              imageUrl!,
+                              fit: BoxFit.cover,
+                              cacheWidth:
+                                  (300 *
+                                          MediaQuery.of(
+                                            context,
+                                          ).devicePixelRatio)
+                                      .round(),
+                            ),
                           ),
                   ),
-                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
