@@ -11,7 +11,7 @@ const CITY_ZONE = {
     centerLng: 85.883,
     radiusKm: 30,
     baseFare: 20,
-    perKm: 5,
+    perKm: 8,
     minFare: 35,
   },
   bhubaneswar: {
@@ -20,7 +20,7 @@ const CITY_ZONE = {
     centerLng: 85.8245,
     radiusKm: 30,
     baseFare: 20,
-    perKm: 5,
+    perKm: 8,
     minFare: 35,
   },
 };
