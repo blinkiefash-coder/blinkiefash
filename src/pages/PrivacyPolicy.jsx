@@ -51,8 +51,9 @@ export default function PrivacyPolicy() {
               <li><strong>Account / Identity Data:</strong> full name, email address, mobile number, password (stored as a cryptographic hash), date of birth, gender (optional).</li>
               <li><strong>Profile Data:</strong> profile photo (optional), clothing / shoe size preferences.</li>
               <li><strong>Address Data:</strong> delivery addresses including flat / house number, street, city, state, PIN code, and landmark.</li>
-              <li><strong>Order &amp; Transaction Data:</strong> items ordered, quantities, prices, discount codes applied, payment method (card type / UPI ID — we do <em>not</em> store full card numbers), transaction reference IDs, order status, returns and refunds history.</li>
-              <li><strong>Communications:</strong> messages sent to our support team via chat, email, or phone; reviews and ratings you submit; referral codes you generate or redeem.</li>
+              <li><strong>Order &amp; Transaction Data:</strong> items ordered, quantities, prices, discount codes applied, selected payment method (Cash on Delivery, or UPI paid directly to the delivery partner — we do not process or store any card/UPI credentials, since no online payment gateway is integrated at this time), order/transaction reference IDs, order status, returns and refunds history.</li>
+              <li><strong>Communications:</strong> messages sent to our support team via chat, email, or phone; reviews, ratings, and any photos you choose to attach; referral codes you generate or redeem.</li>
+              <li><strong>Parcel Delivery Data:</strong> When you book a Parcel Delivery, we collect the pickup and drop addresses, a description of the package, and the recipient's name and phone number (typed manually, or pre-filled from your device Contacts as described below). The recipient may not themselves be a BlinkieFash user — we use this information solely to complete that specific delivery and share it only with the assigned delivery partner.</li>
               <li><strong>Contacts (Optional):</strong> If you use the "Select from Contacts" feature when booking a Parcel Delivery, we access only the single contact you choose from your device's address book to pre-fill the recipient's name and phone number. We do not access, upload, or store your full contact list — only the name and phone number of the specific contact you select are sent to us as part of that delivery request.</li>
             </ul>
 
@@ -67,7 +68,7 @@ export default function PrivacyPolicy() {
             <p className="sub">C. Information from Third Parties</p>
             <ul>
               <li>If you sign in via <strong>Google / Firebase Authentication</strong>, we receive your name, email address, and profile picture from Google, subject to Google's privacy policy.</li>
-              <li>Payment processors (Razorpay / equivalent) may share transaction status and risk signals with us; they retain payment instrument details under their own data protection obligations.</li>
+              <li>All orders are currently settled via Cash on Delivery or UPI paid directly to our delivery partner — we do not yet integrate a third-party online payment gateway. If we add one in future (e.g. Razorpay or an equivalent PCI-DSS compliant processor), this Policy will be updated before it goes live, and that processor would only share transaction status and risk signals with us, never your payment credentials.</li>
               <li>Delivery partners share delivery status updates including location of our delivery executive while your order is in transit.</li>
             </ul>
           </article>
@@ -110,7 +111,7 @@ export default function PrivacyPolicy() {
             <ul>
               <li><strong>Vendor Partners:</strong> We share your name, delivery address, and order details with the vendor fulfilling your order. Vendors are contractually bound to use this data only for order fulfilment.</li>
               <li><strong>Delivery Partners:</strong> Your name, phone number, and delivery address are shared with the delivery executive assigned to your order.</li>
-              <li><strong>Payment Processors:</strong> Razorpay (or equivalent PCI-DSS compliant gateway) processes payments; we pass the minimum data required.</li>
+              <li><strong>Payment Processors:</strong> Not applicable today — orders are paid via Cash on Delivery or UPI paid directly to the delivery partner, with no online payment gateway involved. Should we integrate one in future (e.g. Razorpay or an equivalent PCI-DSS compliant gateway), we will update this Policy and pass only the minimum data required.</li>
               <li><strong>Technology Service Providers:</strong> Firebase (Google) for authentication and cloud messaging; Cloudinary for image hosting; mapping / geocoding APIs for location. All are under data processing agreements.</li>
               <li><strong>Analytics Providers:</strong> Aggregated, anonymised usage data may be shared with analytics tools (e.g., Google Analytics). This data cannot identify you personally.</li>
               <li><strong>Legal &amp; Regulatory Authorities:</strong> When required by law, court order, or government directive, we will disclose personal data to the extent legally required.</li>
@@ -149,7 +150,7 @@ export default function PrivacyPolicy() {
             <ul>
               <li>All data in transit is encrypted using <strong>TLS 1.2 or higher</strong>.</li>
               <li>Passwords are stored as <strong>bcrypt hashes</strong> — never in plain text.</li>
-              <li>Payment data is processed by PCI-DSS compliant gateways; we do not store card numbers.</li>
+              <li>We do not process or store card/UPI payment credentials — orders are currently settled via Cash on Delivery or UPI paid directly to the delivery partner. Any future online payment gateway integration will be PCI-DSS compliant and this Policy will be updated accordingly.</li>
               <li>Access to production databases is restricted to authorised personnel and protected by multi-factor authentication.</li>
               <li>We conduct periodic security reviews and vulnerability assessments.</li>
               <li>In the event of a personal data breach that is likely to result in risk to your rights, we will notify you and the Data Protection Board of India as required by the DPDPA.</li>
