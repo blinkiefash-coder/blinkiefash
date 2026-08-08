@@ -414,6 +414,12 @@ class _HomeScreenState extends State<HomeScreen>
                       memCacheWidth: (104 * MediaQuery.of(context).devicePixelRatio).round(),
                       width: 52,
                       height: 52,
+                      memCacheWidth:
+                          (104 * MediaQuery.of(context).devicePixelRatio)
+                              .round(),
+                      memCacheHeight:
+                          (104 * MediaQuery.of(context).devicePixelRatio)
+                              .round(),
                       fit: BoxFit.cover,
                       errorWidget: (_, _, _) => const Icon(
                         Icons.person_rounded,
@@ -5264,6 +5270,9 @@ class _HomeScreenState extends State<HomeScreen>
           memCacheWidth: (60 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 30,
           height: 30,
+          memCacheWidth: (60 * MediaQuery.of(context).devicePixelRatio).round(),
+          memCacheHeight: (60 * MediaQuery.of(context).devicePixelRatio)
+              .round(),
           fit: BoxFit.cover,
           errorWidget: (_, _, _) => Container(
             width: 30,
@@ -5301,6 +5310,9 @@ class _HomeScreenState extends State<HomeScreen>
           memCacheWidth: (48 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 24,
           height: 24,
+          memCacheWidth: (48 * MediaQuery.of(context).devicePixelRatio).round(),
+          memCacheHeight: (48 * MediaQuery.of(context).devicePixelRatio)
+              .round(),
           fit: BoxFit.cover,
           errorWidget: (_, _, _) => Container(
             width: 24,
@@ -5375,6 +5387,10 @@ class _HomeScreenState extends State<HomeScreen>
                   memCacheWidth: (208 * MediaQuery.of(context).devicePixelRatio).round(),
                   width: 104,
                   height: 104,
+                  memCacheWidth: (208 * MediaQuery.of(context).devicePixelRatio)
+                      .round(),
+                  memCacheHeight:
+                      (208 * MediaQuery.of(context).devicePixelRatio).round(),
                   fit: BoxFit.cover,
                   errorWidget: (_, _, _) => const Icon(
                     Icons.person_rounded,
@@ -5578,6 +5594,18 @@ class _HomeScreenState extends State<HomeScreen>
                                   memCacheWidth: (96 * MediaQuery.of(context).devicePixelRatio).round(),
                                   width: 48,
                                   height: 48,
+                                  memCacheWidth:
+                                      (96 *
+                                              MediaQuery.of(
+                                                context,
+                                              ).devicePixelRatio)
+                                          .round(),
+                                  memCacheHeight:
+                                      (96 *
+                                              MediaQuery.of(
+                                                context,
+                                              ).devicePixelRatio)
+                                          .round(),
                                   fit: BoxFit.cover,
                                   placeholder: (_, _) => const Icon(
                                     Icons.person_rounded,
@@ -7684,6 +7712,12 @@ class _HomeScreenState extends State<HomeScreen>
                           memCacheWidth: (144 * MediaQuery.of(context).devicePixelRatio).round(),
                           width: 72,
                           height: 72,
+                          memCacheWidth:
+                              (144 * MediaQuery.of(context).devicePixelRatio)
+                                  .round(),
+                          memCacheHeight:
+                              (144 * MediaQuery.of(context).devicePixelRatio)
+                                  .round(),
                           fit: BoxFit.cover,
                           placeholder: (_, _) => Text(
                             initial,
@@ -8657,6 +8691,8 @@ class _DrawerItem extends StatelessWidget {
           cacheWidth: (52 * MediaQuery.of(context).devicePixelRatio).round(),
           width: 26,
           height: 26,
+          cacheWidth: (52 * MediaQuery.of(context).devicePixelRatio).round(),
+          cacheHeight: (52 * MediaQuery.of(context).devicePixelRatio).round(),
           fit: BoxFit.cover,
           errorBuilder: (_, _, _) => Icon(
             icon ?? Icons.storefront_outlined,
