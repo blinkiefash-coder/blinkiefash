@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   MdArrowBack,
@@ -145,24 +145,19 @@ export default function ProductDetail() {
   const reviewCount = Number(product.review_count || 120);
   const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-  const colorOptions = useMemo(() => {
-    const seen = new Set();
-    return (variants || [])
-      .map((v) => (v.color || '').trim())
-      .filter((color) => {
-        const key = color.toLowerCase();
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-  }, [variants]);
+  const seenColors = new Set();
+  const colorOptions = (variants || [])
+    .map((v) => (v.color || '').trim())
+    .filter((color) => {
+      const key = color.toLowerCase();
+      if (!key || seenColors.has(key)) return false;
+      seenColors.add(key);
+      return true;
+    });
 
-  const sizeOptions = useMemo(() => {
-    const scoped = selectedColor
-      ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
-      : variants || [];
-    return scoped;
-  }, [selectedColor, variants]);
+  const sizeOptions = selectedColor
+    ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
+    : variants || [];
 
   const breadcrumb = [
     'Home',
