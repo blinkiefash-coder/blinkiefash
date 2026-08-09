@@ -2,11 +2,11 @@
 // so blinkiefashwebnew talks to the same Blinkiefash API in every environment.
 const getAPIBase = () => {
   const envURL = import.meta.env.VITE_API_BASE_URL?.trim();
-
-  if (
+  const isLocalHost =
     typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  ) {
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+
+  if (isLocalHost) {
     return envURL || `http://${window.location.hostname}:5000`;
   }
 
@@ -14,7 +14,8 @@ const getAPIBase = () => {
     return envURL.replace(/\/$/, '');
   }
 
-  return 'https://blinkiefash.onrender.com';
+  // In production, prefer same-origin proxy to avoid client-side network/CORS blocks.
+  return '/backend-proxy';
 };
 
 const API_BASE = getAPIBase();

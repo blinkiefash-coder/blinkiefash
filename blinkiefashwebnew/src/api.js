@@ -25,6 +25,8 @@ export const getProductById = (id) => request(`/products/${id}`);
 
 export const getBestsellers = (limit = 10) => request(`/products/bestsellers?limit=${limit}`);
 
+export const getBrands = () => request('/brands');
+
 export const getPriceRangeProducts = (minPrice, maxPrice, limit = 10) =>
   request(`/products/price-range?min_price=${minPrice}&max_price=${maxPrice}&limit=${limit}`);
 
