@@ -362,7 +362,7 @@ router.get("/:id/orders", async (req, res) => {
        WHERE p.vendor_id::text = ANY($1::text[])
        GROUP BY o.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
-      [ownerIds, linkedStoreId]
+      [ownerIds]
     );
     
     res.json(result.rows);
