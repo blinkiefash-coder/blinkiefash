@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   MdFavoriteBorder,
+  MdGridView,
   MdKeyboardArrowDown,
   MdLocationOn,
   MdMenu,
@@ -548,7 +549,8 @@ export default function Shop() {
           <div className="catalog-round-list">
             {topCategoryStrip.map((category) => {
               const dbImage = resolveImageUrl(category.category_url ?? category.image);
-              const image = dbImage || getCategoryImage(category.name) || "/images/category.png";
+              const image = dbImage || getCategoryImage(category.name) || "";
+              const hasImage = Boolean(image);
               const isActive = toCategoryKey(category.id) === toCategoryKey(activeCategoryId);
 
               return (
@@ -559,7 +561,26 @@ export default function Shop() {
                   onClick={() => navigateWithFilters({ nextCategoryId: category.id || null })}
                 >
                   <span className="catalog-round-image-wrap">
-                    <img src={image} alt={category.name} />
+                    {hasImage ? (
+                      <img
+                        src={image}
+                        alt={category.name}
+                        onError={(event) => {
+                          event.currentTarget.style.display = "none";
+                          const fallback = event.currentTarget.parentElement?.querySelector(
+                            ".catalog-round-fallback-icon"
+                          );
+                          if (fallback) fallback.style.display = "inline-flex";
+                        }}
+                      />
+                    ) : null}
+                    <span
+                      className="catalog-round-fallback-icon"
+                      style={hasImage ? { display: "none" } : undefined}
+                      aria-hidden="true"
+                    >
+                      <MdGridView />
+                    </span>
                   </span>
                   <span>{category.name}</span>
                 </button>
