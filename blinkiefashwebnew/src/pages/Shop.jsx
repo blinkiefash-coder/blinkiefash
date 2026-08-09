@@ -54,8 +54,8 @@ export default function Shop() {
 
       {!loading && products.length > 0 && (
         <div className="product-grid">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
+          {products.map((p, idx) => (
+            <ProductCard key={`${p.id}-${p.variant_id || p.color || idx}`} product={p} />
           ))}
         </div>
       )}
