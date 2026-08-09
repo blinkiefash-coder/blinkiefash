@@ -1,0 +1,128 @@
+.hp-hero {
+  margin-top: 14px;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: linear-gradient(120deg, #0f172a 0%, #1f2937 48%, #111827 100%);
+  min-height: 200px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+}
+
+.hp-hero-copy {
+  padding: 26px 24px;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-start;
+}
+
+.hp-eyebrow {
+  margin: 0;
+  color: #86efac;
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  font-weight: 700;
+}
+
+.hp-hero-copy h1 {
+  font-size: 26px;
+  margin: 4px 0 2px;
+}
+
+.hp-hero-copy p {
+  color: #cbd5e1;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.hp-feature-row {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  text-align: center;
+}
+
+.hp-feature-row article {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 4px;
+  display: grid;
+  gap: 2px;
+}
+
+.hp-feature-row strong {
+  font-size: 11px;
+  color: var(--brand-green-dark);
+}
+
+.hp-feature-row span {
+  font-size: 9.5px;
+  color: var(--muted);
+}
+
+.hp-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.hp-option-card {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: grid;
+  gap: 4px;
+  text-align: left;
+}
+
+.hp-option-card strong {
+  font-size: 13px;
+}
+
+.hp-option-card span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.hp-category-strip {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.hp-category-chip {
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  width: 68px;
+}
+
+.hp-category-media {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--brand-green-soft);
+  color: var(--brand-green-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 20px;
+}
+
+.hp-category-chip span:last-child {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}

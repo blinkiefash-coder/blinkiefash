@@ -1,0 +1,16 @@
+.shop-title {
+  margin: 14px 0 12px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.shop-title h2 {
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.shop-title span {
+  font-size: 11px;
+  color: var(--muted);
+}
