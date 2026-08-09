@@ -1,6 +1,5 @@
-import Navbar from "../components/Navbar";
-import { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import {
   MdArrowBack,
   MdBolt,
@@ -10,61 +9,59 @@ import {
   MdLocalShipping,
   MdLock,
   MdOutlineShoppingCart,
+  MdSearch,
   MdStar,
   MdVerified,
-} from "react-icons/md";
-import { API_API_BASE_URL } from "../apiBase";
-import "./product.css";
+} from 'react-icons/md';
+import Loader from '../components/Loader';
+import { getProductById, getProducts } from '../api';
+import { useCart } from '../context/CartContext';
+import { useWishlist } from '../context/WishlistContext';
+import './ProductDetail.css';
+import './Home.css';
+
+const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const userId = localStorage.getItem("userUuid");
-  const city = localStorage.getItem("selectedCity") || "Cuttack";
+  const { addToCart, count } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const city =
+    localStorage.getItem('bfw_city') ||
+    localStorage.getItem('selectedCity') ||
+    'Cuttack';
+  const isLoggedIn = Boolean(localStorage.getItem('userUuid') || localStorage.getItem('token'));
 
-  const [product, setProduct] = useState(null);
-  const [images, setImages] = useState([]);
-  const [variants, setVariants] = useState([]);
+  const [data, setData] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
-  const [activeImage, setActiveImage] = useState(0);
   const [selectedVariant, setSelectedVariant] = useState(null);
-  const [selectedColor, setSelectedColor] = useState("");
-  const [wishlisted, setWishlisted] = useState(false);
+  const [selectedColor, setSelectedColor] = useState('');
+  const [activeImage, setActiveImage] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   useEffect(() => {
     let cancelled = false;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
-
-    fetch(`${API_API_BASE_URL}/products/${id}`)
+    getProductById(id)
       .then((res) => {
-        if (!res.ok) throw new Error("Failed to load product");
-        return res.json();
-      })
-      .then((data) => {
         if (cancelled) return;
-
-        const rows = Array.isArray(data?.variants) ? data.variants : [];
+        setData(res);
         const firstAvailable =
-          rows.find((v) => Number(v.available_stock || 0) > 0 || v.available_stock === undefined) ||
-          rows[0] ||
+          (res.variants || []).find((v) => Number(v.available_stock || 0) > 0) ||
+          res.variants?.[0] ||
           null;
-
-        setProduct(data?.product || null);
-        setImages(Array.isArray(data?.images) ? data.images : []);
-        setVariants(rows);
         setSelectedVariant(firstAvailable);
-        setSelectedColor(firstAvailable?.color || "");
-        setActiveImage(0);
+        setSelectedColor(firstAvailable?.color || '');
       })
       .catch((err) => {
-        if (!cancelled) setError(err.message || "Could not load this product");
+        if (!cancelled) setError(err.message || 'Could not load this product');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
-
     return () => {
       cancelled = true;
     };
@@ -72,24 +69,28 @@ export default function ProductDetail() {
 
   useEffect(() => {
     let cancelled = false;
-
     const loadRelated = async () => {
-      if (!product) return;
+      if (!data?.product) return;
+      const categoryId = data.product.category_id;
+      const brand = data.product.brand;
 
       try {
-        const params = new URLSearchParams();
-        if (product.category_id) params.set("category_id", String(product.category_id));
-        params.set("limit", "8");
+        let rows = [];
+        if (categoryId) {
+          const byCategory = await getProducts({ category_id: categoryId, limit: 8 });
+          rows = byCategory?.products || (Array.isArray(byCategory) ? byCategory : []);
+        }
 
-        const response = await fetch(`${API_API_BASE_URL}/products?${params.toString()}`);
-        if (!response.ok) return;
-
-        const data = await response.json();
-        const rows = Array.isArray(data?.products) ? data.products : Array.isArray(data) ? data : [];
+        if ((!rows || rows.length === 0) && brand) {
+          const byBrand = await getProducts({ search: brand, limit: 8 });
+          rows = byBrand?.products || (Array.isArray(byBrand) ? byBrand : []);
+        }
 
         if (!cancelled) {
           setRelatedProducts(
-            rows.filter((item) => String(item?.id) !== String(product.id)).slice(0, 4)
+            (rows || [])
+              .filter((item) => String(item.id) !== String(data.product.id))
+              .slice(0, 4)
           );
         }
       } catch {
@@ -101,312 +102,367 @@ export default function ProductDetail() {
     return () => {
       cancelled = true;
     };
-  }, [product]);
+  }, [data]);
 
-  if (loading) {
-    return (
-      <>
-        <Navbar />
-        <div className="pdp-modern-loading">Loading product...</div>
-      </>
-    );
-  }
+  useEffect(() => {
+    const pid = data?.product?.id;
+    if (!pid) return;
+    const basePrice = Number(data?.product?.price ?? 0);
+    const baseDiscountPrice = Number(data?.product?.discount_price ?? basePrice);
+    const price = baseDiscountPrice > 0 ? baseDiscountPrice : basePrice;
+    const mrp = basePrice > 0 ? basePrice : price;
+    const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+    const imageUrl = data?.images?.[0]?.url || null;
+    const snapshot = {
+      id: data.product.id,
+      name: data.product.name,
+      brand: data.product.brand || '',
+      image: imageUrl,
+      _price: price,
+      _mrp: mrp,
+      _discount: discount,
+    };
+    try {
+      const current = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+      const list = Array.isArray(current) ? current : [];
+      const next = [snapshot, ...list.filter((v) => String(v?.id) !== String(pid))].slice(0, 20);
+      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(next));
+    } catch {
+      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify([snapshot]));
+    }
+  }, [data]);
 
-  if (error || !product) {
-    return (
-      <>
-        <Navbar />
-        <div className="pdp-modern-loading">{error || "Unable to load product"}</div>
-      </>
-    );
-  }
+  if (loading) return <div className="page"><Loader label="Loading product..." /></div>;
+  if (error) return <div className="page"><p className="state-msg">{error}</p></div>;
+  if (!data) return null;
 
-  const gallery = images.length > 0 ? images : [{ url: null }];
-  const currentImage = gallery[activeImage]?.url || "";
+  const { product, images, variants } = data;
   const price = Number(selectedVariant?.discount_price ?? product.price ?? 0);
   const mrp = Number(selectedVariant?.price ?? price);
-  const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const wishlisted = isWishlisted(product.id);
+  const canPurchase = !(variants?.length > 0 && !selectedVariant);
+  const gallery = images?.length ? images : [{ url: null }];
   const rating = Number(product.rating || 4.8);
   const reviewCount = Number(product.review_count || 120);
-  const canPurchase = Boolean(selectedVariant);
+  const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const hasRelated = relatedProducts.length > 0;
 
-  const colorSeen = new Set();
-  const colorOptions = variants
-    .map((v) => (v.color || "").trim())
+  const seenColors = new Set();
+  const colorOptions = (variants || [])
+    .map((v) => (v.color || '').trim())
     .filter((color) => {
       const key = color.toLowerCase();
-      if (!key || colorSeen.has(key)) return false;
-      colorSeen.add(key);
+      if (!key || seenColors.has(key)) return false;
+      seenColors.add(key);
       return true;
     });
 
   const sizeOptions = selectedColor
-    ? variants.filter((v) => (v.color || "").toLowerCase() === selectedColor.toLowerCase())
-    : variants;
-
-  const uniqueSizes = [...new Set(sizeOptions.map((v) => v.size || "Default"))];
+    ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
+    : variants || [];
 
   const breadcrumb = [
-    "Home",
-    product.category_name || product.category || "Category",
-    product.brand || "Brand",
+    'Home',
+    product.category_name || product.category || 'Category',
+    product.brand || 'Brand',
     product.name,
   ];
 
-  const onPickColor = (color) => {
-    setSelectedColor(color);
-    const match = variants.find((v) => (v.color || "").toLowerCase() === color.toLowerCase());
-    if (match) setSelectedVariant(match);
-  };
-
-  const onPickSize = (size) => {
-    const match = sizeOptions.find((v) => (v.size || "Default") === size);
-    if (match) setSelectedVariant(match);
-  };
-
   const handleAddToCart = () => {
-    if (!userId) {
-      alert("Please login to add items to cart");
-      return;
-    }
-    if (!selectedVariant?.id) {
-      alert("Please choose an available variant");
-      return;
-    }
-
-    fetch(`${API_API_BASE_URL}/cart/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, variantId: selectedVariant.id, quantity: 1 }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.success) throw new Error(data.message || "Unable to add");
-        window.dispatchEvent(new Event("cart:updated"));
-        alert("Added to cart");
-      })
-      .catch(() => alert("Unable to add to cart right now"));
+    addToCart({
+      productId: product.id,
+      variantId: selectedVariant?.id || null,
+      name: product.name,
+      image: gallery[0]?.url,
+      price,
+      size: selectedVariant?.size,
+      color: selectedVariant?.color,
+    });
   };
 
-  const handleAddToWishlist = () => {
-    if (!userId) {
-      alert("Please login to add items to wishlist");
-      return;
-    }
-    if (!selectedVariant?.id) {
-      alert("Please choose an available variant");
-      return;
-    }
+  const handleSearchSubmit = (event) => {
+    event.preventDefault();
+    const q = event.currentTarget.elements.q.value.trim();
+    navigate(q ? `/shop?search=${encodeURIComponent(q)}` : '/shop');
+  };
 
-    fetch(`${API_API_BASE_URL}/wishlist/add`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, variantId: selectedVariant.id }),
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.success) throw new Error(data.message || "Unable to add");
-        window.dispatchEvent(new Event("wishlist:updated"));
-        setWishlisted(true);
-        alert("Added to wishlist");
-      })
-      .catch(() => alert("Unable to add to wishlist right now"));
+  const handlePrevImage = () => {
+    setActiveImage((prev) => (prev === 0 ? gallery.length - 1 : prev - 1));
+  };
+
+  const handleNextImage = () => {
+    setActiveImage((prev) => (prev === gallery.length - 1 ? 0 : prev + 1));
+  };
+
+  const pickVariant = (variant) => {
+    setSelectedVariant(variant);
+    if (variant?.color) setSelectedColor(variant.color);
+  };
+
+  const pickSize = (size) => {
+    const target = sizeOptions.find((v) => (v.size || 'Default') === size);
+    if (target) pickVariant(target);
   };
 
   return (
-    <>
-      <Navbar />
+    <div className="pd-screen">
+      <div className="hp-utility-bar">
+        <div className="hp-utility-left">
+          <span className="hp-utility-item"><MdBolt /> 60-Minute Delivery</span>
+          <span className="hp-utility-item"><MdVerified /> Try &amp; Buy (15 mins)</span>
+          <span className="hp-utility-item"><MdLocalShipping /> Free Delivery above ₹1,499</span>
+        </div>
+      </div>
 
-      <div className="pdp-modern-page">
-        <div className="pdp-modern-wrap">
-          <div className="pdp-modern-breadcrumbs">
-            <button type="button" className="pdp-modern-back" onClick={() => navigate(-1)}>
-              <MdArrowBack /> Back
-            </button>
-            {breadcrumb.map((item, idx) => (
-              <span key={`${item}-${idx}`}>{idx > 0 ? " > " : ""}{item}</span>
-            ))}
+      <header className="pd-header">
+        <button type="button" className="hp-brand pd-brand-logo" onClick={() => navigate('/')}>
+          <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
+          <span className="hp-brand-text">
+            <span className="hp-brand-name">
+              BLINKIE<span className="hp-brand-accent">FASH</span>
+            </span>
+            <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
+          </span>
+        </button>
+        <form className="pd-search" onSubmit={handleSearchSubmit}>
+          <select defaultValue="all" aria-label="Category selector">
+            <option value="all">All Categories</option>
+          </select>
+          <input name="q" type="text" placeholder="Search ethnic wear, shoes, bags, accessories..." />
+          <button type="submit" aria-label="Search products"><MdSearch /></button>
+        </form>
+        <div className="pd-header-actions">
+          <button type="button" onClick={() => navigate('/wishlist')}><MdFavoriteBorder /> Wishlist</button>
+          <button type="button" onClick={() => navigate('/cart')}>
+            <MdOutlineShoppingCart /> Cart {count > 0 ? <span>{count}</span> : null}
+          </button>
+          <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>Account</button>
+        </div>
+      </header>
+
+      <div className="pd-content">
+        <div className="pd-breadcrumbs">
+          <button type="button" className="pd-back" onClick={() => navigate(-1)}><MdArrowBack /> Back</button>
+          {breadcrumb.map((item, idx) => (
+            <span key={`${item}-${idx}`}>
+              {idx > 0 ? <span className="pd-sep">&gt;</span> : null}
+              {item}
+            </span>
+          ))}
+        </div>
+
+        <section className="pd-main-grid">
+          <div className="pd-gallery-panel">
+            <div className="pd-thumbs-col">
+              {gallery.map((img, idx) => (
+                <button
+                  key={img.url || idx}
+                  type="button"
+                  className={`pd-thumb${idx === activeImage ? ' active' : ''}`}
+                  onClick={() => setActiveImage(idx)}
+                >
+                  {img.url ? <img src={img.url} alt="" /> : <div className="pd-thumb-fallback" />}
+                </button>
+              ))}
+            </div>
+            <div className="pd-gallery">
+              {gallery[activeImage]?.url ? (
+                <img src={gallery[activeImage].url} alt={product.name} />
+              ) : (
+                <div className="pd-placeholder">No image available</div>
+              )}
+              {gallery.length > 1 && (
+                <>
+                  <button type="button" className="pd-arrow left" onClick={handlePrevImage} aria-label="Previous image"><MdChevronLeft /></button>
+                  <button type="button" className="pd-arrow right" onClick={handleNextImage} aria-label="Next image"><MdChevronRight /></button>
+                </>
+              )}
+            </div>
           </div>
 
-          <section className="pdp-modern-main">
-            <div className="pdp-modern-gallery">
-              <div className="pdp-modern-thumbs">
-                {gallery.map((img, idx) => (
-                  <button
-                    key={img.url || idx}
-                    type="button"
-                    className={`pdp-modern-thumb ${idx === activeImage ? "active" : ""}`}
-                    onClick={() => setActiveImage(idx)}
-                  >
-                    {img.url ? <img src={img.url} alt="" /> : <div className="pdp-modern-empty" />}
-                  </button>
-                ))}
-              </div>
-
-              <div className="pdp-modern-imagebox">
-                {currentImage ? <img src={currentImage} alt={product.name} /> : <div className="pdp-modern-empty">No image</div>}
-                {gallery.length > 1 ? (
-                  <>
-                    <button
-                      type="button"
-                      className="pdp-modern-arrow left"
-                      onClick={() => setActiveImage((prev) => (prev === 0 ? gallery.length - 1 : prev - 1))}
-                      aria-label="Previous image"
-                    >
-                      <MdChevronLeft />
-                    </button>
-                    <button
-                      type="button"
-                      className="pdp-modern-arrow right"
-                      onClick={() => setActiveImage((prev) => (prev === gallery.length - 1 ? 0 : prev + 1))}
-                      aria-label="Next image"
-                    >
-                      <MdChevronRight />
-                    </button>
-                  </>
-                ) : null}
-              </div>
+          <div className="pd-info-panel">
+            <div className="pd-badges">
+              <span><MdBolt /> 60 MIN DELIVERY</span>
+              {product.is_try_and_buy ? <span><MdVerified /> Try &amp; Buy</span> : null}
+            </div>
+            {product.brand && <p className="pd-brand">{product.brand}</p>}
+            <h1>{product.name}</h1>
+            <div className="pd-rating-row">
+              <div className="pd-stars">{Array.from({ length: 5 }).map((_, i) => <MdStar key={i} />)}</div>
+              <span>{rating.toFixed(1)} ({reviewCount} Reviews)</span>
             </div>
 
-            <div className="pdp-modern-info">
-              <div className="pdp-modern-chip-row">
-                <span><MdBolt /> 60 MIN DELIVERY</span>
-                {product.is_try_and_buy ? <span><MdVerified /> Try & Buy</span> : null}
-              </div>
-              <p className="pdp-modern-brand">{product.brand || "BLINKIEFASH"}</p>
-              <h1>{product.name}</h1>
-              <div className="pdp-modern-rating">
-                <div>{Array.from({ length: 5 }).map((_, i) => <MdStar key={i} />)}</div>
-                <span>{rating.toFixed(1)} ({reviewCount} Reviews)</span>
-              </div>
-              <div className="pdp-modern-price">
-                <strong>₹{price.toLocaleString("en-IN")}</strong>
-                {mrp > price ? <span>₹{mrp.toLocaleString("en-IN")}</span> : null}
-                {discountPct > 0 ? <em>{discountPct}% OFF</em> : null}
-              </div>
-              <p className="pdp-modern-tax">Inclusive of all taxes</p>
+            <div className="pd-price-row">
+              <span className="pd-price">₹{price.toLocaleString('en-IN')}</span>
+              {mrp > price ? <span className="pd-mrp">₹{mrp.toLocaleString('en-IN')}</span> : null}
+              {discountPct > 0 ? <span className="pd-off">{discountPct}% OFF</span> : null}
+            </div>
+            <p className="pd-tax-note">Inclusive of all taxes</p>
 
-              {colorOptions.length > 0 ? (
-                <div className="pdp-modern-option">
-                  <p>Color: {selectedColor || colorOptions[0]}</p>
-                  <div>
-                    {colorOptions.map((color) => (
-                      <button
-                        key={color}
-                        type="button"
-                        className={selectedColor.toLowerCase() === color.toLowerCase() ? "active" : ""}
-                        onClick={() => onPickColor(color)}
-                      >
-                        {color}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-
-              <div className="pdp-modern-option">
-                <p>Select size</p>
-                <div>
-                  {uniqueSizes.map((size) => (
+            {colorOptions.length > 0 && (
+              <div className="pd-colors">
+                <p className="pd-label">Color: {selectedColor || colorOptions[0]}</p>
+                <div className="pd-color-row">
+                  {colorOptions.map((color) => (
                     <button
-                      key={size}
+                      key={color}
                       type="button"
-                      className={(selectedVariant?.size || "Default") === size ? "active" : ""}
-                      onClick={() => onPickSize(size)}
+                      className={`pd-color-chip${selectedColor.toLowerCase() === color.toLowerCase() ? ' active' : ''}`}
+                      onClick={() => {
+                        setSelectedColor(color);
+                        const target = (variants || []).find((v) => (v.color || '').toLowerCase() === color.toLowerCase());
+                        if (target) setSelectedVariant(target);
+                      }}
                     >
-                      {size}
+                      {color}
                     </button>
                   ))}
                 </div>
               </div>
+            )}
 
-              <div className="pdp-modern-facts">
-                <p><strong>Category:</strong> {product.category_name || product.category || "Fashion"}</p>
-                <p><strong>Brand:</strong> {product.brand || "Blinkiefash"}</p>
-                <p><strong>Stock:</strong> {selectedVariant?.available_stock ?? "Available"}</p>
-              </div>
-            </div>
-
-            <aside className="pdp-modern-buybox">
-              <h3>Deliver to</h3>
-              <p>{city}</p>
-              <div>
-                <p><MdBolt /> 60-Minute Express Delivery</p>
-                <p><MdLocalShipping /> Cash on Delivery available</p>
-                <p><MdVerified /> Easy Returns</p>
-              </div>
-              <button type="button" disabled={!canPurchase} onClick={() => { handleAddToCart(); navigate("/checkout"); }}>
-                <MdBolt /> Buy Now
-              </button>
-              <button type="button" className="outline" disabled={!canPurchase} onClick={handleAddToCart}>
-                <MdOutlineShoppingCart /> Add to Cart
-              </button>
-              <button type="button" className="wish" onClick={handleAddToWishlist}>
-                <MdFavoriteBorder /> {wishlisted ? "Wishlisted" : "Add to Wishlist"}
-              </button>
-              <small><MdLock /> Secure Payment</small>
-            </aside>
-          </section>
-
-          <section className={`pdp-modern-bottom ${relatedProducts.length > 0 ? "" : "no-related"}`}>
-            <div className="pdp-modern-description-card">
-              <div className="pdp-modern-tabs">
-                <button type="button" className="active">Product Description</button>
-                <button type="button">Product Details</button>
-                <button type="button">Ratings & Reviews ({reviewCount})</button>
-              </div>
-              <div className="pdp-modern-description-body">
-                <p>{product.description || "No description available for this product yet."}</p>
-                <ul>
-                  <li><MdVerified /> 100% Original product</li>
-                  <li><MdLocalShipping /> Easy returns within 5 days</li>
-                  <li><MdLock /> Secure payment and protected checkout</li>
-                </ul>
-              </div>
-            </div>
-
-            {relatedProducts.length > 0 ? (
-              <aside className="pdp-modern-related-card">
-                <div className="pdp-modern-related-head">
-                  <h3>You May Also Like</h3>
-                  <button type="button" onClick={() => navigate("/shop")}>View All</button>
-                </div>
-                <div className="pdp-modern-related-list">
-                  {relatedProducts.map((item) => {
-                    const itemPrice = Number(item.discount_price || item.price || 0);
+            {variants?.length > 0 && (
+              <div className="pd-variants">
+                <p className="pd-label">Select size</p>
+                <div className="pd-variant-list">
+                  {[...new Set(sizeOptions.map((v) => v.size || 'Default'))].map((size) => {
+                    const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
+                    const disabled = Number(scoped?.available_stock || 0) <= 0;
+                    const active = (selectedVariant?.size || 'Default') === size;
                     return (
-                      <article key={item.id} onClick={() => navigate(`/product/${item.id}`)}>
-                        <div>{item.image ? <img src={item.image} alt={item.name} /> : <div className="pdp-modern-empty" />}</div>
-                        <h4>{item.name}</h4>
-                        <p>₹{itemPrice.toLocaleString("en-IN")}</p>
-                      </article>
+                      <button
+                        key={size}
+                        type="button"
+                        className={`pd-variant-chip${active ? ' active' : ''}${disabled ? ' disabled' : ''}`}
+                        disabled={disabled}
+                        onClick={() => pickSize(size)}
+                      >
+                        {size}
+                      </button>
                     );
                   })}
                 </div>
-              </aside>
-            ) : null}
-          </section>
-        </div>
+              </div>
+            )}
 
-        <div className="pdp-modern-mobile-bar">
-          <div>
-            <strong>₹{price.toLocaleString("en-IN")}</strong>
-            {mrp > price ? <span>₹{mrp.toLocaleString("en-IN")}</span> : null}
+            <div className="pd-quick-facts">
+              <p><strong>Category:</strong> {product.category_name || product.category || 'Fashion'}</p>
+              <p><strong>Brand:</strong> {product.brand || 'Blinkiefash'}</p>
+              <p><strong>Stock:</strong> {selectedVariant?.available_stock ?? 'Available'}</p>
+            </div>
           </div>
-          <button type="button" className="cart" disabled={!canPurchase} onClick={handleAddToCart}><MdOutlineShoppingCart /> Cart</button>
+
+          <aside className="pd-buybox">
+            <h3>Deliver to</h3>
+            <p className="pd-deliver-city">{city}</p>
+            <div className="pd-perks">
+              <p><MdBolt /> 60-Minute Express Delivery</p>
+              <p><MdLocalShipping /> Cash on Delivery available</p>
+              <p><MdVerified /> Easy Returns</p>
+            </div>
+            <button
+              type="button"
+              className="pd-buy-btn"
+              disabled={canPurchase === false}
+              onClick={() => {
+                handleAddToCart();
+                navigate('/checkout');
+              }}
+            >
+              <MdBolt /> Buy Now
+            </button>
+            <button
+              type="button"
+              className="pd-cart-btn"
+              disabled={canPurchase === false}
+              onClick={handleAddToCart}
+            >
+              <MdOutlineShoppingCart /> Add to Cart
+            </button>
+            <button
+              type="button"
+              className="pd-wish-btn"
+              onClick={() =>
+                toggleWishlist({
+                  productId: product.id,
+                  name: product.name,
+                  image: gallery[0]?.url,
+                  price,
+                })
+              }
+            >
+              <MdFavoriteBorder /> {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+            </button>
+            <p className="pd-secure"><MdLock /> Secure Payment</p>
+          </aside>
+        </section>
+
+        <section className={`pd-bottom-grid${hasRelated ? '' : ' no-related'}`}>
+          <div className="pd-description-card">
+            <div className="pd-tabs">
+              <button type="button" className="active">Product Description</button>
+              <button type="button">Product Details</button>
+              <button type="button">Ratings &amp; Reviews ({reviewCount})</button>
+            </div>
+            <div className="pd-tab-body">
+              <p>{product.description || 'No description available for this product yet.'}</p>
+              <ul>
+                <li><MdVerified /> 100% Original product</li>
+                <li><MdLocalShipping /> Easy returns within 5 days</li>
+                <li><MdLock /> Secure payment and protected checkout</li>
+              </ul>
+            </div>
+          </div>
+
+          {hasRelated ? (
+            <aside className="pd-related-card">
+              <div className="pd-related-head">
+                <h3>You May Also Like</h3>
+                <button type="button" onClick={() => navigate('/shop')}>View All</button>
+              </div>
+              <div className="pd-related-list">
+                {relatedProducts.map((item) => {
+                  const itemPrice = Number(item.discount_price || item.price || 0);
+                  return (
+                    <article key={item.id} onClick={() => navigate(`/product/${item.id}`)}>
+                      <div className="pd-related-media">
+                        {item.image ? <img src={item.image} alt={item.name} /> : <div className="pd-rel-fallback" />}
+                      </div>
+                      <h4>{item.name}</h4>
+                      <p>₹{itemPrice.toLocaleString('en-IN')}</p>
+                    </article>
+                  );
+                })}
+              </div>
+            </aside>
+          ) : null}
+        </section>
+      </div>
+
+      <div className="pd-mobile-actionbar">
+        <div className="pd-mobile-price">
+          <strong>₹{price.toLocaleString('en-IN')}</strong>
+          {mrp > price ? <span>₹{mrp.toLocaleString('en-IN')}</span> : null}
+        </div>
+        <div className="pd-mobile-actions">
+          <button type="button" className="pd-mobile-cart" disabled={canPurchase === false} onClick={handleAddToCart}>
+            <MdOutlineShoppingCart />
+            <span>Cart</span>
+          </button>
           <button
             type="button"
-            className="buy"
-            disabled={!canPurchase}
+            className="pd-mobile-buy"
+            disabled={canPurchase === false}
             onClick={() => {
               handleAddToCart();
-              navigate("/checkout");
+              navigate('/checkout');
             }}
           >
-            <MdBolt /> Buy
+            <MdBolt />
+            <span>Buy Now</span>
           </button>
         </div>
       </div>
-    </>
+    </div>
   );
 }

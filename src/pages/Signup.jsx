@@ -1,145 +1,66 @@
-import { useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
-import { API_BASE_URL } from "../apiBase";
-import "./signup.css";
-
-function normalizeToIndianPhone(value) {
-  const digits = String(value || "").replace(/\D/g, "");
-  if (digits.length === 10) return `+91${digits}`;
-  if (digits.length === 12 && digits.startsWith("91")) return `+${digits}`;
-  if (digits.length === 13 && digits.startsWith("091")) return `+91${digits.slice(3)}`;
-  return "";
-}
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { registerUser } from '../api';
+import './Auth.css';
 
 export default function Signup() {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-
-  const initialPhone = useMemo(() => {
-    const queryPhone = searchParams.get("phone") || "";
-    const normalized = normalizeToIndianPhone(queryPhone);
-    return normalized || "";
-  }, [searchParams]);
-
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState(initialPhone);
-  const [referralCode, setReferralCode] = useState("");
+  const [form, setForm] = useState({ name: '', phone: '', email: '', referralCode: '' });
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
-
-    const formattedPhone = normalizeToIndianPhone(phone);
-    if (!name.trim()) {
-      setError("Please enter your full name");
-      return;
-    }
-
-    if (!formattedPhone) {
-      setError("Please enter a valid mobile number");
-      return;
-    }
-
+    setError('');
+    setMessage('');
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/login/register`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: name.trim(),
-          email: email.trim() || null,
-          phone: formattedPhone,
-          referralCode: referralCode.trim().toUpperCase() || null,
-        }),
-      });
-
-      const data = await response.json();
-      if (!data.success) {
-        setError(data.message || "Unable to create account");
+      const res = await registerUser({ ...form, role: 'customer' });
+      if (!res.success) {
+        setError(res.message || 'Could not create your account');
         return;
       }
-
-      setSuccess("Account created successfully. Redirecting to login...");
-      setTimeout(() => {
-        navigate(`/login?phone=${encodeURIComponent(formattedPhone)}`);
-      }, 1000);
+      setMessage('Account created! You can now log in.');
+      setTimeout(() => navigate('/login'), 1200);
     } catch (err) {
-      console.error("Signup error:", err);
-      setError("Unable to create account right now. Please try again.");
+      setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="signup-page">
-      <div className="signup-card">
-        <h1>Create Customer Account</h1>
-        <p>Fill your details and continue with OTP login.</p>
+    <div className="page auth-page">
+      <h1>Create account</h1>
+      <p className="auth-subtitle">Join Blinkiefash for 60-minute fashion delivery.</p>
 
-        {error ? <div className="signup-error">{error}</div> : null}
-        {success ? <div className="signup-success">{success}</div> : null}
+      <form className="auth-form" onSubmit={handleSubmit}>
+        <label htmlFor="name">Full name</label>
+        <input id="name" name="name" value={form.name} onChange={handleChange} required />
 
-        <form onSubmit={handleSubmit}>
-          <label>
-            Full Name
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Enter your name"
-              disabled={loading}
-            />
-          </label>
+        <label htmlFor="phone">Mobile number</label>
+        <input id="phone" name="phone" type="tel" value={form.phone} onChange={handleChange} required />
 
-          <label>
-            Mobile Number
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="Enter mobile number"
-              disabled={loading}
-            />
-          </label>
+        <label htmlFor="email">Email (optional)</label>
+        <input id="email" name="email" type="email" value={form.email} onChange={handleChange} />
 
-          <label>
-            Email (optional)
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter email"
-              disabled={loading}
-            />
-          </label>
+        <label htmlFor="referralCode">Referral code (optional)</label>
+        <input id="referralCode" name="referralCode" value={form.referralCode} onChange={handleChange} />
 
-          <label>
-            Referral code (optional)
-            <input
-              type="text"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
-              placeholder="Have a friend's code? Enter it for ₹50 off"
-              maxLength={20}
-              disabled={loading}
-            />
-          </label>
+        {error && <p className="auth-error">{error}</p>}
+        {message && <p className="auth-hint">{message}</p>}
 
-          <button type="submit" disabled={loading}>
-            {loading ? "Creating Account..." : "Create Account"}
-          </button>
-        </form>
-
-        <button className="signup-back" onClick={() => navigate("/login")} type="button">
-          Back to Login
+        <button type="submit" className="primary-btn" disabled={loading}>
+          {loading ? 'Creating account...' : 'Create account'}
         </button>
-      </div>
+      </form>
+
+      <p className="auth-switch">
+        Already have an account? <Link to="/login">Log in</Link>
+      </p>
     </div>
   );
 }
