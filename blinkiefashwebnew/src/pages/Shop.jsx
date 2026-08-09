@@ -1,8 +1,18 @@
 import "./Shop.css";
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
-import { API_API_BASE_URL } from "../apiBase";
-import logo from "../assets/logo.png";
+import { useNavigate, useLocation } from "react-router-dom";
+import {
+  MdFavoriteBorder,
+  MdKeyboardArrowDown,
+  MdLocationOn,
+  MdMenu,
+  MdOutlineShoppingCart,
+  MdPersonOutline,
+  MdSearch,
+} from "react-icons/md";
+import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
+import { getCategoryImage } from "../utils/categoryImages";
+import "./Home.css";
 
 const COLORS = [
   ["Pink", "#ec4899"],
@@ -16,32 +26,15 @@ const COLORS = [
   ["Grey", "#9ca3af"],
 ];
 
-const CATEGORY_ICONS = {
-  women: "/images/Women-section.png",
-  men: "/images/Men-section.png",
-  kids: "/images/kids-section.png",
-  footwear: "/images/shoes.png",
-  "bags & backpacks": "/images/backpack-section.png",
-  electronics: "/images/electronics.png",
-  beauty: "/images/beauty-section.png",
-  jewellery: "/images/jwellery.png",
-  "home & living": "/images/home-section.png",
-  all: "/images/category.png",
-};
-
-const DEPARTMENT_MENU = [
-  "Women",
-  "Men",
-  "Kids",
-  "Footwear",
-  "Bags & Backpacks",
-  "Electronics",
-  "Beauty",
-  "Jewellery",
-  "Home & Living",
-];
-
 const API_BASE = API_API_BASE_URL;
+
+const resolveImageUrl = (raw) => {
+  const value = (raw ?? "").toString().trim();
+  if (!value) return null;
+  if (value.startsWith("http")) return value;
+  if (value.startsWith("/")) return `${API_BASE_URL}${value}`;
+  return `${API_BASE_URL}/${value}`;
+};
 
 const buildChildrenMap = (data) => {
   const map = {};
@@ -61,8 +54,13 @@ const buildChildrenMap = (data) => {
 
 export default function Shop() {
   const navigate = useNavigate();
+  const location = useLocation();
   const userId = localStorage.getItem("userUuid");
-  const selectedCity = localStorage.getItem("selectedCity") || "Cuttack";
+  const city =
+    localStorage.getItem("bfw_city") ||
+    localStorage.getItem("selectedCity") ||
+    "Cuttack";
+  const isLoggedIn = Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -73,6 +71,7 @@ export default function Shop() {
   const [activeColor, setActiveColor] = useState([]);
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
@@ -92,6 +91,8 @@ export default function Shop() {
 
   const getChildren = (parentId) => childrenByParent[parentId] || [];
 
+  const toCategoryKey = (value) => (value === null || value === undefined ? null : String(value));
+
   const getDescendantCategoryIds = (categoryId) => {
     const collectedIds = [];
     const queue = [categoryId];
@@ -100,7 +101,7 @@ export default function Shop() {
       const currentId = queue.shift();
       if (!currentId) continue;
 
-      collectedIds.push(currentId);
+      collectedIds.push(toCategoryKey(currentId));
 
       const children = getChildren(currentId);
       children.forEach((child) => {
@@ -111,7 +112,8 @@ export default function Shop() {
     return collectedIds;
   };
 
-  const activeCategory = categories.find((item) => item.id === activeCategoryId) || null;
+  const activeCategory =
+    categories.find((item) => toCategoryKey(item.id) === toCategoryKey(activeCategoryId)) || null;
 
   const normalizeText = (value) =>
     String(value || "").trim().toLowerCase();
@@ -141,19 +143,24 @@ export default function Shop() {
   };
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const nextSearch = (params.get("search") || "").trim();
+    const nextCategoryId = params.get("category_id");
+
+    setSearchTerm(nextSearch);
+    setSearchInput(nextSearch);
+    setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
+    setVisibleCount(24);
+  }, [location.search]);
+
+  useEffect(() => {
     setLoading(true);
     fetchAllProducts()
       .then((data) => {
-        console.log('[Shop] Fetched products data:', {
-          isArray: Array.isArray(data),
-          dataLength: Array.isArray(data) ? data.length : 0,
-          firstProduct: Array.isArray(data) && data.length > 0 ? data[0] : null,
-          sampleProducts: Array.isArray(data) ? data.slice(0, 3).map(p => ({ id: p.id, name: p.name, image: p.image, variant_id: p.variant_id })) : []
-        });
         setProducts(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
-        console.error('[Shop] Error fetching products:', err);
+        console.error("[Shop] Error fetching products:", err);
       })
       .finally(() => setLoading(false));
   }, []);
@@ -273,7 +280,7 @@ export default function Shop() {
       const productCategoryId =
         productMetaById[product.id]?.categoryId || product.category_id || null;
 
-      if (!productCategoryId || !selectedCategoryIds.has(productCategoryId)) {
+      if (!productCategoryId || !selectedCategoryIds.has(toCategoryKey(productCategoryId))) {
         return false;
       }
     }
@@ -329,9 +336,25 @@ export default function Shop() {
   );
 
   const topCategoryStrip = useMemo(() => {
-    const roots = getChildren("ROOT").slice(0, 9);
+    const roots = getChildren("ROOT");
     return [{ id: null, name: "All" }, ...roots];
   }, [childrenByParent]);
+
+  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId } = {}) => {
+    const params = new URLSearchParams();
+    const cleanSearch = String(nextSearch || "").trim();
+    const cleanCategoryId = nextCategoryId ? String(nextCategoryId) : "";
+
+    if (cleanSearch) params.set("search", cleanSearch);
+    if (cleanCategoryId) params.set("category_id", cleanCategoryId);
+
+    navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
+  };
+
+  const handleTopSearch = (event) => {
+    event.preventDefault();
+    navigateWithFilters({ nextSearch: searchInput });
+  };
 
   const toggleBrandFilter = (name) => {
     setActiveBrand((prev) =>
@@ -434,43 +457,75 @@ export default function Shop() {
 
   return (
     <div className="catalog-page">
-      <header className="catalog-header">
-        <div className="catalog-top-row">
-          <button className="catalog-logo" onClick={() => navigate("/")} type="button">
-            <img src={logo} alt="Blinkiefash" />
+      <div className="hp-sticky-head catalog-home-topbar">
+        <header className="hp-main-header">
+          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
+            <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
+            <span className="hp-brand-text">
+              <span className="hp-brand-name">
+                BLINKIE<span className="hp-brand-accent">FASH</span>
+              </span>
+              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
+            </span>
           </button>
 
-          <div className="catalog-search-wrap">
+          <form className="hp-header-search" onSubmit={handleTopSearch}>
+            <MdSearch className="hp-search-icon" />
             <input
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="catalog-search"
-              placeholder="Search for products, brands and more..."
+              name="q"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search Ethnic Wear, Sneakers, Bags & more..."
             />
-            <button type="button" className="catalog-search-btn">Search</button>
-          </div>
+            <button type="submit" className="hp-search-btn" aria-label="Search products">
+              <MdSearch />
+            </button>
+          </form>
 
-          <div className="catalog-actions">
-            <button type="button" className="catalog-city">Delivering to {selectedCity}</button>
-            <button type="button" onClick={() => navigate("/account")}>My Account</button>
+          <div className="hp-header-actions">
+            <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+              <MdPersonOutline />
+              <span>{isLoggedIn ? "My Account" : "Login / Signup"}</span>
+            </button>
             <button type="button" onClick={() => navigate("/wishlist")}>
-              Wishlist
-              {wishlistCount > 0 ? <span>{wishlistCount}</span> : null}
+              <MdFavoriteBorder />
+              <span>Wishlist</span>
+              {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
             </button>
             <button type="button" onClick={() => navigate("/cart")}>
-              Cart
-              {cartCount > 0 ? <span>{cartCount}</span> : null}
+              <MdOutlineShoppingCart />
+              <span>Cart</span>
+              {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
             </button>
           </div>
-        </div>
+        </header>
 
-        <nav className="catalog-nav-row">
-          <button type="button" className="catalog-nav-shop-btn">Shop by Category</button>
-          {DEPARTMENT_MENU.map((name) => (
-            <button key={name} type="button" className="catalog-nav-item" onClick={() => navigate("/shop")}>{name}</button>
-          ))}
+        <nav className="hp-category-nav">
+          <button type="button" className="hp-shop-by-cat" onClick={() => navigateWithFilters({ nextCategoryId: null })}>
+            <MdMenu /> <span>Shop By Category</span>
+          </button>
+          <div className="hp-nav-links">
+            {getChildren("ROOT").slice(0, 8).map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                className="hp-nav-link"
+                onClick={() => navigateWithFilters({ nextCategoryId: cat.id })}
+              >
+                {cat.name}
+              </button>
+            ))}
+            <button type="button" className="hp-nav-link hp-nav-more" onClick={() => navigate("/shop")}>
+              More <MdKeyboardArrowDown />
+            </button>
+          </div>
+          <button type="button" className="hp-nav-location" onClick={() => navigate("/account")}>
+            <MdLocationOn />
+            <span>{city}</span>
+            <MdKeyboardArrowDown />
+          </button>
         </nav>
-      </header>
+      </div>
 
       <main className="catalog-main">
         <div className="catalog-headline-row">
@@ -490,24 +545,18 @@ export default function Shop() {
         </div>
 
         <div className="catalog-category-strip">
-          <input
-            className="catalog-inline-search"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search products, brands..."
-          />
           <div className="catalog-round-list">
             {topCategoryStrip.map((category) => {
-              const key = normalizeText(category.name);
-              const image = CATEGORY_ICONS[key] || "/images/category.png";
-              const isActive = (category.id || null) === activeCategoryId;
+              const dbImage = resolveImageUrl(category.category_url ?? category.image);
+              const image = dbImage || getCategoryImage(category.name) || "/images/category.png";
+              const isActive = toCategoryKey(category.id) === toCategoryKey(activeCategoryId);
 
               return (
                 <button
                   key={category.id || "all-round"}
                   type="button"
                   className={`catalog-round-item ${isActive ? "active" : ""}`}
-                  onClick={() => setActiveCategoryId(category.id || null)}
+                  onClick={() => navigateWithFilters({ nextCategoryId: category.id || null })}
                 >
                   <span className="catalog-round-image-wrap">
                     <img src={image} alt={category.name} />
@@ -574,12 +623,13 @@ export default function Shop() {
           </section>
         ) : null}
 
-        <section className="catalog-products-grid">
-          {loading
-            ? Array.from({ length: 12 }).map((_, index) => (
-                <div key={`skeleton-${index}`} className="catalog-product-skeleton" />
-              ))
-            : visibleProducts.map((product) => {
+        <div className="catalog-products-scroll">
+          <section className="catalog-products-grid">
+            {loading
+              ? Array.from({ length: 12 }).map((_, index) => (
+                  <div key={`skeleton-${index}`} className="catalog-product-skeleton" />
+                ))
+              : visibleProducts.map((product) => {
                 const originalPrice = Number(product.price || 0);
                 const salePrice = Number(product.discount_price || 0) > 0
                   ? Number(product.discount_price)
@@ -608,7 +658,7 @@ export default function Shop() {
                         onClick={(event) => handleAddToWishlist(event, product)}
                         aria-label="Add to wishlist"
                       >
-                        ♡
+                        <MdFavoriteBorder />
                       </button>
                     </div>
 
@@ -639,26 +689,27 @@ export default function Shop() {
                         onClick={(event) => handleAddToCart(event, product)}
                         aria-label="Add to cart"
                       >
-                        🛒
+                        <MdOutlineShoppingCart />
                       </button>
                     </div>
                   </article>
                 );
               })}
 
-          {!loading && visibleProducts.length === 0 ? (
-            <div className="catalog-empty-state">
-              <h3>No products found</h3>
-              <p>Try clearing filters or searching another term.</p>
-            </div>
-          ) : null}
-        </section>
+            {!loading && visibleProducts.length === 0 ? (
+              <div className="catalog-empty-state">
+                <h3>No products found</h3>
+                <p>Try clearing filters or searching another term.</p>
+              </div>
+            ) : null}
+          </section>
 
-        {!loading && visibleCount < sortedProducts.length ? (
-          <button type="button" className="catalog-load-more" onClick={() => setVisibleCount((prev) => prev + 24)}>
-            Loading more products... Scroll to explore more
-          </button>
-        ) : null}
+          {!loading && visibleCount < sortedProducts.length ? (
+            <button type="button" className="catalog-load-more" onClick={() => setVisibleCount((prev) => prev + 24)}>
+              Load more products
+            </button>
+          ) : null}
+        </div>
       </main>
     </div>
   );
