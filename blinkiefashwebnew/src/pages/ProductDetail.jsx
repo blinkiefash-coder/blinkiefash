@@ -140,6 +140,7 @@ export default function ProductDetail() {
   const price = Number(selectedVariant?.discount_price ?? product.price ?? 0);
   const mrp = Number(selectedVariant?.price ?? price);
   const wishlisted = isWishlisted(product.id);
+  const canPurchase = !(variants?.length > 0 && !selectedVariant);
   const gallery = images?.length ? images : [{ url: null }];
   const rating = Number(product.rating || 4.8);
   const reviewCount = Number(product.review_count || 120);
@@ -357,7 +358,7 @@ export default function ProductDetail() {
             <button
               type="button"
               className="pd-buy-btn"
-              disabled={variants?.length > 0 && !selectedVariant}
+              disabled={canPurchase === false}
               onClick={() => {
                 handleAddToCart();
                 navigate('/checkout');
@@ -368,7 +369,7 @@ export default function ProductDetail() {
             <button
               type="button"
               className="pd-cart-btn"
-              disabled={variants?.length > 0 && !selectedVariant}
+              disabled={canPurchase === false}
               onClick={handleAddToCart}
             >
               <MdOutlineShoppingCart /> Add to Cart
@@ -433,6 +434,31 @@ export default function ProductDetail() {
             </div>
           </aside>
         </section>
+      </div>
+
+      <div className="pd-mobile-actionbar">
+        <div className="pd-mobile-price">
+          <strong>₹{price.toLocaleString('en-IN')}</strong>
+          {mrp > price ? <span>₹{mrp.toLocaleString('en-IN')}</span> : null}
+        </div>
+        <div className="pd-mobile-actions">
+          <button type="button" className="pd-mobile-cart" disabled={canPurchase === false} onClick={handleAddToCart}>
+            <MdOutlineShoppingCart />
+            <span>Cart</span>
+          </button>
+          <button
+            type="button"
+            className="pd-mobile-buy"
+            disabled={canPurchase === false}
+            onClick={() => {
+              handleAddToCart();
+              navigate('/checkout');
+            }}
+          >
+            <MdBolt />
+            <span>Buy Now</span>
+          </button>
+        </div>
       </div>
     </div>
   );
