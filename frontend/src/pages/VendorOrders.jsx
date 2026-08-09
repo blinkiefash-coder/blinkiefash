@@ -532,7 +532,7 @@ export default function VendorOrders() {
                     )}
 
                     {/* Invoice / packing slip — vendor's own items only, no fees */}
-                    {!isAdmin() && vendorId && (
+                    {!isAdmin() && vendorId && order.status === "delivered" && (
                       <div className="vo-actions">
                         <button
                           className="vo-btn vo-btn-invoice"

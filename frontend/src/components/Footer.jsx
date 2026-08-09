@@ -45,8 +45,7 @@ export default function Footer() {
             <li onClick={() => navigate("/policies")}>Terms of Service</li>
             <li onClick={() => navigate("/policies")}>Cancellation Policy</li>
             <li onClick={() => navigate("/policies")}>EPR Compliance</li>
-            <li onClick={() => navigate("/account-deletion")}>Delete My Account</li>
-            <li className="footer-seller-link" onClick={() => navigate("/vendor")}>Become a Seller</li>
+            <li className="footer-seller-link" onClick={() => navigate("/vendor")}>Become a Vendor</li>
           </ul>
         </div>
 

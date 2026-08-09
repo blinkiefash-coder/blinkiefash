@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../apiBase";
 import "./PartnerModal.css";
 
@@ -7,6 +8,7 @@ const STORE_CATEGORIES = ["Men's Fashion", "Women's Fashion", "Kids' Fashion", "
 const VEHICLE_TYPES = ["Bike", "Scooter", "Electric Scooter", "Cycle", "Other"];
 
 export default function PartnerModal({ type, onClose }) {
+  const navigate = useNavigate();
   const [tab, setTab] = useState(type || "store");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(null);
@@ -99,6 +101,17 @@ export default function PartnerModal({ type, onClose }) {
                 <div className="pm-intro">
                   <h3>Join as a Fashion Store Partner</h3>
                   <p>Reach thousands of customers and grow your sales with BlinkieFash.</p>
+                  <button
+                    type="button"
+                    className="pm-submit-btn"
+                    onClick={() => {
+                      onClose();
+                      navigate("/vendor");
+                    }}
+                    style={{ marginTop: "12px" }}
+                  >
+                    Existing vendor? Login with password
+                  </button>
                 </div>
                 <form onSubmit={submitStore} className="pm-form">
                   <div className="pm-row">

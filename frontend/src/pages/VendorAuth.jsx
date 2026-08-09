@@ -1,6 +1,5 @@
 import "./vendor.css";
 import { useState } from "react";
-import Navbar from "../components/Navbar";
 import { Link, useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 import { clearVendorPasswordAuth, markVendorPasswordAuth } from "../utils/vendorSession";
@@ -8,7 +7,6 @@ import { clearVendorPasswordAuth, markVendorPasswordAuth } from "../utils/vendor
 const ADMIN_EMAIL = "superadminsatyam@blinkiefash.in";
 
 export default function VendorAuth() {
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -25,7 +23,6 @@ export default function VendorAuth() {
     const isAdminEmail = String(email).trim().toLowerCase() === ADMIN_EMAIL.toLowerCase();
 
     try {
-      // ── Admin login path ──────────────────────────────────────────────────
       if (isAdminEmail) {
         const res = await fetch(`${API_API_BASE_URL}/admin/login`, {
           method: "POST",
@@ -48,15 +45,11 @@ export default function VendorAuth() {
         return;
       }
 
-      // ── Vendor login path ─────────────────────────────────────────────────
-      const res = await fetch(
-        `${API_API_BASE_URL}/vendor/login-password`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, password }),
-        }
-      );
+      const res = await fetch(`${API_API_BASE_URL}/vendor/login-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
       if (!res.ok) {
         setError(`Server error: ${res.status} ${res.statusText}`);
@@ -76,7 +69,6 @@ export default function VendorAuth() {
       } else {
         setError(data.message || "Verification failed");
       }
-
     } catch (err) {
       console.error("Vendor auth error:", err);
       setError(err.message || "Server error - please check your connection");
@@ -85,51 +77,67 @@ export default function VendorAuth() {
 
   return (
     <>
-      <Navbar />
-
       <div className="vendor-page">
-        <div className="vendor-card">
+        <section className="vendor-hero-panel">
+          <div className="vendor-hero-copy">
+            <p className="vendor-eyebrow">Blinkiefash vendor access</p>
+            <h1>One dashboard for orders, stock, and store control.</h1>
+            <p>
+              Sign in to manage products, confirm orders, update inventory, and keep your store live in real time.
+            </p>
+            <div className="vendor-hero-stats">
+              <div>
+                <strong>Live</strong>
+                <span>Order sync</span>
+              </div>
+              <div>
+                <strong>Fast</strong>
+                <span>Stock updates</span>
+              </div>
+              <div>
+                <strong>Ready</strong>
+                <span>Vendor tools</span>
+              </div>
+            </div>
+          </div>
 
-          <h2>Super Admin Login</h2>
-          <p className="vendor-register-link" style={{ marginTop: 8, marginBottom: 12, color: "#0f766e" }}>
-            Access all vendor orders, stock monitoring, and admin tools from one dashboard.
-          </p>
-
-          <form onSubmit={handleSubmit}>
-
-            <input
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                setError("");
-              }}
-            />
-
-            <input
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value);
-                setError("");
-              }}
-            />
-
-            {error && <p className="vendor-error">{error}</p>}
-
-            <button type="submit">
-              Login & Continue
-            </button>
-
-            <p className="vendor-register-link">
-              New vendor? <Link to="/vendor/register">Create your vendor account</Link>
+          <div className="vendor-card">
+            <h2>Super Admin Login</h2>
+            <p className="vendor-subtext">
+              Access all vendor orders, stock monitoring, and admin tools from one dashboard.
             </p>
 
-          </form>
+            <form onSubmit={handleSubmit}>
+              <input
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setError("");
+                }}
+              />
 
-        </div>
+              <input
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError("");
+                }}
+              />
+
+              {error && <p className="vendor-error">{error}</p>}
+
+              <button type="submit">Login & Continue</button>
+
+              <p className="vendor-register-link">
+                New vendor? <Link to="/vendor/register">Create your vendor account</Link>
+              </p>
+            </form>
+          </div>
+        </section>
       </div>
     </>
   );
