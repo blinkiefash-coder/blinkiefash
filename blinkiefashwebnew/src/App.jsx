@@ -20,6 +20,15 @@ import AddProduct from './pages/AddProduct';
 import EditProduct from './pages/EditProduct';
 import ProductAnalytics from './pages/ProductAnalytics';
 import VendorProfile from './pages/VendorProfile';
+import CustomerService from './pages/CustomerService';
+import Company from './pages/Company';
+import Faqs from './pages/Faqs';
+import Policies from './pages/Policies';
+import PrivacyPolicy from './pages/PrivacyPolicy';
+import AboutUs from './pages/AboutUs';
+import Stores from './pages/Stores';
+import Careers from './pages/Careers';
+import ContactUs from './pages/ContactUs';
 import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
 
@@ -82,22 +91,15 @@ export default function App() {
         <Route path="/vendor/insights" element={<RequireAdmin><VendorProfile /></RequireAdmin>} />
         <Route path="/vendor/profile" element={<RequireVendorOrAdmin><VendorProfile /></RequireVendorOrAdmin>} />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
-        <Route
-          path="/privacy-policy"
-          element={<ComingSoon title="Privacy Policy" emoji="🔐" description="Policy details are coming soon." />}
-        />
-        <Route
-          path="/policies"
-          element={<ComingSoon title="Policies" emoji="📄" description="Company policies are coming soon." />}
-        />
-        <Route
-          path="/customer-service"
-          element={<ComingSoon title="Customer Service" emoji="☎️" description="Support content is coming soon." />}
-        />
-        <Route
-          path="/company"
-          element={<ComingSoon title="Company" emoji="🏢" description="Company information is coming soon." />}
-        />
+        <Route path="/company" element={<Company />} />
+        <Route path="/customer-service" element={<CustomerService />} />
+        <Route path="/contact-us" element={<ContactUs />} />
+        <Route path="/about" element={<AboutUs />} />
+        <Route path="/stores" element={<Stores />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/faqs" element={<Faqs />} />
+        <Route path="/policies" element={<Policies />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
       {!isHome && !isVendorArea && <BottomNav />}
     </div>
