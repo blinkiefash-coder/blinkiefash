@@ -4,7 +4,6 @@ import { useNavigate, useLocation } from "react-router-dom";
 import {
   MdClose,
   MdFavoriteBorder,
-  MdFavorite,
   MdGridView,
   MdKeyboardArrowDown,
   MdLocationOn,
@@ -12,8 +11,6 @@ import {
   MdOutlineShoppingCart,
   MdPersonOutline,
   MdSearch,
-  MdSell,
-  MdLocalFireDepartment,
   MdCheckroom,
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
@@ -122,9 +119,6 @@ export default function Shop() {
 
     return collectedIds;
   };
-
-  const activeCategory =
-    categories.find((item) => toCategoryKey(item.id) === toCategoryKey(activeCategoryId)) || null;
 
   useEffect(() => {
     try {
