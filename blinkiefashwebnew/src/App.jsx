@@ -50,7 +50,11 @@ export default function App() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const isVendorArea = pathname.startsWith('/vendor');
-  const isCatalogPage = pathname === '/shop' || pathname === '/catalog' || pathname === '/women';
+  const isCatalogPage =
+    pathname === '/shop' ||
+    pathname === '/catalog' ||
+    pathname === '/women' ||
+    pathname.startsWith('/product/');
   const isInfoPage = [
     '/company',
     '/customer-service',
