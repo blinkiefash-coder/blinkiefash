@@ -145,6 +145,7 @@ export default function ProductDetail() {
   const rating = Number(product.rating || 4.8);
   const reviewCount = Number(product.review_count || 120);
   const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const hasRelated = relatedProducts.length > 0;
 
   const seenColors = new Set();
   const colorOptions = (variants || [])
@@ -344,7 +345,11 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {product.description && <p className="pd-description">{product.description}</p>}
+            <div className="pd-quick-facts">
+              <p><strong>Category:</strong> {product.category_name || product.category || 'Fashion'}</p>
+              <p><strong>Brand:</strong> {product.brand || 'Blinkiefash'}</p>
+              <p><strong>Stock:</strong> {selectedVariant?.available_stock ?? 'Available'}</p>
+            </div>
           </div>
 
           <aside className="pd-buybox">
@@ -392,7 +397,7 @@ export default function ProductDetail() {
           </aside>
         </section>
 
-        <section className="pd-bottom-grid">
+        <section className={`pd-bottom-grid${hasRelated ? '' : ' no-related'}`}>
           <div className="pd-description-card">
             <div className="pd-tabs">
               <button type="button" className="active">Product Description</button>
@@ -409,14 +414,14 @@ export default function ProductDetail() {
             </div>
           </div>
 
-          <aside className="pd-related-card">
-            <div className="pd-related-head">
-              <h3>You May Also Like</h3>
-              <button type="button" onClick={() => navigate('/shop')}>View All</button>
-            </div>
-            <div className="pd-related-list">
-              {relatedProducts.length > 0 ? (
-                relatedProducts.map((item) => {
+          {hasRelated ? (
+            <aside className="pd-related-card">
+              <div className="pd-related-head">
+                <h3>You May Also Like</h3>
+                <button type="button" onClick={() => navigate('/shop')}>View All</button>
+              </div>
+              <div className="pd-related-list">
+                {relatedProducts.map((item) => {
                   const itemPrice = Number(item.discount_price || item.price || 0);
                   return (
                     <article key={item.id} onClick={() => navigate(`/product/${item.id}`)}>
@@ -427,12 +432,10 @@ export default function ProductDetail() {
                       <p>₹{itemPrice.toLocaleString('en-IN')}</p>
                     </article>
                   );
-                })
-              ) : (
-                <p className="pd-related-empty">No related products available.</p>
-              )}
-            </div>
-          </aside>
+                })}
+              </div>
+            </aside>
+          ) : null}
         </section>
       </div>
 
