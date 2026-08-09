@@ -132,6 +132,9 @@ export default function Shop() {
   const normalizeText = (value) =>
     String(value || "").trim().toLowerCase();
 
+  const normalizeSearchText = (value) =>
+    normalizeText(value).replace(/[^a-z0-9]/g, "");
+
   const extractProducts = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (payload && Array.isArray(payload.products)) return payload.products;
@@ -307,8 +310,22 @@ export default function Shop() {
     }
 
     if (searchTerm.trim()) {
-      const haystack = normalizeText(`${product.name || ""} ${product.brand || product.brand_name || ""}`);
-      if (!haystack.includes(normalizeText(searchTerm))) {
+      const haystackRaw = [
+        product.name,
+        product.brand,
+        product.brand_name,
+        product.color,
+        product.gender,
+        product.description,
+        product.category_name,
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const haystack = normalizeSearchText(haystackRaw);
+      const query = normalizeSearchText(searchTerm);
+
+      if (!haystack.includes(query)) {
         return false;
       }
     }
