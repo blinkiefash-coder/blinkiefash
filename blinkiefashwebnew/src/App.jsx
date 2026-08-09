@@ -50,10 +50,20 @@ export default function App() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const isVendorArea = pathname.startsWith('/vendor');
-  const vendorAuthOk = hasVendorPasswordAuth() || localStorage.getItem('is_admin') === 'true';
+  const isInfoPage = [
+    '/company',
+    '/customer-service',
+    '/contact-us',
+    '/about',
+    '/stores',
+    '/careers',
+    '/faqs',
+    '/policies',
+    '/privacy-policy',
+  ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   return (
-    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}`}>
+    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}`}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -101,7 +111,7 @@ export default function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
-      {!isHome && !isVendorArea && <BottomNav />}
+      {!isHome && !isVendorArea && !isInfoPage && <BottomNav />}
     </div>
   );
 }
