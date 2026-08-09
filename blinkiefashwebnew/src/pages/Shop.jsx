@@ -2,6 +2,7 @@ import "./Shop.css";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
+import logo from "../assets/logo.png";
 
 const COLORS = [
   ["Pink", "#ec4899"],
@@ -28,6 +29,18 @@ const CATEGORY_ICONS = {
   all: "/images/category.png",
 };
 
+const DEPARTMENT_MENU = [
+  "Women",
+  "Men",
+  "Kids",
+  "Footwear",
+  "Bags & Backpacks",
+  "Electronics",
+  "Beauty",
+  "Jewellery",
+  "Home & Living",
+];
+
 const API_BASE = API_API_BASE_URL;
 
 const buildChildrenMap = (data) => {
@@ -49,6 +62,7 @@ const buildChildrenMap = (data) => {
 export default function Shop() {
   const navigate = useNavigate();
   const userId = localStorage.getItem("userUuid");
+  const selectedCity = localStorage.getItem("selectedCity") || "Cuttack";
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -331,6 +345,8 @@ export default function Shop() {
     );
   };
 
+  const formatPrice = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
+
   const resolveAvailableVariantId = async (product) => {
     if (product?.variant_id) return product.variant_id;
 
@@ -421,7 +437,7 @@ export default function Shop() {
       <header className="catalog-header">
         <div className="catalog-top-row">
           <button className="catalog-logo" onClick={() => navigate("/")} type="button">
-            <img src="/images/logo.png" alt="Blinkiefash" />
+            <img src={logo} alt="Blinkiefash" />
           </button>
 
           <div className="catalog-search-wrap">
@@ -435,6 +451,7 @@ export default function Shop() {
           </div>
 
           <div className="catalog-actions">
+            <button type="button" className="catalog-city">Delivering to {selectedCity}</button>
             <button type="button" onClick={() => navigate("/account")}>My Account</button>
             <button type="button" onClick={() => navigate("/wishlist")}>
               Wishlist
@@ -448,15 +465,9 @@ export default function Shop() {
         </div>
 
         <nav className="catalog-nav-row">
-          {topCategoryStrip.slice(0, 10).map((category) => (
-            <button
-              key={category.id || "all-tab"}
-              type="button"
-              className={`catalog-nav-item ${(category.id || null) === activeCategoryId ? "active" : ""}`}
-              onClick={() => setActiveCategoryId(category.id || null)}
-            >
-              {category.name}
-            </button>
+          <button type="button" className="catalog-nav-shop-btn">Shop by Category</button>
+          {DEPARTMENT_MENU.map((name) => (
+            <button key={name} type="button" className="catalog-nav-item" onClick={() => navigate("/shop")}>{name}</button>
           ))}
         </nav>
       </header>
@@ -595,8 +606,9 @@ export default function Shop() {
                         type="button"
                         className="catalog-wishlist"
                         onClick={(event) => handleAddToWishlist(event, product)}
+                        aria-label="Add to wishlist"
                       >
-                        heart
+                        ♡
                       </button>
                     </div>
 
@@ -616,8 +628,8 @@ export default function Shop() {
                       </p>
 
                       <div className="catalog-card-price-row">
-                        <strong>Rs.{salePrice.toLocaleString("en-IN")}</strong>
-                        {hasDiscount ? <span>Rs.{originalPrice.toLocaleString("en-IN")}</span> : null}
+                        <strong>{formatPrice(salePrice)}</strong>
+                        {hasDiscount ? <span>{formatPrice(originalPrice)}</span> : null}
                       </div>
                       {hasDiscount ? <p className="catalog-card-off">{offPercent}% OFF</p> : null}
 
@@ -625,13 +637,21 @@ export default function Shop() {
                         type="button"
                         className="catalog-card-cart"
                         onClick={(event) => handleAddToCart(event, product)}
+                        aria-label="Add to cart"
                       >
-                        cart
+                        🛒
                       </button>
                     </div>
                   </article>
                 );
               })}
+
+          {!loading && visibleProducts.length === 0 ? (
+            <div className="catalog-empty-state">
+              <h3>No products found</h3>
+              <p>Try clearing filters or searching another term.</p>
+            </div>
+          ) : null}
         </section>
 
         {!loading && visibleCount < sortedProducts.length ? (
