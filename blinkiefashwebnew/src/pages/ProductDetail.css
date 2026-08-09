@@ -16,19 +16,9 @@
   border-bottom: 1px solid #e8edf3;
 }
 
-.pd-logo {
-  border: 0;
-  background: transparent;
-  font-size: 40px;
-  font-family: Georgia, "Times New Roman", serif;
-  color: #0f172a;
-  line-height: 1;
-  text-align: left;
-  cursor: pointer;
-}
-
-.pd-logo span {
-  color: #149a3f;
+.pd-brand-logo {
+  justify-content: flex-start;
+  min-width: 180px;
 }
 
 .pd-search {

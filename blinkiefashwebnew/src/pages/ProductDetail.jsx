@@ -213,8 +213,14 @@ export default function ProductDetail() {
       </div>
 
       <header className="pd-header">
-        <button type="button" className="pd-logo" onClick={() => navigate('/')}>
-          BLINKIE<span>FASH</span>
+        <button type="button" className="hp-brand pd-brand-logo" onClick={() => navigate('/')}>
+          <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
+          <span className="hp-brand-text">
+            <span className="hp-brand-name">
+              BLINKIE<span className="hp-brand-accent">FASH</span>
+            </span>
+            <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
+          </span>
         </button>
         <form className="pd-search" onSubmit={handleSearchSubmit}>
           <select defaultValue="all" aria-label="Category selector">
