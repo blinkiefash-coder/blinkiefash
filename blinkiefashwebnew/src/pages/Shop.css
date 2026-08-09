@@ -10,6 +10,77 @@
   z-index: 60;
 }
 
+.catalog-mobile-search {
+  position: relative;
+}
+
+.catalog-search-clear {
+  border: 0;
+  background: transparent;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.catalog-search-clear:hover {
+  background: #eef2f7;
+}
+
+.catalog-search-suggestions {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 8px);
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.12);
+  z-index: 80;
+  overflow: hidden;
+}
+
+.catalog-suggestion-item {
+  width: 100%;
+  border: 0;
+  background: #fff;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.catalog-suggestion-item:hover {
+  background: #f8fafc;
+}
+
+.catalog-suggestion-item svg {
+  width: 16px;
+  height: 16px;
+  color: #94a3b8;
+}
+
+.catalog-suggestion-text {
+  flex: 1;
+  font-size: 13px;
+  color: #0f172a;
+}
+
+.catalog-suggestion-type {
+  font-size: 10px;
+  font-weight: 700;
+  color: #16a34a;
+  background: #dcfce7;
+  border-radius: 999px;
+  padding: 2px 7px;
+}
+
 .catalog-header {
   border-bottom: 1px solid #eceff3;
   background: #ffffff;
@@ -338,17 +409,18 @@
 }
 
 .catalog-product-card {
-  border: 1px solid #edf1f5;
-  border-radius: 12px;
+  border: 1px solid #ecf1f6;
+  border-radius: 16px;
   background: #fff;
   overflow: hidden;
   cursor: pointer;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
   transition: transform 0.18s ease, box-shadow 0.18s ease;
 }
 
 .catalog-product-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(16, 24, 40, 0.08);
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
 }
 
 .catalog-card-top {
@@ -359,44 +431,54 @@
 }
 
 .catalog-card-badge {
-  font-size: 9px;
-  font-weight: 700;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
   color: #fff;
-  border-radius: 999px;
-  padding: 3px 8px;
+  border-radius: 20px;
+  padding: 4px 8px;
 }
 
 .catalog-card-badge.discount {
-  background: #5b46ff;
+  background: #dc2626;
+}
+
+.catalog-card-badge.try-buy {
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+
+.catalog-card-badge.bestseller {
+  background: #dc2626;
 }
 
 .catalog-card-badge.fresh {
-  background: #f48b1f;
+  background: #16a34a;
 }
 
 .catalog-wishlist {
-  border: 1px solid #e6e9ef;
+  border: 0;
   background: #fff;
-  width: 24px;
-  height: 24px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1;
-  color: #8b94a3;
+  color: #94a3b8;
   cursor: pointer;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
 }
 
 .catalog-wishlist:hover {
   color: #ec4899;
-  border-color: #f5c8db;
 }
 
 .catalog-card-image-wrap {
-  height: 168px;
+  height: 180px;
   padding: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: #f8fafc;
 }
 
 .catalog-card-image-wrap img {
@@ -406,8 +488,8 @@
 }
 
 .catalog-no-image {
-  color: #98a2b3;
-  font-size: 12px;
+  color: #cbd5e1;
+  font-size: 36px;
 }
 
 .catalog-card-body {
@@ -417,10 +499,12 @@
 
 .catalog-card-body small {
   display: block;
-  font-size: 9px;
-  color: #8e97a5;
+  font-size: 10px;
+  color: #94a3b8;
   margin-bottom: 2px;
   text-transform: uppercase;
+  letter-spacing: 0.45px;
+  font-weight: 700;
 }
 
 .catalog-card-body h3 {
@@ -449,9 +533,10 @@
 }
 
 .catalog-card-price-row strong {
-  font-size: 23px;
+  font-size: 15px;
   line-height: 1;
-  letter-spacing: -0.8px;
+  letter-spacing: 0;
+  font-weight: 800;
 }
 
 .catalog-card-price-row span {
@@ -471,13 +556,13 @@
   position: absolute;
   right: 10px;
   bottom: 10px;
-  border: 1px solid #d6f0dd;
-  background: #effcf4;
+  border: 0;
+  background: #dcfce7;
   color: #0e9f44;
   border-radius: 8px;
   min-width: 28px;
   height: 28px;
-  font-size: 13px;
+  font-size: 15px;
   cursor: pointer;
 }
 

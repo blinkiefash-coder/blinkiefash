@@ -1,8 +1,10 @@
 import "./Shop.css";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
+  MdClose,
   MdFavoriteBorder,
+  MdFavorite,
   MdGridView,
   MdKeyboardArrowDown,
   MdLocationOn,
@@ -10,6 +12,9 @@ import {
   MdOutlineShoppingCart,
   MdPersonOutline,
   MdSearch,
+  MdSell,
+  MdLocalFireDepartment,
+  MdCheckroom,
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
@@ -28,6 +33,7 @@ const COLORS = [
 ];
 
 const API_BASE = API_API_BASE_URL;
+const RECENT_SEARCH_KEY = "bfw_recent_searches";
 
 const resolveImageUrl = (raw) => {
   const value = (raw ?? "").toString().trim();
@@ -73,6 +79,9 @@ export default function Shop() {
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState([]);
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
@@ -80,6 +89,7 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
+  const searchBlurTimerRef = useRef(null);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -115,6 +125,15 @@ export default function Shop() {
 
   const activeCategory =
     categories.find((item) => toCategoryKey(item.id) === toCategoryKey(activeCategoryId)) || null;
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
+      setRecentSearches(Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : []);
+    } catch {
+      setRecentSearches([]);
+    }
+  }, []);
 
   const normalizeText = (value) =>
     String(value || "").trim().toLowerCase();
@@ -352,9 +371,85 @@ export default function Shop() {
     navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
   };
 
+  const saveRecentSearch = (rawValue) => {
+    const value = String(rawValue || "").trim();
+    if (!value) return;
+
+    const deduped = [value, ...recentSearches.filter((item) => normalizeText(item) !== normalizeText(value))].slice(0, 8);
+    setRecentSearches(deduped);
+    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(deduped));
+  };
+
+  const updateSearchSuggestions = (value) => {
+    const query = String(value || "").trim();
+    if (!query) {
+      const trending = brands.slice(0, 4).map((brand) => ({ text: brand.name, type: "Trending" }));
+      const recents = recentSearches.map((item) => ({ text: item, type: "Recent search" }));
+      setSearchSuggestions([...recents, ...trending].slice(0, 8));
+      return;
+    }
+
+    const q = normalizeText(query);
+    const seen = new Set();
+    const ranked = [];
+
+    const pushCandidate = (text, type) => {
+      const clean = String(text || "").trim();
+      if (!clean) return;
+      const key = `${type}:${clean.toLowerCase()}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+      ranked.push({ text: clean, type });
+    };
+
+    pushCandidate(query, "Search");
+
+    categories
+      .filter((item) => normalizeText(item.name).includes(q))
+      .slice(0, 2)
+      .forEach((item) => pushCandidate(item.name, "Category"));
+
+    brands
+      .filter((item) => normalizeText(item.name).includes(q))
+      .slice(0, 2)
+      .forEach((item) => pushCandidate(item.name, "Brand"));
+
+    products
+      .filter((item) => normalizeText(item.name).includes(q))
+      .slice(0, 3)
+      .forEach((item) => pushCandidate(item.name, "Product"));
+
+    setSearchSuggestions(ranked.slice(0, 8));
+  };
+
   const handleTopSearch = (event) => {
     event.preventDefault();
-    navigateWithFilters({ nextSearch: searchInput });
+    const value = String(searchInput || "").trim();
+    saveRecentSearch(value);
+    setShowSearchSuggestions(false);
+    navigateWithFilters({ nextSearch: value });
+  };
+
+  const handleSearchInputFocus = () => {
+    if (searchBlurTimerRef.current) {
+      clearTimeout(searchBlurTimerRef.current);
+      searchBlurTimerRef.current = null;
+    }
+    updateSearchSuggestions(searchInput);
+    setShowSearchSuggestions(true);
+  };
+
+  const handleSearchInputBlur = () => {
+    searchBlurTimerRef.current = setTimeout(() => {
+      setShowSearchSuggestions(false);
+    }, 120);
+  };
+
+  const applySuggestion = (value) => {
+    setSearchInput(value);
+    saveRecentSearch(value);
+    setShowSearchSuggestions(false);
+    navigateWithFilters({ nextSearch: value });
   };
 
   const toggleBrandFilter = (name) => {
@@ -470,17 +565,57 @@ export default function Shop() {
             </span>
           </button>
 
-          <form className="hp-header-search" onSubmit={handleTopSearch}>
+          <form className="hp-header-search catalog-mobile-search" onSubmit={handleTopSearch}>
             <MdSearch className="hp-search-icon" />
             <input
               name="q"
               value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search Ethnic Wear, Sneakers, Bags & more..."
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchInput(value);
+                updateSearchSuggestions(value);
+                if (!value.trim()) {
+                  navigateWithFilters({ nextSearch: "" });
+                }
+              }}
+              onFocus={handleSearchInputFocus}
+              onBlur={handleSearchInputBlur}
+              placeholder="Search products, brands..."
             />
+            {searchInput.trim() ? (
+              <button
+                type="button"
+                className="catalog-search-clear"
+                aria-label="Clear search"
+                onClick={() => {
+                  setSearchInput("");
+                  updateSearchSuggestions("");
+                  navigateWithFilters({ nextSearch: "" });
+                }}
+              >
+                <MdClose />
+              </button>
+            ) : null}
             <button type="submit" className="hp-search-btn" aria-label="Search products">
               <MdSearch />
             </button>
+            {showSearchSuggestions && searchSuggestions.length > 0 ? (
+              <div className="catalog-search-suggestions" role="listbox" aria-label="Search suggestions">
+                {searchSuggestions.map((item, idx) => (
+                  <button
+                    key={`${item.type}-${item.text}-${idx}`}
+                    type="button"
+                    className="catalog-suggestion-item"
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => applySuggestion(item.text)}
+                  >
+                    <MdSearch />
+                    <span className="catalog-suggestion-text">{item.text}</span>
+                    <span className="catalog-suggestion-type">{item.type}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </form>
 
           <div className="hp-header-actions">
@@ -659,11 +794,15 @@ export default function Shop() {
                 const offPercent = hasDiscount
                   ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
                   : 0;
-                const badgeType = hasDiscount
-                  ? `${offPercent}% OFF`
-                  : Number(product.id) % 3 === 0
+                const isBestseller = product.is_bestseller === true;
+                const isTryAndBuy = product.is_try_and_buy === true;
+                const badgeType = isBestseller
+                  ? "BESTSELLER"
+                  : isTryAndBuy
                     ? "Try & Buy"
-                    : "NEW";
+                    : hasDiscount
+                      ? `${offPercent}% OFF`
+                      : "+ 60 MIN";
 
                 return (
                   <article
@@ -672,7 +811,19 @@ export default function Shop() {
                     onClick={() => navigate(`/product/${product.id}`)}
                   >
                     <div className="catalog-card-top">
-                      <span className={`catalog-card-badge ${hasDiscount ? "discount" : "fresh"}`}>{badgeType}</span>
+                      <span
+                        className={`catalog-card-badge ${
+                          isBestseller
+                            ? "bestseller"
+                            : isTryAndBuy
+                              ? "try-buy"
+                              : hasDiscount
+                                ? "discount"
+                                : "fresh"
+                        }`}
+                      >
+                        {badgeType}
+                      </span>
                       <button
                         type="button"
                         className="catalog-wishlist"
@@ -687,7 +838,7 @@ export default function Shop() {
                       {product.image ? (
                         <img src={product.image} alt={product.name} />
                       ) : (
-                        <div className="catalog-no-image">No image</div>
+                        <div className="catalog-no-image"><MdCheckroom /></div>
                       )}
                     </div>
 
