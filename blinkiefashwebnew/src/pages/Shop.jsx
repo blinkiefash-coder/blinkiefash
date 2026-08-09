@@ -1,6 +1,5 @@
-import Navbar from "../components/Navbar";
-import "./shop.css";
-import { useState, useEffect } from "react";
+import "./Shop.css";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
 
@@ -16,14 +15,18 @@ const COLORS = [
   ["Grey", "#9ca3af"],
 ];
 
-const FEATURED_DEPARTMENTS = [
-  { label: "Women", image: "/images/Women-section.png" },
-  { label: "Men", image: "/images/Men-section.png" },
-  { label: "Kids", image: "/images/kids-section.png" },
-  { label: "Beauty", image: "/images/beauty-section.png" },
-  { label: "Home & Living", image: "/images/home-section.png" },
-  { label: "Bags & Accessories", image: "/images/backpack-section.png" },
-];
+const CATEGORY_ICONS = {
+  women: "/images/Women-section.png",
+  men: "/images/Men-section.png",
+  kids: "/images/kids-section.png",
+  footwear: "/images/shoes.png",
+  "bags & backpacks": "/images/backpack-section.png",
+  electronics: "/images/electronics.png",
+  beauty: "/images/beauty-section.png",
+  jewellery: "/images/jwellery.png",
+  "home & living": "/images/home-section.png",
+  all: "/images/category.png",
+};
 
 const API_BASE = API_API_BASE_URL;
 
@@ -51,18 +54,18 @@ export default function Shop() {
   const [brands, setBrands] = useState([]);
   const [childrenByParent, setChildrenByParent] = useState({});
   const [productMetaById, setProductMetaById] = useState({});
-  const [expandedCategories, setExpandedCategories] = useState({});
   const [activeCategoryId, setActiveCategoryId] = useState(null);
-  const [activeBrand, setActiveBrand] = useState(null);
-  const [activeColor, setActiveColor] = useState(null);
+  const [activeBrand, setActiveBrand] = useState([]);
+  const [activeColor, setActiveColor] = useState([]);
   const [brandSearch, setBrandSearch] = useState("");
-  const [sortBy, setSortBy] = useState("popularity");
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [sortBy, setSortBy] = useState("newest");
+  const [visibleCount, setVisibleCount] = useState(24);
+  const [showFilters, setShowFilters] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(10000);
   const [loading, setLoading] = useState(true);
-  const [expandedSections, setExpandedSections] = useState({
-    categories: true,
-    brands: true,
-  });
+  const [wishlistCount, setWishlistCount] = useState(0);
+  const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -94,34 +97,7 @@ export default function Shop() {
     return collectedIds;
   };
 
-  const activeCategory =
-    categories.find((item) => item.id === activeCategoryId) || null;
-
-  const toggleCategoryExpansion = (categoryId) => {
-    setExpandedCategories((prev) => ({
-      ...prev,
-      [categoryId]: !prev[categoryId],
-    }));
-  };
-
-  const handleCategorySelect = (category, hasChildren) => {
-    const isActive = activeCategoryId === category.id;
-    setActiveCategoryId(isActive ? null : category.id);
-
-    if (hasChildren && !expandedCategories[category.id]) {
-      setExpandedCategories((prev) => ({
-        ...prev,
-        [category.id]: true,
-      }));
-    }
-  };
-
-  const toggleSection = (section) => {
-    setExpandedSections((prev) => ({
-      ...prev,
-      [section]: !prev[section],
-    }));
-  };
+  const activeCategory = categories.find((item) => item.id === activeCategoryId) || null;
 
   const normalizeText = (value) =>
     String(value || "").trim().toLowerCase();
@@ -167,6 +143,39 @@ export default function Shop() {
       })
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!userId) {
+      setWishlistCount(0);
+      setCartCount(0);
+      return;
+    }
+
+    const loadCounts = async () => {
+      try {
+        const [wishlistRes, cartRes] = await Promise.all([
+          fetch(`${API_BASE}/wishlist/${userId}`),
+          fetch(`${API_BASE}/cart/${userId}`),
+        ]);
+        const [wishlistData, cartData] = await Promise.all([
+          wishlistRes.json(),
+          cartRes.json(),
+        ]);
+
+        setWishlistCount(Array.isArray(wishlistData.items) ? wishlistData.items.length : 0);
+        setCartCount(
+          Array.isArray(cartData.items)
+            ? cartData.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
+            : 0
+        );
+      } catch {
+        setWishlistCount(0);
+        setCartCount(0);
+      }
+    };
+
+    loadCounts();
+  }, [userId]);
 
   useEffect(() => {
     fetch(`${API_BASE}/categories`)
@@ -239,9 +248,9 @@ export default function Shop() {
     : null;
 
   const filteredProducts = products.filter((product) => {
-    if (activeBrand) {
+    if (activeBrand.length > 0) {
       const productBrand = normalizeText(product.brand || product.brand_name);
-      if (productBrand !== normalizeText(activeBrand)) {
+      if (!activeBrand.map(normalizeText).includes(productBrand)) {
         return false;
       }
     }
@@ -255,11 +264,23 @@ export default function Shop() {
       }
     }
 
-    if (activeColor) {
+    if (activeColor.length > 0) {
       const productColor = typeof product.color === "string" ? product.color : "";
-      if (productColor && productColor.trim().toLowerCase() !== activeColor.toLowerCase()) {
+      if (productColor && !activeColor.map(normalizeText).includes(productColor.trim().toLowerCase())) {
         return false;
       }
+    }
+
+    if (searchTerm.trim()) {
+      const haystack = normalizeText(`${product.name || ""} ${product.brand || product.brand_name || ""}`);
+      if (!haystack.includes(normalizeText(searchTerm))) {
+        return false;
+      }
+    }
+
+    const finalPrice = Number(product.discount_price) > 0 ? Number(product.discount_price) : Number(product.price || 0);
+    if (finalPrice > maxPrice) {
+      return false;
     }
 
     return true;
@@ -269,8 +290,13 @@ export default function Shop() {
     const priceA = Number(a.discount_price) > 0 ? Number(a.discount_price) : Number(a.price);
     const priceB = Number(b.discount_price) > 0 ? Number(b.discount_price) : Number(b.price);
 
-    if (sortBy === "price-low") return priceA - priceB;
-    if (sortBy === "price-high") return priceB - priceA;
+    if (sortBy === "price_low") return priceA - priceB;
+    if (sortBy === "price_high") return priceB - priceA;
+    if (sortBy === "newest") {
+      const createdA = new Date(a.created_at || 0).getTime();
+      const createdB = new Date(b.created_at || 0).getTime();
+      return createdB - createdA;
+    }
     if (sortBy === "discount") {
       const offA = Number(a.discount_price) > 0 && Number(a.price) > Number(a.discount_price)
         ? ((Number(a.price) - Number(a.discount_price)) / Number(a.price)) * 100
@@ -288,46 +314,21 @@ export default function Shop() {
     brand.name.toLowerCase().includes(brandSearch.toLowerCase())
   );
 
-  const renderCategoryTree = (parentId = "ROOT", depth = 0) => {
-    const categoryList = getChildren(parentId);
+  const topCategoryStrip = useMemo(() => {
+    const roots = getChildren("ROOT").slice(0, 9);
+    return [{ id: null, name: "All" }, ...roots];
+  }, [childrenByParent]);
 
-    return categoryList.map((category) => {
-      const isActive = activeCategoryId === category.id;
-      const nestedChildren = getChildren(category.id);
-      const hasChildren = nestedChildren.length > 0;
-      const isExpanded = !!expandedCategories[category.id];
+  const toggleBrandFilter = (name) => {
+    setActiveBrand((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
+  };
 
-      return (
-        <div key={category.id} className="category-node">
-          <div className={`filter-option-row depth-${depth}`} style={{ paddingLeft: `${depth * 12}px` }}>
-            {hasChildren ? (
-              <button
-                type="button"
-                className="category-toggle"
-                onClick={() => toggleCategoryExpansion(category.id)}
-                aria-label={`${isExpanded ? "Collapse" : "Expand"} ${category.name}`}
-              >
-                {isExpanded ? "-" : "+"}
-              </button>
-            ) : (
-              <span className="category-toggle-spacer" />
-            )}
-
-            <div
-              className={`filter-option ${isActive ? "active" : ""}`}
-              onClick={() => handleCategorySelect(category, hasChildren)}
-            >
-              <span>{category.name}</span>
-              {hasChildren ? (
-                <small className="children-count">{nestedChildren.length}</small>
-              ) : null}
-            </div>
-          </div>
-
-          {hasChildren && isExpanded ? renderCategoryTree(category.id, depth + 1) : null}
-        </div>
-      );
-    });
+  const toggleColorFilter = (name) => {
+    setActiveColor((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
   };
 
   const resolveAvailableVariantId = async (product) => {
@@ -373,6 +374,7 @@ export default function Shop() {
       }
 
       window.dispatchEvent(new Event("wishlist:updated"));
+      setWishlistCount((count) => count + 1);
       alert("Added to wishlist");
     } catch {
       alert("Unable to add to wishlist right now");
@@ -407,6 +409,7 @@ export default function Shop() {
       }
 
       window.dispatchEvent(new Event("cart:updated"));
+      setCartCount((count) => count + 1);
       alert("Added to cart");
     } catch {
       alert("Unable to add to cart right now");
@@ -414,319 +417,229 @@ export default function Shop() {
   };
 
   return (
-    <>
-      <div className="shop-navbar-wrapper">
-        <Navbar />
-      </div>
+    <div className="catalog-page">
+      <header className="catalog-header">
+        <div className="catalog-top-row">
+          <button className="catalog-logo" onClick={() => navigate("/")} type="button">
+            <img src="/images/logo.png" alt="Blinkiefash" />
+          </button>
 
-      <div className="shop-page">
-        <div className="shop-featured-row">
-          {FEATURED_DEPARTMENTS.map((department) => (
-            <div key={department.label} className="shop-featured-tile">
-              <div className="shop-featured-image-wrap">
-                <img src={department.image} alt={department.label} className="shop-featured-image" />
-              </div>
-              <div>
-                <h4>{department.label}</h4>
-                <p>Explore →</p>
-              </div>
-            </div>
-          ))}
+          <div className="catalog-search-wrap">
+            <input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="catalog-search"
+              placeholder="Search for products, brands and more..."
+            />
+            <button type="button" className="catalog-search-btn">Search</button>
+          </div>
+
+          <div className="catalog-actions">
+            <button type="button" onClick={() => navigate("/account")}>My Account</button>
+            <button type="button" onClick={() => navigate("/wishlist")}>
+              Wishlist
+              {wishlistCount > 0 ? <span>{wishlistCount}</span> : null}
+            </button>
+            <button type="button" onClick={() => navigate("/cart")}>
+              Cart
+              {cartCount > 0 ? <span>{cartCount}</span> : null}
+            </button>
+          </div>
         </div>
 
-        <div className="shop-layout">
-          <aside className="shop-filters">
-            <div className="shop-filters-inner">
-              <h4 className="shop-filter-title">FILTERS</h4>
+        <nav className="catalog-nav-row">
+          {topCategoryStrip.slice(0, 10).map((category) => (
+            <button
+              key={category.id || "all-tab"}
+              type="button"
+              className={`catalog-nav-item ${(category.id || null) === activeCategoryId ? "active" : ""}`}
+              onClick={() => setActiveCategoryId(category.id || null)}
+            >
+              {category.name}
+            </button>
+          ))}
+        </nav>
+      </header>
 
-              <div className="shop-filter-group">
-                <div className="filter-section-header">
-                  <button
-                    type="button"
-                    className="section-toggle"
-                    onClick={() => toggleSection('categories')}
-                    aria-label="Toggle Categories"
-                  >
-                    {expandedSections.categories ? "-" : "+"}
-                  </button>
-                  <h5>Categories</h5>
-                </div>
-                {expandedSections.categories && renderCategoryTree()}
-              </div>
+      <main className="catalog-main">
+        <div className="catalog-headline-row">
+          <div>
+            <h2>All Products</h2>
+            <p>Showing 1 - {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length} products</p>
+          </div>
+          <div className="catalog-controls">
+            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <option value="newest">Sort by: Newest First</option>
+              <option value="price_low">Sort by: Price Low to High</option>
+              <option value="price_high">Sort by: Price High to Low</option>
+              <option value="discount">Sort by: Highest Discount</option>
+            </select>
+            <button type="button" onClick={() => setShowFilters((prev) => !prev)}>Filter</button>
+          </div>
+        </div>
 
-              <div className="shop-filter-group">
-                <div className="filter-section-header">
-                  <button
-                    type="button"
-                    className="section-toggle"
-                    onClick={() => toggleSection('brands')}
-                    aria-label="Toggle Brands"
-                  >
-                    {expandedSections.brands ? "-" : "+"}
-                  </button>
-                  <h5>Brand</h5>
-                </div>
-                {expandedSections.brands && (
-                  <>
+        <div className="catalog-category-strip">
+          <input
+            className="catalog-inline-search"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search products, brands..."
+          />
+          <div className="catalog-round-list">
+            {topCategoryStrip.map((category) => {
+              const key = normalizeText(category.name);
+              const image = CATEGORY_ICONS[key] || "/images/category.png";
+              const isActive = (category.id || null) === activeCategoryId;
+
+              return (
+                <button
+                  key={category.id || "all-round"}
+                  type="button"
+                  className={`catalog-round-item ${isActive ? "active" : ""}`}
+                  onClick={() => setActiveCategoryId(category.id || null)}
+                >
+                  <span className="catalog-round-image-wrap">
+                    <img src={image} alt={category.name} />
+                  </span>
+                  <span>{category.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {showFilters ? (
+          <section className="catalog-filters-panel">
+            <div className="catalog-filter-col">
+              <h4>Brand</h4>
+              <input
+                className="catalog-filter-search"
+                value={brandSearch}
+                onChange={(e) => setBrandSearch(e.target.value)}
+                placeholder="Search brand"
+              />
+              <div className="catalog-filter-list">
+                {visibleBrands.slice(0, 15).map((brand) => (
+                  <label key={brand.id}>
                     <input
-                      type="text"
-                      className="brand-search"
-                      placeholder="Search brand"
-                      value={brandSearch}
-                      onChange={(e) => setBrandSearch(e.target.value)}
+                      type="checkbox"
+                      checked={activeBrand.includes(brand.name)}
+                      onChange={() => toggleBrandFilter(brand.name)}
                     />
-                    {visibleBrands.map((brand) => {
-                  const isActive = activeBrand === brand.name;
-                  return (
-                    <label
-                      key={brand.id}
-                      className={`brand-check-option ${isActive ? "active" : ""}`}
-                      onClick={() =>
-                        setActiveBrand(isActive ? null : brand.name)
-                      }
-                    >
-                      <input type="checkbox" checked={isActive} readOnly />
-                      <span>{brand.name}</span>
-                    </label>
-                  );
-                    })}
-                  </>
-                )}
-              </div>
-
-              <div className="shop-filter-group">
-                <h5>Price Range</h5>
-                <input
-                  type="range"
-                  min="100"
-                  max="10100"
-                  step="100"
-                  defaultValue="10100"
-                  className="price-slider"
-                />
-                <div className="price-range-text">₹100 - ₹10,100+</div>
-                <div className="price-pill-grid">
-                  <span className="price-pill">₹199 - ₹999</span>
-                  <span className="price-pill">₹999 - ₹2999</span>
-                  <span className="price-pill">₹2999 - ₹4999</span>
-                  <span className="price-pill">₹4999+</span>
-                </div>
-              </div>
-
-              <div className="shop-filter-group">
-                <h5>Color</h5>
-                <div className="color-grid">
-                  {COLORS.map(([name, color]) => (
-                    <div
-                      key={name}
-                      className={`color-option ${activeColor === name ? "active" : ""}`}
-                      onClick={() =>
-                        setActiveColor(activeColor === name ? null : name)
-                      }
-                    >
-                      <span
-                        className="color-dot"
-                        style={{ background: color }}
-                      />
-                      <span>{name}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="shop-filter-group">
-                <h5>Discount</h5>
-                <div className="discount-list">
-                  {["10% and above", "20% and above", "30% and above", "40% and above", "50% and above"].map((item) => (
-                    <label key={item} className="discount-option">
-                      <input type="checkbox" />
-                      <span>{item}</span>
-                    </label>
-                  ))}
-                </div>
+                    <span>{brand.name}</span>
+                  </label>
+                ))}
               </div>
             </div>
-          </aside>
 
-          <section className="shop-products">
-            <div className="shop-products-header">
-              <div>
-                <h2 className="shop-title">All Products</h2>
-                <p className="shop-count">
-                  {activeCategory
-                    ? `Selected: ${activeCategory.name} - Showing 1-${visibleProducts.length} of ${sortedProducts.length} products`
-                    : `Showing 1-${visibleProducts.length} of ${sortedProducts.length} products`}
-                </p>
+            <div className="catalog-filter-col">
+              <h4>Color</h4>
+              <div className="catalog-filter-list">
+                {COLORS.map(([name]) => (
+                  <label key={name}>
+                    <input
+                      type="checkbox"
+                      checked={activeColor.includes(name.toLowerCase()) || activeColor.includes(name)}
+                      onChange={() => toggleColorFilter(name)}
+                    />
+                    <span>{name}</span>
+                  </label>
+                ))}
               </div>
-
-              <select className="shop-sort" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                <option value="popularity">Sort by: Popularity</option>
-                <option value="price-low">Price: Low to High</option>
-                <option value="price-high">Price: High to Low</option>
-                <option value="discount">Discount</option>
-              </select>
             </div>
 
-            <div className="shop-chip-row">
-              <button type="button" className={`shop-chip ${sortBy === "popularity" ? "active" : ""}`} onClick={() => setSortBy("popularity")}>Popular</button>
-              <button type="button" className="shop-chip">New Arrivals</button>
-              <button type="button" className={`shop-chip ${sortBy === "price-low" ? "active" : ""}`} onClick={() => setSortBy("price-low")}>Price: Low to High</button>
-              <button type="button" className={`shop-chip ${sortBy === "price-high" ? "active" : ""}`} onClick={() => setSortBy("price-high")}>Price: High to Low</button>
-              <button type="button" className={`shop-chip ${sortBy === "discount" ? "active" : ""}`} onClick={() => setSortBy("discount")}>Discount</button>
-              <button type="button" className="shop-chip">Customer Rating</button>
+            <div className="catalog-filter-col">
+              <h4>Price</h4>
+              <input
+                type="range"
+                min="500"
+                max="12000"
+                step="100"
+                value={maxPrice}
+                onChange={(e) => setMaxPrice(Number(e.target.value))}
+              />
+              <p>Up to Rs. {maxPrice.toLocaleString("en-IN")}</p>
             </div>
+          </section>
+        ) : null}
 
-            <div className="shop-products-grid">
-              {loading
-                ? Array.from({ length: 8 }).map((_, i) => (
-                    <div key={i} className="shop-product-skeleton">
-                      <div className="skeleton-image" />
-                      <div className="skeleton-line skeleton-name" />
-                      <div className="skeleton-line skeleton-brand" />
-                      <div className="skeleton-line skeleton-price" />
-                    </div>
-                  ))
-                : visibleProducts.map((p) => {
-                const originalPrice = Number(p.price);
-                const discountPrice = Number(p.discount_price);
-
-                const hasDiscount =
-                  discountPrice && discountPrice < originalPrice;
-
+        <section className="catalog-products-grid">
+          {loading
+            ? Array.from({ length: 12 }).map((_, index) => (
+                <div key={`skeleton-${index}`} className="catalog-product-skeleton" />
+              ))
+            : visibleProducts.map((product) => {
+                const originalPrice = Number(product.price || 0);
+                const salePrice = Number(product.discount_price || 0) > 0
+                  ? Number(product.discount_price)
+                  : originalPrice;
+                const hasDiscount = salePrice < originalPrice;
                 const offPercent = hasDiscount
-                  ? Math.round(
-                      ((originalPrice - discountPrice) / originalPrice) * 100
-                    )
+                  ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
                   : 0;
-                const rating = (4 + ((p.name?.length || 0) % 10) / 10).toFixed(1);
-                const reviews = (p.name?.length || 10) * 110;
+                const badgeType = hasDiscount
+                  ? `${offPercent}% OFF`
+                  : Number(product.id) % 3 === 0
+                    ? "Try & Buy"
+                    : "NEW";
 
                 return (
-                  <div
-                    key={`${p.id}-${p.variant_id || ''}-${p.color || ''}-${p.image || ''}`}
-                    className="shop-product-card"
-                    onClick={() => navigate(`/product/${p.id}`)}
-                    style={{ cursor: "pointer" }}
+                  <article
+                    key={`${product.id}-${product.variant_id || ""}-${product.image || ""}`}
+                    className="catalog-product-card"
+                    onClick={() => navigate(`/product/${product.id}`)}
                   >
-                    <div className="shop-product-image">
+                    <div className="catalog-card-top">
+                      <span className={`catalog-card-badge ${hasDiscount ? "discount" : "fresh"}`}>{badgeType}</span>
                       <button
                         type="button"
-                        className="wishlist-btn"
-                        onClick={(e) => handleAddToWishlist(e, p)}
+                        className="catalog-wishlist"
+                        onClick={(event) => handleAddToWishlist(event, product)}
                       >
-                        ♡
+                        heart
                       </button>
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} />
+                    </div>
+
+                    <div className="catalog-card-image-wrap">
+                      {product.image ? (
+                        <img src={product.image} alt={product.name} />
                       ) : (
-                        <div className="no-image">No Image</div>
-                      )}
-                      {hasDiscount && (
-                        <span className="card-badge">{offPercent}% OFF</span>
+                        <div className="catalog-no-image">No image</div>
                       )}
                     </div>
 
-                    <div className="card-meta">
-                      <span className="card-brand">{p.brand}</span>
-                      <h4 className="card-name">{p.name}</h4>
+                    <div className="catalog-card-body">
+                      <small>{product.brand || "Brand"}</small>
+                      <h3>{product.name}</h3>
+                      <p className="catalog-card-sub">
+                        {product.color || "Multi color"}
+                      </p>
 
-                      <div className="shop-price-row">
-                        {hasDiscount ? (
-                          <>
-                            <span className="shop-price-final">₹{discountPrice.toLocaleString('en-IN')}</span>
-                            <span className="shop-price-original">₹{originalPrice.toLocaleString('en-IN')}</span>
-                          </>
-                        ) : (
-                          <span className="shop-price-final">₹{originalPrice.toLocaleString('en-IN')}</span>
-                        )}
+                      <div className="catalog-card-price-row">
+                        <strong>Rs.{salePrice.toLocaleString("en-IN")}</strong>
+                        {hasDiscount ? <span>Rs.{originalPrice.toLocaleString("en-IN")}</span> : null}
                       </div>
+                      {hasDiscount ? <p className="catalog-card-off">{offPercent}% OFF</p> : null}
 
-                      <div className="rating-row">
-                        <span className="rating-star">★</span>
-                        <span>{rating}</span>
-                        <span className="rating-count">({(reviews / 1000).toFixed(1)}k)</span>
-                      </div>
-
-                      <div className="shop-card-actions">
-                        <button
-                          type="button"
-                          className="shop-card-cart-btn"
-                          onClick={(e) => handleAddToCart(e, p)}
-                        >
-                          Add to Cart
-                        </button>
-                      </div>
+                      <button
+                        type="button"
+                        className="catalog-card-cart"
+                        onClick={(event) => handleAddToCart(event, product)}
+                      >
+                        cart
+                      </button>
                     </div>
-                  </div>
+                  </article>
                 );
               })}
-            </div>
+        </section>
 
-            {!loading && visibleCount < sortedProducts.length && (
-              <button
-                type="button"
-                className="view-more-btn"
-                onClick={() => setVisibleCount((prev) => prev + 20)}
-              >
-                View More Products
-              </button>
-            )}
-
-            <section className="shop-trust-strip">
-              <div className="trust-item"><strong>60 MINUTE DELIVERY</strong><span>On all orders</span></div>
-              <div className="trust-item"><strong>TRY BEFORE YOU BUY</strong><span>Only pay for what you keep</span></div>
-              <div className="trust-item"><strong>100% SECURE PAYMENTS</strong><span>Safe and trusted</span></div>
-              <div className="trust-item"><strong>EASY RETURNS & REFUNDS</strong><span>Hassle free returns</span></div>
-              <div className="trust-item"><strong>NEED HELP?</strong><span>Chat with us</span></div>
-            </section>
-
-            <footer className="shop-bottom-bar">
-              <div className="shop-bottom-content">
-                <div className="footer-brand-col">
-                  <h3>BLINKIEFASH</h3>
-                  <p>Fashion at your doorstep, FAST.</p>
-                </div>
-
-                <div className="footer-col">
-                  <h4>Company</h4>
-                  <span>About Us</span>
-                  <span>Careers</span>
-                  <span>Blog</span>
-                  <span>Press</span>
-                </div>
-
-                <div className="footer-col">
-                  <h4>Customer Service</h4>
-                  <span>Contact Us</span>
-                  <span>FAQs</span>
-                  <span>Shipping & Delivery</span>
-                  <span>Returns & Refunds</span>
-                </div>
-
-                <div className="footer-col">
-                  <h4>Policies</h4>
-                  <span>Terms & Conditions</span>
-                  <span onClick={() => navigate("/privacy-policy")} style={{ cursor: "pointer" }}>Privacy Policy</span>
-                  <span>Cancellation Policy</span>
-                  <span>E-Waste Policy</span>
-                </div>
-
-                <div className="footer-col">
-                  <h4>Follow Us</h4>
-                  <span>Instagram</span>
-                  <span>Facebook</span>
-                  <span>YouTube</span>
-                  <span>WhatsApp</span>
-                </div>
-              </div>
-
-              <div className="shop-bottom-copy">
-                © 2026 BlinkieFash. All rights reserved.
-              </div>
-            </footer>
-          </section>
-        </div>
-      </div>
-    </>
+        {!loading && visibleCount < sortedProducts.length ? (
+          <button type="button" className="catalog-load-more" onClick={() => setVisibleCount((prev) => prev + 24)}>
+            Loading more products... Scroll to explore more
+          </button>
+        ) : null}
+      </main>
+    </div>
   );
 }
