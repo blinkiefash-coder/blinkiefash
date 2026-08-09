@@ -50,6 +50,7 @@ export default function App() {
   const { pathname } = useLocation();
   const isHome = pathname === '/';
   const isVendorArea = pathname.startsWith('/vendor');
+  const isCatalogPage = pathname === '/shop' || pathname === '/catalog' || pathname === '/women';
   const isInfoPage = [
     '/company',
     '/customer-service',
@@ -63,10 +64,12 @@ export default function App() {
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   return (
-    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}`}>
+    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}`}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
+        <Route path="/catalog" element={<Shop />} />
+        <Route path="/women" element={<Shop />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
@@ -111,7 +114,7 @@ export default function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
-      {!isHome && !isVendorArea && !isInfoPage && <BottomNav />}
+      {!isHome && !isVendorArea && !isInfoPage && !isCatalogPage && <BottomNav />}
     </div>
   );
 }
