@@ -41,11 +41,11 @@ export default function Footer() {
         <div className="footer-col">
           <h3 onClick={() => navigate("/policies")}>POLICIES</h3>
           <ul>
-            <li onClick={() => navigate("/policies")}>Privacy Policy</li>
+            <li onClick={() => navigate("/privacy-policy")}>Privacy Policy</li>
             <li onClick={() => navigate("/policies")}>Terms of Service</li>
             <li onClick={() => navigate("/policies")}>Cancellation Policy</li>
             <li onClick={() => navigate("/policies")}>EPR Compliance</li>
-            <li className="footer-seller-link" onClick={() => navigate("/vendor")}>Become a Seller</li>
+            <li className="footer-seller-link" onClick={() => navigate("/vendor")}>Become a Vendor</li>
           </ul>
         </div>
 

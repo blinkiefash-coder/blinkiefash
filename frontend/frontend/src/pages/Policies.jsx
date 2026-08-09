@@ -7,7 +7,7 @@ export default function Policies() {
 
   return (
     <div className="info-page policies-page">
-      <header className="info-header" onClick={() => navigate("/home")} style={{ cursor: "pointer" }}>
+      <header className="info-header" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
         <img src={logo} alt="Blinkiefash" />
         <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
       </header>
@@ -25,7 +25,7 @@ export default function Policies() {
         </section>
 
         <section className="info-grid">
-          <article className="info-card">
+          <article className="info-card" onClick={() => navigate("/privacy-policy")} style={{ cursor: "pointer" }}>
             <h5>Privacy Policy</h5>
             <p className="sub">Your privacy matters to us</p>
             <p>BLINKIEFASH collects only necessary information to provide secure shopping services.</p>
@@ -70,7 +70,7 @@ export default function Policies() {
 
         <section className="info-banner info-commitment">
           <p><strong>Our Commitment</strong> We follow fair practices, protect your information, and ensure a smooth shopping experience. Safe. Secure. Reliable.</p>
-          <button className="info-chat-btn" type="button" onClick={() => navigate("/home")}>Back to Home</button>
+          <button className="info-chat-btn" type="button" onClick={() => navigate("/")}>Back to Home</button>
         </section>
       </main>
     </div>
