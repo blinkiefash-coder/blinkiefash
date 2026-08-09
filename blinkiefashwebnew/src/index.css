@@ -65,6 +65,20 @@ img {
   }
 }
 
+.app-shell.is-home {
+  max-width: none;
+  box-shadow: none;
+  padding-bottom: 0;
+}
+
+.app-shell.is-vendor {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  width: 100%;
+}
+
 .page {
   padding: 14px 16px 24px;
 }

@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -10,10 +10,41 @@ import Orders from './pages/Orders';
 import Account from './pages/Account';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import ComingSoon from './pages/ComingSoon';
+import VendorAuth from './pages/VendorAuth';
+import SellerRegistration from './pages/SellerRegistration';
+import VendorStore from './pages/VendorStore';
+import VendorOrders from './pages/VendorOrders';
+import StockMonitoring from './pages/StockMonitoring';
+import AddProduct from './pages/AddProduct';
+import EditProduct from './pages/EditProduct';
+import ProductAnalytics from './pages/ProductAnalytics';
+import VendorProfile from './pages/VendorProfile';
+import { hasVendorPasswordAuth } from './utils/vendorSession';
+import { isAdmin } from './utils/adminSession';
+
+function RequireVendorOrAdmin({ children }) {
+  if (isAdmin() || hasVendorPasswordAuth()) {
+    return children;
+  }
+  return <Navigate to="/vendor" replace />;
+}
+
+function RequireAdmin({ children }) {
+  if (isAdmin()) {
+    return children;
+  }
+  return <Navigate to="/vendor" replace />;
+}
 
 export default function App() {
+  const { pathname } = useLocation();
+  const isHome = pathname === '/';
+  const isVendorArea = pathname.startsWith('/vendor');
+  const vendorAuthOk = hasVendorPasswordAuth() || localStorage.getItem('is_admin') === 'true';
+
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}`}>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -25,8 +56,50 @@ export default function App() {
         <Route path="/account" element={<Account />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route
+          path="/notifications"
+          element={<ComingSoon title="Notifications" emoji="🔔" description="No new notifications yet." />}
+        />
+        <Route
+          path="/spin-wheel"
+          element={<ComingSoon title="Spin & Win" emoji="🎡" description="The spin wheel is coming soon." />}
+        />
+        <Route
+          path="/play-and-win"
+          element={<ComingSoon title="Play & Win" emoji="🎮" description="Fashion quest is coming soon." />}
+        />
+        <Route
+          path="/refer-earn"
+          element={<ComingSoon title="Refer & Earn" emoji="🎁" description="Referral rewards are coming soon." />}
+        />
+        <Route path="/vendor" element={<VendorAuth />} />
+        <Route path="/vendor/register" element={<SellerRegistration />} />
+        <Route path="/vendor/add-product" element={<RequireVendorOrAdmin><AddProduct /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/stock-monitoring" element={<RequireVendorOrAdmin><StockMonitoring /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/product-analytics" element={<RequireVendorOrAdmin><ProductAnalytics /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/orders" element={<RequireVendorOrAdmin><VendorOrders /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/edit-product" element={<RequireVendorOrAdmin><EditProduct /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/insights" element={<RequireAdmin><VendorProfile /></RequireAdmin>} />
+        <Route path="/vendor/profile" element={<RequireVendorOrAdmin><VendorProfile /></RequireVendorOrAdmin>} />
+        <Route path="/vendor/:identifier" element={<VendorStore />} />
+        <Route
+          path="/privacy-policy"
+          element={<ComingSoon title="Privacy Policy" emoji="🔐" description="Policy details are coming soon." />}
+        />
+        <Route
+          path="/policies"
+          element={<ComingSoon title="Policies" emoji="📄" description="Company policies are coming soon." />}
+        />
+        <Route
+          path="/customer-service"
+          element={<ComingSoon title="Customer Service" emoji="☎️" description="Support content is coming soon." />}
+        />
+        <Route
+          path="/company"
+          element={<ComingSoon title="Company" emoji="🏢" description="Company information is coming soon." />}
+        />
       </Routes>
-      <BottomNav />
+      {!isHome && !isVendorArea && <BottomNav />}
     </div>
   );
 }

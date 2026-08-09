@@ -1,0 +1,362 @@
+.vendor-page {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fafafa 40%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+/* Page background */
+.vendor-page {
+  min-height: 100vh;
+  width: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(34, 197, 94, 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(15, 23, 42, 0.08), transparent 22%),
+    linear-gradient(180deg, #eefdf3 0%, #f8fafc 45%, #f8fafc 100%);
+  display: grid;
+  place-items: stretch center;
+  padding: 28px;
+}
+
+.vendor-hero-panel {
+  width: min(1120px, 100%);
+  min-height: calc(100vh - 108px);
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(340px, 440px);
+  gap: 28px;
+  align-items: center;
+}
+
+.vendor-hero-copy {
+  padding: 32px 8px 32px 0;
+  color: #0f172a;
+}
+
+.vendor-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  margin-bottom: 18px;
+}
+
+.vendor-hero-copy h1 {
+  font-size: clamp(34px, 5vw, 58px);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+  max-width: 10.5ch;
+  margin-bottom: 16px;
+}
+
+.vendor-hero-copy p {
+  font-size: 16px;
+  line-height: 1.65;
+  color: #475569;
+  max-width: 54ch;
+}
+
+.vendor-hero-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 28px;
+  max-width: 520px;
+}
+
+.vendor-hero-stats div {
+  background: rgba(255, 255, 255, 0.68);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 16px 14px;
+  box-shadow: 0 18px 30px rgba(15, 23, 42, 0.06);
+}
+
+.vendor-hero-stats strong {
+  display: block;
+  font-size: 18px;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.vendor-hero-stats span {
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+/* Card */
+.vendor-card {
+  width: 100%;
+  max-width: 440px;
+  justify-self: end;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(16px);
+  border-radius: 24px;
+  padding: 34px;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
+  border: 1px solid rgba(229, 231, 235, 0.9);
+}
+
+/* Heading */
+.vendor-card h2 {
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+
+.vendor-subtext,
+.vendor-register-link {
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 20px;
+}
+
+/* Form */
+.vendor-card form {
+  display: flex;
+  flex-direction: column;
+}
+
+.vendor-card label {
+  font-size: 13px;
+  margin-bottom: 4px;
+  margin-top: 12px;
+}
+
+/* Inputs */
+.vendor-card input {
+  padding: 13px 14px;
+  border-radius: 12px;
+  border: 1px solid #c9f7d8;
+  outline: none;
+  font-size: 14px;
+  background: #fff;
+}
+
+/* Button */
+.vendor-card button {
+  margin-top: 20px;
+  padding: 13px 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 16px 30px rgba(34, 197, 94, 0.22);
+}
+
+.vendor-card button:hover {
+  transform: translateY(-1px);
+}
+
+.vendor-register-link {
+  margin-top: 14px;
+  font-size: 14px;
+  text-align: center;
+}
+
+.vendor-register-link a {
+  color: #15803d;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.vendor-register-link a:hover {
+  text-decoration: underline;
+}
+
+/* Success state */
+.vendor-success {
+  text-align: center;
+}
+
+.vendor-success h3 {
+  color: #22c55e;
+  margin-bottom: 10px;
+}
+
+/* ─────────────────────────────────────────────────────────── */
+/* MOBILE RESPONSIVE STYLES */
+/* ─────────────────────────────────────────────────────────── */
+
+/* TABLET: 768px - 1024px */
+@media (max-width: 1024px) {
+  .vendor-page {
+    padding: 18px;
+  }
+
+  .vendor-hero-panel {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    min-height: calc(100vh - 72px);
+  }
+
+  .vendor-hero-copy {
+    padding-right: 0;
+  }
+
+  .vendor-card {
+    max-width: 100%;
+    justify-self: stretch;
+  }
+
+  .vendor-hero-copy h1 {
+    max-width: none;
+  }
+
+  .vendor-hero-stats {
+    max-width: none;
+  }
+}
+
+/* MOBILE: 481px - 767px */
+@media (max-width: 768px) {
+  .vendor-page {
+    padding: 16px;
+  }
+
+  .vendor-hero-panel {
+    min-height: calc(100vh - 56px);
+  }
+
+  .vendor-hero-copy h1 {
+    font-size: 32px;
+  }
+
+  .vendor-hero-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .vendor-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 20px;
+    border-radius: 12px;
+  }
+
+  .vendor-card h2 {
+    font-size: 20px;
+    margin-bottom: 4px;
+  }
+
+  .vendor-subtext {
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  .vendor-card label {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  .vendor-card input {
+    padding: 10px;
+    font-size: 14px;
+    min-height: 42px;
+    border-radius: 6px;
+  }
+
+  .vendor-card button {
+    margin-top: 16px;
+    padding: 10px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+
+  .vendor-register-link {
+    margin-top: 12px;
+    font-size: 12px;
+  }
+
+  .vendor-error {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+}
+
+/* SMALL MOBILE: <= 480px */
+@media (max-width: 480px) {
+  .vendor-page {
+    padding: 12px;
+  }
+
+  .vendor-hero-panel {
+    min-height: calc(100vh - 48px);
+  }
+
+  .vendor-hero-copy h1 {
+    font-size: 28px;
+  }
+
+  .vendor-card {
+    padding: 16px;
+    border-radius: 10px;
+  }
+
+  .vendor-card h2 {
+    font-size: 18px;
+    margin-bottom: 8px;
+  }
+
+  .vendor-subtext {
+    font-size: 11px;
+    margin-bottom: 14px;
+  }
+
+  .vendor-card label {
+    font-size: 11px;
+    margin-top: 8px;
+  }
+
+  .vendor-card input {
+    padding: 8px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+
+  .vendor-card button {
+    margin-top: 14px;
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .vendor-register-link {
+    margin-top: 10px;
+    font-size: 11px;
+  }
+
+  .vendor-error {
+    font-size: 11px;
+    margin: 6px 0;
+  }
+}
+
+/* EXTRA SMALL: <= 360px */
+@media (max-width: 360px) {
+  .vendor-card {
+    padding: 14px;
+  }
+
+  .vendor-card h2 {
+    font-size: 16px;
+  }
+
+  .vendor-card input {
+    font-size: 13px;
+    min-height: 36px;
+  }
+
+  .vendor-card button {
+    font-size: 12px;
+  }
+}
