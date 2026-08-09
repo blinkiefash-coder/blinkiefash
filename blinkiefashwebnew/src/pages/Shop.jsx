@@ -87,6 +87,7 @@ export default function Shop() {
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
   const searchBlurTimerRef = useRef(null);
+  const searchSuggestTimerRef = useRef(null);
 
   useEffect(() => {
     const previousBodyOverflow = document.body.style.overflow;
@@ -134,6 +135,25 @@ export default function Shop() {
 
   const normalizeSearchText = (value) =>
     normalizeText(value).replace(/[^a-z0-9]/g, "");
+
+  const rankedMatches = (items, query, limit, getter) => {
+    const prefix = [];
+    const contains = [];
+    const lower = normalizeText(query);
+
+    for (const item of items) {
+      const text = normalizeText(getter(item));
+      if (!text) continue;
+      if (text.startsWith(lower)) {
+        prefix.push(item);
+      } else if (text.includes(lower)) {
+        contains.push(item);
+      }
+      if (prefix.length >= limit) break;
+    }
+
+    return [...prefix, ...contains].slice(0, limit);
+  };
 
   const extractProducts = (payload) => {
     if (Array.isArray(payload)) return payload;
@@ -392,45 +412,89 @@ export default function Shop() {
   };
 
   const updateSearchSuggestions = (value) => {
+    if (searchSuggestTimerRef.current) {
+      clearTimeout(searchSuggestTimerRef.current);
+      searchSuggestTimerRef.current = null;
+    }
+
     const query = String(value || "").trim();
     if (!query) {
-      const trending = brands.slice(0, 4).map((brand) => ({ text: brand.name, type: "Trending" }));
-      const recents = recentSearches.map((item) => ({ text: item, type: "Recent search" }));
-      setSearchSuggestions([...recents, ...trending].slice(0, 8));
+      searchSuggestTimerRef.current = setTimeout(async () => {
+        const recentsFallback = recentSearches.map((item) => ({ text: item, type: "search", subtitle: "Recent search" }));
+        try {
+          const userIdParam = localStorage.getItem("userUuid") || "";
+          const response = await fetch(
+            `${API_BASE}/analytics/suggestions?user_id=${encodeURIComponent(userIdParam)}&limit=5`
+          );
+          const data = await response.json();
+
+          const results = [];
+          const seen = new Set();
+          const pushResult = (text, subtitle) => {
+            const clean = String(text || "").trim();
+            if (!clean) return;
+            const key = clean.toLowerCase();
+            if (seen.has(key)) return;
+            seen.add(key);
+            results.push({ text: clean, type: "search", subtitle });
+          };
+
+          (Array.isArray(data?.recentSearches) ? data.recentSearches : []).forEach((text) => pushResult(text, "Recent search"));
+          (Array.isArray(data?.trendingSearches) ? data.trendingSearches : []).forEach((text) => pushResult(text, "Trending"));
+
+          if (results.length === 0) {
+            setSearchSuggestions(recentsFallback.slice(0, 8));
+          } else {
+            setSearchSuggestions(results.slice(0, 8));
+          }
+        } catch {
+          setSearchSuggestions(recentsFallback.slice(0, 8));
+        }
+      }, 50);
       return;
     }
 
-    const q = normalizeText(query);
-    const seen = new Set();
-    const ranked = [];
+    searchSuggestTimerRef.current = setTimeout(() => {
+      const q = normalizeText(query);
+      const seen = new Set();
+      const ranked = [];
 
-    const pushCandidate = (text, type) => {
-      const clean = String(text || "").trim();
-      if (!clean) return;
-      const key = `${type}:${clean.toLowerCase()}`;
-      if (seen.has(key)) return;
-      seen.add(key);
-      ranked.push({ text: clean, type });
-    };
+      const pushCandidate = (entry) => {
+        const clean = String(entry?.text || "").trim();
+        if (!clean) return;
+        const key = `${entry.type}:${clean.toLowerCase()}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        ranked.push(entry);
+      };
 
-    pushCandidate(query, "Search");
+      // 0) Same as mobile: explicit search query first.
+      pushCandidate({ text: query, type: "search" });
 
-    categories
-      .filter((item) => normalizeText(item.name).includes(q))
-      .slice(0, 2)
-      .forEach((item) => pushCandidate(item.name, "Category"));
+      // 1) Categories max 2, prefix first.
+      rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
+        pushCandidate({ text: item.name, type: "category", id: item.id ? String(item.id) : "" });
+      });
 
-    brands
-      .filter((item) => normalizeText(item.name).includes(q))
-      .slice(0, 2)
-      .forEach((item) => pushCandidate(item.name, "Brand"));
+      // 2) Brands max 2, fallback top 2 when no matches.
+      const matchingBrands = rankedMatches(brands, q, 2, (item) => item.name);
+      const brandsToShow = matchingBrands.length > 0 ? matchingBrands : brands.slice(0, 2);
+      brandsToShow.forEach((item) => {
+        pushCandidate({
+          text: item.name,
+          type: "brand",
+          id: item.id ? String(item.id) : "",
+          subtitle: matchingBrands.length === 0 ? "Popular brand" : "",
+        });
+      });
 
-    products
-      .filter((item) => normalizeText(item.name).includes(q))
-      .slice(0, 3)
-      .forEach((item) => pushCandidate(item.name, "Product"));
+      // 3) Product names max 4, prefix first.
+      rankedMatches(products, q, 4, (item) => item.name).forEach((item) => {
+        pushCandidate({ text: item.name, type: "product" });
+      });
 
-    setSearchSuggestions(ranked.slice(0, 8));
+      setSearchSuggestions(ranked.slice(0, 8));
+    }, 150);
   };
 
   const handleTopSearch = (event) => {
@@ -456,11 +520,36 @@ export default function Shop() {
     }, 120);
   };
 
-  const applySuggestion = (value) => {
-    setSearchInput(value);
-    saveRecentSearch(value);
+  const applySuggestion = (item) => {
+    const type = item?.type || "product";
+    const text = String(item?.text || "").trim();
+    const id = String(item?.id || "").trim();
+
+    if (!text) return;
+
     setShowSearchSuggestions(false);
-    navigateWithFilters({ nextSearch: value });
+
+    if (type === "category") {
+      setSearchInput("");
+      setSearchTerm("");
+      setActiveBrand([]);
+      setActiveCategoryId(id || null);
+      navigateWithFilters({ nextSearch: "", nextCategoryId: id || null });
+      return;
+    }
+
+    if (type === "brand") {
+      setSearchInput("");
+      setSearchTerm("");
+      setActiveCategoryId(null);
+      setActiveBrand([text]);
+      navigateWithFilters({ nextSearch: "", nextCategoryId: null });
+      return;
+    }
+
+    setSearchInput(text);
+    saveRecentSearch(text);
+    navigateWithFilters({ nextSearch: text });
   };
 
   const toggleBrandFilter = (name) => {
@@ -618,11 +707,11 @@ export default function Shop() {
                     type="button"
                     className="catalog-suggestion-item"
                     onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => applySuggestion(item.text)}
+                    onClick={() => applySuggestion(item)}
                   >
                     <MdSearch />
                     <span className="catalog-suggestion-text">{item.text}</span>
-                    <span className="catalog-suggestion-type">{item.type}</span>
+                    <span className="catalog-suggestion-type">{item.subtitle || item.type}</span>
                   </button>
                 ))}
               </div>
