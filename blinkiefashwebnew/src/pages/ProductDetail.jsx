@@ -1,13 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   MdArrowBack,
   MdAutorenew,
   MdBolt,
+  MdCheck,
   MdCheckroom,
   MdChevronLeft,
   MdChevronRight,
+  MdEdit,
+  MdFavorite,
   MdFavoriteBorder,
+  MdHeadsetMic,
   MdKeyboardArrowDown,
   MdLocalShipping,
   MdLocationOn,
@@ -15,12 +19,13 @@ import {
   MdOutlineShoppingCart,
   MdPayments,
   MdPersonOutline,
+  MdSchedule,
   MdSearch,
   MdShare,
   MdStar,
-  MdTrackChanges,
   MdVerified,
   MdVerifiedUser,
+  MdZoomIn,
 } from 'react-icons/md';
 import { FaFacebookF, FaLink, FaRegEnvelope, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import Loader from '../components/Loader';
@@ -33,21 +38,32 @@ import './ProductDetail.css';
 import './Home.css';
 
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
-
-const TRUST_STRIP_ITEMS = [
-  { icon: MdBolt, title: '60 MIN', subtitle: 'Express' },
-  { icon: MdCheckroom, title: 'TRY & BUY', subtitle: '15 mins' },
-  { icon: MdVerified, title: 'ORIGINAL', subtitle: 'Genuine' },
-  { icon: MdLock, title: 'SECURE', subtitle: 'Safe pay' },
-];
+const DESC_COLLAPSED_H = 132;
 
 const UTILITY_ITEMS = [
   { icon: MdLocalShipping, label: 'Delivered in 60 Minutes' },
   { icon: MdVerifiedUser, label: '100% Authentic Products' },
   { icon: MdAutorenew, label: 'Easy Returns' },
   { icon: MdPayments, label: 'Cash on Delivery' },
-  { icon: MdTrackChanges, label: 'Track Your Order' },
 ];
+
+const FEATURES = [
+  { icon: MdBolt, title: '60 MIN', sub: 'Express Delivery' },
+  { icon: MdCheckroom, title: 'TRY & BUY', sub: '15 mins' },
+  { icon: MdVerified, title: 'ORIGINAL', sub: 'Genuine Products' },
+  { icon: MdLock, title: 'SECURE', sub: 'Safe Payment' },
+];
+
+const TABS = [
+  { key: 'description', label: 'Product Description' },
+  { key: 'details', label: 'Product Details' },
+  { key: 'reviews', label: 'Ratings & Reviews' },
+];
+
+function toCurrency(value) {
+  const num = Number(value || 0);
+  return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.max(num, 0));
+}
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -68,6 +84,9 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('description');
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [descClipped, setDescClipped] = useState(false);
+  const [cartAdded, setCartAdded] = useState(false);
   const [city, setCity] = useState(
     () => localStorage.getItem('bfw_city') || localStorage.getItem('selectedCity') || 'Cuttack'
   );
@@ -79,9 +98,12 @@ export default function ProductDetail() {
   const [shareOpen, setShareOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
 
+  const thumbStripRef = useRef(null);
+  const reviewsRef = useRef(null);
+  const descClipRef = useRef(null);
+
   useEffect(() => {
     let cancelled = false;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     getProductById(id)
       .then((res) => {
@@ -142,33 +164,23 @@ export default function ProductDetail() {
     };
   }, [data]);
 
+  /* Reset image index whenever the selected color changes */
+useEffect(() => {
+  setActiveImage(0);
+}, [selectedColor]);
+
   useEffect(() => {
     const container = relatedListRef.current;
     if (!container || relatedProducts.length === 0) return;
 
     const MIN_ITEM_WIDTH = 140;
-    const GAP = 12;
+    const GAP = 16;
 
     const computeVisible = () => {
-      // Below the desktop breakpoint the sidebar no longer stretches to a
-      // fixed height, so there's nothing meaningful to measure — fall back
-      // to a fixed count instead.
-      if (!window.matchMedia('(min-width: 1181px)').matches) {
-        setVisibleRelatedCount(Math.min(relatedProducts.length, 4));
-        return;
-      }
-
       const width = container.clientWidth;
-      const height = container.clientHeight;
-      if (!width || !height) return;
-
+      if (!width) return;
       const columns = Math.max(1, Math.floor((width + GAP) / (MIN_ITEM_WIDTH + GAP)));
-      const itemWidth = (width - GAP * (columns - 1)) / columns;
-      const itemHeight = itemWidth * (4 / 3) + 70; // media aspect-ratio 3/4 + title/price block
-      const rows = Math.max(1, Math.floor((height + GAP) / (itemHeight + GAP)));
-
-      const count = Math.min(relatedProducts.length, Math.max(columns, columns * rows));
-      setVisibleRelatedCount(count);
+      setVisibleRelatedCount(Math.min(relatedProducts.length, Math.max(columns * 2, 4)));
     };
 
     computeVisible();
@@ -221,6 +233,26 @@ export default function ProductDetail() {
     }
   }, [data]);
 
+  /* Reset transient UI state whenever the product changes */
+  useEffect(() => {
+    setDescExpanded(false);
+    setActiveTab('description');
+    setActiveImage(0);
+    setCartAdded(false);
+  }, [id]);
+
+  /* Description "read more" clipping, ported from the old page */
+  useEffect(() => {
+    const measure = () => {
+      const el = descClipRef.current;
+      if (!el) return;
+      setDescClipped(el.scrollHeight > DESC_COLLAPSED_H + 4);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [data?.product?.description, activeTab, loading]);
+
   if (loading)
     return (
       <div className="pd-screen pd-loading">
@@ -239,12 +271,14 @@ export default function ProductDetail() {
   const mrp = Number(selectedVariant?.price ?? price);
   const wishlisted = isWishlisted(product.id);
   const canPurchase = !(variants?.length > 0 && !selectedVariant);
-  const gallery = images?.length ? images : [{ url: null }];
+
   const rating = Number(product.rating || 4.8);
-  const reviewCount = Number(product.review_count || 120);
+  const roundedAvg = Math.min(Math.max(Math.round(rating), 0), 5);
+  const reviewCount = Number(product.review_count || 0);
   const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
   const hasRelated = relatedProducts.length > 0;
   const hasRecentlyViewed = recentlyViewed.length > 0;
+  const availableStock = Number(selectedVariant?.available_stock || 0);
 
   const seenColors = new Set();
   const colorOptions = (variants || [])
@@ -256,6 +290,46 @@ export default function ProductDetail() {
       return true;
     });
 
+    const variantIdsForColor = selectedColor
+  ? new Set(
+      (variants || [])
+        .filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
+        .map((v) => v.id)
+    )
+  : null;
+
+const colorFilteredImages =
+  variantIdsForColor && variantIdsForColor.size > 0
+    ? (images || []).filter((img) => variantIdsForColor.has(img.variant_id))
+    : [];
+
+const gallery = colorFilteredImages.length > 0
+  ? colorFilteredImages
+  : images?.length
+    ? images
+    : [{ url: null }];
+
+    console.log('=== DEBUG IMAGES ===', images);
+console.log('=== DEBUG VARIANTS ===', variants);
+
+  const colorThumbnails = {};
+colorOptions.forEach((color) => {
+  // Get ALL variant ids for this color (not just the first size found)
+  const idsForColor = new Set(
+    (variants || [])
+      .filter((v) => (v.color || '').toLowerCase() === color.toLowerCase())
+      .map((v) => v.id)
+  );
+
+  // Find any image tagged to ANY of this color's variant ids
+  const img = (images || []).find((i) => idsForColor.has(i.variant_id));
+
+  if (!img) {
+    console.warn(`⚠️ Still no image for "${color}" across ALL its variant ids:`, [...idsForColor]);
+  }
+
+  colorThumbnails[color] = img?.url || null;
+});
   const sizeOptions = selectedColor
     ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
     : variants || [];
@@ -266,6 +340,10 @@ export default function ProductDetail() {
     product.brand || 'Brand',
     product.name,
   ];
+
+  const hasDetails =
+    product.brand || product.category_name || product.category ||
+    selectedVariant?.color || selectedVariant?.size || selectedVariant?.sku;
 
   const handleAddToCart = () => {
     addToCart({
@@ -301,6 +379,15 @@ export default function ProductDetail() {
   const pickSize = (size) => {
     const target = sizeOptions.find((v) => (v.size || 'Default') === size);
     if (target) pickVariant(target);
+  };
+
+  const scrollThumbs = () => thumbStripRef.current?.scrollBy({ top: 190, behavior: 'smooth' });
+
+  const openReviews = () => {
+    setActiveTab('reviews');
+    requestAnimationFrame(() =>
+      reviewsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    );
   };
 
   const handleDetectLocation = async () => {
@@ -419,7 +506,11 @@ export default function ProductDetail() {
 
       <header className="pd-header">
         <button type="button" className="hp-brand pd-brand-logo" onClick={() => navigate('/')}>
-          <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
+          <img
+            src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
+            alt="Blinkiefash"
+            className="hp-logo"
+          />
           <span className="hp-brand-text">
             <span className="hp-brand-name">
               BLINKIE<span className="hp-brand-accent">FASH</span>
@@ -454,54 +545,78 @@ export default function ProductDetail() {
         </div>
       </header>
 
-      <div className="pd-content">
-        <div className="pd-breadcrumbs">
-          <button type="button" className="pd-back" onClick={() => navigate(-1)}><MdArrowBack /> Back</button>
-          {breadcrumb.map((item, idx) => (
-            <span key={`${item}-${idx}`}>
-              {idx > 0 ? <span className="pd-sep">&gt;</span> : null}
-              {item}
+      <div className="pp-page">
+        {/* Breadcrumb */}
+        <nav className="pp-breadcrumb" aria-label="Breadcrumb">
+          <button type="button" className="pd-back" onClick={() => navigate(-1)}>
+            <MdArrowBack size={13} /> Back
+          </button>
+          {breadcrumb.map((crumb, i) => (
+            <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <MdChevronRight size={13} />
+              {i === breadcrumb.length - 1 ? <strong>{crumb}</strong> : <span>{crumb}</span>}
             </span>
           ))}
-        </div>
+        </nav>
 
-        <section className="pd-page-grid">
-          <div className="pd-gallery-panel">
-            <div className="pd-thumbs-col">
-              {gallery.map((img, idx) => (
-                <button
-                  key={img.url || idx}
-                  type="button"
-                  className={`pd-thumb${idx === activeImage ? ' active' : ''}`}
-                  onClick={() => setActiveImage(idx)}
-                >
-                  {img.url ? <img src={img.url} alt="" /> : <div className="pd-thumb-fallback" />}
+        <div className="pp-main-grid">
+
+          {/* Gallery */}
+          <div className="pp-gallery-col">
+            <div className="pp-thumb-col">
+              <div className="pp-thumb-strip" ref={thumbStripRef}>
+                {gallery.map((img, i) => (
+                  <button
+                    key={img.url || i}
+                    className={`pp-thumb ${activeImage === i ? 'active' : ''}`}
+                    onClick={() => setActiveImage(i)}
+                    aria-label={`View image ${i + 1}`}
+                    aria-current={activeImage === i}
+                  >
+                    {img.url
+                      ? <img src={img.url} alt={`${product.name} view ${i + 1}`} loading="lazy" />
+                      : <div className="pd-thumb-fallback" />}
+                  </button>
+                ))}
+              </div>
+              {gallery.length > 5 && (
+                <button className="pp-thumb-more" onClick={scrollThumbs} aria-label="More images">
+                  <MdKeyboardArrowDown size={16} />
                 </button>
-              ))}
+              )}
             </div>
-            <div className="pd-gallery">
+
+            <div className="pp-main-image-wrap">
+              {gallery.length > 1 && (
+                <button className="pp-arrow left" onClick={handlePrevImage} aria-label="Previous image">
+                  <MdChevronLeft size={20} />
+                </button>
+              )}
               {gallery[activeImage]?.url ? (
-                <img src={gallery[activeImage].url} alt={product.name} />
+                <img src={gallery[activeImage].url} alt={product.name} className="pp-main-image" />
               ) : (
                 <div className="pd-placeholder">No image available</div>
               )}
               {gallery.length > 1 && (
-                <>
-                  <button type="button" className="pd-arrow left" onClick={handlePrevImage} aria-label="Previous image"><MdChevronLeft /></button>
-                  <button type="button" className="pd-arrow right" onClick={handleNextImage} aria-label="Next image"><MdChevronRight /></button>
-                </>
+                <button className="pp-arrow right" onClick={handleNextImage} aria-label="Next image">
+                  <MdChevronRight size={20} />
+                </button>
+              )}
+              <span className="pp-zoom-tag"><MdZoomIn size={14} /> Zoom</span>
+              {gallery.length > 1 && (
+                <span className="pp-image-counter">{activeImage + 1} / {gallery.length}</span>
               )}
             </div>
           </div>
 
-          <div className="pd-info-panel">
-            <div className="pd-info-top-row">
-              <div className="pd-badges">
-                <span><MdBolt /> 60 MIN DELIVERY</span>
-                {product.is_try_and_buy ? <span><MdVerified /> Try &amp; Buy</span> : null}
-              </div>
-
-              <div className="pd-share-wrap">
+          {/* Info */}
+          <div className="pp-info-col">
+            <div className="pp-badge-row" style={{ alignItems: 'center' }}>
+              <span className="pp-chip"><MdBolt size={13} /> 60 MIN DELIVERY</span>
+              {product.is_try_and_buy && (
+                <span className="pp-chip pp-chip-outline"><MdVerified size={13} /> Try &amp; Buy</span>
+              )}
+              <div className="pd-share-wrap" style={{ flex: 'none', marginLeft: 'auto' }}>
                 <button
                   type="button"
                   className="pd-share-trigger"
@@ -542,36 +657,50 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {product.brand && <p className="pd-brand">{product.brand}</p>}
-            <h1>{product.name}</h1>
-            <div className="pd-rating-row">
-              <div className="pd-stars">{Array.from({ length: 5 }).map((_, i) => <MdStar key={i} />)}</div>
-              <span>{rating.toFixed(1)} ({reviewCount} Reviews)</span>
+            <p className="pp-brand">{product.brand || 'BLINKIEFASH'}</p>
+            <h1 className="pp-title">{product.name}</h1>
+
+            <div className="pp-rating-line">
+              <span className="pp-stars" aria-hidden="true">
+                {'★'.repeat(roundedAvg)}{'☆'.repeat(5 - roundedAvg)}
+              </span>
+              <strong>{rating.toFixed(1)}</strong>
+              <span className="pp-muted">({reviewCount} Reviews)</span>
+              <button className="pp-write-link" onClick={openReviews}>
+                <MdEdit size={13} /> See reviews
+              </button>
             </div>
 
-            <div className="pd-price-row">
-              <span className="pd-price">₹{price.toLocaleString('en-IN')}</span>
-              {mrp > price ? <span className="pd-mrp">₹{mrp.toLocaleString('en-IN')}</span> : null}
-              {discountPct > 0 ? <span className="pd-off">{discountPct}% OFF</span> : null}
+            <div className="pp-price-line">
+              <span className="pp-price">₹{toCurrency(price)}</span>
+              {mrp > price && <span className="pp-price-old">₹{toCurrency(mrp)}</span>}
+              {discountPct > 0 && <span className="pd-off">{discountPct}% OFF</span>}
             </div>
-            <p className="pd-tax-note">Inclusive of all taxes</p>
+            <p className="pp-tax-note">Inclusive of all taxes</p>
 
             {colorOptions.length > 0 && (
-              <div className="pd-colors">
-                <p className="pd-label">Color: {selectedColor || colorOptions[0]}</p>
-                <div className="pd-color-row">
+              <div className="pp-block">
+                <p className="pp-label">Color: {selectedColor || colorOptions[0]}</p>
+                <div className="pp-swatch-row">
                   {colorOptions.map((color) => (
                     <button
                       key={color}
-                      type="button"
-                      className={`pd-color-chip${selectedColor.toLowerCase() === color.toLowerCase() ? ' active' : ''}`}
+                      className={`pp-swatch ${selectedColor.toLowerCase() === color.toLowerCase() ? 'active' : ''}`}
                       onClick={() => {
                         setSelectedColor(color);
-                        const target = (variants || []).find((v) => (v.color || '').toLowerCase() === color.toLowerCase());
+                        const target = (variants || []).find(
+                          (v) => (v.color || '').toLowerCase() === color.toLowerCase()
+                        );
                         if (target) setSelectedVariant(target);
                       }}
+                      aria-label={`Select color ${color}`}
+                      aria-pressed={selectedColor.toLowerCase() === color.toLowerCase()}
                     >
-                      {color}
+                     {colorThumbnails[color] ? (
+                       <img src={colorThumbnails[color]} alt={color} />
+                             ) : (
+                               <div className="pd-thumb-fallback" />
+)}
                     </button>
                   ))}
                 </div>
@@ -579,9 +708,11 @@ export default function ProductDetail() {
             )}
 
             {variants?.length > 0 && (
-              <div className="pd-variants">
-                <p className="pd-label">Select size</p>
-                <div className="pd-variant-list">
+              <div className="pp-block">
+                <div className="pp-size-header">
+                  <p className="pp-label">Select Size</p>
+                </div>
+                <div className="pp-size-row">
                   {[...new Set(sizeOptions.map((v) => v.size || 'Default'))].map((size) => {
                     const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
                     const disabled = Number(scoped?.available_stock || 0) <= 0;
@@ -589,10 +720,10 @@ export default function ProductDetail() {
                     return (
                       <button
                         key={size}
-                        type="button"
-                        className={`pd-variant-chip${active ? ' active' : ''}${disabled ? ' disabled' : ''}`}
+                        className={`pp-size-btn ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
                         disabled={disabled}
                         onClick={() => pickSize(size)}
+                        aria-pressed={active}
                       >
                         {size}
                       </button>
@@ -602,61 +733,82 @@ export default function ProductDetail() {
               </div>
             )}
 
-            <div className="pd-quick-facts">
+            {availableStock > 0 && availableStock <= 5 && (
+              <p className="pp-stock-warning">
+                <MdSchedule size={15} /> Hurry! Only <strong>{availableStock}</strong> left in stock
+              </p>
+            )}
+
+            <div className="pp-quick-facts">
               <p><strong>Category:</strong> {product.category_name || product.category || 'Fashion'}</p>
               <p><strong>Brand:</strong> {product.brand || 'Blinkiefash'}</p>
               <p><strong>Stock:</strong> {selectedVariant?.available_stock ?? 'Available'}</p>
             </div>
-
-            <div className="pd-trust-strip">
-              {TRUST_STRIP_ITEMS.map((item) => (
-                <div className="pd-trust-item" key={item.title}>
-                  <span className="pd-trust-icon-badge">
-                    <item.icon className="pd-trust-icon" />
-                  </span>
-                  <strong>{item.title}</strong>
-                  <span>{item.subtitle}</span>
-                </div>
-              ))}
-            </div>
           </div>
 
-          <div className="pd-side-col">
-            <aside className="pd-buybox">
-              <button type="button" className="pd-deliver-row" onClick={openLocationSheet}>
-                <span className="pd-deliver-text">
-                  <span className="pd-deliver-label">Deliver to</span>
-                  <span className="pd-deliver-city">{locating ? 'Detecting...' : city}</span>
+          {/* Sidebar */}
+          <aside className="pp-sidebar">
+            <div className="pp-buy-card">
+              <button type="button" className="pp-deliver-row" onClick={openLocationSheet}>
+                <span>Deliver to</span>
+                <span className="pp-deliver-loc">
+                  {locating ? 'Detecting...' : city} <MdKeyboardArrowDown size={14} />
                 </span>
-                <MdKeyboardArrowDown className="pd-deliver-chevron" />
               </button>
-              <div className="pd-perks">
-                <p><MdBolt /> 60-Minute Express Delivery</p>
-                <p><MdLocalShipping /> Cash on Delivery available</p>
-                <p><MdVerified /> Easy Returns</p>
+
+              <div className="pp-sidebar-row highlight">
+                <span className="pp-icon-dot"><MdBolt size={16} /></span>
+                <div>
+                  <strong>60-Minute Express Delivery</strong>
+                  <span>Get it by end of day</span>
+                </div>
               </div>
+
+              <div className="pp-sidebar-row">
+                <MdPayments size={18} />
+                <div>
+                  <strong>Cash on Delivery</strong>
+                  <span>Available</span>
+                </div>
+              </div>
+
+              <div className="pp-sidebar-row">
+                <MdAutorenew size={18} />
+                <div>
+                  <strong>Easy Returns</strong>
+                  <span>5 day return policy</span>
+                </div>
+              </div>
+
               <button
                 type="button"
-                className="pd-buy-btn"
+                className="pp-buy-now"
                 disabled={canPurchase === false}
                 onClick={() => {
                   handleAddToCart();
                   navigate('/checkout');
                 }}
               >
-                <MdBolt /> Buy Now
+                <MdBolt size={16} /> Buy Now
               </button>
+
               <button
                 type="button"
-                className="pd-cart-btn"
+                className="pp-add-cart"
                 disabled={canPurchase === false}
-                onClick={handleAddToCart}
+                onClick={() => {
+                  handleAddToCart();
+                  setCartAdded(true);
+                  setTimeout(() => setCartAdded(false), 2000);
+                }}
               >
-                <MdOutlineShoppingCart /> Add to Cart
+                <MdOutlineShoppingCart size={16} />
+                {cartAdded ? 'Added ✓' : 'Add to Cart'}
               </button>
+
               <button
                 type="button"
-                className="pd-wish-btn"
+                className={`pp-wishlist-btn ${wishlisted ? 'active' : ''}`}
                 onClick={() =>
                   toggleWishlist({
                     productId: product.id,
@@ -665,114 +817,218 @@ export default function ProductDetail() {
                     price,
                   })
                 }
+                aria-pressed={wishlisted}
               >
-                <MdFavoriteBorder /> {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
+                {wishlisted ? <MdFavorite size={16} /> : <MdFavoriteBorder size={16} />}
+                {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
               </button>
-              <p className="pd-secure"><MdLock /> Secure Payment</p>
-            </aside>
+              <p className="pd-secure"><MdLock size={13} /> Secure Payment</p>
+            </div>
 
-            {hasRelated ? (
-              <div className="pd-related-card">
-                <div className="pd-related-head">
-                  <h3>You May Also Like</h3>
-                  <button type="button" onClick={() => navigate('/shop')}>View All</button>
+            {hasRelated && (
+              <div className="pp-related">
+                <div className="pp-related-head">
+                  <p>You May Also Like</p>
+                  <button type="button" className="pp-related-viewall" onClick={() => navigate('/shop')}>
+                    View All
+                  </button>
                 </div>
-                <div className="pd-related-list" ref={relatedListRef}>
+
+                <div className="pp-related-grid" ref={relatedListRef}>
                   {relatedProducts.slice(0, visibleRelatedCount).map((item) => {
                     const itemPrice = Number(item.discount_price || item.price || 0);
+                    const itemMrp = Number(item.price || 0);
+                    const itemImage = item.image || item.image_url || item.url || null;
                     return (
-                      <article key={item.id} onClick={() => navigate(`/product/${item.id}`)}>
-                        <div className="pd-related-media">
-                          {item.image ? <img src={item.image} alt={item.name} /> : <div className="pd-rel-fallback" />}
-                        </div>
-                        <div>
-                          <h4>{item.name}</h4>
-                          <p>₹{itemPrice.toLocaleString('en-IN')}</p>
-                        </div>
-                      </article>
+                      <div key={item.id} className="pp-related-card">
+                        <a
+                          className="pp-related-link"
+                          href={`/product/${item.id}`}
+                          onClick={(e) => {
+                            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                            e.preventDefault();
+                            navigate(`/product/${item.id}`);
+                          }}
+                        >
+                          <div className="pp-related-media">
+                            {itemImage ? <img src={itemImage} alt={item.name} loading="lazy" /> : <div className="pd-rel-fallback" />}
+                          </div>
+                          <p className="pp-related-name">{item.name}</p>
+                          <p className="pp-related-price">
+                            ₹{toCurrency(itemPrice)}
+                            {itemMrp > itemPrice && <s>₹{toCurrency(itemMrp)}</s>}
+                          </p>
+                        </a>
+                        <button
+                          type="button"
+                          className="pp-related-cart"
+                          aria-label={`Add ${item.name} to cart`}
+                          onClick={() =>
+                            addToCart({
+                              productId: item.id,
+                              variantId: item.variant_id || null,
+                              name: item.name,
+                              image: itemImage,
+                              price: itemPrice,
+                              size: item.size,
+                              color: item.color,
+                            })
+                          }
+                        >
+                          <MdOutlineShoppingCart size={14} />
+                        </button>
+                      </div>
                     );
                   })}
                 </div>
               </div>
-            ) : null}
+            )}
+          </aside>
+
+          {/* Feature strip */}
+          <div className="pp-feature-strip">
+            {FEATURES.map(({ icon: Icon, title, sub }) => (
+              <div className="pp-feature-item" key={title}>
+                <Icon size={20} />
+                <div className="pp-feature-text">
+                  <strong>{title}</strong>
+                  <span>{sub}</span>
+                </div>
+              </div>
+            ))}
           </div>
 
-          <div className="pd-description-card">
-            <div className="pd-tabs">
-              <button type="button" className={activeTab === 'description' ? 'active' : ''} onClick={() => setActiveTab('description')}>
-                Product Description
-              </button>
-              <button type="button" className={activeTab === 'details' ? 'active' : ''} onClick={() => setActiveTab('details')}>
-                Product Details
-              </button>
-              <button type="button" className={activeTab === 'reviews' ? 'active' : ''} onClick={() => setActiveTab('reviews')}>
-                Ratings &amp; Reviews ({reviewCount})
-              </button>
+          {/* Detail card */}
+          <section className="pp-detail-card" ref={reviewsRef}>
+            <div className="pp-tabs" role="tablist">
+              {TABS.map((tab) => (
+                <button
+                  key={tab.key}
+                  role="tab"
+                  aria-selected={activeTab === tab.key}
+                  className={`pp-tab ${activeTab === tab.key ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.key)}
+                >
+                  {tab.label}{tab.key === 'reviews' && reviewCount > 0 ? ` (${reviewCount})` : ''}
+                </button>
+              ))}
             </div>
-            <div className="pd-tab-body">
+
+            <div className="pp-detail-body">
+
               {activeTab === 'description' && (
-                <>
-                  <p>{product.description || 'No description available for this product yet.'}</p>
-                  <ul>
-                    <li><MdVerified /> 100% Original product</li>
-                    <li><MdLocalShipping /> Easy returns within 5 days</li>
-                    <li><MdLock /> Secure payment and protected checkout</li>
-                  </ul>
-                </>
+                <div className="pp-description">
+                  <div
+                    id="pp-desc-content"
+                    ref={descClipRef}
+                    className={`pp-desc-clip ${descExpanded ? 'expanded' : ''} ${descClipped ? 'is-clipped' : ''}`}
+                  >
+                    <p>{product.description || 'No description available for this product yet.'}</p>
+                    <ul className="pp-highlights">
+                      <li><MdCheck size={14} strokeWidth={3} /><span>100% Original product</span></li>
+                      <li><MdCheck size={14} strokeWidth={3} /><span>Easy returns within 5 days</span></li>
+                      <li><MdCheck size={14} strokeWidth={3} /><span>Secure payment and protected checkout</span></li>
+                    </ul>
+                  </div>
+                  {descClipped && (
+                    <button
+                      type="button"
+                      className={`pp-read-more ${descExpanded ? 'open' : ''}`}
+                      onClick={() => setDescExpanded((v) => !v)}
+                      aria-expanded={descExpanded}
+                      aria-controls="pp-desc-content"
+                    >
+                      {descExpanded ? 'Show less' : 'Read more ...'}
+                      <MdKeyboardArrowDown size={13} />
+                    </button>
+                  )}
+                </div>
               )}
 
-              {activeTab === 'details' && (
-                <div className="pd-details-table">
+              {activeTab === 'details' && hasDetails && (
+                <div className="pp-details-table">
                   <div><span>Brand</span><strong>{product.brand || 'Blinkiefash'}</strong></div>
                   <div><span>Category</span><strong>{product.category_name || product.category || 'Fashion'}</strong></div>
                   {selectedVariant?.color && <div><span>Color</span><strong>{selectedVariant.color}</strong></div>}
                   {selectedVariant?.size && <div><span>Size</span><strong>{selectedVariant.size}</strong></div>}
+                  {selectedVariant?.sku && <div><span>SKU</span><strong>{selectedVariant.sku}</strong></div>}
                   <div><span>Stock</span><strong>{selectedVariant?.available_stock ?? 'Available'}</strong></div>
                 </div>
               )}
 
               {activeTab === 'reviews' && (
-                <div className="pd-reviews">
-                  <div className="pd-reviews-summary">
-                    <div className="pd-reviews-score">
-                      <strong>{rating.toFixed(1)}</strong>
-                      <div className="pd-stars">{Array.from({ length: 5 }).map((_, i) => <MdStar key={i} />)}</div>
-                      <span>{reviewCount} ratings</span>
-                    </div>
+                <div className="pp-reviews-tab-content">
+                  <div className="pp-reviews-score-inline">
+                    <span className="pp-stars" aria-hidden="true">
+                      {'★'.repeat(roundedAvg)}{'☆'.repeat(5 - roundedAvg)}
+                    </span>
+                    <strong>{rating.toFixed(1)}</strong>
+                    <span className="pp-muted">({reviewCount} reviews)</span>
                   </div>
-                  <p className="pd-reviews-empty">Detailed reviews for this product aren&apos;t available yet. Check back soon!</p>
+                  <p className="pp-review-empty">
+                    Detailed reviews for this product aren&apos;t available yet. Check back soon!
+                  </p>
                 </div>
               )}
             </div>
+          </section>
+        </div>
+
+        {/* Trust strip */}
+        <section className="pp-trust-strip">
+          <div className="pp-trust-item">
+            <MdVerified size={20} />
+            <div><h4>100% Original Products</h4><p>Sourced directly from brands</p></div>
+          </div>
+          <div className="pp-trust-item">
+            <MdLock size={20} />
+            <div><h4>Secure Payments</h4><p>Multiple safe payment options</p></div>
+          </div>
+          <div className="pp-trust-item">
+            <MdAutorenew size={20} />
+            <div><h4>Easy Returns</h4><p>Hassle-free returns in 5 days</p></div>
+          </div>
+          <div className="pp-trust-item">
+            <MdHeadsetMic size={20} />
+            <div><h4>Dedicated Support</h4><p>We&apos;re here to help you</p></div>
           </div>
         </section>
 
-        {hasRecentlyViewed ? (
-          <section className="pd-recent-card">
-            <div className="pd-related-head">
-              <h3>Recently Viewed</h3>
+        {/* Recently Viewed */}
+        {hasRecentlyViewed && (
+          <section className="pp-related pp-recent">
+            <div className="pp-related-head">
+              <p>Recently Viewed</p>
             </div>
-            <div className="pd-recent-list">
+            <div className="pp-related-grid pp-recent-grid">
               {recentlyViewed.map((item) => (
-                <article key={item.id} onClick={() => navigate(`/product/${item.id}`)}>
-                  <div className="pd-related-media">
-                    {item.image ? <img src={item.image} alt={item.name} /> : <div className="pd-rel-fallback" />}
-                  </div>
-                  <div>
-                    <h4>{item.name}</h4>
-                    <p>₹{Number(item._price || 0).toLocaleString('en-IN')}</p>
-                  </div>
-                </article>
+                <div key={item.id} className="pp-related-card">
+                  <a
+                    className="pp-related-link"
+                    href={`/product/${item.id}`}
+                    onClick={(e) => {
+                      if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                      e.preventDefault();
+                      navigate(`/product/${item.id}`);
+                    }}
+                  >
+                    <div className="pp-related-media">
+                      {item.image ? <img src={item.image} alt={item.name} loading="lazy" /> : <div className="pd-rel-fallback" />}
+                    </div>
+                    <p className="pp-related-name">{item.name}</p>
+                    <p className="pp-related-price">₹{toCurrency(item._price || 0)}</p>
+                  </a>
+                </div>
               ))}
             </div>
           </section>
-        ) : null}
+        )}
       </div>
 
       <div className="pd-mobile-actionbar">
         <div className="pd-mobile-price">
-          <strong>₹{price.toLocaleString('en-IN')}</strong>
-          {mrp > price ? <span>₹{mrp.toLocaleString('en-IN')}</span> : null}
+          <strong>₹{toCurrency(price)}</strong>
+          {mrp > price ? <span>₹{toCurrency(mrp)}</span> : null}
         </div>
         <div className="pd-mobile-actions">
           <button type="button" className="pd-mobile-cart" disabled={canPurchase === false} onClick={handleAddToCart}>
