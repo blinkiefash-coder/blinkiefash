@@ -41,8 +41,6 @@ function resolveImageUrl(raw) {
 
 // Same hero cards as blinkiefashmob's home screen (assets/images/hero_main.jpeg + brand banners).
 const HERO_SLIDES = [
-  { image: '/images/hero_main.jpeg',
-    to: '/shop' },
   {
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
