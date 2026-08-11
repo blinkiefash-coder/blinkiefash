@@ -1068,8 +1068,8 @@
 
 .hp-brand-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .hp-brand-banner {
@@ -1079,12 +1079,37 @@
   overflow: hidden;
   padding: 0;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .hp-brand-banner img {
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+@media (max-width: 1000px) {
+  .hp-brand-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .hp-universe-title {
+    font-size: 32px;
+  }
+
+  .hp-universe-tagline {
+    font-size: 11px;
+  }
+
+  .hp-brand-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .hp-top-brands-rail {

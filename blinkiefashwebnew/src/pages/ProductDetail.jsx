@@ -221,7 +221,7 @@ export default function ProductDetail() {
     }
   }, [data]);
 
-  if (loading) return <div className="page"><Loader label="Loading product..." /></div>;
+  if (loading) return <div className="page"><Loader overlay label="Loading product..." /></div>;
   if (error) return <div className="page"><p className="state-msg">{error}</p></div>;
   if (!data) return null;
 

@@ -194,6 +194,14 @@ export default function Shop() {
       .finally(() => setLoading(false));
   }, []);
 
+  if (loading) {
+    return (
+      <div className="catalog-page">
+        <Loader overlay label="Loading products..." />
+      </div>
+    );
+  }
+
   useEffect(() => {
     if (!userId) {
       setWishlistCount(0);

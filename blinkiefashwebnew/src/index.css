@@ -99,6 +99,50 @@ img {
   padding: 14px 16px 24px;
 }
 
+.loader-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.94);
+  padding: 20px;
+  text-align: center;
+}
+
+.loader-inline {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 0;
+}
+
+.loader-spinner {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 5px solid rgba(22, 163, 74, 0.18);
+  border-top-color: var(--brand-green);
+  animation: loader-spin 1s ease-in-out infinite;
+  margin-bottom: 16px;
+}
+
+.loader-label {
+  color: var(--brand-dark);
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 600;
+}
+
+@keyframes loader-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .section {
   display: grid;
   gap: 10px;
