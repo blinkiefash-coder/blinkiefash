@@ -1,12 +1,4 @@
-/* =========================================================
-   ProductDetail.css
-   Header / utility bar / search / share popover / location
-   sheet / mobile action bar are kept from the current app
-   shell (pd-*/hp-* rules below). Everything else — gallery,
-   info column, buy sidebar, tabs, reviews, related products,
-   recently viewed, trust strip — is ported from the old
-   product page layout, using its pp- prefixed classes.
-   ========================================================= */
+
 
 *, *::before, *::after { box-sizing: border-box; }
 
