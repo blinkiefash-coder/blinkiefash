@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { auth as firebaseAuth } from '../firebase.js';
 
 const AuthContext = createContext(null);
 
@@ -27,7 +29,15 @@ export function AuthProvider({ children }) {
     setToken(nextToken);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      if (firebaseAuth?.currentUser) {
+        await firebaseSignOut(firebaseAuth);
+      }
+    } catch {
+      // ignore firebase logout failures and continue clearing local state
+    }
+
     setUser(null);
     setToken(null);
   };

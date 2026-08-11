@@ -7,7 +7,7 @@ const getAPIBase = () => {
     (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
 
   if (isLocalHost) {
-    return envURL || `http://${window.location.hostname}:5000`;
+    return envURL || `http://${window.location.hostname}:5002`;
   }
 
   if (envURL) {
