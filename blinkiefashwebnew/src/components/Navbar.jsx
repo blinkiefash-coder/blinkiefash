@@ -1,8 +1,9 @@
 import "./Navbar.css";
-import logo from "../assets/logo.png";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
+
+const LOGO_URL = "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
 
 export default function Navbar({ active }) {
   const [activeTab, setActiveTab] = useState(active || "ALL");
@@ -202,7 +203,7 @@ export default function Navbar({ active }) {
       </button>
 
       <div className="nav-left">
-        <img src={logo} alt="Blinkiefash" className="logo-img" />
+        <img src={LOGO_URL} alt="Blinkiefash" className="logo-img" />
 
         <span className="brand" 
             onClick={() => navigate("/")}

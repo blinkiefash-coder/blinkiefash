@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import logo from "../assets/logo.png";
+
+const LOGO_URL = "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
 
 function LpNav({ active }) {
   const navigate = useNavigate();
@@ -11,7 +12,7 @@ function LpNav({ active }) {
     <>
       <header className="lp-nav">
         <button className="lp-brand" onClick={() => go("/")}>
-          <img src={logo} alt="BlinkieFash" />
+          <img src={LOGO_URL} alt="BlinkieFash" />
           <span>BLINKIE<b>FASH</b></span>
         </button>
         <nav>
@@ -31,7 +32,7 @@ function LpNav({ active }) {
         <div className="lp-drawer-overlay" onClick={() => setOpen(false)}>
           <div className="lp-drawer" onClick={e => e.stopPropagation()}>
             <div className="lp-drawer-head">
-              <button className="lp-brand" onClick={() => go("/")}><img src={logo} alt="" /><span>BLINKIE<b>FASH</b></span></button>
+              <button className="lp-brand" onClick={() => go("/")}><img src={LOGO_URL} alt="" /><span>BLINKIE<b>FASH</b></span></button>
               <button className="lp-drawer-close" onClick={() => setOpen(false)}>✕</button>
             </div>
             <nav className="lp-drawer-nav">

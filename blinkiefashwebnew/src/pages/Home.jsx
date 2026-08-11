@@ -90,9 +90,30 @@ function sortCategories(list) {
 }
 
 const UNIVERSE_BRANDS = [
-  { name: 'Puma', image: '/images/Pumabanner.jpeg', to: '/shop?search=Puma' },
-  { name: 'FCUK', image: '/images/FcukandFrenchconnection.jpeg', to: '/shop?search=FCUK' },
-  { name: 'Libas', image: '/images/libasbanner.jpeg', to: '/shop?search=Libas%20Kurti%20Kurta%20Set' },
+  {
+    name: "Puma",
+    image:
+      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
+    to: "/shop?search=Puma",
+  },
+  {
+    name: "FCUK",
+    image:
+      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
+    to: "/shop?search=FCUK",
+  },
+  {
+    name: "Libas",
+    image:
+      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
+    to: "/shop?search=Libas%20Kurti%20Kurta%20Set",
+  },
+  {
+    name: "MK",
+    image:
+      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
+    to: "/shop?search=MK",
+  },
 ];
 
 const KNOWN_BRANDS = [
@@ -758,7 +779,7 @@ export default function Home() {
       <div className="hp-sticky-head">
         <header className="hp-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate('/')}>
-            <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
+            <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
             <span className="hp-brand-text">
               <span className="hp-brand-name">
                 BLINKIE<span className="hp-brand-accent">FASH</span>

@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
 import "./Footer.css";
+
+const LOGO_URL = "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
 
 export default function Footer() {
   const navigate = useNavigate();
@@ -10,7 +11,7 @@ export default function Footer() {
       <div className="footer-main">
         <div className="footer-brand-col">
           <div className="footer-brand">
-            <img src={logo} alt="Blinkiefash Logo" className="footer-logo-img" />
+            <img src={LOGO_URL} alt="Blinkiefash Logo" className="footer-logo-img" />
             <h1 className="footer-logo-text">
               BLINKIE<span>FASH</span>
             </h1>

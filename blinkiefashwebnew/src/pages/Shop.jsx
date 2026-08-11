@@ -648,7 +648,7 @@ export default function Shop() {
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
+            <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
             <span className="hp-brand-text">
               <span className="hp-brand-name">
                 BLINKIE<span className="hp-brand-accent">FASH</span>
