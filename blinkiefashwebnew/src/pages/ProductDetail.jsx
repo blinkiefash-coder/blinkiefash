@@ -411,7 +411,9 @@ export default function ProductDetail() {
       <header className="pd-header">
         <button type="button" className="hp-brand pd-brand-logo" onClick={() => navigate('/')}>
           <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
-
+          <span className="hp-brand-text">
+            <span className="hp-brand-name">
+              BLINKIE<span className="hp-brand-accent">FASH</span>
             </span>
             <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
           </span>
