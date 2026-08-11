@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MdLocationOn,
-  MdKeyboardArrowDown,
   MdVisibility,
   MdFavoriteBorder,
   MdFavorite,
@@ -15,17 +14,17 @@ import {
   MdAutorenew,
   MdPayments,
   MdTrackChanges,
-  MdMenu,
+  /* MdMenu removed (unused) */
   MdArrowForward,
-  MdMoreHoriz,
   MdPersonOutline,
 } from 'react-icons/md';
+import { FaApple, FaGooglePlay } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
-import { getCategories, getBestsellers, getAddresses, getProducts, getBrands } from '../api';
+import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import './Home.css';
@@ -72,9 +71,6 @@ const UTILITY_ITEMS = [
   { icon: MdPayments, label: 'Cash on Delivery' },
   { icon: MdTrackChanges, label: 'Track Your Order' },
 ];
-
-// Same rotating pastel tile backgrounds as blinkiefashmob's _exploreCategories().
-const CAT_TILE_BG = ['#FFF1F2', '#F0FDF4', '#EFF6FF', '#FFFBEB', '#FFF1F2', '#F7FEE7'];
 
 // Same root category ordering as blinkiefashmob: Women, Men, Footwear, Electronics, Beauty first, then A-Z.
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, beauty: 4 };
@@ -207,6 +203,10 @@ export default function Home() {
   const [kidsCats, setKidsCats] = useState([]);
   const [electronicsCats, setElectronicsCats] = useState([]);
   const [trendyShoesCats, setTrendyShoesCats] = useState([]);
+  const [beautyCats, setBeautyCats] = useState([]);
+  const [homeLivingCats, setHomeLivingCats] = useState([]);
+  const [travelCats, setTravelCats] = useState([]);
+  const [hoveredNav, setHoveredNav] = useState(null);
   const [activeCollectionCats, setActiveCollectionCats] = useState({});
   const [under999Products, setUnder999Products] = useState([]);
   const [under1999Products, setUnder1999Products] = useState([]);
@@ -226,6 +226,7 @@ export default function Home() {
   const [locationError, setLocationError] = useState('');
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
+  const dealsRef = useRef(null);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -240,6 +241,54 @@ export default function Home() {
     window.addEventListener('focus', loadRecent);
     return () => window.removeEventListener('focus', loadRecent);
   }, []);
+
+  // If stored recently-viewed snapshots lack price info (0), fetch product details
+  // in the background and enrich the cached snapshots so the UI can show correct prices.
+  useEffect(() => {
+    if (!recentlyViewedProductsData || recentlyViewedProductsData.length === 0) return;
+    const idsToFetch = recentlyViewedProductsData
+      .filter((p) => Number(p._price ?? p.price ?? 0) <= 0)
+      .map((p) => p.id)
+      .filter(Boolean);
+    if (idsToFetch.length === 0) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const promises = idsToFetch.map((pid) => getProductById(pid).catch(() => null));
+        const results = await Promise.all(promises);
+        if (cancelled) return;
+
+        const updated = recentlyViewedProductsData.map((p) => {
+          if (!idsToFetch.includes(p.id)) return p;
+          const res = results.find((r) => r && String(r.product?.id) === String(p.id));
+          if (!res || !res.product) return p;
+          const prod = res.product;
+          const selVar = (res.variants || []).find((v) => Number(v.available_stock || 0) > 0) || res.variants?.[0] || null;
+          const price = Number(selVar?.discount_price ?? prod.discount_price ?? selVar?.price ?? prod.price ?? p.price ?? p._price ?? 0) || 0;
+          const mrp = Number(selVar?.price ?? prod.price ?? p.mrp ?? p._mrp ?? price) || price;
+          const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+          return {
+            ...p,
+            _price: price,
+            price,
+            _mrp: mrp,
+            mrp,
+            _discount: discount,
+            discount_price: price,
+          };
+        });
+
+        setRecentlyViewedProductsData(updated);
+      } catch {
+        // ignore enrichment errors
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recentlyViewedProductsData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -292,7 +341,7 @@ export default function Home() {
                 image: c.category_url || c.image || '',
               }))
               .filter((c) => c.name)
-              .slice(0, 8);
+              .slice(0, 6);
 
           return allCats
             .filter((c) => String(c.parent_id) === String(rootId))
@@ -433,11 +482,18 @@ export default function Home() {
           Array.isArray(under1999List) && under1999List.length > 0 ? under1999List : fallbackUnder1999
         );
         setTopBrands(brandsList);
-        setMensCats(childCatsFor('Men'));
-        setWomensCats(childCatsFor('Women'));
+        // Fetch child categories from DB response; set Men and Women independently
+        const menChildren = childCatsFor('Men');
+        const womenChildren = childCatsFor('Women');
+        setMensCats(menChildren);
+        setWomensCats(womenChildren);
         setKidsCats(childCatsFor('Kids'));
         setElectronicsCats(childCatsFor('Electronics'));
         setTrendyShoesCats(childCatsFor('Footwear'));
+        setBeautyCats(childCatsFor('Beauty'));
+        // Home top-level category in DB is sometimes called 'Living' (Home Living)
+        setHomeLivingCats(childCatsFor('Living'));
+        setTravelCats(childCatsFor('Travel and Backpack'));
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load the home feed');
       } finally {
@@ -549,9 +605,13 @@ export default function Home() {
       .map((p) => ({
         ...p,
         id: p.id,
-        _price: Number(p._price ?? p.price ?? 0),
-        _mrp: Number(p._mrp ?? p.mrp ?? p.price ?? 0),
-        _discount: Number(p._discount ?? p.discount ?? 0),
+        // be permissive with possible field names saved by older clients
+        _price: Number(p._price ?? p.discount_price ?? p.price ?? 0) || 0,
+        _mrp:
+          Number(
+            p._mrp ?? p.original_price ?? p.mrp ?? p.price ?? p._price ?? 0
+          ) || 0,
+        _discount: Number(p._discount ?? p.discount ?? 0) || 0,
       }))
       .filter((p) => p.id)
       .slice(0, 8);
@@ -637,73 +697,7 @@ export default function Home() {
       return { ...item, _price: price, _mrp: mrp, _discount: discount };
     });
 
-  const renderRailCards = (items, keyPrefix, ribbonType = 'discount') => (
-    <div className="hp-deals-rail" role="list">
-      {enrichItems(items).slice(0, 10).map((p, idx) => {
-        const image = resolveImageUrl(p.image);
-        const wishlistPayload = {
-          productId: p.id,
-          name: p.name,
-          image: image || p.image,
-          price: p._price,
-        };
-        const ribbonText = ribbonType === 'new' ? 'NEW' : p._discount > 0 ? `${p._discount}% OFF` : 'TRENDING';
-
-        return (
-          <article
-            key={`${keyPrefix}-${p.id}-${idx}`}
-            className="hp-deal-card"
-            role="listitem"
-            onClick={() => navigate(`/product/${p.id}`)}
-          >
-            <div className="hp-deal-media">
-              {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-              <span className={`hp-deal-ribbon${ribbonType === 'new' ? ' new' : ''}`}>{ribbonText}</span>
-              <button
-                type="button"
-                className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleWishlist(wishlistPayload);
-                }}
-                aria-label="Toggle wishlist"
-              >
-                {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-              </button>
-            </div>
-            <div className="hp-deal-body">
-              {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-              <p className="hp-deal-name">{p.name}</p>
-              <div className="hp-deal-price-row">
-                <span className="hp-deal-price">₹{p._price}</span>
-                {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-              </div>
-              <div className="hp-deal-footer-row">
-                <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}</span>
-                <button
-                  type="button"
-                  className="hp-deal-cart"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart({
-                      productId: p.id,
-                      variantId: p.id,
-                      name: p.name,
-                      image: image || p.image,
-                      price: p._price,
-                    });
-                  }}
-                  aria-label="Add to cart"
-                >
-                  <MdOutlineShoppingCart />
-                </button>
-              </div>
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
+  
 
   const renderCategoryChips = (chips, audienceLabel = '') => {
     if (!Array.isArray(chips) || chips.length === 0) return null;
@@ -773,79 +767,151 @@ export default function Home() {
           subtitle="Fetching style secrets and polishing the universe."
         />
       ) : null}
-      <div className="hp-utility-bar">
-        <div className="hp-utility-left">
-          {UTILITY_ITEMS.map((item) => (
-            <span key={item.label} className="hp-utility-item">
-              <item.icon /> {item.label}
-            </span>
-          ))}
+
+      <div className="hp-top-fixed">
+        <div className="hp-utility-bar">
+          <div className="hp-utility-marquee">
+            <div className="hp-utility-track">
+              {[...UTILITY_ITEMS, ...UTILITY_ITEMS].map((item, idx) => (
+                <span key={`${item.label}-${idx}`} className="hp-utility-item">
+                  <item.icon /> {item.label}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div className="hp-sticky-head">
-        <header className="hp-main-header">
-          <button type="button" className="hp-brand" onClick={() => navigate('/')}>
-            <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
-            <span className="hp-brand-text">
-              <span className="hp-brand-name">
-                BLINKIE<span className="hp-brand-accent">FASH</span>
+        <div className="hp-sticky-head">
+          <header className="hp-main-header">
+            <button type="button" className="hp-brand" onClick={() => navigate('/')}>
+              <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
+              <span className="hp-brand-text">
+                <span className="hp-brand-name">
+                  BLINKIE<span className="hp-brand-accent">FASH</span>
+                </span>
               </span>
-              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-            </span>
-          </button>
+            </button>
+            <button type="button" className="hp-delivery-location" onClick={openLocationSheet}>
+              <span className="hp-delivery-location-title">Delivered in 60 Minutes</span>
+              <span className="hp-delivery-location-sub">
+                <MdLocationOn className="hp-delivery-location-pin" />
+                {locating ? 'Detecting...' : city}
+              </span>
+            </button>
 
-          <form className="hp-header-search" onSubmit={handleSearch}>
-            <MdSearch className="hp-search-icon" />
-            <input name="q" type="text" placeholder="Search Ethnic Wear, Sneakers, Bags & more..." />
-            <button type="submit" className="hp-search-btn">
-              <MdSearch />
-            </button>
-          </form>
-
-          <div className="hp-header-actions">
-            <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
-              <MdPersonOutline />
-              <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
-            </button>
-            <button type="button" onClick={() => navigate('/wishlist')}>
-              <MdFavoriteBorder />
-              <span>Wishlist</span>
-              {wishlistItems.length > 0 && <span className="hp-icon-badge">{wishlistItems.length}</span>}
-            </button>
-            <button type="button" onClick={() => navigate('/cart')}>
-              <MdOutlineShoppingCart />
-              <span>Cart</span>
-              {count > 0 && <span className="hp-icon-badge">{count}</span>}
-            </button>
-          </div>
-        </header>
-
-        <nav className="hp-category-nav">
-          <button type="button" className="hp-shop-by-cat" onClick={() => navigate('/shop')}>
-            <MdMenu /> Shop By Category
-          </button>
-          <div className="hp-nav-links">
-            {categories.slice(0, 8).map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className="hp-nav-link"
-                onClick={() => navigate(`/shop?category_id=${cat.id}`)}
-              >
-                {cat.name}
+            <form className="hp-header-search" onSubmit={handleSearch}>
+              <MdSearch className="hp-search-icon" />
+              <input
+                name="q"
+                type="text"
+                placeholder="Search Ethnic Wear, Sneakers, Bags & more..."
+                onFocus={() => navigate('/shop')}
+              />
+              <button type="submit" className="hp-search-btn">
+                <MdSearch />
               </button>
-            ))}
-            <button type="button" className="hp-nav-link hp-nav-more" onClick={() => navigate('/shop')}>
-              More <MdKeyboardArrowDown />
-            </button>
-          </div>
-          <button type="button" className="hp-nav-location" onClick={openLocationSheet}>
-            <MdLocationOn />
-            <span>{locating ? 'Detecting...' : city}</span>
-            <MdKeyboardArrowDown />
-          </button>
-        </nav>
+            </form>
+
+            <div className="hp-header-actions">
+              <a
+                className="hp-store-btn hp-store-btn-header"
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Get it on Google Play"
+              >
+                <FaGooglePlay />
+                <span>Google Play</span>
+              </a>
+              <a
+                className="hp-store-btn hp-store-btn-header"
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Download on the App Store"
+              >
+                <FaApple />
+                <span>App Store</span>
+              </a>
+              <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
+                <MdPersonOutline />
+                <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
+              </button>
+              <button type="button" onClick={() => navigate('/wishlist')}>
+                <MdFavoriteBorder />
+                <span>Wishlist</span>
+                {wishlistItems.length > 0 && <span className="hp-icon-badge">{wishlistItems.length}</span>}
+              </button>
+              <button type="button" onClick={() => navigate('/cart')}>
+                <MdOutlineShoppingCart />
+                <span>Cart</span>
+                {count > 0 && <span className="hp-icon-badge">{count}</span>}
+              </button>
+            </div>
+          </header>
+
+          <nav className="hp-category-nav">
+            <div
+              className="hp-nav-links"
+              onMouseLeave={() => setHoveredNav(null)}
+            >
+              {categories.slice(0, 8).map((cat) => (
+                <button
+                  key={cat.id}
+                  type="button"
+                  className="hp-nav-link"
+                  onClick={() => navigate(`/shop?category_id=${cat.id}`)}
+                  onMouseEnter={() => setHoveredNav(cat.name)}
+                  onFocus={() => setHoveredNav(cat.name)}
+                >
+                  {cat.name}
+                </button>
+              ))}
+
+              {/* Mega menu panel shown on hover */}
+              {hoveredNav ? (
+                <div className="hp-mega-menu" onMouseEnter={() => {}} onMouseLeave={() => setHoveredNav(null)}>
+                  <div className="hp-mega-columns">
+                    {(function getCols() {
+                      const key = (hoveredNav || '').toString().toLowerCase();
+                      let cols = [];
+                      if (key.includes('women')) cols = womensCats;
+                      else if (key.includes('men')) cols = mensCats;
+                      else if (key.includes('kids')) cols = kidsCats;
+                      else if (key.includes('beaut') || key.includes('beauty')) cols = beautyCats;
+                      else if (key.includes('living') || key.includes('home')) cols = homeLivingCats;
+                      else if (key.includes('travel') || key.includes('backpack')) cols = travelCats;
+                      else if (key.includes('elect')) cols = electronicsCats;
+                      else if (key.includes('shoe') || key.includes('foot')) cols = trendyShoesCats;
+                      // fallback: try to find a matching category id's children if available
+                      return cols.length > 0 ? cols : [];
+                    })().map((parent) => (
+                      <div key={parent.id} className="hp-mega-col">
+                        <button type="button" className="hp-mega-col-title" onClick={() => navigate(`/shop?category_id=${parent.id}`)}>
+                          {parent.name}
+                        </button>
+                        {Array.isArray(parent.subcategories) && parent.subcategories.length > 0 ? (
+                          <ul className="hp-mega-sublist">
+                            {parent.subcategories.map((sub) => (
+                              <li key={sub.id}>
+                                <button type="button" onClick={() => navigate(`/shop?category_id=${sub.id}`)} className="hp-mega-sublink">
+                                  {(() => {
+                                    const subImg = resolveImageUrl(sub.image || parent.image);
+                                    return subImg ? <img src={subImg} alt={sub.name} /> : <span className="hp-mega-sub-fallback">•</span>;
+                                  })()} {sub.name}
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : null}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </nav>
+        </div>
       </div>
 
       <main className="hp-main">
@@ -877,41 +943,6 @@ export default function Home() {
 
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
-
-        {categories.length > 0 && (
-          <section className="section hp-cat-section">
-            <div className="hp-section-head">
-              <h2>SHOP BY CATEGORY</h2>
-              <button type="button" onClick={() => navigate('/shop')}>
-                View All Categories <MdChevronRight />
-              </button>
-            </div>
-            <div className="hp-category-grid">
-              {categories.map((cat, i) => {
-                const img = resolveImageUrl(cat.category_url ?? cat.image);
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className="hp-cat-tile"
-                    onClick={() => navigate(`/shop?category_id=${cat.id}`)}
-                  >
-                    <span className="hp-cat-square" style={{ background: CAT_TILE_BG[i % CAT_TILE_BG.length] }}>
-                      {img ? <img src={img} alt={cat.name} /> : <span className="hp-cat-fallback">{cat.name.slice(0, 1)}</span>}
-                    </span>
-                    <span className="hp-cat-label">{cat.name}</span>
-                  </button>
-                );
-              })}
-              <button type="button" className="hp-cat-tile" onClick={() => navigate('/shop')}>
-                <span className="hp-cat-square hp-cat-more-square">
-                  <MdMoreHoriz />
-                </span>
-                <span className="hp-cat-label">More</span>
-              </button>
-            </div>
-          </section>
-        )}
 
         <section className="section hp-rewards-section">
           <div className="hp-rewards-grid">
@@ -970,8 +1001,22 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-rail" role="list">
-              {topDeals.map((p, idx) => {
+            <div className="hp-deals-wrap">
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Previous deals"
+                onClick={() => {
+                  const el = dealsRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                }}
+              >
+                <MdChevronLeft />
+              </button>
+
+              <div className="hp-deals-rail" role="list" ref={dealsRef}>
+                {topDeals.map((p, idx) => {
                 const image = resolveImageUrl(p.image);
                 const wishlistPayload = {
                   productId: p.id,
@@ -1032,7 +1077,21 @@ export default function Home() {
                     </div>
                   </article>
                 );
-              })}
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Next deals"
+                onClick={() => {
+                  const el = dealsRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                }}
+              >
+                <MdChevronRight />
+              </button>
             </div>
           </section>
         )}
@@ -1231,7 +1290,7 @@ export default function Home() {
               </button>
             </div>
             {renderCategoryChips(mensCats, 'Men')}
-            {mensProducts.length > 0 ? renderRailCards(mensProducts, 'men') : null}
+            {mensProducts.length > 0 ? <RailCards items={mensProducts} keyPrefix="men" /> : null}
           </section>
         )}
 
@@ -1244,7 +1303,7 @@ export default function Home() {
               </button>
             </div>
             {renderCategoryChips(womensCats, 'Women')}
-            {womensProducts.length > 0 ? renderRailCards(womensProducts, 'women') : null}
+            {womensProducts.length > 0 ? <RailCards items={womensProducts} keyPrefix="women" /> : null}
           </section>
         )}
 
@@ -1257,7 +1316,7 @@ export default function Home() {
               </button>
             </div>
             {renderCategoryChips(kidsCats, 'Kids')}
-            {kidsProducts.length > 0 ? renderRailCards(kidsProducts, 'kids') : null}
+            {kidsProducts.length > 0 ? <RailCards items={kidsProducts} keyPrefix="kids" /> : null}
           </section>
         )}
 
@@ -1270,7 +1329,7 @@ export default function Home() {
               </button>
             </div>
             {renderCategoryChips(electronicsCats, 'Electronics')}
-            {electronicsProducts.length > 0 ? renderRailCards(electronicsProducts, 'electronics') : null}
+            {electronicsProducts.length > 0 ? <RailCards items={electronicsProducts} keyPrefix="electronics" /> : null}
           </section>
         )}
 
@@ -1283,7 +1342,7 @@ export default function Home() {
               </button>
             </div>
             {renderCategoryChips(trendyShoesCats, 'Trendy Shoes')}
-            {trendyShoesProducts.length > 0 ? renderRailCards(trendyShoesProducts, 'shoes') : null}
+            {trendyShoesProducts.length > 0 ? <RailCards items={trendyShoesProducts} keyPrefix="shoes" /> : null}
           </section>
         )}
 
@@ -1295,7 +1354,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderRailCards(under999Products, 'under999')}
+            {under999Products.length > 0 ? <RailCards items={under999Products} keyPrefix="under999" /> : null}
           </section>
         )}
 
@@ -1307,7 +1366,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderRailCards(under1999Products, 'under1999')}
+            {under1999Products.length > 0 ? <RailCards items={under1999Products} keyPrefix="under1999" /> : null}
           </section>
         )}
 
@@ -1484,6 +1543,116 @@ export default function Home() {
           </section>
         </div>
       )}
+    </div>
+  );
+}
+
+function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
+  const railRef = useRef(null);
+  const navigate = useNavigate();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { addToCart } = useCart();
+
+  const list = (Array.isArray(items) ? items : []).slice(0, 10).map((item) => {
+    const price = Number(item?.discount_price ?? item?.price ?? 0);
+    const mrp = Number(item?.price ?? item?.original_price ?? price);
+    const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+    return { ...item, _price: price, _mrp: mrp, _discount: discount };
+  });
+
+  return (
+    <div className="hp-deals-wrap">
+      <button
+        type="button"
+        className="hp-deals-prev"
+        aria-label="Previous"
+        onClick={() => {
+          const el = railRef.current;
+          if (!el) return;
+          el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+        }}
+      >
+        <MdChevronLeft />
+      </button>
+
+      <div className="hp-deals-rail" role="list" ref={railRef}>
+        {list.map((p, idx) => {
+          const image = resolveImageUrl(p.image);
+          const wishlistPayload = {
+            productId: p.id,
+            name: p.name,
+            image: image || p.image,
+            price: p._price,
+          };
+          const ribbonText = ribbonType === 'new' ? 'NEW' : p._discount > 0 ? `${p._discount}% OFF` : 'TRENDING';
+
+          return (
+            <article
+              key={`${keyPrefix}-${p.id}-${idx}`}
+              className="hp-deal-card"
+              role="listitem"
+              onClick={() => navigate(`/product/${p.id}`)}
+            >
+              <div className="hp-deal-media">
+                {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
+                <span className={`hp-deal-ribbon${ribbonType === 'new' ? ' new' : ''}`}>{ribbonText}</span>
+                <button
+                  type="button"
+                  className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleWishlist(wishlistPayload);
+                  }}
+                  aria-label="Toggle wishlist"
+                >
+                  {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
+                </button>
+              </div>
+              <div className="hp-deal-body">
+                {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
+                <p className="hp-deal-name">{p.name}</p>
+                <div className="hp-deal-price-row">
+                  <span className="hp-deal-price">₹{p._price}</span>
+                  {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
+                </div>
+                <div className="hp-deal-footer-row">
+                  <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}</span>
+                  <button
+                    type="button"
+                    className="hp-deal-cart"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      addToCart({
+                        productId: p.id,
+                        variantId: p.id,
+                        name: p.name,
+                        image: image || p.image,
+                        price: p._price,
+                      });
+                    }}
+                    aria-label="Add to cart"
+                  >
+                    <MdOutlineShoppingCart />
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+
+      <button
+        type="button"
+        className="hp-deals-next"
+        aria-label="Next"
+        onClick={() => {
+          const el = railRef.current;
+          if (!el) return;
+          el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+        }}
+      >
+        <MdChevronRight />
+      </button>
     </div>
   );
 }

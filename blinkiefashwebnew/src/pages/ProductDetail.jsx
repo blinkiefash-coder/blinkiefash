@@ -196,8 +196,11 @@ export default function ProductDetail() {
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
-    const basePrice = Number(data?.product?.price ?? 0);
-    const baseDiscountPrice = Number(data?.product?.discount_price ?? basePrice);
+    // Prefer selected variant pricing when available (variants may hold price info)
+    const selPriceRaw = selectedVariant?.discount_price ?? selectedVariant?.price;
+    const selBaseRaw = selectedVariant?.price ?? selectedVariant?.discount_price;
+    const basePrice = Number(selBaseRaw ?? data?.product?.price ?? 0);
+    const baseDiscountPrice = Number(selPriceRaw ?? data?.product?.discount_price ?? basePrice);
     const price = baseDiscountPrice > 0 ? baseDiscountPrice : basePrice;
     const mrp = basePrice > 0 ? basePrice : price;
     const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
@@ -207,9 +210,13 @@ export default function ProductDetail() {
       name: data.product.name,
       brand: data.product.brand || '',
       image: imageUrl,
+      // include both underscored and plain fields for compatibility
       _price: price,
+      price,
       _mrp: mrp,
+      mrp,
       _discount: discount,
+      discount_price: price,
     };
     try {
       const current = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
@@ -219,7 +226,7 @@ export default function ProductDetail() {
     } catch {
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify([snapshot]));
     }
-  }, [data]);
+  }, [data, selectedVariant]);
 
   if (loading)
     return (
