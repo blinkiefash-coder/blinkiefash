@@ -50,7 +50,7 @@ img {
 }
 
 .app-shell {
-  max-width: 480px;
+  max-width: 640px;
   margin: 0 auto;
   min-height: 100vh;
   background: var(--brand-bg);
@@ -60,7 +60,7 @@ img {
 
 @media (min-width: 720px) {
   .app-shell {
-    max-width: 720px;
+    max-width: 960px;
     box-shadow: var(--shadow-card);
   }
 }

@@ -12,6 +12,7 @@ import {
   MdPersonOutline,
   MdSearch,
   MdCheckroom,
+  MdTune,
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
@@ -88,15 +89,6 @@ export default function Shop() {
   const [cartCount, setCartCount] = useState(0);
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
-
-  useEffect(() => {
-    const previousBodyOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = previousBodyOverflow;
-    };
-  }, []);
 
   const getChildren = (parentId) => childrenByParent[parentId] || [];
 
@@ -654,7 +646,7 @@ export default function Shop() {
   return (
     <div className="catalog-page">
       <div className="hp-sticky-head catalog-home-topbar">
-        <header className="hp-main-header">
+        <header className="hp-main-header catalog-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate("/")}>
             <img src="/images/logo.png" alt="Blinkiefash" className="hp-logo" />
             <span className="hp-brand-text">
@@ -718,49 +710,31 @@ export default function Shop() {
             ) : null}
           </form>
 
-          <div className="hp-header-actions">
-            <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
-              <MdPersonOutline />
-              <span>{isLoggedIn ? "My Account" : "Login / Signup"}</span>
+          <div className="catalog-header-actions-wrap">
+            <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
+              <MdLocationOn />
+              <span>{city}</span>
+              <MdKeyboardArrowDown />
             </button>
-            <button type="button" onClick={() => navigate("/wishlist")}>
-              <MdFavoriteBorder />
-              <span>Wishlist</span>
-              {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
-            </button>
-            <button type="button" onClick={() => navigate("/cart")}>
-              <MdOutlineShoppingCart />
-              <span>Cart</span>
-              {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
-            </button>
+
+            <div className="hp-header-actions">
+              <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+                <MdPersonOutline />
+                <span>{isLoggedIn ? "My Account" : "Login / Signup"}</span>
+              </button>
+              <button type="button" onClick={() => navigate("/wishlist")}>
+                <MdFavoriteBorder />
+                <span>Wishlist</span>
+                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
+              </button>
+              <button type="button" onClick={() => navigate("/cart")}>
+                <MdOutlineShoppingCart />
+                <span>Cart</span>
+                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
+              </button>
+            </div>
           </div>
         </header>
-
-        <nav className="hp-category-nav">
-          <button type="button" className="hp-shop-by-cat" onClick={() => navigateWithFilters({ nextCategoryId: null })}>
-            <MdMenu /> <span>Shop By Category</span>
-          </button>
-          <div className="hp-nav-links">
-            {getChildren("ROOT").slice(0, 8).map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className="hp-nav-link"
-                onClick={() => navigateWithFilters({ nextCategoryId: cat.id })}
-              >
-                {cat.name}
-              </button>
-            ))}
-            <button type="button" className="hp-nav-link hp-nav-more" onClick={() => navigate("/shop")}>
-              More <MdKeyboardArrowDown />
-            </button>
-          </div>
-          <button type="button" className="hp-nav-location" onClick={() => navigate("/account")}>
-            <MdLocationOn />
-            <span>{city}</span>
-            <MdKeyboardArrowDown />
-          </button>
-        </nav>
       </div>
 
       <main className="catalog-main">
@@ -770,13 +744,22 @@ export default function Shop() {
             <p>Showing 1 - {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length} products</p>
           </div>
           <div className="catalog-controls">
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="newest">Sort by: Newest First</option>
-              <option value="price_low">Sort by: Price Low to High</option>
-              <option value="price_high">Sort by: Price High to Low</option>
-              <option value="discount">Sort by: Highest Discount</option>
-            </select>
-            <button type="button" onClick={() => setShowFilters((prev) => !prev)}>Filter</button>
+            <div className="catalog-select-wrap">
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                <option value="newest">Sort by: Newest First</option>
+                <option value="price_low">Sort by: Price Low to High</option>
+                <option value="price_high">Sort by: Price High to Low</option>
+                <option value="discount">Sort by: Highest Discount</option>
+              </select>
+              <MdKeyboardArrowDown className="catalog-select-caret" />
+            </div>
+            <button
+              type="button"
+              className={`catalog-filter-toggle ${showFilters ? "active" : ""}`}
+              onClick={() => setShowFilters((prev) => !prev)}
+            >
+              <MdTune /> Filter
+            </button>
           </div>
         </div>
 
@@ -850,17 +833,21 @@ export default function Shop() {
 
             <div className="catalog-filter-col">
               <h4>Color</h4>
-              <div className="catalog-filter-list">
-                {COLORS.map(([name]) => (
-                  <label key={name}>
-                    <input
-                      type="checkbox"
-                      checked={activeColor.includes(name.toLowerCase()) || activeColor.includes(name)}
-                      onChange={() => toggleColorFilter(name)}
-                    />
-                    <span>{name}</span>
-                  </label>
-                ))}
+              <div className="catalog-filter-list catalog-filter-swatches">
+                {COLORS.map(([name, hex]) => {
+                  const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                  return (
+                    <label key={name} className={`catalog-swatch-label ${checked ? "checked" : ""}`}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleColorFilter(name)}
+                      />
+                      <span className="catalog-swatch-dot" style={{ background: hex }} />
+                      <span>{name}</span>
+                    </label>
+                  );
+                })}
               </div>
             </div>
 

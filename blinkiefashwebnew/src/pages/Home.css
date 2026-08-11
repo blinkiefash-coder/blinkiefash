@@ -1,5 +1,5 @@
 .hp {
-  --hp-max: 1280px;
+  --hp-max: 1950px;
   background: #f8fafc;
   overflow-x: hidden;
 }
@@ -1182,7 +1182,7 @@
 
 .hp-explore-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));  /* was repeat(4, ...) */
   gap: 10px;
 }
 
