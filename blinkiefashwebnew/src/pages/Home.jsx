@@ -765,7 +765,14 @@ export default function Home() {
   };
 
   return (
-    <div className="hp">
+    <div className={`hp${loading ? ' hp-loading' : ''}`}>
+      {loading ? (
+        <Loader
+          overlay
+          label="Preparing Blinkiefash..."
+          subtitle="Fetching style secrets and polishing the universe."
+        />
+      ) : null}
       <div className="hp-utility-bar">
         <div className="hp-utility-left">
           {UTILITY_ITEMS.map((item) => (

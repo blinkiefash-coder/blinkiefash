@@ -995,6 +995,15 @@
   font-size: 16px;
 }
 
+.hp.hp-loading .hp-utility-bar,
+.hp.hp-loading .hp-sticky-head,
+.hp.hp-loading .hp-main {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+}
+
 .hp-universe-section {
   margin-top: 24px;
   padding: 18px 12px 4px;

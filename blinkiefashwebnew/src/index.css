@@ -101,15 +101,29 @@ img {
 
 .loader-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 9999;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.94);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 20px;
   text-align: center;
+  pointer-events: all;
+}
+
+.hp.hp-loading > :not(.loader-overlay),
+.pd-screen.pd-loading > :not(.loader-overlay) {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
 }
 
 .loader-inline {
@@ -135,6 +149,14 @@ img {
   font-size: 15px;
   line-height: 1.5;
   font-weight: 600;
+}
+
+.loader-subtitle {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 320px;
 }
 
 @keyframes loader-spin {
