@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { getOrders } from '../api';
 import Loader from '../components/Loader';
 import './Orders.css';
+import PageSEO from '../components/PageSEO';
 
 export default function Orders() {
   const navigate = useNavigate();
@@ -27,6 +28,7 @@ export default function Orders() {
   if (!isLoggedIn) {
     return (
       <div className="page">
+        <PageSEO title="Your Orders" description="View your order history on Blinkiefash." path="/orders" noIndex />
         <h1 className="cart-title">Your orders</h1>
         <p className="state-msg">Log in to view your orders.</p>
         <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
@@ -38,7 +40,7 @@ export default function Orders() {
 
   return (
     <div className="page">
-      <h1 className="cart-title">Your orders</h1>
+      <PageSEO title="Your Orders" description="View your order history on Blinkiefash." path="/orders" noIndex />
       {loading && <Loader label="Loading orders..." />}
       {!loading && error && <p className="state-msg">{error}</p>}
       {!loading && !error && orders.length === 0 && <p className="state-msg">No orders yet.</p>}

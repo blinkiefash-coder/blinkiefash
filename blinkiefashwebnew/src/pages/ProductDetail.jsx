@@ -29,6 +29,7 @@ import {
 } from 'react-icons/md';
 import { FaFacebookF, FaLink, FaRegEnvelope, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import Loader from '../components/Loader';
+import PageSEO from '../components/PageSEO';
 import { getAddresses, getProductById, getProducts } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
@@ -501,6 +502,13 @@ colorOptions.forEach((color) => {
 
   return (
     <div className="pd-screen">
+      <PageSEO
+        title={`${product.name}${product.brand ? ` by ${product.brand}` : ''}`}
+        description={`Buy ${product.name}${product.brand ? ` by ${product.brand}` : ''} online. ${product.description ? product.description.slice(0, 120) : 'Fast 60-minute delivery in Odisha. 100% authentic products.'}`}
+        path={`/product/${product.id}`}
+        image={gallery[0]?.url || undefined}
+        type="product"
+      />
       <div className="hp-utility-bar">
         <div className="hp-utility-left">
           {UTILITY_ITEMS.map((item) => (

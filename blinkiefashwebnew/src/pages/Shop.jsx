@@ -665,6 +665,11 @@ export default function Shop() {
 
   return (
     <div className="catalog-page">
+      <PageSEO
+        title="Shop Fashion Online — Clothing, Footwear & More"
+        description="Browse thousands of products across Men, Women, Kids, Electronics & Footwear. Filter by brand, price and colour. Express 60-minute delivery in Odisha."
+        path="/shop"
+      />
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate("/")}>

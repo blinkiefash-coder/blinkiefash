@@ -21,6 +21,7 @@ import {
 import { FaApple, FaGooglePlay } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
+import PageSEO from '../components/PageSEO';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -814,6 +815,11 @@ export default function Home() {
 
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
+      <PageSEO
+        title="Fashion Delivered in 60 Minutes — Cuttack & Bhubaneswar"
+        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door in 60 minutes across Odisha."
+        path="/"
+      />
       {loading ? (
         <Loader
           overlay
