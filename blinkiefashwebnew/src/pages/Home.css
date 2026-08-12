@@ -1739,14 +1739,15 @@
   }
 
   .hp-hero-carousel {
-    margin: 0;
+    width: calc(100% + 20px);
+    margin: 0 -10px;
     overflow: hidden;
   }
 
   .hp-hero-track {
     gap: 0;
     padding: 0;
-    border-radius: 14px;
+    border-radius: 0;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
     overflow-x: hidden;
     scroll-snap-type: x mandatory;
@@ -1755,13 +1756,13 @@
   .hp-slide {
     flex: 0 0 100%;
     aspect-ratio: 2.2 / 1;
-    border-radius: 14px;
+    border-radius: 0;
     box-shadow: none;
     background: #e2e8f0;
   }
 
   .hp-slide-img {
-    object-fit: contain;
+    object-fit: cover;
     object-position: center;
   }
 
@@ -1885,6 +1886,11 @@
   .hp-slide {
     flex-basis: 100%;
     aspect-ratio: 2.05 / 1;
+  }
+
+  .hp-hero-carousel {
+    width: calc(100% + 16px);
+    margin: 0 -8px;
   }
 
   .hp-reward-panel {
