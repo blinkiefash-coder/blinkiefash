@@ -53,7 +53,8 @@ export const getProducts = (params = {}) => {
 
 export const getProductById = (id) => request(`/products/${id}`);
 
-export const getBestsellers = (limit = 10) => request(`/products/bestsellers?limit=${limit}`);
+export const getBestsellers = (limit = 10) =>
+  request(`/products/bestsellers?limit=${limit}`);
 
 export const getBrands = () => request('/brands');
 
@@ -61,7 +62,10 @@ export const getPriceRangeProducts = (minPrice, maxPrice, limit = 10) =>
   request(`/products/price-range?min_price=${minPrice}&max_price=${maxPrice}&limit=${limit}`);
 
 export const authStart = (phone, expectedRole = 'customer') =>
-  requestAuth('/auth/start', { method: 'POST', body: JSON.stringify({ phone, expectedRole }) });
+  requestAuth('/auth/start', {
+    method: 'POST',
+    body: JSON.stringify({ phone, expectedRole }),
+  });
 
 export const authVerify = ({ idToken, phone, otp, expectedRole = 'customer' }) =>
   requestAuth('/auth/verify', {
@@ -82,14 +86,29 @@ export const authLoginVendorWithEmailPassword = ({ email, password }) =>
   });
 
 export const registerUser = (payload) =>
-  request('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
+  request('/auth/register', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
-export const getAddresses = (userId) => request(`/checkout/addresses?userId=${userId}`);
+export const getAddresses = (userId) =>
+  request(`/checkout/addresses?userId=${userId}`);
 
 export const addAddress = (payload) =>
-  request('/checkout/addresses', { method: 'POST', body: JSON.stringify(payload) });
+  request('/checkout/addresses', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
 export const placeOrder = (payload) =>
-  request('/checkout/orders', { method: 'POST', body: JSON.stringify(payload) });
+  request('/checkout/orders', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 
-export const getOrders = (userId) => request(`/checkout/orders?userId=${userId}`);
+export const getOrders = (userId) =>
+  request(`/checkout/orders?userId=${userId}`);
+
+// ✅ Added this
+export const getOrderById = (orderId) =>
+  request(`/checkout/orders/${orderId}`);
