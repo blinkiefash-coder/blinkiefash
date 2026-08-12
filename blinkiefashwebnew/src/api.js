@@ -25,7 +25,13 @@ async function requestAuth(path, options = {}) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
+        const message = data?.message || data?.error || `Request failed (${res.status})`;
+        // Fallback only when the route does not exist on this path.
+        if (res.status !== 404 && res.status !== 405) {
+          throw new Error(message);
+        }
+        lastError = new Error(message);
+        continue;
       }
       return data;
     } catch (err) {
