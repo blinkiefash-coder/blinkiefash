@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   MdArrowBack,
@@ -44,14 +44,12 @@ export default function Checkout() {
   const [selectedOffer, setSelectedOffer] = useState('free-delivery');
   const [donatePrompted, setDonatePrompted] = useState(false);
 
-  const estimatedDeliveryTime = useMemo(
-    () =>
-      new Date(Date.now() + 70 * 60000).toLocaleTimeString('en-IN', {
-        hour: 'numeric',
-        minute: '2-digit',
-      }),
-    []
-  );
+
+// eslint-disable-next-line react-hooks/purity -- one-time wall-clock estimate, not used for correctness
+  const estimatedDeliveryTime = new Date(Date.now() + 70 * 60000).toLocaleTimeString('en-IN', {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
 
   useEffect(() => {
     if (!isLoggedIn) return;

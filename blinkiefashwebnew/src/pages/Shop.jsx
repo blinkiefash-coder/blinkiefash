@@ -1,6 +1,8 @@
 import "./Shop.css";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import PageSEO from "../components/PageSEO";
+
 import {
   MdClose,
   MdFavoriteBorder,

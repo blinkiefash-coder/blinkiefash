@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   MdArrowBack,
@@ -22,7 +22,6 @@ import {
   MdSchedule,
   MdSearch,
   MdShare,
-  MdStar,
   MdVerified,
   MdVerifiedUser,
   MdZoomIn,
@@ -92,7 +91,6 @@ export default function ProductDetail() {
   const [relatedProducts, setRelatedProducts] = useState([]);
   const [visibleRelatedCount, setVisibleRelatedCount] = useState(4);
   const relatedListRef = useRef(null);
-  const [recentlyViewed, setRecentlyViewed] = useState([]);
   const [selectedVariant, setSelectedVariant] = useState(null);
   const [selectedColor, setSelectedColor] = useState('');
   const [activeImage, setActiveImage] = useState(0);
@@ -117,9 +115,31 @@ export default function ProductDetail() {
   const reviewsRef = useRef(null);
   const descClipRef = useRef(null);
 
+  /* Reset image index whenever the selected color changes (render-time
+     adjustment, not an effect, per https://react.dev/learn/you-might-not-need-an-effect) */
+  const [prevSelectedColor, setPrevSelectedColor] = useState(selectedColor);
+  if (selectedColor !== prevSelectedColor) {
+    setPrevSelectedColor(selectedColor);
+    setActiveImage(0);
+  }
+
+  /* Reset all transient/product-scoped UI state whenever the product id
+     changes. This replaces the old "setLoading(true) in the fetch effect"
+     and the separate "reset transient UI state" effect — both were calling
+     setState synchronously in an effect body. */
+  const [prevId, setPrevId] = useState(id);
+  if (id !== prevId) {
+    setPrevId(id);
+    setLoading(true);
+    setError('');
+    setDescExpanded(false);
+    setActiveTab('description');
+    setCartAdded(false);
+    setActiveImage(0);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
     getProductById(id)
       .then((res) => {
         if (cancelled) return;
@@ -179,11 +199,6 @@ export default function ProductDetail() {
     };
   }, [data]);
 
-  /* Reset image index whenever the selected color changes */
-useEffect(() => {
-  setActiveImage(0);
-}, [selectedColor]);
-
   useEffect(() => {
     const container = relatedListRef.current;
     if (!container || relatedProducts.length === 0) return;
@@ -208,35 +223,20 @@ useEffect(() => {
     };
   }, [relatedProducts]);
 
-  useEffect(() => {
-  const pid = data?.product?.id;
-  if (!pid) return;
-  try {
-    const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
-    const list = Array.isArray(stored) ? stored : [];
-    setRecentlyViewed(
-      list
-        .filter((v) => String(v?.id) !== String(pid))
-        .filter((v) => Number(v?._price || v?.price) > 0) // drop old broken zero-price entries
-        .slice(0, 6)
-    );
-  } catch {
-    setRecentlyViewed([]);
-  }
-}, [data]);
-
+  /* Save this product to the recently-viewed list in localStorage.
+     This only writes to an external system (no setState here), so it's
+     not subject to the set-state-in-effect rule. The list itself is read
+     fresh from localStorage during render below, once `product` is known. */
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
-    // Prefer selected variant pricing when available (variants may hold price info)
-    // NEW
-const price = pickPrice(
-  selectedVariant?.discount_price,
-  selectedVariant?.price,
-  data?.product?.discount_price,
-  data?.product?.price
-);
-const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
+    const price = pickPrice(
+      selectedVariant?.discount_price,
+      selectedVariant?.price,
+      data?.product?.discount_price,
+      data?.product?.price
+    );
+    const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
     const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
     const imageUrl = data?.images?.[0]?.url || null;
     const snapshot = {
@@ -261,14 +261,6 @@ const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
       localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify([snapshot]));
     }
   }, [data, selectedVariant]);
-
-  /* Reset transient UI state whenever the product changes */
-  useEffect(() => {
-    setDescExpanded(false);
-    setActiveTab('description');
-    setActiveImage(0);
-    setCartAdded(false);
-  }, [id]);
 
   /* Description "read more" clipping, ported from the old page */
   useEffect(() => {
@@ -296,13 +288,13 @@ const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
   if (!data) return null;
 
   const { product, images, variants } = data;
-const price = pickPrice(
-  selectedVariant?.discount_price,
-  selectedVariant?.price,
-  product.discount_price,
-  product.price
-);
-const mrp = pickPrice(selectedVariant?.price, product.price) || price;
+  const price = pickPrice(
+    selectedVariant?.discount_price,
+    selectedVariant?.price,
+    product.discount_price,
+    product.price
+  );
+  const mrp = pickPrice(selectedVariant?.price, product.price) || price;
   const wishlisted = isWishlisted(product.id);
   const canPurchase = !(variants?.length > 0 && !selectedVariant);
 
@@ -310,6 +302,23 @@ const mrp = pickPrice(selectedVariant?.price, product.price) || price;
   const roundedAvg = Math.min(Math.max(Math.round(rating), 0), 5);
   const reviewCount = Number(product.review_count || 0);
   const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+
+  /* Recently viewed list, derived fresh from localStorage on each render
+     rather than mirrored into React state via an effect. This is a pure
+     read of an external, synchronous store (localStorage) scoped to the
+     current product, so it doesn't need its own state or effect. */
+  let recentlyViewed;
+  try {
+    const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+    const list = Array.isArray(stored) ? stored : [];
+    recentlyViewed = list
+      .filter((v) => String(v?.id) !== String(product.id))
+      .filter((v) => Number(v?._price || v?.price) > 0)
+      .slice(0, 6);
+  } catch {
+    recentlyViewed = [];
+  }
+
   const hasRelated = relatedProducts.length > 0;
   const hasRecentlyViewed = recentlyViewed.length > 0;
   const availableStock = Number(selectedVariant?.available_stock || 0);
@@ -324,46 +333,39 @@ const mrp = pickPrice(selectedVariant?.price, product.price) || price;
       return true;
     });
 
-    const variantIdsForColor = selectedColor
-  ? new Set(
-      (variants || [])
-        .filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
-        .map((v) => v.id)
-    )
-  : null;
+  const variantIdsForColor = selectedColor
+    ? new Set(
+        (variants || [])
+          .filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
+          .map((v) => v.id)
+      )
+    : null;
 
-const colorFilteredImages =
-  variantIdsForColor && variantIdsForColor.size > 0
-    ? (images || []).filter((img) => variantIdsForColor.has(img.variant_id))
-    : [];
+  const colorFilteredImages =
+    variantIdsForColor && variantIdsForColor.size > 0
+      ? (images || []).filter((img) => variantIdsForColor.has(img.variant_id))
+      : [];
 
-const gallery = colorFilteredImages.length > 0
-  ? colorFilteredImages
-  : images?.length
-    ? images
-    : [{ url: null }];
-
-    console.log('=== DEBUG IMAGES ===', images);
-console.log('=== DEBUG VARIANTS ===', variants);
+  const gallery = colorFilteredImages.length > 0
+    ? colorFilteredImages
+    : images?.length
+      ? images
+      : [{ url: null }];
 
   const colorThumbnails = {};
-colorOptions.forEach((color) => {
-  // Get ALL variant ids for this color (not just the first size found)
-  const idsForColor = new Set(
-    (variants || [])
-      .filter((v) => (v.color || '').toLowerCase() === color.toLowerCase())
-      .map((v) => v.id)
-  );
+  colorOptions.forEach((color) => {
+    // Get ALL variant ids for this color (not just the first size found)
+    const idsForColor = new Set(
+      (variants || [])
+        .filter((v) => (v.color || '').toLowerCase() === color.toLowerCase())
+        .map((v) => v.id)
+    );
 
-  // Find any image tagged to ANY of this color's variant ids
-  const img = (images || []).find((i) => idsForColor.has(i.variant_id));
+    // Find any image tagged to ANY of this color's variant ids
+    const img = (images || []).find((i) => idsForColor.has(i.variant_id));
 
-  if (!img) {
-    console.warn(`⚠️ Still no image for "${color}" across ALL its variant ids:`, [...idsForColor]);
-  }
-
-  colorThumbnails[color] = img?.url || null;
-});
+    colorThumbnails[color] = img?.url || null;
+  });
   const sizeOptions = selectedColor
     ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
     : variants || [];
