@@ -713,12 +713,19 @@
     gap: 12px;
   }
 
+  .catalog-headline-row h2 {
+    font-size: 24px;
+  }
+
   .catalog-controls {
     width: 100%;
+    flex-wrap: wrap;
+    align-items: stretch;
   }
 
   .catalog-select-wrap {
-    flex: 1;
+    flex: 1 1 100%;
+    width: 100%;
   }
 
   .catalog-select-wrap select {
@@ -726,11 +733,21 @@
   }
 
   .catalog-filter-toggle {
-    flex: none;
+    width: 100%;
+    justify-content: center;
   }
 
   .catalog-filters-panel {
     grid-template-columns: 1fr;
+    padding: 16px;
+  }
+
+  .catalog-filter-list {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-filter-col {
+    min-width: 0;
   }
 
   .catalog-products-grid {
@@ -742,55 +759,128 @@
     height: 160px;
   }
 
+  .catalog-card-body {
+    padding: 10px 10px 12px;
+  }
+
   .catalog-location-pill span {
     max-width: 90px;
   }
 
-  .catalog-header-actions-wrap {
-    gap: 10px;
-  }
-
-  .hp-header-actions {
-    padding-left: 10px;
-    gap: 10px;
-  }
-
   .catalog-main-header {
-    align-items: flex-start;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
   }
 
-  .catalog-mobile-search {
-    order: 3;
-    width: 100%;
-    flex-basis: 100%;
+  .hp-brand {
+    align-self: center;
+    text-align: center;
   }
 
   .catalog-header-actions-wrap {
     width: 100%;
     margin-left: 0;
-    justify-content: space-between;
-    flex-wrap: wrap;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
     gap: 8px;
+    display: flex;
+    align-items: center;
+    order: 1;
+  }
+
+  .catalog-mobile-search {
+    order: 2;
+    width: 100%;
+    flex-basis: 100%;
   }
 
   .catalog-location-pill {
-    padding: 7px 10px;
+    padding: 8px 10px;
     font-size: 11.5px;
+    flex: none;
+    margin-right: auto;
+    white-space: nowrap;
   }
 
   .hp-header-actions {
     border-left: 0;
     padding-left: 0;
-    gap: 8px;
+    gap: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex: none;
+  }
+
+  .hp-header-actions button {
+    min-width: 34px;
+    margin-left: 0;
+    padding: 4px;
+  }
+
+  .hp-header-actions button + button {
+    margin-left: 0;
   }
 
   .hp-header-actions button span {
     display: none;
   }
 
-  .hp-header-actions button {
-    min-width: 32px;
+  .catalog-category-strip {
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .catalog-round-list {
+    gap: 14px;
+  }
+
+  .catalog-round-item {
+    min-width: 84px;
+    gap: 6px;
+    font-size: 11px;
+  }
+
+  .catalog-round-image-wrap {
+    width: 54px;
+    height: 54px;
+  }
+
+  .catalog-filter-toggle {
+    margin-top: 8px;
+  }
+}
+
+@media (max-width: 640px) {
+  .catalog-filters-panel {
+    padding: 14px;
+  }
+
+  .catalog-filter-list {
+    grid-template-columns: 1fr;
+  }
+
+  .catalog-round-item {
+    min-width: 76px;
+  }
+
+  .catalog-header-actions-wrap {
+    justify-content: space-between;
+  }
+
+  .catalog-header-actions-wrap > .hp-header-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .catalog-location-pill {
+    max-width: 100%;
+  }
+
+  .catalog-card-body h3 {
+    min-height: 54px;
   }
 }
 
@@ -801,5 +891,17 @@
 
   .catalog-card-image-wrap {
     height: 190px;
+  }
+
+  .catalog-headline-row h2 {
+    font-size: 22px;
+  }
+
+  .catalog-round-item {
+    min-width: 72px;
+  }
+
+  .catalog-filter-toggle {
+    width: 100%;
   }
 }

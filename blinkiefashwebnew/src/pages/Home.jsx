@@ -1,5 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import googlePlayBadge from '../assets/playstore.png';
+import appStoreBadge from '../assets/appstore.png';
 import {
   MdLocationOn,
   MdVisibility,
@@ -14,11 +17,9 @@ import {
   MdAutorenew,
   MdPayments,
   MdTrackChanges,
-  /* MdMenu removed (unused) */
   MdArrowForward,
   MdPersonOutline,
 } from 'react-icons/md';
-import { FaApple, FaGooglePlay } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
@@ -238,6 +239,8 @@ export default function Home() {
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
+  const recentlyViewedRailRef = useRef(null);
+  const newOnBlinkiefashRailRef = useRef(null);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -868,28 +871,26 @@ export default function Home() {
 
             <div className="hp-header-actions">
               <a
-                className="hp-store-btn hp-store-btn-header"
-                href="https://play.google.com/store"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Get it on Google Play"
-              >
-                <FaGooglePlay />
-                <span>Google Play</span>
-              </a>
-              <a
-                className="hp-store-btn hp-store-btn-header"
-                href="https://www.apple.com/app-store/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Download on the App Store"
-              >
-                <FaApple />
-                <span>App Store</span>
-              </a>
+                className="hp-store-badge"
+                  href="https://play.google.com/store"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Get it on Google Play"
+                >
+                  <img src={googlePlayBadge} alt="Play Store" />
+                </a>
+                <a
+                  className="hp-store-badge"
+                  href="https://www.apple.com/app-store/"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Download on the App Store"
+                >
+                  <img src={appStoreBadge} alt="App Store" />
+                </a>
               <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
                 <MdPersonOutline />
-                <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
+                <span>{isLoggedIn ? 'My Account' : 'Profile'}</span>
               </button>
               <button type="button" onClick={() => navigate('/wishlist')}>
                 <MdFavoriteBorder />
@@ -1199,7 +1200,20 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-rail" role="list">
+            <div className="hp-deals-wrap">
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Previous recently viewed"
+                onClick={() => {
+                  const el = recentlyViewedRailRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                }}
+              >
+                <MdChevronLeft />
+              </button>
+              <div className="hp-deals-rail" role="list" ref={recentlyViewedRailRef}>
               {recentlyViewedProducts.map((p, idx) => {
                 const image = resolveImageUrl(p.image);
                 const wishlistPayload = {
@@ -1265,6 +1279,19 @@ export default function Home() {
                 );
               })}
             </div>
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Next recently viewed"
+                onClick={() => {
+                  const el = recentlyViewedRailRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                }}
+              >
+                <MdChevronRight />
+              </button>
+            </div>
           </section>
         )}
 
@@ -1276,7 +1303,20 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-rail" role="list">
+            <div className="hp-deals-wrap">
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Previous New on Blinkiefash"
+                onClick={() => {
+                  const el = newOnBlinkiefashRailRef.current;
+                  if (!el) return;
+                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                }}
+              >
+                <MdChevronLeft />
+              </button>
+              <div className="hp-deals-rail" role="list" ref={newOnBlinkiefashRailRef}>
               {newOnBlinkiefash.map((p, idx) => {
                 const image = resolveImageUrl(p.image);
                 const wishlistPayload = {
@@ -1340,6 +1380,19 @@ export default function Home() {
                 );
               })}
             </div>
+            <button
+              type="button"
+              className="hp-deals-next"
+              aria-label="Next New on Blinkiefash"
+              onClick={() => {
+                const el = newOnBlinkiefashRailRef.current;
+                if (!el) return;
+                el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+              }}
+            >
+              <MdChevronRight />
+            </button>
+          </div>
           </section>
         )}
 

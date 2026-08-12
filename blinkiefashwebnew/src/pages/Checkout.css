@@ -811,6 +811,19 @@
   .ckt-desktop-only {
     display: none;
   }
+
+  /* Keep a mobile-sticky bill summary so it remains visible while scrolling */
+  .ckt-mobile-bill-wrap {
+    position: sticky;
+    top: 72px; /* below topbar/login banner */
+    z-index: 30;
+    display: block;
+    margin-bottom: 8px;
+  }
+
+  .ckt-mobile-bill-wrap .ckt-card {
+    box-shadow: 0 8px 20px rgba(15,23,42,0.08);
+  }
 }
 
 @media (max-width: 520px) {
@@ -826,6 +839,11 @@
 
   .ckt-content {
     padding: 14px 12px;
+  }
+
+  /* tighter top offset for small phones where login banner is shorter */
+  .ckt-mobile-bill-wrap {
+    top: 58px;
   }
 
   .ckt-card {

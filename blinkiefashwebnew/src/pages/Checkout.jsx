@@ -295,6 +295,8 @@ export default function Checkout() {
             </div>
           </section>
 
+          <div className="ckt-mobile-bill-wrap">{billSummary}</div>
+
           <section className="ckt-card">
             <div className="ckt-card-head">
               <span className="ckt-icon-badge"><MdLocalOffer /></span>
@@ -450,8 +452,6 @@ export default function Checkout() {
               </div>
             )}
           </section>
-
-          <div className="ckt-mobile-bill-wrap">{billSummary}</div>
 
           {error && <p className="auth-error">{error}</p>}
         </div>
