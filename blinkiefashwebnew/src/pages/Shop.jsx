@@ -69,6 +69,9 @@ export default function Shop() {
     "Cuttack";
   const isLoggedIn = authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
   const canSwitchToVendor = user?.role === "vendor" && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : "My Account") : "Login / Signup";
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -755,7 +758,7 @@ export default function Shop() {
               ) : null}
               <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
                 <MdPersonOutline />
-                <span>{isLoggedIn ? "My Account" : "Login / Signup"}</span>
+                <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate("/wishlist")}>
                 <MdFavoriteBorder />

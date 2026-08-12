@@ -69,7 +69,7 @@ export default function Login() {
           localStorage.removeItem('store_name');
           localStorage.removeItem('vendor_name');
           login(customerRes.user, customerRes.token);
-          navigate('/account');
+          navigate('/');
           return;
         }
 
@@ -112,7 +112,7 @@ export default function Login() {
         `vendor_session_${vendorUserId || Date.now()}_${Date.now()}`
       );
 
-      navigate('/account');
+      navigate('/');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
@@ -159,7 +159,7 @@ export default function Login() {
       }
 
       login(res.user, res.token);
-      navigate('/account');
+      navigate('/');
     } catch (err) {
       setError(err.message || 'OTP verification failed. Please try again.');
     } finally {

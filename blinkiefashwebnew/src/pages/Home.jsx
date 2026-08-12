@@ -196,6 +196,9 @@ export default function Home() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
   const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
   const { count, addToCart } = useCart();
   const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
 
@@ -903,7 +906,7 @@ export default function Home() {
               </a>
               <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
                 <MdPersonOutline />
-                <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
+                <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate('/wishlist')}>
                 <MdFavoriteBorder />

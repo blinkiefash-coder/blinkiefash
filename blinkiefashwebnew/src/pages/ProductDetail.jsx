@@ -82,9 +82,11 @@ export default function ProductDetail() {
   const navigate = useNavigate();
   const { addToCart, count } = useCart();
   const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
-  const { user } = useAuth();
-  const isLoggedIn = Boolean(localStorage.getItem('userUuid') || localStorage.getItem('token'));
+  const { user, isLoggedIn } = useAuth();
   const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
 
   const [data, setData] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -575,7 +577,7 @@ colorOptions.forEach((color) => {
           ) : null}
           <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
             <MdPersonOutline />
-            <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
+            <span>{accountLabel}</span>
           </button>
           <button type="button" onClick={() => navigate('/wishlist')}>
             <MdFavoriteBorder />
