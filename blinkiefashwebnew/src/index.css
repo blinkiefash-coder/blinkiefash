@@ -32,6 +32,28 @@ body {
   background: var(--brand-bg);
   color: var(--brand-dark);
   -webkit-font-smoothing: antialiased;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Tricolor ambient glow — saffron top, green bottom, fades after 16 Aug */
+body::before {
+  content: '';
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 38% at 50% -4%, rgba(255, 153, 51, 0.18) 0%, transparent 80%),
+    radial-gradient(ellipse 70% 38% at 50% 104%, rgba(19, 136, 8, 0.16) 0%, transparent 80%),
+    radial-gradient(ellipse 50% 28% at 80% 50%, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+}
+
+/* Ensure all interactive content sits above the decorative layer */
+.app-shell,
+#root > * {
+  position: relative;
+  z-index: 1;
 }
 
 a {
