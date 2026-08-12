@@ -765,18 +765,22 @@
 
 @media (max-width: 900px) {
   .pp-page { padding: 14px 16px 32px; }
-  .pp-main-grid { column-gap: 0; row-gap: 22px; }
+  .pp-main-grid { column-gap: 0; row-gap: 22px; display:flex; flex-direction: coloum; min-height: calc(100vh - 140px) }
   .pp-gallery-col { grid-template-columns: 1fr; gap: 14px; }
   .pp-thumb-col { order: 2; width: 100%; }
   .pp-thumb-strip { flex-direction: row; max-height: none; overflow-x: auto; padding-bottom: 2px; }
   .pp-thumb-more { display: none; }
   .pp-main-image-wrap { min-height: 0; border-radius: 14px; }
   .pp-main-image { height: auto; aspect-ratio: 1 / 1; object-position: center; }
-  .pp-info-col { gap: 0; }
+  .pp-info-col { gap: 0; flex: 1; display: flex; flex-direction: column; }
   .pp-title { font-size: 22px; line-height: 1.35; }
   .pp-price { font-size: 30px; }
   .pp-block { margin-top: 20px; }
   .pp-trust-strip { grid-template-columns: 1fr 1fr; gap: 20px; padding: 22px; }
+  .pp-quick-facts {
+    flex: 1;
+    margin-bottom: 0;
+  }
 }
 
 @media (max-width: 760px) {
