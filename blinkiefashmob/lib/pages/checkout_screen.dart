@@ -284,7 +284,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _fetchDeliveryFee(String addressId) async {
     final subtotal = _effectiveSubtotal;
-    final launchAppliedDiscount = subtotal * 0.02;
     final variantIds = _effectiveItems
         .map((i) => i.productId)
         .where((id) => id.isNotEmpty)
@@ -502,6 +501,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         )
         .toList();
 
+    final subtotal = _effectiveSubtotal;
+    final launchAppliedDiscount = subtotal * 0.02;
+
     // Send discounted subtotal for launch offer.
     final subtotalForOrder = (subtotal - launchAppliedDiscount).clamp(
       0.0,
@@ -714,8 +716,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     const platformFee = _platformFeeFlat;
     final shippingPackagingHandlingFee =
         productUnits * _shippingPackagingHandlingPerProduct;
-    final effectiveDeliveryFee =
-      subtotal > _freeDeliveryThreshold ? 0.0 : _deliveryFee;
+    final effectiveDeliveryFee = subtotal > _freeDeliveryThreshold
+        ? 0.0
+        : _deliveryFee;
 
     final referralDiscount = (_useReferral && _availableReferralAmount > 0)
         ? (_availableReferralAmount > subtotal
@@ -755,7 +758,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       subtotal,
     );
     final total =
-        (discountedSubtotal - launchAppliedDiscount).clamp(0.0, discountedSubtotal) +
+        (discountedSubtotal - launchAppliedDiscount).clamp(
+          0.0,
+          discountedSubtotal,
+        ) +
         effectiveDeliveryFee +
         platformFee +
         shippingPackagingHandlingFee;
@@ -1343,7 +1349,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ? const Color(0xFF0F172A)
                       : const Color(0xFF16A34A),
                 ),
-                if (subtotal <= _freeDeliveryThreshold && effectiveDeliveryFee > 0)
+                if (subtotal <= _freeDeliveryThreshold &&
+                    effectiveDeliveryFee > 0)
                   Padding(
                     padding: const EdgeInsets.only(left: 12, top: 4),
                     child: _PriceRow(
@@ -2151,7 +2158,8 @@ class _CartItemRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(8),
               child: Image.network(
                 item.imageUrl!,
-                cacheWidth: (108 * MediaQuery.of(context).devicePixelRatio).round(),
+                cacheWidth: (108 * MediaQuery.of(context).devicePixelRatio)
+                    .round(),
                 width: 54,
                 height: 54,
                 fit: BoxFit.cover,
