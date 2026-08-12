@@ -80,7 +80,16 @@ export default function Login() {
 
       const vendorRes = await authLoginVendorWithEmailPassword({ email, password });
       if (!vendorRes.success) {
-        setError(vendorRes.message || customerError || 'Invalid email or password');
+        const vendorMessage = String(vendorRes.message || '').trim();
+        const vendorNotFound = vendorMessage.toLowerCase() === 'vendor not found';
+
+        if (customerError) {
+          setError(customerError);
+        } else if (vendorNotFound) {
+          setError('Email not found. Please check your email or create an account.');
+        } else {
+          setError(vendorMessage || 'Invalid email or password');
+        }
         return;
       }
 
