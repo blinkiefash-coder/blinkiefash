@@ -36,7 +36,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Tricolor ambient glow — saffron top, green bottom, fades after 16 Aug */
+/* Tricolor ambient glow — saffron top, green bottom */
 body::before {
   content: '';
   pointer-events: none;
@@ -44,9 +44,9 @@ body::before {
   inset: 0;
   z-index: 0;
   background:
-    radial-gradient(ellipse 70% 38% at 50% -4%, rgba(255, 153, 51, 0.18) 0%, transparent 80%),
-    radial-gradient(ellipse 70% 38% at 50% 104%, rgba(19, 136, 8, 0.16) 0%, transparent 80%),
-    radial-gradient(ellipse 50% 28% at 80% 50%, rgba(255, 255, 255, 0.06) 0%, transparent 70%);
+    radial-gradient(ellipse 100% 45% at 50% 0%, rgba(255, 153, 51, 0.38) 0%, transparent 75%),
+    radial-gradient(ellipse 100% 45% at 50% 100%, rgba(19, 136, 8, 0.34) 0%, transparent 75%),
+    radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255, 255, 255, 0.22) 0%, transparent 80%);
 }
 
 /* Ensure all interactive content sits above the decorative layer */
@@ -75,7 +75,7 @@ img {
   max-width: 640px;
   margin: 0 auto;
   min-height: 100vh;
-  background: var(--brand-bg);
+  background: transparent;
   padding-bottom: 76px;
   position: relative;
 }
@@ -91,6 +91,7 @@ img {
   max-width: none;
   box-shadow: none;
   padding-bottom: 0;
+  background: transparent;
 }
 
 .app-shell.is-vendor {
@@ -99,6 +100,7 @@ img {
   box-shadow: none;
   padding-bottom: 0;
   width: 100%;
+  background: transparent;
 }
 
 .app-shell.is-info {
@@ -107,6 +109,7 @@ img {
   box-shadow: none;
   padding-bottom: 0;
   width: 100%;
+  background: transparent;
 }
 
 .app-shell.is-catalog {
@@ -115,6 +118,7 @@ img {
   box-shadow: none;
   padding-bottom: 0;
   width: 100%;
+  background: transparent;
 }
 
 .id-theme-banner {
