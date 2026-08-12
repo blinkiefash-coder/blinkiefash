@@ -869,6 +869,7 @@
   .pp-title { font-size: 22px; line-height: 1.35; }
   .pp-price { font-size: 30px; }
   .pp-related-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pp-recent-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
   .pp-trust-strip { grid-template-columns: 1fr 1fr; gap: 20px; padding: 22px; }
   .pp-quick-facts { flex: 1; margin-bottom: 0; }
 }
@@ -926,6 +927,7 @@
   .pp-buy-card { padding: 14px; border-radius: 14px; gap: 8px; display: none; } /* replaced by pd-mobile-actionbar */
   .pp-buy-now, .pp-add-cart, .pp-wishlist-btn { height: 48px; font-size: 14px; }
   .pp-related-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pp-recent-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .pp-related-card { border-radius: 12px; }
   .pp-related-name { -webkit-line-clamp: unset; overflow: visible; min-height: 0; font-size: 12.5px; margin: 10px 10px 0; }
   .pp-related-price { font-size: 13.5px; margin: 6px 10px 0; }
@@ -982,6 +984,7 @@
   .pp-price { font-size: 25px; }
   .pp-chip { padding: 7px 8px; font-size: 10px; }
   .pp-related-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .pp-recent-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .pp-related-media { aspect-ratio: 1 / 1; }
   .pp-detail-card { padding: 0 12px 16px; }
   .pp-tabs { margin: 0 -12px 14px; padding: 0 12px; gap: 14px; }
@@ -1029,4 +1032,14 @@
   .pp-feature-item + .pp-feature-item { border-top: 1px solid var(--pp-line); }
   .pp-feature-text { text-align: left; }
   .pp-related-grid { grid-template-columns: 1fr; }
+
+  /* ---------- Force 2-column "Recently Viewed" grid on mobile ----------
+   Desktop/tablet keep the auto-fill behavior from .pp-recent-grid above
+   (fits as many as the row allows). Below 900px we lock it to exactly
+   2 columns regardless of how many items exist. */
+@media (max-width: 900px) {
+  .pp-related-grid.pp-recent-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
 }

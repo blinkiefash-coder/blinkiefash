@@ -66,6 +66,16 @@ function toCurrency(value) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.max(num, 0));
 }
 
+// Picks the first genuinely positive price across variant/product fields,
+// instead of trusting whichever field happens to be non-null/undefined.
+function pickPrice(...candidates) {
+  for (const c of candidates) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -195,27 +205,34 @@ useEffect(() => {
   }, [relatedProducts]);
 
   useEffect(() => {
-    const pid = data?.product?.id;
-    if (!pid) return;
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
-      const list = Array.isArray(stored) ? stored : [];
-      setRecentlyViewed(list.filter((v) => String(v?.id) !== String(pid)).slice(0, 6));
-    } catch {
-      setRecentlyViewed([]);
-    }
-  }, [data]);
+  const pid = data?.product?.id;
+  if (!pid) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+    const list = Array.isArray(stored) ? stored : [];
+    setRecentlyViewed(
+      list
+        .filter((v) => String(v?.id) !== String(pid))
+        .filter((v) => Number(v?._price || v?.price) > 0) // drop old broken zero-price entries
+        .slice(0, 6)
+    );
+  } catch {
+    setRecentlyViewed([]);
+  }
+}, [data]);
 
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
     // Prefer selected variant pricing when available (variants may hold price info)
-    const selPriceRaw = selectedVariant?.discount_price ?? selectedVariant?.price;
-    const selBaseRaw = selectedVariant?.price ?? selectedVariant?.discount_price;
-    const basePrice = Number(selBaseRaw ?? data?.product?.price ?? 0);
-    const baseDiscountPrice = Number(selPriceRaw ?? data?.product?.discount_price ?? basePrice);
-    const price = baseDiscountPrice > 0 ? baseDiscountPrice : basePrice;
-    const mrp = basePrice > 0 ? basePrice : price;
+    // NEW
+const price = pickPrice(
+  selectedVariant?.discount_price,
+  selectedVariant?.price,
+  data?.product?.discount_price,
+  data?.product?.price
+);
+const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
     const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
     const imageUrl = data?.images?.[0]?.url || null;
     const snapshot = {
@@ -275,8 +292,13 @@ useEffect(() => {
   if (!data) return null;
 
   const { product, images, variants } = data;
-  const price = Number(selectedVariant?.discount_price ?? product.price ?? 0);
-  const mrp = Number(selectedVariant?.price ?? price);
+const price = pickPrice(
+  selectedVariant?.discount_price,
+  selectedVariant?.price,
+  product.discount_price,
+  product.price
+);
+const mrp = pickPrice(selectedVariant?.price, product.price) || price;
   const wishlisted = isWishlisted(product.id);
   const canPurchase = !(variants?.length > 0 && !selectedVariant);
 
