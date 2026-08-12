@@ -22,7 +22,8 @@ import { useCart } from '../context/CartContext';
 import { getAddresses, addAddress, placeOrder } from '../api';
 import './Checkout.css';
 
-const PLATFORM_FEE = 9;
+const FREE_DELIVERY_THRESHOLD = 999;
+const PLATFORM_FEE = 0;
 const HANDLING_FEE = 9;
 
 export default function Checkout() {
@@ -83,10 +84,12 @@ export default function Checkout() {
 
   const totalQty = items.reduce((sum, i) => sum + Number(i.qty || 1), 0);
   const itemTotal = subtotal;
-  const deliveryCharge = 0;
-  const offerDiscount = 0;
-  const totalFees = PLATFORM_FEE + HANDLING_FEE;
-  const totalPayable = itemTotal - offerDiscount + totalFees + deliveryCharge;
+  const deliveryCharge = itemTotal > FREE_DELIVERY_THRESHOLD ? 0 : 49;
+  const displayedOfferDiscount = Math.round(itemTotal * 0.05);
+  const appliedOfferDiscount = Math.round(itemTotal * 0.02);
+  const gstFee = HANDLING_FEE;
+  const totalFees = PLATFORM_FEE + gstFee;
+  const totalPayable = itemTotal - appliedOfferDiscount + totalFees + deliveryCharge;
   const selectedAddress = addresses.find((a) => String(a.id) === String(selectedAddressId));
 
   const handleIncrement = (item) => {
@@ -178,8 +181,18 @@ export default function Checkout() {
           <span className="ckt-free">{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</span>
         </div>
         <div className="ckt-bill-row">
-          <span>Offer Discount</span>
-          <span className="ckt-muted">₹{offerDiscount}</span>
+          <span>Offer Discount (5%)</span>
+          <span className="ckt-muted">-₹{displayedOfferDiscount.toLocaleString('en-IN')}</span>
+        </div>
+        {displayedOfferDiscount > appliedOfferDiscount && (
+          <div className="ckt-bill-subrow">
+            <span>&#8618; Launch adjustment</span>
+            <span>+₹{(displayedOfferDiscount - appliedOfferDiscount).toLocaleString('en-IN')}</span>
+          </div>
+        )}
+        <div className="ckt-bill-subrow">
+          <span>&#8618; Applied discount (2%)</span>
+          <span>-₹{appliedOfferDiscount.toLocaleString('en-IN')}</span>
         </div>
         <div className="ckt-bill-row ckt-bill-fees">
           <span>Total Fees</span>
@@ -190,8 +203,8 @@ export default function Checkout() {
           <span>₹{PLATFORM_FEE}</span>
         </div>
         <div className="ckt-bill-subrow">
-          <span>&#8618; Shipping, Packaging &amp; Handling ({totalQty} items)</span>
-          <span>₹{HANDLING_FEE}</span>
+          <span>&#8618; Taxes (GST)</span>
+          <span>₹{gstFee}</span>
         </div>
         <div className="ckt-bill-row ckt-bill-total">
           <span>Total Payable</span>
@@ -297,7 +310,7 @@ export default function Checkout() {
                   Free Delivery
                   {selectedOffer === 'free-delivery' && <MdCheckCircle />}
                 </span>
-                <span className="ckt-offer-sub">First 3 orders</span>
+                <span className="ckt-offer-sub">Orders above ₹999</span>
               </button>
               <button type="button" className="ckt-offer-chip locked" disabled>
                 <span className="ckt-offer-top">Spin &amp; Win</span>

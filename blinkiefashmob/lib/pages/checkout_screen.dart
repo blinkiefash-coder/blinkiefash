@@ -34,8 +34,9 @@ class CheckoutScreen extends StatefulWidget {
 class _CheckoutScreenState extends State<CheckoutScreen> {
   final ApiClient _api = ApiClient();
   bool _authRedirectInFlight = false;
-  static const double _platformFeeFlat = 9.0;
+  static const double _platformFeeFlat = 0.0;
   static const double _shippingPackagingHandlingPerProduct = 9.0;
+  static const double _freeDeliveryThreshold = 999.0;
 
   List<CartItem> get _effectiveItems {
     // Merge cart items + override items (buy now)
@@ -283,6 +284,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   Future<void> _fetchDeliveryFee(String addressId) async {
     final subtotal = _effectiveSubtotal;
+    final launchAppliedDiscount = subtotal * 0.02;
     final variantIds = _effectiveItems
         .map((i) => i.productId)
         .where((id) => id.isNotEmpty)
@@ -500,8 +502,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         )
         .toList();
 
-    // Send subtotal only — backend calculates final amount with delivery fee
-    final subtotal = _effectiveSubtotal;
+    // Send discounted subtotal for launch offer.
+    final subtotalForOrder = (subtotal - launchAppliedDiscount).clamp(
+      0.0,
+      subtotal,
+    );
 
     // Auto-schedule only for next-day scheduled delivery types.
     bool isScheduled = false;
@@ -541,7 +546,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       userId: userId,
       addressId: widget.selectedAddressId,
       items: items,
-      totalAmount: subtotal,
+      totalAmount: subtotalForOrder,
       isTryOrder: widget.isTryOrder,
       useReferralReward: _useReferral && _availableReferralAmount > 0,
       useClothingReward: _useClothing && _availableClothingItems > 0,
@@ -693,6 +698,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     final cartItems = _effectiveItems;
     final subtotal = _effectiveSubtotal;
+    final launchDisplayedDiscount = subtotal * 0.05;
+    final launchAppliedDiscount = subtotal * 0.02;
+    final launchAdjustment = (launchDisplayedDiscount - launchAppliedDiscount)
+        .clamp(0.0, launchDisplayedDiscount);
 
     // MRP / Listing Price total
     final listingTotal = cartItems.fold(0.0, (sum, i) {
@@ -705,6 +714,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     const platformFee = _platformFeeFlat;
     final shippingPackagingHandlingFee =
         productUnits * _shippingPackagingHandlingPerProduct;
+    final effectiveDeliveryFee =
+      subtotal > _freeDeliveryThreshold ? 0.0 : _deliveryFee;
 
     final referralDiscount = (_useReferral && _availableReferralAmount > 0)
         ? (_availableReferralAmount > subtotal
@@ -744,8 +755,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       subtotal,
     );
     final total =
-        discountedSubtotal +
-        _deliveryFee +
+        (discountedSubtotal - launchAppliedDiscount).clamp(0.0, discountedSubtotal) +
+        effectiveDeliveryFee +
         platformFee +
         shippingPackagingHandlingFee;
 
@@ -1323,25 +1334,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   child: Divider(height: 1, color: Color(0xFFF3F4F6)),
                 ),
                 // ── Delivery ─────────────────────────────────────────────
-                const _PriceRow(
+                _PriceRow(
                   label: 'Delivery Charges',
-                  value: 'FREE',
-                  valueColor: Color(0xFF16A34A),
+                  value: effectiveDeliveryFee > 0
+                      ? '₹${effectiveDeliveryFee.toStringAsFixed(0)}'
+                      : 'FREE',
+                  valueColor: effectiveDeliveryFee > 0
+                      ? const Color(0xFF0F172A)
+                      : const Color(0xFF16A34A),
                 ),
+                if (subtotal <= _freeDeliveryThreshold && effectiveDeliveryFee > 0)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, top: 4),
+                    child: _PriceRow(
+                      label: '↳ Applied for orders up to ₹999',
+                      value: '₹${effectiveDeliveryFee.toStringAsFixed(0)}',
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                      valueStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
                 const Padding(
                   padding: EdgeInsets.symmetric(vertical: 10),
                   child: Divider(height: 1, color: Color(0xFFF3F4F6)),
                 ),
                 // ── Offer discounts ───────────────────────────────────────
                 _PriceRow(
-                  label: 'Offer Discount',
-                  value: totalOfferDiscount > 0
-                      ? '- ₹${totalOfferDiscount.toStringAsFixed(0)}'
-                      : '₹0',
-                  valueColor: totalOfferDiscount > 0
+                  label: 'Offer Discount (5%)',
+                  value: '- ₹${launchDisplayedDiscount.toStringAsFixed(0)}',
+                  valueColor: launchDisplayedDiscount > 0
                       ? const Color(0xFF16A34A)
                       : const Color(0xFF9CA3AF),
                 ),
+                if (launchDisplayedDiscount > 0) ...[
+                  const SizedBox(height: 6),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: _PriceRow(
+                      label: '↳ Launch adjustment',
+                      value: '+ ₹${launchAdjustment.toStringAsFixed(0)}',
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                      valueStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12),
+                    child: _PriceRow(
+                      label: '↳ Applied discount (2%)',
+                      value: '- ₹${launchAppliedDiscount.toStringAsFixed(0)}',
+                      valueColor: const Color(0xFF16A34A),
+                      labelStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                      ),
+                      valueStyle: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF16A34A),
+                      ),
+                    ),
+                  ),
+                ],
                 if (totalOfferDiscount > 0) ...[
                   const SizedBox(height: 6),
                   if (referralDiscount > 0)
@@ -1497,8 +1561,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                 Padding(
                   padding: const EdgeInsets.only(left: 12),
                   child: _PriceRow(
-                    label:
-                        '↳ Shipping, Packaging & Handling ($productUnits items)',
+                    label: '↳ Taxes (GST)',
                     value:
                         '₹${shippingPackagingHandlingFee.toStringAsFixed(0)}',
                     labelStyle: const TextStyle(

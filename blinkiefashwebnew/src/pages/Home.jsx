@@ -42,7 +42,7 @@ function resolveImageUrl(raw) {
 const HERO_SLIDES = [
   {
     image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
     to: '/shop?search=Puma',
     pos: 'center 20%',
   },
@@ -939,6 +939,14 @@ export default function Home() {
               <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
             ))}
           </div>
+        </section>
+
+        <section className="hp-independence-banner" aria-label="Independence Day launch message">
+          <p className="hp-ind-kicker">15 August Launch Special</p>
+          <h3>Happy Independence Day, India!</h3>
+          <p>
+            Celebrating freedom with fast fashion delivery, festive styles, and launch offers made just for you.
+          </p>
         </section>
 
         {error && <p className="state-msg">{error}</p>}
