@@ -187,6 +187,9 @@ function chipFallbackIcon(label, audience) {
 
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 
+// Module-level cache — survives navigation, cleared on full page reload
+let _homeCache = null;
+
 export default function Home() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
@@ -195,35 +198,37 @@ export default function Home() {
 
   const [city, setCity] = useState(() => localStorage.getItem('bfw_city') || 'Cuttack');
   const [locating, setLocating] = useState(false);
-  const [categories, setCategories] = useState([]);
-  const [deals, setDeals] = useState([]);
-  const [newProducts, setNewProducts] = useState([]);
-  const [pinnedNewProduct, setPinnedNewProduct] = useState(null);
-  const [mensProducts, setMensProducts] = useState([]);
-  const [womensProducts, setWomensProducts] = useState([]);
-  const [kidsProducts, setKidsProducts] = useState([]);
-  const [electronicsProducts, setElectronicsProducts] = useState([]);
-  const [trendyShoesProducts, setTrendyShoesProducts] = useState([]);
-  const [mensCats, setMensCats] = useState([]);
-  const [womensCats, setWomensCats] = useState([]);
-  const [kidsCats, setKidsCats] = useState([]);
-  const [electronicsCats, setElectronicsCats] = useState([]);
-  const [trendyShoesCats, setTrendyShoesCats] = useState([]);
-  const [beautyCats, setBeautyCats] = useState([]);
-  const [homeLivingCats, setHomeLivingCats] = useState([]);
-  const [travelCats, setTravelCats] = useState([]);
+  const c = _homeCache;
+  const [categories, setCategories] = useState(() => c?.categories ?? []);
+  const [deals, setDeals] = useState(() => c?.deals ?? []);
+  const [newProducts, setNewProducts] = useState(() => c?.newProducts ?? []);
+  const [pinnedNewProduct, setPinnedNewProduct] = useState(() => c?.pinnedNewProduct ?? null);
+  const [mensProducts, setMensProducts] = useState(() => c?.mensProducts ?? []);
+  const [womensProducts, setWomensProducts] = useState(() => c?.womensProducts ?? []);
+  const [kidsProducts, setKidsProducts] = useState(() => c?.kidsProducts ?? []);
+  const [electronicsProducts, setElectronicsProducts] = useState(() => c?.electronicsProducts ?? []);
+  const [trendyShoesProducts, setTrendyShoesProducts] = useState(() => c?.trendyShoesProducts ?? []);
+  const [mensCats, setMensCats] = useState(() => c?.mensCats ?? []);
+  const [womensCats, setWomensCats] = useState(() => c?.womensCats ?? []);
+  const [kidsCats, setKidsCats] = useState(() => c?.kidsCats ?? []);
+  const [electronicsCats, setElectronicsCats] = useState(() => c?.electronicsCats ?? []);
+  const [trendyShoesCats, setTrendyShoesCats] = useState(() => c?.trendyShoesCats ?? []);
+  const [beautyCats, setBeautyCats] = useState(() => c?.beautyCats ?? []);
+  const [homeLivingCats, setHomeLivingCats] = useState(() => c?.homeLivingCats ?? []);
+  const [travelCats, setTravelCats] = useState(() => c?.travelCats ?? []);
   const [hoveredNav, setHoveredNav] = useState(null);
   const [activeCollectionCats, setActiveCollectionCats] = useState({});
-  const [under999Products, setUnder999Products] = useState([]);
-  const [under1999Products, setUnder1999Products] = useState([]);
-  const [topBrands, setTopBrands] = useState([]);
+  const [under999Products, setUnder999Products] = useState(() => c?.under999Products ?? []);
+  const [under1999Products, setUnder1999Products] = useState(() => c?.under1999Products ?? []);
+  const [topBrands, setTopBrands] = useState(() => c?.topBrands ?? []);
   const [exploreCatChipIndex, setExploreCatChipIndex] = useState(0);
   const [exploreCatId, setExploreCatId] = useState('');
   const [exploreProducts, setExploreProducts] = useState([]);
   const [exploreOffset, setExploreOffset] = useState(0);
   const [exploreHasMore, setExploreHasMore] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
-  const [loading, setLoading] = useState(true);
+  // Skip loading state when returning to cached data
+  const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
@@ -491,34 +496,58 @@ export default function Home() {
           .slice(0, 12);
 
         if (cancelled) return;
-        setCategories(sortCategories((Array.isArray(catRes) ? catRes : []).filter((c) => !c.parent_id)));
-        setDeals(Array.isArray(dealList) ? dealList : []);
-        setNewProducts(Array.isArray(latestList) ? latestList : []);
-        setPinnedNewProduct(Array.isArray(palermoList) && palermoList.length > 0 ? palermoList[0] : null);
-        setMensProducts(Array.isArray(menRes) && menRes.length > 0 ? menRes : fallbackMen);
-        setWomensProducts(Array.isArray(womenRes) && womenRes.length > 0 ? womenRes : fallbackWomen);
-        setKidsProducts(Array.isArray(kidsRes) && kidsRes.length > 0 ? kidsRes : fallbackKids);
-        setElectronicsProducts(
-          Array.isArray(electronicsRes) && electronicsRes.length > 0 ? electronicsRes : fallbackElectronics
-        );
-        setTrendyShoesProducts(Array.isArray(trendyShoesRes) && trendyShoesRes.length > 0 ? trendyShoesRes : fallbackShoes);
-        setUnder999Products(Array.isArray(under999List) && under999List.length > 0 ? under999List : fallbackUnder999);
-        setUnder1999Products(
-          Array.isArray(under1999List) && under1999List.length > 0 ? under1999List : fallbackUnder1999
-        );
+
+        const freshCategories = sortCategories((Array.isArray(catRes) ? catRes : []).filter((c) => !c.parent_id));
+        const freshDeals = Array.isArray(dealList) ? dealList : [];
+        const freshNewProducts = Array.isArray(latestList) ? latestList : [];
+        const freshPinned = Array.isArray(palermoList) && palermoList.length > 0 ? palermoList[0] : null;
+        const freshMens = Array.isArray(menRes) && menRes.length > 0 ? menRes : fallbackMen;
+        const freshWomens = Array.isArray(womenRes) && womenRes.length > 0 ? womenRes : fallbackWomen;
+        const freshKids = Array.isArray(kidsRes) && kidsRes.length > 0 ? kidsRes : fallbackKids;
+        const freshElectronics = Array.isArray(electronicsRes) && electronicsRes.length > 0 ? electronicsRes : fallbackElectronics;
+        const freshShoes = Array.isArray(trendyShoesRes) && trendyShoesRes.length > 0 ? trendyShoesRes : fallbackShoes;
+        const freshUnder999 = Array.isArray(under999List) && under999List.length > 0 ? under999List : fallbackUnder999;
+        const freshUnder1999 = Array.isArray(under1999List) && under1999List.length > 0 ? under1999List : fallbackUnder1999;
+        const freshMensCats = childCatsFor('Men');
+        const freshWomensCats = childCatsFor('Women');
+        const freshKidsCats = childCatsFor('Kids');
+        const freshElectronicsCats = childCatsFor('Electronics');
+        const freshShoesCats = childCatsFor('Footwear');
+        const freshBeautyCats = childCatsFor('Beauty');
+        const freshHomeLivingCats = childCatsFor(['Home Living', 'Living', 'Home & Living']);
+        const freshTravelCats = childCatsFor(['Travel and Backpack', 'Travel & Backpack', 'Travel']);
+
+        // Persist to module-level cache so next visit skips the loader
+        _homeCache = {
+          categories: freshCategories, deals: freshDeals, newProducts: freshNewProducts,
+          pinnedNewProduct: freshPinned, mensProducts: freshMens, womensProducts: freshWomens,
+          kidsProducts: freshKids, electronicsProducts: freshElectronics, trendyShoesProducts: freshShoes,
+          under999Products: freshUnder999, under1999Products: freshUnder1999, topBrands: brandsList,
+          mensCats: freshMensCats, womensCats: freshWomensCats, kidsCats: freshKidsCats,
+          electronicsCats: freshElectronicsCats, trendyShoesCats: freshShoesCats,
+          beautyCats: freshBeautyCats, homeLivingCats: freshHomeLivingCats, travelCats: freshTravelCats,
+        };
+
+        setCategories(freshCategories);
+        setDeals(freshDeals);
+        setNewProducts(freshNewProducts);
+        setPinnedNewProduct(freshPinned);
+        setMensProducts(freshMens);
+        setWomensProducts(freshWomens);
+        setKidsProducts(freshKids);
+        setElectronicsProducts(freshElectronics);
+        setTrendyShoesProducts(freshShoes);
+        setUnder999Products(freshUnder999);
+        setUnder1999Products(freshUnder1999);
         setTopBrands(brandsList);
-        // Fetch child categories from DB response; set Men and Women independently
-        const menChildren = childCatsFor('Men');
-        const womenChildren = childCatsFor('Women');
-        setMensCats(menChildren);
-        setWomensCats(womenChildren);
-        setKidsCats(childCatsFor('Kids'));
-        setElectronicsCats(childCatsFor('Electronics'));
-        setTrendyShoesCats(childCatsFor('Footwear'));
-        setBeautyCats(childCatsFor('Beauty'));
-        // DB names differ across environments (Living/Home Living, Travel & Backpack/Travel and Backpack).
-        setHomeLivingCats(childCatsFor(['Home Living', 'Living', 'Home & Living']));
-        setTravelCats(childCatsFor(['Travel and Backpack', 'Travel & Backpack', 'Travel']));
+        setMensCats(freshMensCats);
+        setWomensCats(freshWomensCats);
+        setKidsCats(freshKidsCats);
+        setElectronicsCats(freshElectronicsCats);
+        setTrendyShoesCats(freshShoesCats);
+        setBeautyCats(freshBeautyCats);
+        setHomeLivingCats(freshHomeLivingCats);
+        setTravelCats(freshTravelCats);
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load the home feed');
       } finally {
