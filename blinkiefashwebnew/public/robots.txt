@@ -8,4 +8,4 @@ Disallow: /account
 Disallow: /login
 Disallow: /signup
 
-Sitemap: https://blinkiefash.com/sitemap.xml
+Sitemap: https://blinkiefash.in/sitemap.xml

@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 
-const BASE_URL = 'https://blinkiefash.com';
+const BASE_URL = 'https://blinkiefash.in';
 const DEFAULT_IMG = 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg';
 
 export default function PageSEO({ title, description, path = '', image = DEFAULT_IMG, type = 'website', noIndex = false }) {
