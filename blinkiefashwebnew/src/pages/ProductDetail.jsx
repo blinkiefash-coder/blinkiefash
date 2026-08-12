@@ -35,6 +35,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { detectCurrentCity } from '../utils/location';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './ProductDetail.css';
 import './Home.css';
 
@@ -83,6 +84,7 @@ export default function ProductDetail() {
   const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
   const { user } = useAuth();
   const isLoggedIn = Boolean(localStorage.getItem('userUuid') || localStorage.getItem('token'));
+  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
 
   const [data, setData] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -565,6 +567,12 @@ colorOptions.forEach((color) => {
         </form>
 
         <div className="hp-header-actions">
+          {canSwitchToVendor ? (
+            <button type="button" onClick={() => navigate('/vendor/orders')}>
+              <MdCheckroom />
+              <span>Switch to Vendor</span>
+            </button>
+          ) : null}
           <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
             <MdPersonOutline />
             <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>

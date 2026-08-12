@@ -837,7 +837,7 @@ router.post("/login-password", async (req, res) => {
     }
 
     const vendorResult = await pool.query(
-      `SELECT id, user_id, email, password_hash, store_name, slug, dark_store_id
+      `SELECT id, user_id, email, password_hash, store_name, owner_name, slug, dark_store_id
        FROM vendors
        WHERE lower(email) = $1
        LIMIT 1`,

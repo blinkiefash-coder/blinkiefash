@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './Account.css';
 
 const MENU = [
@@ -14,6 +15,7 @@ const MENU = [
 export default function Account() {
   const navigate = useNavigate();
   const { user, isLoggedIn, logout } = useAuth();
+  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
 
   if (!isLoggedIn) {
     return (
@@ -41,6 +43,12 @@ export default function Account() {
           <p className="account-phone">{user.phone}</p>
         </div>
       </div>
+
+      {canSwitchToVendor ? (
+        <button type="button" className="primary-btn" onClick={() => navigate('/vendor/orders')}>
+          Switch to Vendor Dashboard
+        </button>
+      ) : null}
 
       <div className="account-menu">
         {MENU.map((item) => (

@@ -28,6 +28,7 @@ import { useWishlist } from '../context/WishlistContext';
 import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './Home.css';
 
 // Same logic as blinkiefashmob's _imgUrl(): resolves category_url from the database, absolute or relative.
@@ -194,6 +195,7 @@ let _homeCache = null;
 export default function Home() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
+  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
   const { count, addToCart } = useCart();
   const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
 
@@ -873,6 +875,12 @@ export default function Home() {
             </form>
 
             <div className="hp-header-actions">
+              {canSwitchToVendor && (
+                <button type="button" onClick={() => navigate('/vendor/orders')}>
+                  <MdArrowForward />
+                  <span>Switch to Vendor</span>
+                </button>
+              )}
               <a
                 className="hp-store-btn hp-store-btn-header"
                 href="https://play.google.com/store"

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authLoginWithEmailPassword, authVerify } from '../api';
+import { authLoginVendorWithEmailPassword, authLoginWithEmailPassword, authVerify } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
+import { clearVendorPasswordAuth, markVendorPasswordAuth } from '../utils/vendorSession';
 import './Auth.css';
 
 export default function Login() {
@@ -52,18 +53,56 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      const res = await authLoginWithEmailPassword({
-        email,
-        password,
-        expectedRole: 'customer',
-      });
+      let customerError = '';
 
-      if (!res.success) {
-        setError(res.message || 'Invalid email or password');
+      try {
+        const customerRes = await authLoginWithEmailPassword({
+          email,
+          password,
+          expectedRole: 'customer',
+        });
+
+        if (customerRes.success) {
+          clearVendorPasswordAuth();
+          localStorage.removeItem('vendor_id');
+          localStorage.removeItem('vendor_store_id');
+          localStorage.removeItem('store_name');
+          localStorage.removeItem('vendor_name');
+          login(customerRes.user, customerRes.token);
+          navigate('/account');
+          return;
+        }
+
+        customerError = customerRes.message || 'Invalid email or password';
+      } catch (customerErr) {
+        customerError = customerErr.message || 'Invalid email or password';
+      }
+
+      const vendorRes = await authLoginVendorWithEmailPassword({ email, password });
+      if (!vendorRes.success) {
+        setError(vendorRes.message || customerError || 'Invalid email or password');
         return;
       }
 
-      login(res.user, res.token);
+      if (vendorRes.vendor_id) localStorage.setItem('vendor_id', String(vendorRes.vendor_id));
+      if (vendorRes.user_id) localStorage.setItem('user_id', String(vendorRes.user_id));
+      if (vendorRes.dark_store_id) localStorage.setItem('vendor_store_id', String(vendorRes.dark_store_id));
+      if (vendorRes.store_name) localStorage.setItem('store_name', String(vendorRes.store_name));
+      if (vendorRes.owner_name) localStorage.setItem('vendor_name', String(vendorRes.owner_name));
+      markVendorPasswordAuth();
+
+      const vendorUserId = vendorRes.user_id || vendorRes.vendor_id;
+      login(
+        {
+          id: vendorUserId,
+          name: vendorRes.owner_name || vendorRes.store_name || 'Vendor',
+          phone: '',
+          email: String(email || '').trim().toLowerCase(),
+          role: 'vendor',
+        },
+        `vendor_session_${vendorUserId || Date.now()}_${Date.now()}`
+      );
+
       navigate('/account');
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');

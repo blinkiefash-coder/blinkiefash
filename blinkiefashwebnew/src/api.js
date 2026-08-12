@@ -69,6 +69,12 @@ export const authLoginWithEmailPassword = ({ email, password, expectedRole = 'cu
     body: JSON.stringify({ email, password, expectedRole }),
   });
 
+export const authLoginVendorWithEmailPassword = ({ email, password }) =>
+  request('/vendor/login-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
+
 export const registerUser = (payload) =>
   request('/auth/register', { method: 'POST', body: JSON.stringify(payload) });
 
