@@ -1,7 +1,7 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authStart, authVerify } from '../api';
+import { authLoginWithEmailPassword, authVerify } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import './Auth.css';
@@ -9,13 +9,15 @@ import './Auth.css';
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const [method, setMethod] = useState('email');
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
-  const recaptchaInitialized = useRef(false);
 
   const ensureRecaptcha = () => {
     if (typeof window === 'undefined') {
@@ -43,6 +45,31 @@ export default function Login() {
     if (trimmed.length === 10) return `+91${trimmed}`;
     if (trimmed.startsWith('+') && trimmed.length >= 10) return trimmed;
     return `+${trimmed}`;
+  };
+
+  const handleEmailPasswordLogin = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await authLoginWithEmailPassword({
+        email,
+        password,
+        expectedRole: 'customer',
+      });
+
+      if (!res.success) {
+        setError(res.message || 'Invalid email or password');
+        return;
+      }
+
+      login(res.user, res.token);
+      navigate('/account');
+    } catch (err) {
+      setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleStart = async (e) => {
@@ -95,9 +122,63 @@ export default function Login() {
   return (
     <div className="page auth-page">
       <h1>Log in</h1>
-      <p className="auth-subtitle">Use your registered mobile number to continue.</p>
+      <p className="auth-subtitle">Log in with email and password or use mobile OTP.</p>
 
-      {step === 'phone' && (
+      <div className="auth-method-switch" role="tablist" aria-label="Login method">
+        <button
+          type="button"
+          className={`auth-method-btn ${method === 'email' ? 'active' : ''}`}
+          onClick={() => {
+            setMethod('email');
+            setError('');
+          }}
+        >
+          Email + Password
+        </button>
+        <button
+          type="button"
+          className={`auth-method-btn ${method === 'otp' ? 'active' : ''}`}
+          onClick={() => {
+            setMethod('otp');
+            setError('');
+            setStep('phone');
+            setOtp('');
+          }}
+        >
+          Phone OTP
+        </button>
+      </div>
+
+      {method === 'email' && (
+        <form className="auth-form" onSubmit={handleEmailPasswordLogin}>
+          <label htmlFor="email">Email</label>
+          <input
+            id="email"
+            type="email"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+
+          <label htmlFor="password">Password</label>
+          <input
+            id="password"
+            type="password"
+            placeholder="Enter your password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+          />
+
+          {error && <p className="auth-error">{error}</p>}
+          <button type="submit" className="primary-btn" disabled={loading}>
+            {loading ? 'Please wait...' : 'Log in'}
+          </button>
+        </form>
+      )}
+
+      {method === 'otp' && step === 'phone' && (
         <form className="auth-form" onSubmit={handleStart}>
           <label htmlFor="phone">Mobile number</label>
           <input
@@ -115,7 +196,7 @@ export default function Login() {
         </form>
       )}
 
-      {step === 'otp' && (
+      {method === 'otp' && step === 'otp' && (
         <form className="auth-form" onSubmit={handleVerify}>
           <label htmlFor="otp">Enter OTP</label>
           <input
