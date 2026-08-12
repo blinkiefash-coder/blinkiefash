@@ -329,13 +329,25 @@ export default function Home() {
         ]);
 
         const allCats = Array.isArray(catRes) ? catRes : [];
-        const rootIdFor = (name) =>
-          allCats.find(
-            (c) => !c.parent_id && (c?.name || '').toString().toLowerCase() === name.toLowerCase()
-          )?.id;
+        const rootIdForAny = (names) => {
+          const normalizedNeedles = (Array.isArray(names) ? names : [names])
+            .map((n) => (n || '').toString().toLowerCase().trim())
+            .filter(Boolean);
+          if (normalizedNeedles.length === 0) return null;
 
-        const childCatsFor = (rootName) => {
-          const rootId = rootIdFor(rootName);
+          const root = allCats.find((c) => {
+            if (c.parent_id) return false;
+            const catName = (c?.name || '').toString().toLowerCase().trim();
+            return normalizedNeedles.some((needle) =>
+              catName === needle || catName.includes(needle) || needle.includes(catName)
+            );
+          });
+
+          return root?.id || null;
+        };
+
+        const childCatsFor = (rootNames) => {
+          const rootId = rootIdForAny(rootNames);
           if (!rootId) return [];
 
           const subCatsFor = (categoryId) =>
@@ -361,7 +373,7 @@ export default function Home() {
         };
 
         const fetchCollection = async (rootName, fallbackSearch) => {
-          const rootId = rootIdFor(rootName);
+          const rootId = rootIdForAny(rootName);
           const result = await getProducts({
             category_id: rootId,
             search: rootId ? undefined : fallbackSearch,
@@ -497,9 +509,9 @@ export default function Home() {
         setElectronicsCats(childCatsFor('Electronics'));
         setTrendyShoesCats(childCatsFor('Footwear'));
         setBeautyCats(childCatsFor('Beauty'));
-        // Home top-level category in DB is sometimes called 'Living' (Home Living)
-        setHomeLivingCats(childCatsFor('Living'));
-        setTravelCats(childCatsFor('Travel and Backpack'));
+        // DB names differ across environments (Living/Home Living, Travel & Backpack/Travel and Backpack).
+        setHomeLivingCats(childCatsFor(['Home Living', 'Living', 'Home & Living']));
+        setTravelCats(childCatsFor(['Travel and Backpack', 'Travel & Backpack', 'Travel']));
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load the home feed');
       } finally {
