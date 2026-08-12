@@ -335,13 +335,20 @@ export default function Home() {
             .filter(Boolean);
           if (normalizedNeedles.length === 0) return null;
 
-          const root = allCats.find((c) => {
-            if (c.parent_id) return false;
-            const catName = (c?.name || '').toString().toLowerCase().trim();
-            return normalizedNeedles.some((needle) =>
-              catName === needle || catName.includes(needle) || needle.includes(catName)
-            );
-          });
+          // Exact match first to avoid "women" matching when searching "men"
+          const root =
+            allCats.find((c) => {
+              if (c.parent_id) return false;
+              const catName = (c?.name || '').toString().toLowerCase().trim();
+              return normalizedNeedles.some((needle) => catName === needle);
+            }) ||
+            allCats.find((c) => {
+              if (c.parent_id) return false;
+              const catName = (c?.name || '').toString().toLowerCase().trim();
+              return normalizedNeedles.some(
+                (needle) => catName.includes(needle) || needle.includes(catName)
+              );
+            });
 
           return root?.id || null;
         };
