@@ -1945,3 +1945,72 @@
     padding: 7px;
   }
 }
+
+@media (max-width: 1024px) {
+  .hp-store-btn-header {
+    display: none;
+  }
+
+  .hp-main-header {
+    align-items: flex-start;
+  }
+
+  .hp-header-actions {
+    margin-left: 0;
+    max-width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .hp-header-actions button {
+    min-width: 36px;
+  }
+
+  .hp-mega-menu {
+    display: none !important;
+  }
+
+  .hp-nav-links {
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .hp-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .hp-main-header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .hp-brand {
+    min-width: 0;
+  }
+
+  .hp-brand-text {
+    min-width: 0;
+  }
+
+  .hp-brand-name {
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .hp-header-search {
+    order: 3;
+    grid-column: 1 / -1;
+  }
+
+  .hp-header-actions {
+    border-left: 0;
+    padding-left: 0;
+    justify-self: end;
+  }
+}

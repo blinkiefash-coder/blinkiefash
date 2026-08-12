@@ -877,3 +877,60 @@
   .pp-feature-text { text-align: left; }
   .pp-related-grid { grid-template-columns: 1fr; }
 }
+
+@media (max-width: 760px) {
+  .pd-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .pd-brand-logo {
+    min-width: 0;
+  }
+
+  .pd-brand-logo .hp-brand-name {
+    max-width: 140px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pd-header .hp-header-search {
+    order: 3;
+    grid-column: 1 / -1;
+  }
+
+  .pd-header .hp-header-actions {
+    justify-content: flex-end;
+    gap: 6px;
+  }
+
+  .pd-header .hp-header-actions button span {
+    display: none;
+  }
+
+  .pd-header .hp-header-actions button {
+    min-width: 30px;
+    padding: 4px;
+  }
+
+  .pp-page {
+    padding-bottom: 88px;
+  }
+}
+
+@media (max-width: 420px) {
+  .pd-mobile-actionbar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .pd-mobile-actions {
+    width: 100%;
+  }
+
+  .pd-mobile-cart,
+  .pd-mobile-buy {
+    flex: 1;
+  }
+}
