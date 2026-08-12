@@ -101,6 +101,11 @@ class _HomeScreenState extends State<HomeScreen>
   double? _shopMaxPrice;
 
   static const _heroCards = [
+    {
+      'image':
+          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
+      'route': 'allProducts',
+    },
     {'image': 'assets/images/hero_main.jpeg', 'route': 'allProducts'},
     {
       'image':
@@ -198,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Advances the hero banner one slide every 5 seconds, looping back to the
   // first slide after the last one.
   void _startHeroAutoSlide() {
-    _heroAutoTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _heroAutoTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted || !_heroPageController.hasClients) return;
       final next = (_heroPageIndex + 1) % _heroCards.length;
       _heroPageController.animateToPage(
@@ -1463,6 +1468,7 @@ class _HomeScreenState extends State<HomeScreen>
             _serviceAreaGate(),
           ] else ...[
             _heroBanner(),
+            _independenceLaunchBanner(),
             _sectionHeader(
               'SHOP BY CATEGORY',
               actionLabel: 'View All',
@@ -1727,6 +1733,54 @@ class _HomeScreenState extends State<HomeScreen>
                 fontWeight: FontWeight.w600,
                 fontSize: 13,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _independenceLaunchBanner() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFEDD5), Color(0xFFFFFFFF), Color(0xFFDCFCE7)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            '15 August Launch Special',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.9,
+              color: Color(0xFFEA580C),
+            ),
+          ),
+          SizedBox(height: 4),
+          Text(
+            'Happy Independence Day, India!',
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          SizedBox(height: 5),
+          Text(
+            'Celebrating freedom with festive fashion picks and ultra-fast delivery.',
+            style: TextStyle(
+              fontSize: 12.5,
+              height: 1.35,
+              color: Color(0xFF334155),
             ),
           ),
         ],

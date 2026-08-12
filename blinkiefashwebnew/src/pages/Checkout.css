@@ -812,3 +812,50 @@
     display: none;
   }
 }
+
+@media (max-width: 520px) {
+  .ckt-topbar {
+    padding: 12px;
+  }
+
+  .ckt-login-banner {
+    top: 58px;
+    padding: 9px 12px;
+    flex-wrap: wrap;
+  }
+
+  .ckt-content {
+    padding: 14px 12px;
+  }
+
+  .ckt-card {
+    padding: 14px;
+  }
+
+  .ckt-item-row {
+    align-items: flex-start;
+  }
+
+  .ckt-item-name {
+    white-space: normal;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .ckt-bottom-bar {
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  }
+
+  .ckt-bottom-price {
+    width: 100%;
+  }
+
+  .ckt-bottom-bar .ckt-place-order-btn {
+    width: 100%;
+    height: 44px;
+  }
+}

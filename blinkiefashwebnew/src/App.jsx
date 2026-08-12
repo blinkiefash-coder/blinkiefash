@@ -31,6 +31,7 @@ import Careers from './pages/Careers';
 import ContactUs from './pages/ContactUs';
 import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
+import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
@@ -69,6 +70,7 @@ export default function App() {
 
   return (
     <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}`}>
+      {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />

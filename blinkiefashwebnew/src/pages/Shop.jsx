@@ -1,5 +1,5 @@
 import "./Shop.css";
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   MdClose,
@@ -7,7 +7,6 @@ import {
   MdGridView,
   MdKeyboardArrowDown,
   MdLocationOn,
-  MdMenu,
   MdOutlineShoppingCart,
   MdPersonOutline,
   MdSearch,
@@ -79,7 +78,14 @@ export default function Shop() {
   const [searchInput, setSearchInput] = useState("");
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [recentSearches, setRecentSearches] = useState([]);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
+      return Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
@@ -90,7 +96,7 @@ export default function Shop() {
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
 
-  const getChildren = (parentId) => childrenByParent[parentId] || [];
+  const getChildren = useCallback((parentId) => childrenByParent[parentId] || [], [childrenByParent]);
 
   const toCategoryKey = (value) => (value === null || value === undefined ? null : String(value));
 
@@ -113,14 +119,7 @@ export default function Shop() {
     return collectedIds;
   };
 
-  useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
-      setRecentSearches(Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : []);
-    } catch {
-      setRecentSearches([]);
-    }
-  }, []);
+  
 
   const normalizeText = (value) =>
     String(value || "").trim().toLowerCase();
@@ -153,60 +152,73 @@ export default function Shop() {
     return [];
   };
 
-  const fetchAllProducts = async () => {
-    const pageSize = 100;
-    let offset = 0;
-    const all = [];
-
-    while (true) {
-      const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
-      const data = await response.json();
-      const pageItems = extractProducts(data);
-      all.push(...pageItems);
-
-      if (pageItems.length < pageSize) break;
-      offset += pageSize;
-    }
-
-    return all;
-  };
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const nextSearch = (params.get("search") || "").trim();
     const nextCategoryId = params.get("category_id");
 
-    setSearchTerm(nextSearch);
-    setSearchInput(nextSearch);
-    setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
-    setVisibleCount(24);
+    // Defer state updates to avoid synchronous setState within effect
+    const id = setTimeout(() => {
+      setSearchTerm(nextSearch);
+      setSearchInput(nextSearch);
+      setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
+      setVisibleCount(24);
+    }, 0);
+
+    return () => clearTimeout(id);
   }, [location.search]);
 
   useEffect(() => {
-    setLoading(true);
+    let isCancelled = false;
+
+    const fetchAllProducts = async () => {
+      const pageSize = 100;
+      let offset = 0;
+      const all = [];
+
+      while (true) {
+        const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
+        const data = await response.json();
+        const pageItems = extractProducts(data);
+        all.push(...pageItems);
+
+        if (pageItems.length < pageSize) break;
+        offset += pageSize;
+      }
+
+      return all;
+    };
+
+    // Defer to avoid synchronous setState inside effect
+    const startId = setTimeout(() => setLoading(true), 0);
     fetchAllProducts()
       .then((data) => {
-        setProducts(Array.isArray(data) ? data : []);
+        if (!isCancelled) setProducts(Array.isArray(data) ? data : []);
       })
       .catch((err) => {
         console.error("[Shop] Error fetching products:", err);
       })
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!isCancelled) setLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+      clearTimeout(startId);
+    };
   }, []);
 
-  if (loading) {
-    return (
-      <div className="catalog-page">
-        <Loader overlay label="Loading products..." />
-      </div>
-    );
-  }
+  
 
   useEffect(() => {
     if (!userId) {
-      setWishlistCount(0);
-      setCartCount(0);
-      return;
+      // defer to avoid synchronous setState inside effect
+      const id = setTimeout(() => {
+        setWishlistCount(0);
+        setCartCount(0);
+      }, 0);
+      return () => clearTimeout(id);
     }
 
     const loadCounts = async () => {
@@ -257,8 +269,8 @@ export default function Shop() {
 
   useEffect(() => {
     if (products.length === 0) {
-      setProductMetaById({});
-      return;
+      const id = setTimeout(() => setProductMetaById({}), 0);
+      return () => clearTimeout(id);
     }
 
     let isCancelled = false;
@@ -389,7 +401,7 @@ export default function Shop() {
   const topCategoryStrip = useMemo(() => {
     const roots = getChildren("ROOT");
     return [{ id: null, name: "All" }, ...roots];
-  }, [childrenByParent]);
+  }, [getChildren]);
 
   const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId } = {}) => {
     const params = new URLSearchParams();
