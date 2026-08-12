@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
+import { signOut as firebaseSignOut } from 'firebase/auth';
 import { auth as firebaseAuth } from '../firebase.js';
+import { clearVendorPasswordAuth } from '../utils/vendorSession';
 
 const AuthContext = createContext(null);
 
@@ -15,13 +16,25 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem('bfw_token') || null);
 
   useEffect(() => {
-    if (user) localStorage.setItem('bfw_user', JSON.stringify(user));
-    else localStorage.removeItem('bfw_user');
+    if (user) {
+      localStorage.setItem('bfw_user', JSON.stringify(user));
+      if (user.name) localStorage.setItem('userName', user.name);
+      if (user.id !== undefined && user.id !== null) localStorage.setItem('userUuid', String(user.id));
+    } else {
+      localStorage.removeItem('bfw_user');
+      localStorage.removeItem('userName');
+      localStorage.removeItem('userUuid');
+    }
   }, [user]);
 
   useEffect(() => {
-    if (token) localStorage.setItem('bfw_token', token);
-    else localStorage.removeItem('bfw_token');
+    if (token) {
+      localStorage.setItem('bfw_token', token);
+      localStorage.setItem('token', token);
+    } else {
+      localStorage.removeItem('bfw_token');
+      localStorage.removeItem('token');
+    }
   }, [token]);
 
   const login = (nextUser, nextToken) => {
@@ -40,6 +53,11 @@ export function AuthProvider({ children }) {
 
     setUser(null);
     setToken(null);
+    clearVendorPasswordAuth();
+    localStorage.removeItem('vendor_id');
+    localStorage.removeItem('vendor_store_id');
+    localStorage.removeItem('store_name');
+    localStorage.removeItem('vendor_name');
   };
 
   const value = useMemo(

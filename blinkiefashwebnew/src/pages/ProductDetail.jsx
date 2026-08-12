@@ -29,11 +29,13 @@ import {
 } from 'react-icons/md';
 import { FaFacebookF, FaLink, FaRegEnvelope, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import Loader from '../components/Loader';
+import PageSEO from '../components/PageSEO';
 import { getAddresses, getProductById, getProducts } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { detectCurrentCity } from '../utils/location';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './ProductDetail.css';
 import './Home.css';
 
@@ -65,13 +67,26 @@ function toCurrency(value) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.max(num, 0));
 }
 
+// Picks the first genuinely positive price across variant/product fields,
+// instead of trusting whichever field happens to be non-null/undefined.
+function pickPrice(...candidates) {
+  for (const c of candidates) {
+    const n = Number(c);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return 0;
+}
+
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { addToCart, count } = useCart();
   const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
-  const { user } = useAuth();
-  const isLoggedIn = Boolean(localStorage.getItem('userUuid') || localStorage.getItem('token'));
+  const { user, isLoggedIn } = useAuth();
+  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
 
   const [data, setData] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -194,27 +209,34 @@ useEffect(() => {
   }, [relatedProducts]);
 
   useEffect(() => {
-    const pid = data?.product?.id;
-    if (!pid) return;
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
-      const list = Array.isArray(stored) ? stored : [];
-      setRecentlyViewed(list.filter((v) => String(v?.id) !== String(pid)).slice(0, 6));
-    } catch {
-      setRecentlyViewed([]);
-    }
-  }, [data]);
+  const pid = data?.product?.id;
+  if (!pid) return;
+  try {
+    const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
+    const list = Array.isArray(stored) ? stored : [];
+    setRecentlyViewed(
+      list
+        .filter((v) => String(v?.id) !== String(pid))
+        .filter((v) => Number(v?._price || v?.price) > 0) // drop old broken zero-price entries
+        .slice(0, 6)
+    );
+  } catch {
+    setRecentlyViewed([]);
+  }
+}, [data]);
 
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
     // Prefer selected variant pricing when available (variants may hold price info)
-    const selPriceRaw = selectedVariant?.discount_price ?? selectedVariant?.price;
-    const selBaseRaw = selectedVariant?.price ?? selectedVariant?.discount_price;
-    const basePrice = Number(selBaseRaw ?? data?.product?.price ?? 0);
-    const baseDiscountPrice = Number(selPriceRaw ?? data?.product?.discount_price ?? basePrice);
-    const price = baseDiscountPrice > 0 ? baseDiscountPrice : basePrice;
-    const mrp = basePrice > 0 ? basePrice : price;
+    // NEW
+const price = pickPrice(
+  selectedVariant?.discount_price,
+  selectedVariant?.price,
+  data?.product?.discount_price,
+  data?.product?.price
+);
+const mrp = pickPrice(selectedVariant?.price, data?.product?.price) || price;
     const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
     const imageUrl = data?.images?.[0]?.url || null;
     const snapshot = {
@@ -274,8 +296,13 @@ useEffect(() => {
   if (!data) return null;
 
   const { product, images, variants } = data;
-  const price = Number(selectedVariant?.discount_price ?? product.price ?? 0);
-  const mrp = Number(selectedVariant?.price ?? price);
+const price = pickPrice(
+  selectedVariant?.discount_price,
+  selectedVariant?.price,
+  product.discount_price,
+  product.price
+);
+const mrp = pickPrice(selectedVariant?.price, product.price) || price;
   const wishlisted = isWishlisted(product.id);
   const canPurchase = !(variants?.length > 0 && !selectedVariant);
 
@@ -501,6 +528,13 @@ colorOptions.forEach((color) => {
 
   return (
     <div className="pd-screen">
+      <PageSEO
+        title={`${product.name}${product.brand ? ` by ${product.brand}` : ''}`}
+        description={`Buy ${product.name}${product.brand ? ` by ${product.brand}` : ''} online. ${product.description ? product.description.slice(0, 120) : 'Fast 60-minute delivery in Odisha. 100% authentic products.'}`}
+        path={`/product/${product.id}`}
+        image={gallery[0]?.url || undefined}
+        type="product"
+      />
       <div className="hp-utility-bar">
         <div className="hp-utility-left">
           {UTILITY_ITEMS.map((item) => (
@@ -535,9 +569,15 @@ colorOptions.forEach((color) => {
         </form>
 
         <div className="hp-header-actions">
+          {canSwitchToVendor ? (
+            <button type="button" onClick={() => navigate('/vendor/orders')}>
+              <MdCheckroom />
+              <span>Switch to Vendor</span>
+            </button>
+          ) : null}
           <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
             <MdPersonOutline />
-            <span>{isLoggedIn ? 'My Account' : 'Login / Signup'}</span>
+            <span>{accountLabel}</span>
           </button>
           <button type="button" onClick={() => navigate('/wishlist')}>
             <MdFavoriteBorder />

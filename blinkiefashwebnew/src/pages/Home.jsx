@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-import googlePlayBadge from '../assets/playstore.png';
-import appStoreBadge from '../assets/appstore.png';
+import { FaApple } from 'react-icons/fa';
 import {
   MdLocationOn,
   MdVisibility,
@@ -20,14 +18,17 @@ import {
   MdArrowForward,
   MdPersonOutline,
 } from 'react-icons/md';
+
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
+import PageSEO from '../components/PageSEO';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './Home.css';
 
 // Same logic as blinkiefashmob's _imgUrl(): resolves category_url from the database, absolute or relative.
@@ -194,6 +195,10 @@ let _homeCache = null;
 export default function Home() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
+  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
   const { count, addToCart } = useCart();
   const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
 
@@ -817,6 +822,11 @@ export default function Home() {
 
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
+      <PageSEO
+        title="Fashion Delivered in 60 Minutes — Cuttack & Bhubaneswar"
+        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door in 60 minutes across Odisha."
+        path="/"
+      />
       {loading ? (
         <Loader
           overlay
@@ -870,27 +880,39 @@ export default function Home() {
             </form>
 
             <div className="hp-header-actions">
+              {canSwitchToVendor && (
+                <button type="button" onClick={() => navigate('/vendor/orders')}>
+                  <MdArrowForward />
+                  <span>Switch to Vendor</span>
+                </button>
+              )}
               <a
-                className="hp-store-badge"
-                  href="https://play.google.com/store"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Get it on Google Play"
-                >
-                  <img src={googlePlayBadge} alt="Play Store" />
-                </a>
-                <a
-                  className="hp-store-badge"
-                  href="https://www.apple.com/app-store/"
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label="Download on the App Store"
-                >
-                  <img src={appStoreBadge} alt="App Store" />
-                </a>
+                className="hp-store-btn hp-store-btn-header"
+                href="https://play.google.com/store"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Get it on Google Play"
+              >
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg"
+                  alt="Google Play"
+                  className="hp-store-color-icon"
+                />
+                <span>Google Play</span>
+              </a>
+              <a
+                className="hp-store-btn hp-store-btn-header"
+                href="https://www.apple.com/app-store/"
+                target="_blank"
+                rel="noreferrer"
+                aria-label="Download on the App Store"
+              >
+                <FaApple />
+                <span>App Store</span>
+              </a>
               <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
                 <MdPersonOutline />
-                <span>{isLoggedIn ? 'My Account' : 'Profile'}</span>
+                <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate('/wishlist')}>
                 <MdFavoriteBorder />

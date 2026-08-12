@@ -90,6 +90,7 @@ app.get("/", (req, res) => {
   res.json({ status: "ok", message: "BlinkieFash backend is running" });
 });
 
+app.use("/api/auth", authRoutes);
 app.use("/login", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/vendor", vendorRoutes);

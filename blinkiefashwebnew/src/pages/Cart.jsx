@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import './Cart.css';
+import PageSEO from '../components/PageSEO';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function Cart() {
   if (items.length === 0) {
     return (
       <div className="page cart-page">
+        <PageSEO title="Your Cart" description="Review your cart items and proceed to checkout." path="/cart" noIndex />
         <h1 className="cart-title">Your cart</h1>
         <p className="state-msg">Your cart is empty.</p>
         <button type="button" className="primary-btn" onClick={() => navigate('/shop')}>
@@ -20,6 +22,7 @@ export default function Cart() {
 
   return (
     <div className="page cart-page">
+      <PageSEO title="Your Cart" description="Review your cart items and proceed to checkout." path="/cart" noIndex />
       <h1 className="cart-title">Your cart ({count})</h1>
       <div className="cart-list">
         {items.map((item) => {

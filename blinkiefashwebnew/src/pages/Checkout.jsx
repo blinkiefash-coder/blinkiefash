@@ -21,6 +21,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { getAddresses, addAddress, placeOrder } from '../api';
 import './Checkout.css';
+import PageSEO from '../components/PageSEO';
 
 const FREE_DELIVERY_THRESHOLD = 999;
 const PLATFORM_FEE = 0;
@@ -216,6 +217,7 @@ export default function Checkout() {
 
   return (
     <div className="ckt-page">
+      <PageSEO title="Checkout" description="Complete your order for fast 60-minute fashion delivery across Odisha." path="/checkout" noIndex />
       <div className="ckt-topbar">
         <button type="button" className="ckt-back" onClick={() => navigate(-1)} aria-label="Go back">
           <MdArrowBack />

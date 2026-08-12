@@ -1,4 +1,4 @@
-import { API_API_BASE_URL } from './apiBase';
+import { API_API_BASE_URL, API_BASE_URL } from './apiBase';
 
 async function request(path, options = {}) {
   const res = await fetch(`${API_API_BASE_URL}${path}`, {
@@ -10,6 +10,36 @@ async function request(path, options = {}) {
     throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
   }
   return data;
+}
+
+async function requestAuth(path, options = {}) {
+  const loginPath = path.startsWith('/auth/') ? path.replace('/auth/', '/') : path;
+  const candidates = [`/api${path}`, `/login${loginPath}`];
+  let lastError = null;
+
+  for (const candidate of candidates) {
+    try {
+      const res = await fetch(`${API_BASE_URL}${candidate}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const message = data?.message || data?.error || `Request failed (${res.status})`;
+        // Fallback only when the route does not exist on this path.
+        if (res.status !== 404 && res.status !== 405) {
+          throw new Error(message);
+        }
+        lastError = new Error(message);
+        continue;
+      }
+      return data;
+    } catch (err) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error('Authentication request failed');
 }
 
 export const getCategories = () => request('/categories');
@@ -31,10 +61,25 @@ export const getPriceRangeProducts = (minPrice, maxPrice, limit = 10) =>
   request(`/products/price-range?min_price=${minPrice}&max_price=${maxPrice}&limit=${limit}`);
 
 export const authStart = (phone, expectedRole = 'customer') =>
-  request('/auth/start', { method: 'POST', body: JSON.stringify({ phone, expectedRole }) });
+  requestAuth('/auth/start', { method: 'POST', body: JSON.stringify({ phone, expectedRole }) });
 
-export const authVerify = ({ phone, otp, expectedRole = 'customer' }) =>
-  request('/auth/verify', { method: 'POST', body: JSON.stringify({ phone, otp, expectedRole }) });
+export const authVerify = ({ idToken, phone, otp, expectedRole = 'customer' }) =>
+  requestAuth('/auth/verify', {
+    method: 'POST',
+    body: JSON.stringify({ idToken, phone, otp, expectedRole }),
+  });
+
+export const authLoginWithEmailPassword = ({ email, password, expectedRole = 'customer' }) =>
+  requestAuth('/auth/login-email-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password, expectedRole }),
+  });
+
+export const authLoginVendorWithEmailPassword = ({ email, password }) =>
+  request('/vendor/login-password', {
+    method: 'POST',
+    body: JSON.stringify({ email, password }),
+  });
 
 export const registerUser = (payload) =>
   request('/auth/register', { method: 'POST', body: JSON.stringify(payload) });

@@ -531,6 +531,67 @@ router.post("/login-password", async (req, res) => {
   }
 });
 
+// POST /auth/login-email-password  — login with email + password
+router.post("/login-email-password", async (req, res) => {
+  try {
+    const { email, password, expectedRole = "customer" } = req.body;
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+
+    if (!normalizedEmail || !password) {
+      return res.json({ success: false, message: "Email and password are required" });
+    }
+
+    const userResult = await pool.query(
+      `SELECT id, name, phone, email, role, password_hash, password_salt
+       FROM users
+       WHERE lower(email) = $1
+       LIMIT 1`,
+      [normalizedEmail]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.json({ success: false, message: "Email not found" });
+    }
+
+    const user = userResult.rows[0];
+
+    if (!user.password_hash || !user.password_salt) {
+      return res.json({
+        success: false,
+        message: "No password set for this account. Please set a password first."
+      });
+    }
+
+    if (!roleMatchesExpected(user.role, expectedRole)) {
+      return res.json({
+        success: false,
+        message: `This email is registered as ${user.role}, not ${expectedRole}`
+      });
+    }
+
+    const isValid = verifyPassword(String(password), user.password_salt, user.password_hash);
+    if (!isValid) {
+      return res.json({ success: false, message: "Incorrect password" });
+    }
+
+    return res.json({
+      success: true,
+      token: `session_${user.id}_${Date.now()}`,
+      user: {
+        id: user.id,
+        name: user.name,
+        phone: user.phone,
+        email: user.email,
+        role: user.role
+      },
+      message: "Login successful"
+    });
+  } catch (err) {
+    console.error("Email password login error:", err);
+    return res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
 // POST /login/google — sign in / auto-register via Firebase Google auth
 router.post("/google", async (req, res) => {
   try {

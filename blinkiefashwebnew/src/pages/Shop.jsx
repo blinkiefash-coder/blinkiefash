@@ -15,6 +15,8 @@ import {
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
+import { useAuth } from "../context/AuthContext";
+import { hasVendorPasswordAuth } from "../utils/vendorSession";
 import "./Home.css";
 
 const COLORS = [
@@ -59,12 +61,17 @@ const buildChildrenMap = (data) => {
 export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isLoggedIn: authLoggedIn } = useAuth();
   const userId = localStorage.getItem("userUuid");
   const city =
     localStorage.getItem("bfw_city") ||
     localStorage.getItem("selectedCity") ||
     "Cuttack";
-  const isLoggedIn = Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
+  const isLoggedIn = authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
+  const canSwitchToVendor = user?.role === "vendor" && hasVendorPasswordAuth();
+  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
+  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : "My Account") : "Login / Signup";
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -665,6 +672,11 @@ export default function Shop() {
 
   return (
     <div className="catalog-page">
+      <PageSEO
+        title="Shop Fashion Online — Clothing, Footwear & More"
+        description="Browse thousands of products across Men, Women, Kids, Electronics & Footwear. Filter by brand, price and colour. Express 60-minute delivery in Odisha."
+        path="/shop"
+      />
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate("/")}>
@@ -738,9 +750,15 @@ export default function Shop() {
             </button>
 
             <div className="hp-header-actions">
+              {canSwitchToVendor ? (
+                <button type="button" onClick={() => navigate("/vendor/orders")}>
+                  <MdCheckroom />
+                  <span>Switch to Vendor</span>
+                </button>
+              ) : null}
               <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
                 <MdPersonOutline />
-                <span>{isLoggedIn ? "My Account" : "Login / Signup"}</span>
+                <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate("/wishlist")}>
                 <MdFavoriteBorder />

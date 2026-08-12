@@ -131,10 +131,40 @@
   display: block;
 }
 
+
 @media (max-width: 640px) {
   .hp-store-badge img {
     height: 28px;
   }
+}
+
+.hp-store-btn:hover {
+  background: rgba(255, 255, 255, 0.22);
+  transform: translateY(-1px);
+}
+
+.hp-store-btn-header {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: var(--brand-dark);
+  padding: 7px 12px;
+}
+
+.hp-store-btn-header svg {
+  font-size: 14px;
+  color: #374151;
+}
+
+.hp-store-color-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.hp-store-btn-header:hover {
+  background: #eef2f7;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
 }
 
 .hp-location-sheet-backdrop {
@@ -932,33 +962,6 @@
   object-fit: contain;
 }
 
-.hp-deals-wrap {
-  position: relative;
-}
-
-.hp-deals-prev,
-.hp-deals-next {
-  position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255,255,255,0.95);
-  box-shadow: 0 6px 18px rgba(2,6,23,0.08);
-  cursor: pointer;
-  z-index: 6;
-}
-
-.hp-deals-prev { left: -18px; }
-.hp-deals-next { right: -18px; }
-
-.hp-deals-prev svg, .hp-deals-next svg { font-size: 18px; color: var(--brand-dark); }
-
 @media (min-width: 1200px) {
   .hp-deals-rail {
     grid-auto-columns: calc((100% - 70px) / 6);
@@ -987,10 +990,6 @@
   display: none;
 }
 
-/* Simple visible arrow controls */
-.hp-deals-wrap {
-  position: relative;
-}
 
 .hp-deals-prev,
 .hp-deals-next {
