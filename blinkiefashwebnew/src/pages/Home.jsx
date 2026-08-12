@@ -48,6 +48,12 @@ const HERO_SLIDES = [
   },
   {
     image:
+      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+    to: '/shop?search=Puma',
+    pos: 'center 20%',
+  },
+  {
+    image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
     to: '/shop?search=Nike',
   },
@@ -508,7 +514,7 @@ export default function Home() {
   useEffect(() => {
     const timer = setInterval(() => {
       setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
-    }, 5000);
+    }, 15000);
     return () => clearInterval(timer);
   }, []);
 

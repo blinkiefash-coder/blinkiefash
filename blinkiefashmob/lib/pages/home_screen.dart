@@ -106,6 +106,7 @@ class _HomeScreenState extends State<HomeScreen>
           'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
       'route': 'allProducts',
     },
+    {'image': 'assets/images/hero_main.jpeg', 'route': 'allProducts'},
     {
       'image':
           'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
@@ -202,7 +203,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Advances the hero banner one slide every 5 seconds, looping back to the
   // first slide after the last one.
   void _startHeroAutoSlide() {
-    _heroAutoTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+    _heroAutoTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (!mounted || !_heroPageController.hasClients) return;
       final next = (_heroPageIndex + 1) % _heroCards.length;
       _heroPageController.animateToPage(
@@ -1749,11 +1750,7 @@ class _HomeScreenState extends State<HomeScreen>
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFFFEDD5),
-            Color(0xFFFFFFFF),
-            Color(0xFFDCFCE7),
-          ],
+          colors: [Color(0xFFFFEDD5), Color(0xFFFFFFFF), Color(0xFFDCFCE7)],
         ),
       ),
       child: Column(
