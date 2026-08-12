@@ -156,6 +156,12 @@
   color: #374151;
 }
 
+.hp-store-color-icon {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
 .hp-store-btn-header:hover {
   background: #eef2f7;
   border-color: #94a3b8;

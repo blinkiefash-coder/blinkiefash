@@ -18,7 +18,7 @@ import {
   MdArrowForward,
   MdPersonOutline,
 } from 'react-icons/md';
-import { FaApple, FaGooglePlay } from 'react-icons/fa';
+import { FaApple } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
@@ -891,7 +891,11 @@ export default function Home() {
                 rel="noreferrer"
                 aria-label="Get it on Google Play"
               >
-                <FaGooglePlay />
+                <img
+                  src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg"
+                  alt="Google Play"
+                  className="hp-store-color-icon"
+                />
                 <span>Google Play</span>
               </a>
               <a
