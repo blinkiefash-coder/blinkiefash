@@ -1,68 +1,681 @@
-.account-auth-actions {
+/* ========== AccountPage — full stretch, no side gaps ========== */
+:root {
+  --green-dark: #0b3d1f;
+  --green-mid: #0d9f4f;
+  --green-bright: #16c463;
+  --ink: #14181a;
+  --sub: #70787a;
+  --line: #e8ece9;
+  --bg: #f6f8f6;
+  --red: #e53935;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+}
+
+.acct-page {
+  background: var(--bg);
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--ink);
+  overflow-x: hidden;
+}
+
+/* ---------- guest state ---------- */
+.acct-guest {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  text-align: left;
+}
+.acct-guest h1 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+.acct-guest p {
+  color: var(--sub);
+  margin: 0 0 20px;
+}
+.acct-guest-actions {
   display: grid;
   gap: 10px;
-  margin-top: 12px;
+  max-width: 320px;
 }
 
-.account-profile {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* ---------- top nav (full width, no side gaps) ---------- */
+.acct-topnav {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 14px;
+  border-bottom: 1px solid var(--line);
+  width: 100%;
 }
 
-.account-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: var(--brand-green-soft);
-  color: var(--brand-green-dark);
-  font-weight: 800;
+.acct-topnav-inner {
+  width: 100%;
+  margin: 0;
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 20px;
+  padding: 14px 16px;          /* tiny padding only */
+}
+
+.acct-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.acct-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
+}
+
+.acct-logo-text-wrap {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+.acct-logo-text {
+  font-weight: 800;
   font-size: 18px;
+  letter-spacing: -0.3px;
+  color: var(--ink);
 }
 
-.account-name {
-  font-weight: 800;
-  font-size: 14px;
+.acct-logo-text .fash {
+  color: var(--green-bright);
 }
 
-.account-phone {
-  font-size: 12px;
-  color: var(--muted);
+.acct-logo-sub {
+  font-size: 9px;
+  letter-spacing: 1.6px;
+  font-weight: 700;
+  color: #a2aca4;
 }
 
-.account-menu {
-  margin-top: 14px;
-  background: #fff;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+.acct-nav-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 0;
+}
+
+.acct-nav-search {
+  flex: 1;
+  max-width: none;             /* let it grow */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #f1f3f1;
+  border-radius: 12px;
+  padding: 9px 13px;
+  color: #9aa39c;
+  min-width: 0;
+}
+
+.acct-nav-search span {
+  font-size: 13.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.acct-nav-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-left: auto;
+}
+
+.acct-nav-links a {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #5a625d;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.acct-nav-links a.active {
+  color: var(--green-mid);
+}
+
+.acct-nav-icons {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: var(--ink);
+  flex-shrink: 0;
+}
+
+/* ---------- layout (full width, no side gaps) ---------- */
+.acct-layout {
+  width: 100%;
+  margin: 0;
+  padding: 24px 16px 60px;     /* only minimal side padding */
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+.acct-layout > aside {
+  position: sticky;
+  top: 88px;
+}
+
+/* ---------- profile card ---------- */
+.acct-profile-card {
+  background: linear-gradient(
+    150deg,
+    var(--green-dark) 0%,
+    var(--green-mid) 60%,
+    var(--green-bright) 130%
+  );
+  border-radius: 22px;
+  padding: 30px 24px;
+  color: #fff;
   overflow: hidden;
 }
 
-.account-menu-item {
-  width: 100%;
-  border: none;
-  background: none;
-  padding: 14px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 13px;
-  font-weight: 600;
-  border-bottom: 1px solid var(--border);
+.acct-avatar-wrap {
+  position: relative;
+  width: 76px;
+  margin-bottom: 16px;
 }
 
-.account-menu-item:last-child {
+.acct-avatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--green-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  font-weight: 800;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.acct-avatar-edit {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #fff;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--green-mid);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  padding: 0;
+}
+
+.acct-profile-card h1 {
+  font-size: 19px;
+  margin: 0 0 4px;
+  font-weight: 800;
+  word-break: break-word;
+}
+
+.acct-phone {
+  font-size: 13px;
+  opacity: 0.85;
+  margin: 0 0 16px;
+}
+
+.acct-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.4px solid rgba(255, 255, 255, 0.55);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.acct-edit-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.acct-side-links {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  margin-top: 18px;
+  overflow: hidden;
+}
+
+.acct-side-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #3a413c;
+  border-bottom: 1px solid var(--line);
+  text-decoration: none;
+}
+
+.acct-side-links a:last-child {
   border-bottom: none;
 }
 
-.account-logout {
+.acct-side-links a svg {
+  color: #9aa39c;
+  flex-shrink: 0;
+}
+
+.acct-side-links a:hover {
+  background: #f7faf8;
+  color: var(--green-mid);
+}
+
+/* ---------- main content ---------- */
+.acct-main-title {
+  margin: 0 0 4px;
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.acct-main-sub {
+  margin: 0 0 24px;
+  color: var(--sub);
+  font-size: 14px;
+}
+
+.acct-section {
+  margin-bottom: 28px;
+}
+
+.acct-section-title {
+  font-size: 11.5px;
+  letter-spacing: 1.4px;
+  font-weight: 800;
+  color: #9aa39c;
+  margin: 0 0 12px 2px;
+}
+
+.acct-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.acct-item-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
   width: 100%;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 16px;
+  cursor: pointer;
+  text-align: left;
+  font-family: inherit;
+  transition: box-shadow 0.15s, transform 0.15s, border-color 0.15s,
+    background 0.12s;
+}
+
+.acct-item-card:hover {
+  box-shadow: 0 8px 20px rgba(11, 61, 31, 0.08);
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.acct-ic {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.acct-item-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.acct-item-text .t {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.acct-item-text .s {
+  font-size: 12.5px;
+  color: var(--sub);
+}
+
+.acct-chev {
+  color: #c7ccc6;
+  flex-shrink: 0;
+  display: flex;
+}
+
+.acct-single-list {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.acct-single-list .acct-item-card {
+  border: none;
+  border-radius: 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.acct-single-list .acct-item-card:last-child {
+  border-bottom: none;
+}
+
+.acct-single-list .acct-item-card:hover {
+  box-shadow: none;
+  transform: none;
+  background: #f7faf8;
+}
+
+.acct-logout-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px;
+  margin-top: 6px;
+  border-radius: 12px;
+  border: 1.4px solid var(--red);
+  background: #fff;
+  color: var(--red);
+  font-weight: 700;
+  font-size: 14.5px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.acct-logout-btn:hover {
+  background: #fdeceb;
+}
+
+.acct-version {
+  text-align: center;
+  color: #b6bcb8;
+  font-size: 12px;
   margin-top: 16px;
-  color: #dc2626;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 1024px) {
+  .acct-topnav-inner {
+    gap: 14px;
+    padding: 12px 12px;
+  }
+  .acct-layout {
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
+    padding: 24px 12px 60px;
+  }
+  .acct-profile-card {
+    padding: 24px 20px;
+  }
+  .acct-avatar,
+  .acct-avatar-wrap {
+    width: 68px;
+    height: 68px;
+  }
+  .acct-avatar {
+    font-size: 24px;
+  }
+}
+
+/* Tablets & below */
+@media (max-width: 860px) {
+  .acct-topnav-inner {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 10px 12px;
+  }
+
+  .acct-logo {
+    width: 100%;
+  }
+
+  .acct-nav-row {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .acct-nav-search {
+    max-width: none;
+    flex: 1;
+  }
+
+  .acct-nav-links {
+    display: none;
+  }
+
+  .acct-nav-icons {
+    gap: 12px;
+  }
+
+  .acct-layout {
+    grid-template-columns: 1fr;
+    padding: 16px 12px 48px;
+    gap: 16px;
+  }
+
+  .acct-layout > aside {
+    position: static;
+  }
+
+  .acct-card-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .acct-main-title {
+    font-size: 22px;
+  }
+}
+
+/* Phones */
+@media (max-width: 600px) {
+  .acct-topnav-inner {
+    padding: 8px 10px 10px;
+    gap: 8px;
+  }
+
+  .acct-logo-text {
+    font-size: 16px;
+  }
+  .acct-logo-sub {
+    font-size: 8px;
+    letter-spacing: 1.2px;
+  }
+  .acct-logo-img {
+    height: 28px;
+  }
+
+  .acct-nav-search {
+    padding: 8px 10px;
+    border-radius: 10px;
+  }
+  .acct-nav-search span {
+    font-size: 13px;
+  }
+  .acct-nav-icons {
+    gap: 10px;
+  }
+
+  .acct-layout {
+    padding: 12px 10px 40px;
+    gap: 14px;
+  }
+
+  .acct-profile-card {
+    border-radius: 18px;
+    padding: 20px 16px;
+  }
+  .acct-avatar-wrap,
+  .acct-avatar {
+    width: 64px;
+    height: 64px;
+  }
+  .acct-avatar {
+    font-size: 22px;
+  }
+  .acct-avatar-edit {
+    width: 22px;
+    height: 22px;
+  }
+  .acct-profile-card h1 {
+    font-size: 17px;
+  }
+  .acct-phone {
+    font-size: 12.5px;
+    margin-bottom: 12px;
+  }
+  .acct-edit-btn {
+    font-size: 12px;
+    padding: 6px 14px;
+  }
+
+  .acct-side-links {
+    border-radius: 14px;
+    margin-top: 12px;
+  }
+  .acct-side-links a {
+    padding: 12px 14px;
+    font-size: 13px;
+  }
+
+  .acct-main-title {
+    font-size: 20px;
+  }
+  .acct-main-sub {
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  .acct-section {
+    margin-bottom: 20px;
+  }
+  .acct-section-title {
+    font-size: 11px;
+    margin-bottom: 10px;
+  }
+
+  .acct-item-card {
+    padding: 14px;
+    gap: 12px;
+    border-radius: 12px;
+  }
+  .acct-ic {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+  }
+  .acct-item-text .t {
+    font-size: 14px;
+  }
+  .acct-item-text .s {
+    font-size: 12px;
+  }
+
+  .acct-single-list {
+    border-radius: 14px;
+  }
+
+  .acct-logout-btn {
+    padding: 13px;
+    font-size: 14px;
+    border-radius: 10px;
+  }
+  .acct-version {
+    font-size: 11px;
+    margin-top: 12px;
+  }
+
+  .acct-guest {
+    padding: 48px 16px;
+  }
+  .acct-guest h1 {
+    font-size: 1.4rem;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .acct-topnav-inner {
+    padding: 6px 8px 8px;
+  }
+  .acct-nav-icons {
+    gap: 8px;
+  }
+  .acct-layout {
+    padding: 10px 8px 32px;
+  }
+  .acct-profile-card {
+    padding: 16px 12px;
+  }
+  .acct-profile-card h1 {
+    font-size: 16px;
+  }
+  .acct-item-card {
+    padding: 12px;
+  }
+}
+
+/* Touch devices */
+@media (hover: none) {
+  .acct-item-card:hover {
+    transform: none;
+    box-shadow: none;
+  }
+  .acct-item-card:active {
+    background: #f7faf8;
+  }
+  .acct-side-links a:hover {
+    background: transparent;
+  }
+  .acct-side-links a:active {
+    background: #f7faf8;
+  }
 }

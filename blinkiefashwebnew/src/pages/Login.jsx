@@ -1,7 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { authLoginVendorWithEmailPassword, authLoginWithEmailPassword, authVerify } from '../api';
+import {
+  authLoginVendorWithEmailPassword,
+  authLoginWithEmailPassword,
+  authVerify,
+} from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { clearVendorPasswordAuth, markVendorPasswordAuth } from '../utils/vendorSession';
@@ -52,6 +56,7 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setLoading(true);
+
     try {
       let customerError = '';
 
@@ -78,12 +83,27 @@ export default function Login() {
         customerError = customerErr.message || 'Invalid email or password';
       }
 
+      // Special handling for "No password set"
+      const lowerCustomerError = String(customerError).toLowerCase();
+      if (lowerCustomerError.includes('no password set')) {
+        setError(
+          'No password set for this account. Please use Phone OTP to log in, or set a password first.'
+        );
+        return;
+      }
+
       const vendorRes = await authLoginVendorWithEmailPassword({ email, password });
+
       if (!vendorRes.success) {
         const vendorMessage = String(vendorRes.message || '').trim();
-        const vendorNotFound = vendorMessage.toLowerCase() === 'vendor not found';
+        const lowerVendorMessage = vendorMessage.toLowerCase();
+        const vendorNotFound = lowerVendorMessage === 'vendor not found';
 
-        if (customerError) {
+        if (lowerVendorMessage.includes('no password set')) {
+          setError(
+            'No password set for this account. Please use Phone OTP to log in, or set a password first.'
+          );
+        } else if (customerError) {
           setError(customerError);
         } else if (vendorNotFound) {
           setError('Email not found. Please check your email or create an account.');
@@ -95,7 +115,8 @@ export default function Login() {
 
       if (vendorRes.vendor_id) localStorage.setItem('vendor_id', String(vendorRes.vendor_id));
       if (vendorRes.user_id) localStorage.setItem('user_id', String(vendorRes.user_id));
-      if (vendorRes.dark_store_id) localStorage.setItem('vendor_store_id', String(vendorRes.dark_store_id));
+      if (vendorRes.dark_store_id)
+        localStorage.setItem('vendor_store_id', String(vendorRes.dark_store_id));
       if (vendorRes.store_name) localStorage.setItem('store_name', String(vendorRes.store_name));
       if (vendorRes.owner_name) localStorage.setItem('vendor_name', String(vendorRes.owner_name));
       markVendorPasswordAuth();
@@ -114,7 +135,14 @@ export default function Login() {
 
       navigate('/');
     } catch (err) {
-      setError(err.message || 'Login failed. Please try again.');
+      const msg = String(err.message || '').toLowerCase();
+      if (msg.includes('no password set')) {
+        setError(
+          'No password set for this account. Please use Phone OTP to log in, or set a password first.'
+        );
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -220,6 +248,7 @@ export default function Login() {
           />
 
           {error && <p className="auth-error">{error}</p>}
+
           <button type="submit" className="primary-btn" disabled={loading}>
             {loading ? 'Please wait...' : 'Log in'}
           </button>

@@ -1,67 +1,303 @@
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { hasVendorPasswordAuth } from '../utils/vendorSession';
+import logo from '../assets/logo.png';
 import './Account.css';
 
-const MENU = [
-  { label: 'Orders', to: '/orders' },
-  { label: 'Wishlist', to: '/wishlist' },
-  { label: 'Addresses', to: '/checkout' },
-  { label: 'Refer & Earn', to: '/account' },
-  { label: 'Support', to: '/account' },
-  { label: 'Policies', to: '/account' },
+/* ---------- icons ---------- */
+const IconOrders = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M6 2h12l1 7H5L6 2z" />
+    <path d="M5 9h14v11a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V9z" />
+    <path d="M9 13h6" />
+  </svg>
+);
+const IconHeart = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+  </svg>
+);
+const IconTag = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z" />
+    <circle cx="7.5" cy="7.5" r="1.5" />
+  </svg>
+);
+const IconUser = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+    <circle cx="12" cy="7" r="4" />
+  </svg>
+);
+const IconMap = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
+    <circle cx="12" cy="10" r="3" />
+  </svg>
+);
+const IconSupport = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
+    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+  </svg>
+);
+const IconDoc = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+  </svg>
+);
+const IconShield = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+);
+const IconBuilding = () => (
+  <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6" />
+  </svg>
+);
+const IconLogout = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
+  </svg>
+);
+const IconChevron = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M9 18l6-6-6-6" />
+  </svg>
+);
+const IconEdit = () => (
+  <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.4">
+    <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
+  </svg>
+);
+const IconSearch = () => (
+  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="11" cy="11" r="7" />
+    <path d="m21 21-4.3-4.3" />
+  </svg>
+);
+const IconBell = () => (
+  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
+    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
+  </svg>
+);
+const IconWishlistNav = () => (
+  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
+  </svg>
+);
+const IconCart = () => (
+  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M6 6h15l-1.5 9h-12z" />
+    <path d="M6 6 5 3H2" />
+    <circle cx="9.5" cy="20" r="1.3" />
+    <circle cx="17.5" cy="20" r="1.3" />
+  </svg>
+);
+
+/* ---------- section config ---------- */
+const SECTIONS = [
+  {
+    id: 'activity',
+    title: 'MY ACTIVITY',
+    layout: 'grid',
+    items: [
+      { label: 'My Orders', subtitle: 'Track, return or buy again', to: '/orders', icon: <IconOrders />, color: '#fce4ec', iconColor: '#c2185b' },
+      { label: 'Wishlist', subtitle: 'Products you have saved', to: '/wishlist', icon: <IconHeart />, color: '#e8eaf6', iconColor: '#3f51b5' },
+      { label: 'My Offers', subtitle: 'Coupons, rewards & referrals', to: '/account', icon: <IconTag />, color: '#fff8e1', iconColor: '#f9a825' },
+    ],
+  },
+  {
+    id: 'account',
+    title: 'MY ACCOUNT',
+    layout: 'grid',
+    items: [
+      { label: 'Manage Account', subtitle: 'Name, email, phone', to: '/account', icon: <IconUser />, color: '#e8eaf6', iconColor: '#3f51b5' },
+      { label: 'Saved Addresses', subtitle: 'Home, work and other addresses', to: '/checkout', icon: <IconMap />, color: '#e0f7fa', iconColor: '#00838f' },
+    ],
+  },
+  {
+    id: 'help',
+    title: 'HELP & SUPPORT',
+    layout: 'list',
+    items: [
+      { label: 'Help & Query', subtitle: 'Call, WhatsApp, email & ticket', to: '/account', icon: <IconSupport />, color: '#e0f2f1', iconColor: '#00796b' },
+    ],
+  },
+  {
+    id: 'legal',
+    title: 'LEGAL & POLICIES',
+    layout: 'list',
+    items: [
+      { label: 'Terms & Conditions', subtitle: '', to: '/terms', icon: <IconDoc />, color: '#f3e5f5', iconColor: '#7b1fa2' },
+      { label: 'Privacy Policy', subtitle: '', to: '/privacy-policy', icon: <IconShield />, color: '#eceff1', iconColor: '#455a64' },
+      { label: 'Company Policy', subtitle: '', to: '/account', icon: <IconBuilding />, color: '#eceff1', iconColor: '#455a64' },
+    ],
+  },
 ];
 
-export default function Account() {
+const SIDE_LINKS = [
+  { id: 'activity', label: 'My Activity', icon: <IconOrders /> },
+  { id: 'account', label: 'My Account', icon: <IconUser /> },
+  { id: 'help', label: 'Help & Support', icon: <IconSupport /> },
+  { id: 'legal', label: 'Legal & Policies', icon: <IconDoc /> },
+];
+
+export default function AccountPage() {
   const navigate = useNavigate();
   const { user, isLoggedIn, logout } = useAuth();
-  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
 
   if (!isLoggedIn) {
     return (
-      <div className="page account-page">
-        <h1 className="cart-title">Account</h1>
-        <p className="state-msg">Log in to manage your orders, wishlist and addresses.</p>
-        <div className="account-auth-actions">
-          <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
-            Log in
-          </button>
-          <button type="button" className="secondary-btn" onClick={() => navigate('/signup')}>
-            Create account
-          </button>
+      <div className="acct-page">
+        <div className="acct-guest">
+          <h1>My Account</h1>
+          <p>Log in to manage your orders, wishlist and addresses.</p>
+          <div className="acct-guest-actions">
+            <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+              Log in
+            </button>
+            <button type="button" className="secondary-btn" onClick={() => navigate('/signup')}>
+              Create account
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  const initial = (user?.name || '?').slice(0, 1).toUpperCase();
+
   return (
-    <div className="page account-page">
-      <div className="account-profile">
-        <div className="account-avatar">{(user.name || '?').slice(0, 1).toUpperCase()}</div>
-        <div>
-          <p className="account-name">{user.name}</p>
-          <p className="account-phone">{user.phone}</p>
+    <div className="acct-page">
+      {/* top nav */}
+      <nav className="acct-topnav">
+        <div className="acct-topnav-inner">
+          {/* Brand */}
+          <div className="acct-logo">
+            <img src={logo} alt="BlinkieFash" className="acct-logo-img" />
+            <div className="acct-logo-text-wrap">
+              <span className="acct-logo-text">
+                BLINKIE<span className="fash">FASH</span>
+              </span>
+              <span className="acct-logo-sub">DELIVERED IN 60 MIN</span>
+            </div>
+          </div>
+
+          {/* Search + links + icons stay on the SAME horizontal line */}
+          <div className="acct-nav-row">
+            <div className="acct-nav-search">
+              <IconSearch />
+              <span>Search Home Decor…</span>
+            </div>
+
+            <div className="acct-nav-links">
+              <a href="/">Home</a>
+              <a href="/shop">Categories</a>
+              <a href="/orders">Orders</a>
+              <a href="/parcel">Parcel</a>
+              <a href="/account" className="active">
+                Profile
+              </a>
+            </div>
+
+            <div className="acct-nav-icons">
+              <IconBell />
+              <IconWishlistNav />
+              <IconCart />
+            </div>
+          </div>
         </div>
-      </div>
+      </nav>
 
-      {canSwitchToVendor ? (
-        <button type="button" className="primary-btn" onClick={() => navigate('/vendor/orders')}>
-          Switch to Vendor Dashboard
-        </button>
-      ) : null}
+      <div className="acct-layout">
+        {/* sidebar */}
+        <aside>
+          <div className="acct-profile-card">
+            <div className="acct-avatar-wrap">
+              <div className="acct-avatar">{initial}</div>
+              <button
+                type="button"
+                className="acct-avatar-edit"
+                onClick={() => navigate('/account')}
+                aria-label="Edit profile"
+              >
+                <IconEdit />
+              </button>
+            </div>
+            <h1>{user?.name || 'User'}</h1>
+            <p className="acct-phone">{user?.phone || '—'}</p>
+            <button
+              type="button"
+              className="acct-edit-btn"
+              onClick={() => navigate('/account')}
+            >
+              Edit Profile
+            </button>
+          </div>
 
-      <div className="account-menu">
-        {MENU.map((item) => (
-          <button key={item.label} type="button" className="account-menu-item" onClick={() => navigate(item.to)}>
-            {item.label}
-            <span>&rarr;</span>
+          <div className="acct-side-links">
+            {SIDE_LINKS.map((link) => (
+              <a key={link.id} href={`#${link.id}`}>
+                {link.icon}
+                {link.label}
+              </a>
+            ))}
+          </div>
+        </aside>
+
+        {/* main content */}
+        <main>
+          <h2 className="acct-main-title">My Account</h2>
+          <p className="acct-main-sub">
+            Manage your orders, wishlist, addresses and account settings.
+          </p>
+
+          {SECTIONS.map((section) => (
+            <section key={section.id} id={section.id} className="acct-section">
+              <p className="acct-section-title">{section.title}</p>
+              <div
+                className={
+                  section.layout === 'grid' ? 'acct-card-grid' : 'acct-single-list'
+                }
+              >
+                {section.items.map((item) => (
+                  <button
+                    key={item.label}
+                    type="button"
+                    className="acct-item-card"
+                    onClick={() => navigate(item.to)}
+                  >
+                    <span
+                      className="acct-ic"
+                      style={{ background: item.color, color: item.iconColor }}
+                    >
+                      {item.icon}
+                    </span>
+                    <span className="acct-item-text">
+                      <span className="t">{item.label}</span>
+                      {item.subtitle ? (
+                        <span className="s">{item.subtitle}</span>
+                      ) : null}
+                    </span>
+                    <span className="acct-chev">
+                      <IconChevron />
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ))}
+
+          <button type="button" className="acct-logout-btn" onClick={logout}>
+            <IconLogout />
+            Log Out
           </button>
-        ))}
+          <p className="acct-version">BlinkieFash v2.0</p>
+        </main>
       </div>
-
-      <button type="button" className="secondary-btn account-logout" onClick={logout}>
-        Log out
-      </button>
     </div>
   );
 }

@@ -13,9 +13,11 @@
     "@supabase/supabase-js": "^2.105.1",
     "cors": "^2.8.6",
     "firebase": "^11.10.0",
+    "lucide-react": "^1.31.0",
     "react": "^19.2.5",
     "react-dom": "^19.2.5",
     "react-icons": "^5.7.0",
+    "react-phone-number-input": "^3.4.17",
     "react-router-dom": "^7.14.2",
     "xlsx": "^0.18.5"
   },
