@@ -57,6 +57,8 @@ export default function App() {
     pathname === '/catalog' ||
     pathname === '/women' ||
     pathname.startsWith('/product/');
+  const isCheckoutPage = pathname === '/checkout';
+  const isOrderTrackingPage = pathname.startsWith('/orders/');
   const isInfoPage = [
     '/company',
     '/customer-service',
@@ -70,7 +72,9 @@ export default function App() {
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   return (
-    <div className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}`}>
+    <div
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}`}
+    >
       {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
         <Route path="/" element={<Home />} />
@@ -122,7 +126,7 @@ export default function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
-      {!isHome && !isVendorArea && !isInfoPage && !isCatalogPage && <BottomNav />}
+      {!isHome && !isVendorArea && !isInfoPage && !isCatalogPage && !isCheckoutPage && !isOrderTrackingPage && <BottomNav />}
     </div>
   );
 }
