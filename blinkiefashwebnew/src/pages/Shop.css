@@ -450,6 +450,11 @@
 }
 
 .catalog-product-card {
+  position: relative; /* FIX: establishes a positioning context so
+    .catalog-card-top (and the wishlist button inside it) anchors to
+    this card instead of the page/viewport. Without this, the absolute
+    badge/wishlist row was escaping the card and getting clipped by the
+    edge of the screen, especially in the single-column mobile layout. */
   border: 1px solid #eef1f5;
   border-radius: 18px;
   background: #fff;
@@ -467,6 +472,12 @@
 
 .catalog-card-top {
   position: absolute;
+  top: 0; /* FIX: explicit anchor so this always sits at the card's
+    own top-left corner instead of relying on the browser's "static
+    position" fallback, which was not respecting the card's rounded
+    corners / overflow:hidden clipping and could visually drift to the
+    screen edge on narrow viewports. */
+  left: 0;
   z-index: 2;
   display: flex;
   justify-content: space-between;
