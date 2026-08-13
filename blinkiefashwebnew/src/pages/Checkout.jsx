@@ -154,8 +154,29 @@ export default function Checkout() {
         setError(res.message || 'Could not place order');
         return;
       }
+
+      // Fire-and-forget analytics event. Guarded so it's a no-op if no
+      // analytics snippet (e.g. gtag) is wired up in this environment.
+      if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', 'place_order', {
+          order_id: res.orderId,
+          value: res.finalAmount ?? totalPayable,
+          currency: 'INR',
+        });
+      }
+
       clearCart();
-      navigate('/orders');
+      // Send the user straight to that order's tracking page (not the
+      // generic order list). We only pass a `fromCheckout` flag via route
+      // state (not the full order) — the checkout response doesn't include
+      // items/address, which the tracking page needs, so it still does its
+      // own fetch as the source of truth. `replace: true` drops /checkout
+      // from history so the back button can't return to a stale checkout
+      // form and resubmit.
+      navigate(`/orders/${res.orderId}`, {
+        replace: true,
+        state: { fromCheckout: true },
+      });
     } catch (err) {
       setError(err.message || 'Could not place order');
     } finally {

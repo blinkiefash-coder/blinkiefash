@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getOrderById } from '../api';
 import Loader from '../components/Loader';
@@ -15,15 +15,21 @@ const STEPS = [
 export default function OrderTracking() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { isLoggedIn } = useAuth();
 
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
+  // Only true on the single navigation that lands here right after
+  // checkout (via location.state) — not on refresh or deep link, since
+  // history state doesn't persist across those.
+  const [showPlacedBanner, setShowPlacedBanner] = useState(!!location.state?.fromCheckout);
 
   useEffect(() => {
     if (!isLoggedIn) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoading(false);
       return;
     }
@@ -86,6 +92,12 @@ export default function OrderTracking() {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [orderId, isLoggedIn]);
+
+  useEffect(() => {
+    if (!showPlacedBanner) return;
+    const t = setTimeout(() => setShowPlacedBanner(false), 5000);
+    return () => clearTimeout(t);
+  }, [showPlacedBanner]);
 
   const handleCancelOrder = async () => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
@@ -160,6 +172,20 @@ export default function OrderTracking() {
       </div>
 
       {placedText && <div className="placed-on">Placed on {placedText}</div>}
+
+      {showPlacedBanner && (
+        <div className="order-placed-banner" role="status">
+          <span>🎉 Order placed successfully! Track its progress below.</span>
+          <button
+            type="button"
+            className="order-placed-dismiss"
+            onClick={() => setShowPlacedBanner(false)}
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Order Status */}
       <div className="card" role="status" aria-live="polite" aria-atomic="true">
