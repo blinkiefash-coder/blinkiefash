@@ -25,14 +25,14 @@ body,
 
 .acct-page {
   background: var(--bg);
-  width: 100%;
+  width: 100vw;
   min-height: 100vh;
-  margin: 0;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--ink);
   overflow-x: hidden;
 }
-
 /* ---------- guest state ---------- */
 .acct-guest {
   max-width: 480px;
@@ -67,11 +67,12 @@ body,
 
 .acct-topnav-inner {
   width: 100%;
-  margin: 0;
+  max-width: 1680px;
+  margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 20px;
-  padding: 14px 16px;          /* tiny padding only */
+  gap: 24px;
+  padding: 14px 32px;
 }
 
 .acct-logo {
@@ -121,7 +122,7 @@ body,
 
 .acct-nav-search {
   flex: 1;
-  max-width: none;             /* let it grow */
+  max-width: 480px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -130,6 +131,11 @@ body,
   padding: 9px 13px;
   color: #9aa39c;
   min-width: 0;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.acct-nav-search:hover {
+  background: #ebeeeb;
 }
 
 .acct-nav-search span {
@@ -142,7 +148,7 @@ body,
 .acct-nav-links {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 24px;
   margin-left: auto;
 }
 
@@ -152,28 +158,38 @@ body,
   color: #5a625d;
   text-decoration: none;
   white-space: nowrap;
+  position: relative;
+  padding-bottom: 2px;
 }
 
 .acct-nav-links a.active {
   color: var(--green-mid);
 }
 
+.acct-nav-links a:hover {
+  color: var(--green-mid);
+}
+
 .acct-nav-icons {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 16px;
   color: var(--ink);
   flex-shrink: 0;
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--line);
 }
 
-/* ---------- layout (full width, no side gaps) ---------- */
+/* ---------- layout (full width, capped for readability) ---------- */
 .acct-layout {
   width: 100%;
-  margin: 0;
-  padding: 24px 16px 60px;     /* only minimal side padding */
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 28px 32px 60px;
   display: grid;
   grid-template-columns: 280px 1fr;
-  gap: 24px;
+  gap: 28px;
   align-items: start;
 }
 
@@ -194,6 +210,7 @@ body,
   padding: 30px 24px;
   color: #fff;
   overflow: hidden;
+  box-shadow: 0 12px 28px rgba(11, 61, 31, 0.18);
 }
 
 .acct-avatar-wrap {
@@ -259,10 +276,12 @@ body,
   padding: 7px 16px;
   border-radius: 999px;
   cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .acct-edit-btn:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.18);
+  border-color: rgba(255, 255, 255, 0.8);
 }
 
 .acct-side-links {
@@ -271,6 +290,7 @@ body,
   border-radius: 16px;
   margin-top: 18px;
   overflow: hidden;
+  box-shadow: 0 2px 10px rgba(11, 61, 31, 0.04);
 }
 
 .acct-side-links a {
@@ -283,6 +303,7 @@ body,
   color: #3a413c;
   border-bottom: 1px solid var(--line);
   text-decoration: none;
+  transition: background 0.12s, color 0.12s;
 }
 
 .acct-side-links a:last-child {
@@ -292,10 +313,15 @@ body,
 .acct-side-links a svg {
   color: #9aa39c;
   flex-shrink: 0;
+  transition: color 0.12s;
 }
 
 .acct-side-links a:hover {
   background: #f7faf8;
+  color: var(--green-mid);
+}
+
+.acct-side-links a:hover svg {
   color: var(--green-mid);
 }
 
@@ -322,12 +348,15 @@ body,
   font-weight: 800;
   color: #9aa39c;
   margin: 0 0 12px 2px;
+  text-transform: uppercase;
 }
 
+/* auto-fit so cards fill the extra width on large screens instead of
+   leaving a big empty gap next to a fixed 2-column grid */
 .acct-card-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
 }
 
 .acct-item-card {
@@ -347,9 +376,9 @@ body,
 }
 
 .acct-item-card:hover {
-  box-shadow: 0 8px 20px rgba(11, 61, 31, 0.08);
+  box-shadow: 0 10px 24px rgba(11, 61, 31, 0.1);
   border-color: transparent;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
 .acct-ic {
@@ -385,6 +414,12 @@ body,
   color: #c7ccc6;
   flex-shrink: 0;
   display: flex;
+  transition: transform 0.15s, color 0.15s;
+}
+
+.acct-item-card:hover .acct-chev {
+  color: var(--green-mid);
+  transform: translateX(2px);
 }
 
 .acct-single-list {
@@ -426,6 +461,7 @@ body,
   font-size: 14.5px;
   cursor: pointer;
   font-family: inherit;
+  transition: background 0.15s;
 }
 
 .acct-logout-btn:hover {
@@ -495,6 +531,9 @@ body,
 
   .acct-nav-icons {
     gap: 12px;
+    border-left: none;
+    padding-left: 0;
+    margin-left: 0;
   }
 
   .acct-layout {
