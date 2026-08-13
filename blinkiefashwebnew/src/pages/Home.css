@@ -1691,10 +1691,15 @@
     display: none;
   }
 
-  .hp-header-actions span {
-    display: none;
-  }
+  .hp-header-actions span:not(.hp-icon-badge) {
+  display: none;
+}
 
+.hp-header-actions .hp-icon-badge {
+  display: inline-flex !important;
+  visibility: visible !important;
+    opacity: 1 !important;
+}
   .hp-category-nav,
   .hp-main {
     padding-left: 16px;

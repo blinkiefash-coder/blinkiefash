@@ -4,10 +4,21 @@ const CartContext = createContext(null);
 
 const STORAGE_KEY = 'bfw_cart';
 
+function normalizeItems(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((i) => i && (i.productId || i.variantId))
+    .map((i) => ({
+      ...i,
+      qty: Math.max(1, Number(i.qty) || 1),
+      price: Number(i.price) || 0,
+    }));
+}
+
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY)) || [];
+      return normalizeItems(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
     } catch {
       return [];
     }
@@ -18,15 +29,27 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const addToCart = (item) => {
+    const key = item.variantId || item.productId;
+    if (!key) return;
+    const addQty = Math.max(1, Number(item.qty) || 1);
+
     setItems((prev) => {
-      const key = item.variantId || item.productId;
       const existing = prev.find((i) => (i.variantId || i.productId) === key);
       if (existing) {
         return prev.map((i) =>
-          (i.variantId || i.productId) === key ? { ...i, qty: i.qty + (item.qty || 1) } : i
+          (i.variantId || i.productId) === key
+            ? { ...i, qty: Number(i.qty || 0) + addQty }
+            : i
         );
       }
-      return [...prev, { ...item, qty: item.qty || 1 }];
+      return [
+        ...prev,
+        {
+          ...item,
+          qty: addQty,
+          price: Number(item.price) || 0,
+        },
+      ];
     });
   };
 
@@ -35,18 +58,22 @@ export function CartProvider({ children }) {
   };
 
   const updateQty = (key, qty) => {
+    const nextQty = Number(qty);
     setItems((prev) =>
       prev
-        .map((i) => ((i.variantId || i.productId) === key ? { ...i, qty } : i))
-        .filter((i) => i.qty > 0)
+        .map((i) => ((i.variantId || i.productId) === key ? { ...i, qty: nextQty } : i))
+        .filter((i) => Number(i.qty) > 0)
     );
   };
 
   const clearCart = () => setItems([]);
 
   const totals = useMemo(() => {
-    const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
-    const count = items.reduce((sum, i) => sum + i.qty, 0);
+    const subtotal = items.reduce(
+      (sum, i) => sum + (Number(i.price) || 0) * (Number(i.qty) || 0),
+      0
+    );
+    const count = items.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
     return { subtotal, count };
   }, [items]);
 

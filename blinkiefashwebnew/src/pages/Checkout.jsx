@@ -125,11 +125,18 @@ export default function Checkout() {
   };
 
   const handleDecrement = (item) => {
-    const dec = cartCtx.decrementQuantity || cartCtx.removeFromCart;
-    if (typeof dec === 'function') {
-      dec(item.variantId || item.productId);
-    }
-  };
+  const key = item.variantId || item.productId;
+  const currentQty = Number(item.qty || 1);
+  // Decrease by 1; updateQty removes the line only when qty reaches 0
+  if (typeof cartCtx.updateQty === 'function') {
+    cartCtx.updateQty(key, currentQty - 1);
+    return;
+  }
+  // Fallback: only remove when already at 1
+  if (currentQty <= 1 && typeof cartCtx.removeFromCart === 'function') {
+    cartCtx.removeFromCart(key);
+  }
+};
 
   const applyCoupon = (code) => {
     const normalized = String(code || '').trim().toUpperCase();

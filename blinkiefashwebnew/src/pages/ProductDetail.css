@@ -97,16 +97,23 @@
   position: relative;
 }
 .hp-icon-badge {
-  background: #16a34a;
-  color: #fff;
-  border-radius: 999px;
-  min-width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-  padding: 0 3px;
+  position: absolute !important;
+  top: -4px !important;
+  right: -2px !important;
+  background: #ef4444 !important;
+  color: #fff !important;
+  border-radius: 999px !important;
+  min-width: 16px !important;
+  height: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 10px !important;
+  font-weight: 800 !important;
+  padding: 0 3px !important;
+  line-height: 1 !important;
+  z-index: 5 !important;
+  pointer-events: none !important;
 }
 
 .pd-back {
@@ -849,7 +856,7 @@
 @media (max-width: 1024px) {
   .pd-header { grid-template-columns: 160px 1fr auto; gap: 12px; padding: 10px 16px; }
   .hp-header-search { padding: 7px 10px; }
-  .hp-header-actions button span { display: none; }
+  .hp-header-actions button span:not(.hp-icon-badge) { display: none; }
   .hp-header-actions button { min-width: 36px; justify-content: center; }
   .pp-page { padding: 20px 24px 40px; }
   .pp-main-image-wrap { min-height: 460px; }
@@ -897,7 +904,7 @@
   .pd-brand-logo .hp-brand-name { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pd-header .hp-header-search { order: 2; flex: 1 1 auto; min-width: 0; }
   .pd-header .hp-header-actions { order: 3; justify-content: flex-end; gap: 6px; flex: none; }
-  .pd-header .hp-header-actions button span { display: none; }
+  .pd-header .hp-header-actions button span:not(.hp-icon-badge) { display: none; }
   .pd-header .hp-header-actions button { min-width: 40px; min-height: 40px; padding: 4px; }
   .pd-share-menu { width: 190px; max-width: calc(100vw - 24px); }
   .pd-share-trigger { width: 38px; height: 38px; }
@@ -1055,4 +1062,12 @@
   .pp-related-grid.pp-recent-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
+}
+
+/* Force cart/wishlist badge always visible */
+.hp-header-actions .hp-icon-badge,
+.pd-header .hp-header-actions .hp-icon-badge {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
 }

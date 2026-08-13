@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const WishlistContext = createContext(null);
 
@@ -17,24 +17,32 @@ export function WishlistProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const isWishlisted = (productId) => items.some((i) => i.productId === productId);
+  const isWishlisted = useCallback(
+    (productId) => items.some((i) => i.productId === productId),
+    [items]
+  );
 
-  const toggleWishlist = (item) => {
+  const toggleWishlist = useCallback((item) => {
     setItems((prev) =>
       prev.some((i) => i.productId === item.productId)
         ? prev.filter((i) => i.productId !== item.productId)
         : [...prev, item]
     );
-  };
+  }, []);
 
-  const removeFromWishlist = (productId) => {
+  const removeFromWishlist = useCallback((productId) => {
     setItems((prev) => prev.filter((i) => i.productId !== productId));
-  };
+  }, []);
 
   const value = useMemo(
-    () => ({ items, isWishlisted, toggleWishlist, removeFromWishlist }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [items]
+    () => ({
+      items,
+      count: items.length,
+      isWishlisted,
+      toggleWishlist,
+      removeFromWishlist,
+    }),
+    [items, isWishlisted, toggleWishlist, removeFromWishlist]
   );
 
   return <WishlistContext.Provider value={value}>{children}</WishlistContext.Provider>;
