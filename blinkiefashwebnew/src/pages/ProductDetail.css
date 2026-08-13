@@ -1047,15 +1047,12 @@
   .pp-feature-item { border-left: none !important; flex-direction: row; text-align: left; }
   .pp-feature-item + .pp-feature-item { border-top: 1px solid var(--pp-line); }
   .pp-feature-text { text-align: left; }
-  .pp-related-grid { grid-template-columns: 1fr; }
+  .pp-related-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+}
 
-  /* ---------- Force 2-column "Recently Viewed" grid on mobile ----------
-   Desktop/tablet keep the auto-fill behavior from .pp-recent-grid above
-   (fits as many as the row allows). Below 900px we lock it to exactly
-   2 columns regardless of how many items exist. */
+/* Force 2-column "Recently Viewed" / related grids on mobile */
 @media (max-width: 900px) {
   .pp-related-grid.pp-recent-grid {
     grid-template-columns: repeat(2, 1fr) !important;
   }
-}
 }

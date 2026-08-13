@@ -296,7 +296,10 @@ export default function ProductDetail() {
   );
   const mrp = pickPrice(selectedVariant?.price, product.price) || price;
   const wishlisted = isWishlisted(product.id);
-  const canPurchase = !(variants?.length > 0 && !selectedVariant);
+  const hasVariants = Array.isArray(variants) && variants.length > 0;
+  const stockLeft = Number(selectedVariant?.available_stock ?? 1);
+  const canPurchase = hasVariants ? Boolean(selectedVariant) : true;
+  const outOfStock = hasVariants && Boolean(selectedVariant) && stockLeft <= 0;
 
   const rating = Number(product.rating || 4.8);
   const roundedAvg = Math.min(Math.max(Math.round(rating), 0), 5);
@@ -382,15 +385,45 @@ export default function ProductDetail() {
     selectedVariant?.color || selectedVariant?.size || selectedVariant?.sku;
 
   const handleAddToCart = () => {
-    addToCart({
-      productId: product.id,
-      variantId: selectedVariant?.id || null,
-      name: product.name,
-      image: gallery[0]?.url,
-      price,
-      size: selectedVariant?.size,
-      color: selectedVariant?.color,
-    });
+    if (hasVariants && !selectedVariant) {
+      window.alert('Please select a size/color before adding to cart.');
+      return false;
+    }
+
+    // Prefer variant price; fall back to product-level prices
+    const unitPrice = Number(
+      pickPrice(
+        selectedVariant?.discount_price,
+        selectedVariant?.price,
+        product.discount_price,
+        product.price,
+        price
+      )
+    );
+    if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+      window.alert('Price is unavailable for this item. Please try another variant.');
+      return false;
+    }
+
+    try {
+      addToCart({
+        productId: product.id,
+        variantId: selectedVariant?.id || null,
+        name: product.name,
+        image: gallery[0]?.url || gallery[activeImage]?.url || null,
+        price: unitPrice,
+        size: selectedVariant?.size,
+        color: selectedVariant?.color,
+        qty: 1,
+      });
+      setCartAdded(true);
+      window.setTimeout(() => setCartAdded(false), 2000);
+      return true;
+    } catch (err) {
+      console.error('Add to cart failed:', err);
+      window.alert('Could not add to cart. Please try again.');
+      return false;
+    }
   };
 
   const handleSearchSubmit = (event) => {
@@ -764,13 +797,14 @@ export default function ProductDetail() {
                 <div className="pp-size-row">
                   {[...new Set(sizeOptions.map((v) => v.size || 'Default'))].map((size) => {
                     const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
-                    const disabled = Number(scoped?.available_stock || 0) <= 0;
+                    // Visual hint only — still allow selection (inventory rows are often missing)
+                    const lowStock = Number(scoped?.available_stock || 0) <= 0;
                     const active = (selectedVariant?.size || 'Default') === size;
                     return (
                       <button
                         key={size}
-                        className={`pp-size-btn ${active ? 'active' : ''} ${disabled ? 'disabled' : ''}`}
-                        disabled={disabled}
+                        type="button"
+                        className={`pp-size-btn ${active ? 'active' : ''} ${lowStock ? 'disabled' : ''}`}
                         onClick={() => pickSize(size)}
                         aria-pressed={active}
                       >
@@ -834,8 +868,7 @@ export default function ProductDetail() {
                 className="pp-buy-now"
                 disabled={canPurchase === false}
                 onClick={() => {
-                  handleAddToCart();
-                  navigate('/checkout');
+                  if (handleAddToCart()) navigate('/checkout');
                 }}
               >
                 <MdBolt size={16} /> Buy Now
@@ -845,11 +878,7 @@ export default function ProductDetail() {
                 type="button"
                 className="pp-add-cart"
                 disabled={canPurchase === false}
-                onClick={() => {
-                  handleAddToCart();
-                  setCartAdded(true);
-                  setTimeout(() => setCartAdded(false), 2000);
-                }}
+                onClick={handleAddToCart}
               >
                 <MdOutlineShoppingCart size={16} />
                 {cartAdded ? 'Added ✓' : 'Add to Cart'}
@@ -1082,15 +1111,14 @@ export default function ProductDetail() {
         <div className="pd-mobile-actions">
           <button type="button" className="pd-mobile-cart" disabled={canPurchase === false} onClick={handleAddToCart}>
             <MdOutlineShoppingCart />
-            <span>Cart</span>
+            <span>{cartAdded ? 'Added ✓' : 'Add to Cart'}</span>
           </button>
           <button
             type="button"
             className="pd-mobile-buy"
             disabled={canPurchase === false}
             onClick={() => {
-              handleAddToCart();
-              navigate('/checkout');
+              if (handleAddToCart()) navigate('/checkout');
             }}
           >
             <MdBolt />
