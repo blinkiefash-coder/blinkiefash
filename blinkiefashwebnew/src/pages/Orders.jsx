@@ -46,7 +46,14 @@ export default function Orders() {
       {!loading && !error && orders.length === 0 && <p className="state-msg">No orders yet.</p>}
       <div className="orders-list">
         {orders.map((order) => (
-          <div className="order-card" key={order.id}>
+          <div
+            className="order-card"
+            key={order.id}
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/orders/${order.id}`)}
+            onKeyDown={(e) => e.key === 'Enter' && navigate(`/orders/${order.id}`)}
+          >
             <div className="order-card-head">
               <span className="order-status">{order.status}</span>
               <span>₹{order.final_amount ?? order.total_amount}</span>

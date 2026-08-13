@@ -34,22 +34,57 @@ export default function OrderTracking() {
     }
 
     let cancelled = false;
+    let intervalId = null;
+    const TERMINAL_STATUSES = ['delivered', 'cancelled'];
+    const POLL_INTERVAL_MS = 20000;
 
-    const load = async () => {
+    const load = async (isBackground = false) => {
       try {
-        setLoading(true);
+        if (!isBackground) setLoading(true);
         setError('');
         const res = await getOrderById(orderId);
-        if (!cancelled) setOrder(res.order || res);
+        if (cancelled) return;
+        const nextOrder = res.order || res;
+        setOrder(nextOrder);
+
+        const status = (nextOrder.status || '').toLowerCase();
+        if (TERMINAL_STATUSES.includes(status)) stopPolling();
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load order');
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled && !isBackground) setLoading(false);
+      }
+    };
+
+    function startPolling() {
+      if (intervalId) return;
+      intervalId = setInterval(() => load(true), POLL_INTERVAL_MS);
+    }
+    function stopPolling() {
+      if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+      }
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stopPolling();
+      } else {
+        load(true);
+        startPolling();
       }
     };
 
     load();
-    return () => { cancelled = true; };
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [orderId, isLoggedIn]);
 
   const handleCancelOrder = async () => {
@@ -117,7 +152,7 @@ export default function OrderTracking() {
     <div className="track-page">
       {/* Header */}
       <div className="track-header">
-        <button className="back-btn" onClick={() => navigate('/orders')}>←</button>
+        <button className="back-btn" onClick={() => navigate('/orders')} aria-label="Back to orders">←</button>
         <div>
           <div className="track-title">Track Order</div>
           <div className="track-id">#{orderNumber}</div>
@@ -127,7 +162,7 @@ export default function OrderTracking() {
       {placedText && <div className="placed-on">Placed on {placedText}</div>}
 
       {/* Order Status */}
-      <div className="card">
+      <div className="card" role="status" aria-live="polite" aria-atomic="true">
         <div className="card-row">
           <span className="card-title">Order Status</span>
           <span className={`status-pill ${isCancelled ? 'red' : 'blue'}`}>
@@ -137,18 +172,22 @@ export default function OrderTracking() {
 
         {isCancelled ? (
           <div className="cancelled-center">
-            <div className="cancel-circle">✕</div>
+            <div className="cancel-circle" aria-hidden="true">✕</div>
             <div>Cancelled</div>
           </div>
         ) : (
-          <div className="timeline">
+          <ol className="timeline">
             {STEPS.map((step, i) => (
-              <div key={step.key} className={`timeline-item ${i <= activeIndex ? 'active' : ''}`}>
-                <div className="timeline-icon">{step.icon}</div>
+              <li
+                key={step.key}
+                className={`timeline-item ${i <= activeIndex ? 'active' : ''}`}
+                aria-current={i === activeIndex ? 'step' : undefined}
+              >
+                <div className="timeline-icon" aria-hidden="true">{step.icon}</div>
                 <div className="timeline-label">{step.label}</div>
-              </div>
+              </li>
             ))}
-          </div>
+          </ol>
         )}
       </div>
 
@@ -181,8 +220,8 @@ export default function OrderTracking() {
 
       {/* Map */}
       {!isCancelled && (
-        <div className="card map-card">
-          <div className="map-box">
+        <div className="card map-card" role="img" aria-label="Map showing route from dispatch partner to your address. Status: preparing your order.">
+          <div className="map-box" aria-hidden="true">
             <div className="map-pill">
               <span className="dot"></span> Preparing your order
             </div>
@@ -192,7 +231,7 @@ export default function OrderTracking() {
               <div className="pin">📍</div>
             </div>
           </div>
-          <div className="map-legend">
+          <div className="map-legend" aria-hidden="true">
             <span>🏪 Dispatch Partner</span>
             <span>📍 Your Address</span>
           </div>
@@ -201,7 +240,7 @@ export default function OrderTracking() {
 
       {/* Shipping Address */}
       <div className="card">
-        <div className="card-title">📍 Shipping To</div>
+        <div className="card-title"><span aria-hidden="true">📍</span> Shipping To</div>
         <div className="addr-name">{addressName}</div>
         <div className="addr-line">
           {addressLine}{city ? `, ${city}` : ''}{pincode ? ` - ${pincode}` : ''}
@@ -211,7 +250,7 @@ export default function OrderTracking() {
       {/* Products */}
       <div className="card">
         <div className="card-row">
-          <span className="card-title">🛒 Products Ordered</span>
+          <span className="card-title"><span aria-hidden="true">🛒</span> Products Ordered</span>
           <span className="item-count">{items.length} item{items.length !== 1 ? 's' : ''}</span>
         </div>
 
@@ -236,8 +275,9 @@ export default function OrderTracking() {
           className="cancel-order-btn"
           onClick={handleCancelOrder}
           disabled={cancelling}
+          aria-busy={cancelling}
         >
-          {cancelling ? 'Cancelling...' : '✕ Cancel Order'}
+          {cancelling ? 'Cancelling...' : <><span aria-hidden="true">✕</span> Cancel Order</>}
         </button>
       )}
 

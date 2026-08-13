@@ -8,6 +8,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 12px;
+  cursor: pointer;
   display: grid;
   gap: 4px;
 }
