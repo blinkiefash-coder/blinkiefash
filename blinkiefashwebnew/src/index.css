@@ -129,7 +129,9 @@ img {
 }
 
 .app-shell.is-checkout,
-.app-shell.is-order-tracking {
+.app-shell.is-order-tracking,
+.app-shell.is-account,
+.app-shell.is-parcel {
   max-width: none;
   margin: 0;
   box-shadow: none;

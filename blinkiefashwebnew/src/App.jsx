@@ -33,6 +33,7 @@ import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
 import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 import OrderTracking from './pages/OrderTracking';
+import Parcel from './pages/Parcel';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
@@ -59,6 +60,8 @@ export default function App() {
     pathname.startsWith('/product/');
   const isCheckoutPage = pathname === '/checkout';
   const isOrderTrackingPage = pathname.startsWith('/orders/');
+  const isAccountPage = pathname === '/account' || pathname.startsWith('/account/');
+  const isParcelPage = pathname === '/parcel' || pathname.startsWith('/parcel/');
   const isInfoPage = [
     '/company',
     '/customer-service',
@@ -73,7 +76,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}`}
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}`}
     >
       {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
@@ -88,33 +91,107 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
+        <Route path="/parcel" element={<Parcel />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route
           path="/notifications"
-          element={<ComingSoon title="Notifications" emoji="🔔" description="No new notifications yet." />}
+          element={
+            <ComingSoon
+              title="Notifications"
+              emoji="🔔"
+              description="No new notifications yet."
+            />
+          }
         />
         <Route
           path="/spin-wheel"
-          element={<ComingSoon title="Spin & Win" emoji="🎡" description="The spin wheel is coming soon." />}
+          element={
+            <ComingSoon
+              title="Spin & Win"
+              emoji="🎡"
+              description="The spin wheel is coming soon."
+            />
+          }
         />
         <Route
           path="/play-and-win"
-          element={<ComingSoon title="Play & Win" emoji="🎮" description="Fashion quest is coming soon." />}
+          element={
+            <ComingSoon
+              title="Play & Win"
+              emoji="🎮"
+              description="Fashion quest is coming soon."
+            />
+          }
         />
         <Route
           path="/refer-earn"
-          element={<ComingSoon title="Refer & Earn" emoji="🎁" description="Referral rewards are coming soon." />}
+          element={
+            <ComingSoon
+              title="Refer & Earn"
+              emoji="🎁"
+              description="Referral rewards are coming soon."
+            />
+          }
         />
         <Route path="/vendor" element={<VendorAuth />} />
         <Route path="/vendor/register" element={<SellerRegistration />} />
-        <Route path="/vendor/add-product" element={<RequireVendorOrAdmin><AddProduct /></RequireVendorOrAdmin>} />
-        <Route path="/vendor/stock-monitoring" element={<RequireVendorOrAdmin><StockMonitoring /></RequireVendorOrAdmin>} />
-        <Route path="/vendor/product-analytics" element={<RequireVendorOrAdmin><ProductAnalytics /></RequireVendorOrAdmin>} />
-        <Route path="/vendor/orders" element={<RequireVendorOrAdmin><VendorOrders /></RequireVendorOrAdmin>} />
-        <Route path="/vendor/edit-product" element={<RequireVendorOrAdmin><EditProduct /></RequireVendorOrAdmin>} />
-        <Route path="/vendor/insights" element={<RequireAdmin><VendorProfile /></RequireAdmin>} />
-        <Route path="/vendor/profile" element={<RequireVendorOrAdmin><VendorProfile /></RequireVendorOrAdmin>} />
+        <Route
+          path="/vendor/add-product"
+          element={
+            <RequireVendorOrAdmin>
+              <AddProduct />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/stock-monitoring"
+          element={
+            <RequireVendorOrAdmin>
+              <StockMonitoring />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/product-analytics"
+          element={
+            <RequireVendorOrAdmin>
+              <ProductAnalytics />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/orders"
+          element={
+            <RequireVendorOrAdmin>
+              <VendorOrders />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/edit-product"
+          element={
+            <RequireVendorOrAdmin>
+              <EditProduct />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/insights"
+          element={
+            <RequireAdmin>
+              <VendorProfile />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/vendor/profile"
+          element={
+            <RequireVendorOrAdmin>
+              <VendorProfile />
+            </RequireVendorOrAdmin>
+          }
+        />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
         <Route path="/company" element={<Company />} />
         <Route path="/customer-service" element={<CustomerService />} />
@@ -126,7 +203,13 @@ export default function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
       </Routes>
-      {!isHome && !isVendorArea && !isInfoPage && !isCatalogPage && !isCheckoutPage && !isOrderTrackingPage && <BottomNav />}
+      {!isHome &&
+        !isVendorArea &&
+        !isInfoPage &&
+        !isCatalogPage &&
+        !isCheckoutPage &&
+        !isOrderTrackingPage &&
+        !isAccountPage && <BottomNav />}
     </div>
   );
 }

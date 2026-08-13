@@ -26,7 +26,6 @@ async function requestAuth(path, options = {}) {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const message = data?.message || data?.error || `Request failed (${res.status})`;
-        // Fallback only when the route does not exist on this path.
         if (res.status !== 404 && res.status !== 405) {
           throw new Error(message);
         }
@@ -109,6 +108,47 @@ export const placeOrder = (payload) =>
 export const getOrders = (userId) =>
   request(`/checkout/orders?userId=${userId}`);
 
-// ✅ Added this
 export const getOrderById = (orderId) =>
   request(`/checkout/orders/${orderId}`);
+
+/* ========== Parcel / Deliver ========== */
+
+/** GET /api/deliver/estimate */
+export const estimateParcel = ({
+  pickupLat,
+  pickupLng,
+  dropLat,
+  dropLng,
+  city,
+  distanceProvider,
+} = {}) => {
+  const query = new URLSearchParams(
+    Object.entries({
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
+      city,
+      distanceProvider,
+    }).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  ).toString();
+
+  return request(`/deliver/estimate?${query}`);
+};
+
+/** POST /api/deliver/request */
+export const createParcelRequest = (payload) =>
+  request('/deliver/request', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+/** GET /api/deliver/request/:id */
+export const getParcelRequest = (id) =>
+  request(`/deliver/request/${id}`);
+
+/** PATCH /api/deliver/request/:id/cancel */
+export const cancelParcelRequest = (id) =>
+  request(`/deliver/request/${id}/cancel`, {
+    method: 'PATCH',
+  });
