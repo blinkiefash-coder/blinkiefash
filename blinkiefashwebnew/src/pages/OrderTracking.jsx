@@ -22,74 +22,57 @@ export default function OrderTracking() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
-  // Only true on the single navigation that lands here right after
-  // checkout (via location.state) — not on refresh or deep link, since
-  // history state doesn't persist across those.
   const [showPlacedBanner, setShowPlacedBanner] = useState(!!location.state?.fromCheckout);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setLoading(false);
-      return;
-    }
-    if (!orderId) {
-      setLoading(false);
-      setError('Invalid order ID');
-      return;
-    }
+    if (!isLoggedIn || !orderId) return;
 
     let cancelled = false;
     let intervalId = null;
-    const TERMINAL_STATUSES = ['delivered', 'cancelled'];
-    const POLL_INTERVAL_MS = 20000;
+    const TERMINAL = ['delivered', 'cancelled'];
+    const POLL_MS = 20000;
 
-    const load = async (isBackground = false) => {
+    const load = async (bg = false) => {
       try {
-        if (!isBackground) setLoading(true);
+        if (!bg) setLoading(true);
         setError('');
         const res = await getOrderById(orderId);
         if (cancelled) return;
-        const nextOrder = res.order || res;
-        setOrder(nextOrder);
-
-        const status = (nextOrder.status || '').toLowerCase();
-        if (TERMINAL_STATUSES.includes(status)) stopPolling();
+        const next = res.order || res;
+        setOrder(next);
+        if (TERMINAL.includes((next.status || '').toLowerCase())) stop();
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load order');
       } finally {
-        if (!cancelled && !isBackground) setLoading(false);
+        if (!cancelled && !bg) setLoading(false);
       }
     };
 
-    function startPolling() {
-      if (intervalId) return;
-      intervalId = setInterval(() => load(true), POLL_INTERVAL_MS);
-    }
-    function stopPolling() {
+    const start = () => {
+      if (!intervalId) intervalId = setInterval(() => load(true), POLL_MS);
+    };
+    const stop = () => {
       if (intervalId) {
         clearInterval(intervalId);
         intervalId = null;
       }
-    }
+    };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
+    const onVis = () => {
+      if (document.hidden) stop();
+      else {
         load(true);
-        startPolling();
+        start();
       }
     };
 
     load();
-    startPolling();
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
+    start();
+    document.addEventListener('visibilitychange', onVis);
     return () => {
       cancelled = true;
-      stopPolling();
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stop();
+      document.removeEventListener('visibilitychange', onVis);
     };
   }, [orderId, isLoggedIn]);
 
@@ -101,15 +84,10 @@ export default function OrderTracking() {
 
   const handleCancelOrder = async () => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
-
     setCancelling(true);
     try {
-      // Call your cancel API here when ready
       // await cancelOrder(orderId);
-
-      // Temporary: just update local state
       setOrder((prev) => ({ ...prev, status: 'cancelled' }));
-      alert('Order cancelled successfully');
     } catch (err) {
       alert(err.message || 'Failed to cancel order');
     } finally {
@@ -119,9 +97,11 @@ export default function OrderTracking() {
 
   if (!isLoggedIn) {
     return (
-      <div className="track-page">
-        <p className="state-msg">Log in to track this order.</p>
-        <button className="btn-primary" onClick={() => navigate('/login')}>Log in</button>
+      <div className="ot-page">
+        <div className="ot-empty">
+          <p>Log in to track this order.</p>
+          <button className="ot-btn primary" onClick={() => navigate('/login')}>Log in</button>
+        </div>
       </div>
     );
   }
@@ -130,9 +110,11 @@ export default function OrderTracking() {
 
   if (error || !order) {
     return (
-      <div className="track-page">
-        <p className="state-msg">{error || 'Order not found'}</p>
-        <button className="btn-primary" onClick={() => navigate('/orders')}>Back to orders</button>
+      <div className="ot-page">
+        <div className="ot-empty">
+          <p>{error || 'Order not found'}</p>
+          <button className="ot-btn primary" onClick={() => navigate('/orders')}>Back to orders</button>
+        </div>
       </div>
     );
   }
@@ -143,14 +125,17 @@ export default function OrderTracking() {
   let activeIndex = 0;
   if (['placed', 'pending'].includes(status)) activeIndex = 0;
   else if (['confirmed', 'processing', 'packed'].includes(status)) activeIndex = 1;
-  else if (['shipped', 'out_for_delivery'].includes(status)) activeIndex = 2;
+  else if (['picked', 'shipped', 'out_for_delivery'].includes(status)) activeIndex = 2;
   else if (status === 'delivered') activeIndex = 3;
 
   const orderNumber = order.order_number || order.orderId || order.id || orderId;
+  const shortId = String(orderNumber).slice(-12).toUpperCase();
+
   const placedAt = order.created_at || order.createdAt;
   const placedText = placedAt
     ? new Date(placedAt).toLocaleString('en-IN', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: true,
+        day: 'numeric', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit', hour12: true,
       })
     : '';
 
@@ -160,156 +145,165 @@ export default function OrderTracking() {
   const pincode = order.address?.pincode || order.pincode || '';
   const items = order.items || [];
 
+  const deliveryPromise =
+    order.deliveryPromise ||
+    order.delivery_promise ||
+    (order.etaMinutes ? `Today · ~${order.etaMinutes} min` : 'Today');
+
+  const distanceKm = order.distanceKm ?? order.distance_km ?? null;
+
+  const statusLabel = isCancelled
+    ? 'Cancelled'
+    : status === 'out_for_delivery'
+    ? 'Out for Delivery'
+    : status.replace(/_/g, ' ');
+
   return (
-    <div className="track-page">
-      {/* Header */}
-      <div className="track-header">
-        <button className="back-btn" onClick={() => navigate('/orders')} aria-label="Back to orders">←</button>
-        <div>
-          <div className="track-title">Track Order</div>
-          <div className="track-id">#{orderNumber}</div>
-        </div>
-      </div>
+    <div className="ot-page">
+      <div className="ot-container">
+        {/* Header */}
+        <header className="ot-header">
+          <button className="ot-back" onClick={() => navigate('/orders')} aria-label="Back">
+            ←
+          </button>
+          <div className="ot-header-text">
+            <h1>Track Order</h1>
+            <p className="ot-order-id">#{shortId}</p>
+          </div>
+          {placedText && <div className="ot-placed">Placed on {placedText}</div>}
+        </header>
 
-      {placedText && <div className="placed-on">Placed on {placedText}</div>}
+        {showPlacedBanner && (
+          <div className="ot-banner success" role="status">
+            <span>🎉 Order placed successfully! Track its progress below.</span>
+            <button type="button" onClick={() => setShowPlacedBanner(false)} aria-label="Dismiss">✕</button>
+          </div>
+        )}
 
-      {showPlacedBanner && (
-        <div className="order-placed-banner" role="status">
-          <span>🎉 Order placed successfully! Track its progress below.</span>
-          <button
-            type="button"
-            className="order-placed-dismiss"
-            onClick={() => setShowPlacedBanner(false)}
-            aria-label="Dismiss"
-          >
-            ✕
+        {/* Status Card */}
+        <section className="ot-card">
+          <div className="ot-card-head">
+            <h2>Order Status</h2>
+            <span className={`ot-badge ${isCancelled ? 'danger' : 'info'}`}>
+              {statusLabel}
+            </span>
+          </div>
+
+          {isCancelled ? (
+            <div className="ot-cancelled-block">
+              <div className="ot-cancel-icon">✕</div>
+              <p>This order has been cancelled</p>
+            </div>
+          ) : (
+            <ol className="ot-timeline">
+              {STEPS.map((step, i) => (
+                <li
+                  key={step.key}
+                  className={`ot-step ${i <= activeIndex ? 'done' : ''} ${i === activeIndex ? 'current' : ''}`}
+                >
+                  <div className="ot-step-icon">{step.icon}</div>
+                  <div className="ot-step-label">{step.label}</div>
+                </li>
+              ))}
+            </ol>
+          )}
+        </section>
+
+        {isCancelled && (
+          <div className="ot-banner danger">
+            <strong>Order Cancelled</strong>
+            <span>This order has been cancelled by the store.</span>
+          </div>
+        )}
+
+        {/* Main grid: ETA + Map */}
+        {!isCancelled && (
+          <div className="ot-grid">
+            <section className="ot-card">
+              <h2>Estimated Delivery</h2>
+              <p className="ot-eta-main">{deliveryPromise}</p>
+              {distanceKm != null && (
+                <p className="ot-eta-sub">Distance: {Number(distanceKm).toFixed(1)} km</p>
+              )}
+              <span className="ot-badge info" style={{ marginTop: 12 }}>{statusLabel}</span>
+            </section>
+
+            <section className="ot-card ot-map-card">
+              <div className="ot-map">
+                <div className="ot-map-pill">
+                  <span className="ot-dot" /> Preparing your order
+                </div>
+                <div className="ot-route">
+                  <div className="ot-pin home">🏠</div>
+                  <div className="ot-line" />
+                  <div className="ot-pin store">🏪</div>
+                </div>
+              </div>
+              <div className="ot-map-legend">
+                <span>🏪 Dispatch Partner</span>
+                <span>📍 Your Address</span>
+              </div>
+            </section>
+          </div>
+        )}
+
+        {/* Shipping */}
+        <section className="ot-card">
+          <h2>📍 Shipping To</h2>
+          <p className="ot-addr-name">{addressName}</p>
+          <p className="ot-addr-line">
+            {addressLine}{city ? `, ${city}` : ''}{pincode ? ` – ${pincode}` : ''}
+          </p>
+        </section>
+
+        {/* Products */}
+        <section className="ot-card">
+          <div className="ot-card-head">
+            <h2>🛒 Products Ordered</h2>
+            <span className="ot-muted">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+          </div>
+
+          <div className="ot-products">
+            {items.map((item, idx) => (
+              <div className="ot-product" key={item.variant_id || item.variantId || idx}>
+                {item.image || item.image_url ? (
+                  <img src={item.image || item.image_url} alt="" />
+                ) : (
+                  <div className="ot-product-fallback" />
+                )}
+                <div className="ot-product-info">
+                  <div className="ot-product-name">{item.product_name || item.name}</div>
+                  <div className="ot-product-meta">
+                    {[item.color, item.size].filter(Boolean).join(' · ')}
+                    {(item.quantity || item.qty) ? ` · ×${item.quantity || item.qty}` : ''}
+                  </div>
+                </div>
+                <div className="ot-product-price">₹{item.price}</div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        {/* Actions */}
+        <div className="ot-actions">
+          {!isCancelled && status !== 'delivered' && (
+            <button
+              className="ot-btn danger-outline"
+              onClick={handleCancelOrder}
+              disabled={cancelling}
+            >
+              {cancelling ? 'Cancelling...' : 'Cancel Order'}
+            </button>
+          )}
+          <button className="ot-btn secondary" onClick={() => navigate('/orders')}>
+            Back to Orders
           </button>
         </div>
-      )}
 
-      {/* Order Status */}
-      <div className="card" role="status" aria-live="polite" aria-atomic="true">
-        <div className="card-row">
-          <span className="card-title">Order Status</span>
-          <span className={`status-pill ${isCancelled ? 'red' : 'blue'}`}>
-            {isCancelled ? 'Cancelled' : status.replace(/_/g, ' ')}
-          </span>
-        </div>
-
-        {isCancelled ? (
-          <div className="cancelled-center">
-            <div className="cancel-circle" aria-hidden="true">✕</div>
-            <div>Cancelled</div>
-          </div>
-        ) : (
-          <ol className="timeline">
-            {STEPS.map((step, i) => (
-              <li
-                key={step.key}
-                className={`timeline-item ${i <= activeIndex ? 'active' : ''}`}
-                aria-current={i === activeIndex ? 'step' : undefined}
-              >
-                <div className="timeline-icon" aria-hidden="true">{step.icon}</div>
-                <div className="timeline-label">{step.label}</div>
-              </li>
-            ))}
-          </ol>
+        {isCancelled && (
+          <div className="ot-cancelled-footer">Order cancelled</div>
         )}
       </div>
-
-      {/* Cancelled Banner */}
-      {isCancelled && (
-        <div className="cancel-alert">
-          <span>✕</span>
-          <div>
-            <strong>Order Cancelled</strong>
-            <p>This order has been cancelled by the store.</p>
-          </div>
-        </div>
-      )}
-
-      {/* Estimated Delivery */}
-      {!isCancelled && (
-        <div className="card">
-          <div className="card-title">Estimated Delivery</div>
-          <div className="eta-text">
-            {order.deliveryPromise || 'Today'}
-          </div>
-          {order.distanceKm && (
-            <div className="eta-sub">Distance: {order.distanceKm} km</div>
-          )}
-          <span className="status-pill blue" style={{ marginTop: 8 }}>
-            {['placed', 'pending'].includes(status) ? 'Order Placed' : status}
-          </span>
-        </div>
-      )}
-
-      {/* Map */}
-      {!isCancelled && (
-        <div className="card map-card" role="img" aria-label="Map showing route from dispatch partner to your address. Status: preparing your order.">
-          <div className="map-box" aria-hidden="true">
-            <div className="map-pill">
-              <span className="dot"></span> Preparing your order
-            </div>
-            <div className="route">
-              <div className="pin">🏪</div>
-              <div className="line"></div>
-              <div className="pin">📍</div>
-            </div>
-          </div>
-          <div className="map-legend" aria-hidden="true">
-            <span>🏪 Dispatch Partner</span>
-            <span>📍 Your Address</span>
-          </div>
-        </div>
-      )}
-
-      {/* Shipping Address */}
-      <div className="card">
-        <div className="card-title"><span aria-hidden="true">📍</span> Shipping To</div>
-        <div className="addr-name">{addressName}</div>
-        <div className="addr-line">
-          {addressLine}{city ? `, ${city}` : ''}{pincode ? ` - ${pincode}` : ''}
-        </div>
-      </div>
-
-      {/* Products */}
-      <div className="card">
-        <div className="card-row">
-          <span className="card-title"><span aria-hidden="true">🛒</span> Products Ordered</span>
-          <span className="item-count">{items.length} item{items.length !== 1 ? 's' : ''}</span>
-        </div>
-
-        {items.map((item, idx) => (
-          <div className="product" key={item.variant_id || idx}>
-            {item.image && <img src={item.image} alt="" />}
-            <div className="product-detail">
-              <div className="product-name">{item.product_name || item.name}</div>
-              <div className="product-meta">
-                {[item.color, item.size].filter(Boolean).join(' · ')}
-                {(item.quantity || item.qty) ? ` · ×${item.quantity || item.qty}` : ''}
-              </div>
-            </div>
-            <div className="product-price">₹{item.price}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Cancel Button */}
-      {!isCancelled && status !== 'delivered' && (
-        <button
-          className="cancel-order-btn"
-          onClick={handleCancelOrder}
-          disabled={cancelling}
-          aria-busy={cancelling}
-        >
-          {cancelling ? 'Cancelling...' : <><span aria-hidden="true">✕</span> Cancel Order</>}
-        </button>
-      )}
-
-      {isCancelled && (
-        <div className="cancelled-footer">Order cancelled</div>
-      )}
     </div>
   );
 }

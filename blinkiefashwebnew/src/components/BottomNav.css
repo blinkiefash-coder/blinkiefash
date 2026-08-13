@@ -13,9 +13,10 @@
   z-index: 40;
 }
 
-@media (min-width: 720px) {
+/* Mobile-only: hide on tablet/desktop */
+@media (min-width: 768px) {
   .bottom-nav {
-    max-width: 720px;
+    display: none;
   }
 }
 

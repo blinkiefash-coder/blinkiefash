@@ -1,377 +1,595 @@
-.track-page {
-  background: #f5f6f8;
+/* ========== Full-width layout (no centered box) ========== */
+/* ========== Force full width ========== */
+.ot-page {
   min-height: 100vh;
-  padding: 12px 16px 90px;
+  background: #f5f7fa;
+  color: #0f172a;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  padding: 24px 0 60px;          /* no side padding on the page */
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  box-sizing: border-box;
 }
 
-/* Header */
-.track-header {
+.ot-container {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0 24px;               /* only inner content has side padding */
+  box-sizing: border-box;
+}
+
+/* ========== Header ========== */
+.ot-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.ot-back {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 18px;
+  cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 4px;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.15s, background 0.15s;
 }
 
-.back-btn {
-  background: none;
-  border: none;
-  font-size: 22px;
-  cursor: pointer;
-  padding: 4px;
+.ot-back:hover {
+  border-color: #16a34a;
+  background: #f0fdf4;
 }
 
-.track-title {
-  font-size: 17px;
-  font-weight: 600;
+.ot-header-text h1 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.4px;
 }
 
-.track-id {
-  font-size: 13px;
-  color: #666;
+.ot-order-id {
+  margin: 3px 0 0;
+  font-size: 14px;
+  color: #64748b;
 }
 
-.placed-on {
-  font-size: 13px;
-  color: #666;
-  margin: 0 0 14px 36px;
+.ot-placed {
+  margin-left: auto;
+  font-size: 13.5px;
+  color: #64748b;
+  padding-top: 10px;
 }
 
-.order-placed-banner {
+/* ========== Banner ========== */
+.ot-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  padding: 14px 20px;
+  border-radius: 14px;
+  margin-bottom: 22px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ot-banner.success {
   background: #f0fdf4;
   border: 1px solid #bbf7d0;
-  border-radius: 12px;
-  padding: 12px 14px;
-  margin-bottom: 14px;
-  font-size: 13px;
-  font-weight: 600;
   color: #166534;
 }
 
-.order-placed-dismiss {
-  flex: none;
+.ot-banner.danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.ot-banner button {
   border: 0;
   background: transparent;
-  color: #166534;
-  font-size: 14px;
   cursor: pointer;
-  padding: 2px 4px;
+  font-size: 16px;
+  color: inherit;
+  padding: 2px 6px;
 }
 
-/* Card */
-.card {
+/* ========== Card ========== */
+.ot-card {
   background: #fff;
+  border: 1px solid #e8edf3;
   border-radius: 16px;
-  padding: 16px;
-  margin-bottom: 12px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  padding: 22px 28px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.04);
 }
 
-.card-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.card-title {
+.ot-card h2 {
+  margin: 0 0 14px;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-/* Status pill */
-.status-pill {
+.ot-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.ot-card-head h2 {
+  margin: 0;
+}
+
+/* ========== Badge ========== */
+.ot-badge {
+  display: inline-block;
   font-size: 12px;
-  font-weight: 500;
-  padding: 4px 12px;
-  border-radius: 20px;
+  font-weight: 700;
+  padding: 5px 14px;
+  border-radius: 999px;
   text-transform: capitalize;
+  white-space: nowrap;
 }
 
-.status-pill.blue {
+.ot-badge.info {
   background: #e8f0fe;
   color: #1a73e8;
 }
 
-.status-pill.red {
+.ot-badge.danger {
   background: #fce8e6;
   color: #d93025;
 }
 
-/* Timeline */
-.timeline {
+/* ========== Timeline ========== */
+.ot-timeline {
   display: flex;
   justify-content: space-between;
-  position: relative;
-  margin-top: 8px;
-  padding: 0;
   list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  position: relative;
 }
 
-.timeline::before {
+.ot-timeline::before {
   content: '';
   position: absolute;
-  top: 18px;
-  left: 30px;
-  right: 30px;
-  height: 2px;
-  background: #e0e0e0;
+  top: 24px;
+  left: 6%;
+  right: 6%;
+  height: 3px;
+  background: #e2e8f0;
+  z-index: 0;
+  border-radius: 2px;
 }
 
-.timeline-item {
+.ot-step {
   flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   z-index: 1;
+  min-width: 0;
 }
 
-.timeline-icon {
-  width: 36px;
-  height: 36px;
+.ot-step-icon {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: #f1f3f4;
-  border: 2px solid #ddd;
+  background: #f1f5f9;
+  border: 2px solid #e2e8f0;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
-  margin-bottom: 6px;
+  font-size: 20px;
+  margin-bottom: 10px;
+  transition: all 0.2s ease;
 }
 
-.timeline-item.active .timeline-icon {
-  background: #34a853;
-  border-color: #34a853;
+.ot-step.done .ot-step-icon {
+  background: #16a34a;
+  border-color: #16a34a;
   color: #fff;
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
 }
 
-.timeline-label {
-  font-size: 11px;
-  color: #666;
+.ot-step-label {
+  font-size: 13px;
+  color: #94a3b8;
   text-align: center;
-}
-
-.timeline-item.active .timeline-label {
-  color: #111;
   font-weight: 500;
+  line-height: 1.3;
 }
 
-/* Cancelled state */
-.cancelled-center {
+.ot-step.done .ot-step-label {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* ========== Cancelled ========== */
+.ot-cancelled-block {
   text-align: center;
-  padding: 16px 0 8px;
+  padding: 24px 0 10px;
 }
 
-.cancel-circle {
-  width: 52px;
-  height: 52px;
+.ot-cancel-icon {
+  width: 64px;
+  height: 64px;
   border-radius: 50%;
-  background: #d93025;
+  background: #ef4444;
   color: #fff;
-  font-size: 24px;
+  font-size: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 8px;
+  margin: 0 auto 12px;
+  box-shadow: 0 6px 18px rgba(239, 68, 68, 0.3);
 }
 
-.cancel-alert {
-  display: flex;
-  gap: 12px;
-  background: #fce8e6;
-  color: #d93025;
-  border-radius: 12px;
-  padding: 14px;
-  margin-bottom: 12px;
-}
-
-.cancel-alert strong {
-  display: block;
-  margin-bottom: 2px;
-}
-
-.cancel-alert p {
+.ot-cancelled-block p {
   margin: 0;
-  font-size: 13px;
-}
-
-/* ETA */
-.eta-text {
-  font-size: 17px;
   font-weight: 600;
-  margin: 6px 0 2px;
+  font-size: 15px;
 }
 
-.eta-sub {
-  font-size: 13px;
-  color: #666;
+.ot-cancelled-footer {
+  background: #ef4444;
+  color: #fff;
+  text-align: center;
+  padding: 16px;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 15px;
+  margin-top: 8px;
 }
 
-/* Map */
-.map-card {
+/* ========== Grid (ETA + Map) ========== */
+.ot-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 18px;
+  margin-bottom: 18px;
+}
+
+.ot-grid .ot-card {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+.ot-eta-main {
+  font-size: 20px;
+  font-weight: 800;
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.ot-eta-sub {
+  margin: 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+/* ========== Map ========== */
+.ot-map-card {
   padding: 0;
   overflow: hidden;
 }
 
-.map-box {
-  height: 140px;
-  background: linear-gradient(160deg, #e8f0fe, #f1f5f9);
+.ot-map {
+  height: 210px;
+  background: linear-gradient(160deg, #e8f0fe 0%, #f1f5f9 55%, #e2e8f0 100%);
   position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-.map-pill {
+.ot-map::before {
+  content: '';
   position: absolute;
-  top: 12px;
-  left: 12px;
-  background: #fff;
-  border-radius: 20px;
-  padding: 5px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.12) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
-.dot {
+.ot-map-pill {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 7px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  z-index: 2;
+}
+
+.ot-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #34a853;
+  background: #16a34a;
 }
 
-.route {
+.ot-route {
   display: flex;
   align-items: center;
+  z-index: 1;
+  position: relative;
 }
 
-.pin {
-  width: 40px;
-  height: 40px;
+.ot-pin {
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+  font-size: 20px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.12);
 }
 
-.line {
-  width: 70px;
-  height: 3px;
-  background: #34a853;
-}
-
-.map-legend {
-  display: flex;
-  justify-content: space-around;
-  padding: 12px;
-  font-size: 13px;
-  color: #555;
-}
-
-/* Address */
-.addr-name {
-  font-weight: 600;
-  margin: 6px 0 2px;
-}
-
-.addr-line {
-  font-size: 14px;
-  color: #555;
-  line-height: 1.4;
-}
-
-/* Products */
-.item-count {
-  font-size: 13px;
-  color: #666;
-}
-
-.product {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 12px 0;
-  border-top: 1px solid #f0f0f0;
-}
-
-.product img {
-  width: 54px;
-  height: 54px;
-  border-radius: 10px;
-  object-fit: cover;
-}
-
-.product-detail {
-  flex: 1;
-}
-
-.product-name {
-  font-size: 14px;
-  font-weight: 500;
-  margin-bottom: 2px;
-}
-
-.product-meta {
-  font-size: 12px;
-  color: #666;
-}
-
-.product-price {
-  font-weight: 600;
-  font-size: 15px;
-}
-
-/* Cancel button */
-.cancel-order-btn {
-  width: 100%;
-  margin-top: 6px;
-  padding: 14px;
-  border: 1.5px solid #d93025;
-  background: #fff;
-  color: #d93025;
-  border-radius: 30px;
-  font-size: 15px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.cancel-order-btn:disabled {
-  opacity: 0.6;
-}
-
-.cancelled-footer {
-  background: #d93025;
-  color: #fff;
-  text-align: center;
-  padding: 15px;
-  border-radius: 12px;
-  font-weight: 500;
-  margin-top: 8px;
-}
-
-.state-msg {
-  text-align: center;
-  padding: 40px 16px;
-  color: #666;
-}
-
-.btn-primary {
+.ot-pin.store {
   background: #16a34a;
   color: #fff;
-  border: none;
-  padding: 12px 24px;
-  border-radius: 10px;
+  border: 3px solid #fff;
+}
+
+.ot-line {
+  width: 140px;
+  height: 4px;
+  background: linear-gradient(90deg, #16a34a, #22c55e);
+  border-radius: 4px;
+}
+
+.ot-map-legend {
+  display: flex;
+  justify-content: space-around;
+  padding: 14px 20px;
+  font-size: 13.5px;
+  color: #475569;
+  font-weight: 500;
+  border-top: 1px solid #f1f5f9;
+}
+
+/* ========== Address ========== */
+.ot-addr-name {
+  font-weight: 700;
+  font-size: 15.5px;
+  margin: 0 0 4px;
+}
+
+.ot-addr-line {
+  margin: 0;
+  font-size: 14.5px;
+  color: #555;
+  line-height: 1.5;
+}
+
+/* ========== Products ========== */
+.ot-muted {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.ot-products {
+  display: flex;
+  flex-direction: column;
+}
+
+.ot-product {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 16px 0;
+  border-top: 1px solid #f1f5f9;
+}
+
+.ot-product:first-child {
+  border-top: none;
+  padding-top: 4px;
+}
+
+.ot-product img,
+.ot-product-fallback {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
+.ot-product-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ot-product-name {
+  font-size: 15px;
   font-weight: 600;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ot-product-meta {
+  font-size: 13.5px;
+  color: #64748b;
+}
+
+.ot-product-price {
+  font-weight: 700;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* ========== Actions ========== */
+.ot-actions {
+  display: flex;
+  gap: 14px;
+  margin-top: 10px;
+  flex-wrap: wrap;
+}
+
+.ot-btn {
+  height: 46px;
+  padding: 0 24px;
+  border-radius: 12px;
+  font-size: 14.5px;
+  font-weight: 700;
   cursor: pointer;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.ot-btn.primary {
+  background: #16a34a;
+  color: #fff;
+}
+
+.ot-btn.primary:hover {
+  background: #15803d;
+}
+
+.ot-btn.secondary {
+  background: #fff;
+  color: #334155;
+  border: 1.5px solid #e2e8f0;
+}
+
+.ot-btn.secondary:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+.ot-btn.danger-outline {
+  background: #fff;
+  color: #ef4444;
+  border: 1.5px solid #ef4444;
+}
+
+.ot-btn.danger-outline:hover {
+  background: #fef2f2;
+}
+
+.ot-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ========== Empty ========== */
+.ot-empty {
+  text-align: center;
+  padding: 100px 20px;
+  color: #64748b;
+}
+
+.ot-empty p {
+  margin-bottom: 18px;
+  font-size: 15px;
+}
+
+/* =====================================================
+   RESPONSIVE
+   ===================================================== */
+@media (max-width: 899px) {
+  .ot-page {
+    padding: 16px 16px 40px;
+  }
+
+  .ot-header {
+    margin-bottom: 16px;
+  }
+
+  .ot-placed {
+    margin-left: 0;
+    width: 100%;
+    padding-top: 0;
+    padding-left: 58px;
+  }
+
+  .ot-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ot-card {
+    padding: 18px 16px;
+  }
+
+  .ot-timeline::before {
+    left: 12%;
+    right: 12%;
+  }
+
+  .ot-step-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 17px;
+  }
+
+  .ot-step-label {
+    font-size: 11.5px;
+  }
+
+  .ot-actions {
+    flex-direction: column;
+  }
+
+  .ot-btn {
+    width: 100%;
+  }
+
+  .ot-line {
+    width: 80px;
+  }
+
+  .ot-map {
+    height: 160px;
+  }
+
+  .ot-product img,
+  .ot-product-fallback {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+@media (max-width: 420px) {
+  .ot-page {
+    padding: 12px 12px 32px;
+  }
+
+  .ot-header-text h1 {
+    font-size: 19px;
+  }
+
+  .ot-step-label {
+    font-size: 10.5px;
+  }
 }

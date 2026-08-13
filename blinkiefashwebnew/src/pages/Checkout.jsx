@@ -27,6 +27,10 @@ const FREE_DELIVERY_THRESHOLD = 999;
 const PLATFORM_FEE = 0;
 const HANDLING_FEE = 9;
 
+const AVAILABLE_COUPONS = {
+  INDEPENDENCE5: { percent: 5, label: 'Get 5% OFF' },
+};
+
 export default function Checkout() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
@@ -37,19 +41,35 @@ export default function Checkout() {
   const [selectedAddressId, setSelectedAddressId] = useState('');
   const [addressPanelOpen, setAddressPanelOpen] = useState(false);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', phone: '', address_line: '', city: '', pincode: '' });
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    address_line: '',
+    city: '',
+    pincode: '',
+    lat: null,
+    lng: null,
+  });
   const [error, setError] = useState('');
   const [placing, setPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [selectedOffer, setSelectedOffer] = useState('free-delivery');
   const [donatePrompted, setDonatePrompted] = useState(false);
 
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponModalOpen, setCouponModalOpen] = useState(false);
 
-// eslint-disable-next-line react-hooks/purity -- one-time wall-clock estimate, not used for correctness
-  const estimatedDeliveryTime = new Date(Date.now() + 70 * 60000).toLocaleTimeString('en-IN', {
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  const [geoLoading, setGeoLoading] = useState(false);
+  const [geoError, setGeoError] = useState('');
+
+  const [estimatedDeliveryTime] = useState(() =>
+    new Date(Date.now() + 70 * 60000).toLocaleTimeString('en-IN', {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  );
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -84,11 +104,10 @@ export default function Checkout() {
   const totalQty = items.reduce((sum, i) => sum + Number(i.qty || 1), 0);
   const itemTotal = subtotal;
   const deliveryCharge = itemTotal > FREE_DELIVERY_THRESHOLD ? 0 : 49;
-  const displayedOfferDiscount = Math.round(itemTotal * 0.05);
-  const appliedOfferDiscount = Math.round(itemTotal * 0.02);
+  const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const gstFee = HANDLING_FEE;
   const totalFees = PLATFORM_FEE + gstFee;
-  const totalPayable = itemTotal - appliedOfferDiscount + totalFees + deliveryCharge;
+  const totalPayable = Math.max(0, itemTotal - couponDiscount + totalFees + deliveryCharge);
   const selectedAddress = addresses.find((a) => String(a.id) === String(selectedAddressId));
 
   const handleIncrement = (item) => {
@@ -112,11 +131,126 @@ export default function Checkout() {
     }
   };
 
+  const applyCoupon = (code) => {
+    const normalized = String(code || '').trim().toUpperCase();
+    setCouponError('');
+    if (appliedCoupon && appliedCoupon.code === normalized) {
+      setCouponError('Coupon already applied');
+      return;
+    }
+    const coupon = AVAILABLE_COUPONS[normalized];
+    if (!coupon) {
+      setCouponError('Invalid coupon code');
+      return;
+    }
+    const discountAmount = Math.round(itemTotal * (coupon.percent / 100));
+    setAppliedCoupon({
+      code: normalized,
+      discountPercent: coupon.percent,
+      discountAmount,
+    });
+    setCouponCode(normalized);
+    setCouponModalOpen(false);
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+    setCouponError('');
+  };
+
+  const fillAddressFromLocation = () => {
+    setGeoError('');
+    setGeoLoading(true);
+
+    if (!navigator.geolocation) {
+      setGeoError('Your browser does not support location services.');
+      setGeoLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            {
+              headers: {
+                'Accept-Language': 'en',
+                'User-Agent': 'BlinkieFash-Checkout/1.0',
+              },
+            }
+          );
+          if (!res.ok) throw new Error('Could not fetch address');
+          const data = await res.json();
+          const addr = data.address || {};
+          const streetParts = [
+            addr.house_number,
+            addr.road || addr.pedestrian || addr.footway,
+          ].filter(Boolean);
+          const addressLine =
+            streetParts.length > 0
+              ? streetParts.join(' ')
+              : data.display_name?.split(',').slice(0, 2).join(',').trim() || '';
+
+          setForm((prev) => ({
+            ...prev,
+            address_line: addressLine || prev.address_line,
+            city:
+              addr.city ||
+              addr.town ||
+              addr.village ||
+              addr.suburb ||
+              addr.county ||
+              prev.city,
+            pincode: addr.postcode || prev.pincode,
+            lat: latitude,
+            lng: longitude,
+          }));
+          setShowForm(true);
+          setAddressPanelOpen(true);
+        } catch (err) {
+          console.error(err);
+          setGeoError('Could not convert location to address. Please enter it manually.');
+          setShowForm(true);
+          setAddressPanelOpen(true);
+        } finally {
+          setGeoLoading(false);
+        }
+      },
+      (error) => {
+        let message = 'Unable to get your location.';
+        if (error.code === error.PERMISSION_DENIED) {
+          message = 'Location permission denied. Please allow access or enter address manually.';
+        } else if (error.code === error.POSITION_UNAVAILABLE) {
+          message = 'Location unavailable. Please enter address manually.';
+        } else if (error.code === error.TIMEOUT) {
+          message = 'Location request timed out. Please try again or enter manually.';
+        }
+        setGeoError(message);
+        setGeoLoading(false);
+        setShowForm(true);
+        setAddressPanelOpen(true);
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
+    );
+  };
+
   const handleAddAddress = async (e) => {
     e.preventDefault();
     setError('');
     try {
-      const res = await addAddress({ userId: user.id, ...form });
+      const res = await addAddress({
+        userId: user.id,
+        name: form.name,
+        phone: form.phone,
+        address_line: form.address_line,
+        city: form.city,
+        pincode: form.pincode,
+        lat: form.lat,
+        lng: form.lng,
+      });
       if (!res.success) {
         setError(res.message || 'Could not save address');
         return;
@@ -125,6 +259,7 @@ export default function Checkout() {
       setSelectedAddressId(res.address.id);
       setShowForm(false);
       setAddressPanelOpen(false);
+      setForm((prev) => ({ ...prev, lat: null, lng: null }));
     } catch (err) {
       setError(err.message || 'Could not save address');
     }
@@ -148,15 +283,17 @@ export default function Checkout() {
         addressId: selectedAddressId,
         totalAmount: totalPayable,
         paymentMethod,
-        items: items.map((i) => ({ variantId: i.variantId, quantity: i.qty, price: i.price })),
+        items: items.map((i) => ({
+          variantId: i.variantId,
+          quantity: i.qty,
+          price: i.price,
+        })),
+        couponCode: appliedCoupon ? appliedCoupon.code : null,
       });
       if (!res.success) {
         setError(res.message || 'Could not place order');
         return;
       }
-
-      // Fire-and-forget analytics event. Guarded so it's a no-op if no
-      // analytics snippet (e.g. gtag) is wired up in this environment.
       if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
         window.gtag('event', 'place_order', {
           order_id: res.orderId,
@@ -164,15 +301,7 @@ export default function Checkout() {
           currency: 'INR',
         });
       }
-
       clearCart();
-      // Send the user straight to that order's tracking page (not the
-      // generic order list). We only pass a `fromCheckout` flag via route
-      // state (not the full order) — the checkout response doesn't include
-      // items/address, which the tracking page needs, so it still does its
-      // own fetch as the source of truth. `replace: true` drops /checkout
-      // from history so the back button can't return to a stale checkout
-      // form and resubmit.
       navigate(`/orders/${res.orderId}`, {
         replace: true,
         state: { fromCheckout: true },
@@ -183,6 +312,12 @@ export default function Checkout() {
       setPlacing(false);
     }
   };
+
+  const googleMapsNavUrl = selectedAddress
+    ? `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
+        `${selectedAddress.address_line}, ${selectedAddress.city} - ${selectedAddress.pincode}`
+      )}`
+    : null;
 
   const billSummary = (
     <section className="ckt-card">
@@ -198,32 +333,26 @@ export default function Checkout() {
         </div>
         <div className="ckt-bill-row">
           <span>Delivery Charges</span>
-          <span className="ckt-free">{deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}</span>
+          <span className={deliveryCharge === 0 ? 'ckt-free' : ''}>
+            {deliveryCharge > 0 ? `₹${deliveryCharge}` : 'FREE'}
+          </span>
         </div>
-        <div className="ckt-bill-row">
-          <span>Offer Discount (5%)</span>
-          <span className="ckt-muted">-₹{displayedOfferDiscount.toLocaleString('en-IN')}</span>
-        </div>
-        {displayedOfferDiscount > appliedOfferDiscount && (
-          <div className="ckt-bill-subrow">
-            <span>&#8618; Launch adjustment</span>
-            <span>+₹{(displayedOfferDiscount - appliedOfferDiscount).toLocaleString('en-IN')}</span>
+        {appliedCoupon && (
+          <div className="ckt-bill-row">
+            <span>Coupon ({appliedCoupon.code})</span>
+            <span className="ckt-free">−₹{appliedCoupon.discountAmount.toLocaleString('en-IN')}</span>
           </div>
         )}
-        <div className="ckt-bill-subrow">
-          <span>&#8618; Applied discount (2%)</span>
-          <span>-₹{appliedOfferDiscount.toLocaleString('en-IN')}</span>
-        </div>
         <div className="ckt-bill-row ckt-bill-fees">
           <span>Total Fees</span>
           <span>₹{totalFees}</span>
         </div>
         <div className="ckt-bill-subrow">
-          <span>&#8618; Platform Fee</span>
+          <span>↪ Platform Fee</span>
           <span>₹{PLATFORM_FEE}</span>
         </div>
         <div className="ckt-bill-subrow">
-          <span>&#8618; Taxes (GST)</span>
+          <span>↪ Taxes (GST)</span>
           <span>₹{gstFee}</span>
         </div>
         <div className="ckt-bill-row ckt-bill-total">
@@ -236,7 +365,13 @@ export default function Checkout() {
 
   return (
     <div className="ckt-page">
-      <PageSEO title="Checkout" description="Complete your order for fast 60-minute fashion delivery across Odisha." path="/checkout" noIndex />
+      <PageSEO
+        title="Checkout"
+        description="Complete your order for fast 60-minute fashion delivery across Odisha."
+        path="/checkout"
+        noIndex
+      />
+
       <div className="ckt-topbar">
         <button type="button" className="ckt-back" onClick={() => navigate(-1)} aria-label="Go back">
           <MdArrowBack />
@@ -300,8 +435,7 @@ export default function Checkout() {
                 className={`ckt-payment-option${paymentMethod === 'cod' ? ' active' : ''}`}
                 onClick={() => setPaymentMethod('cod')}
               >
-                <MdPayments />
-                Cash on Delivery
+                <MdPayments /> Cash on Delivery
                 {paymentMethod === 'cod' && <MdCheckCircle className="ckt-payment-check" />}
               </button>
               <button
@@ -309,11 +443,35 @@ export default function Checkout() {
                 className={`ckt-payment-option${paymentMethod === 'upi' ? ' active' : ''}`}
                 onClick={() => setPaymentMethod('upi')}
               >
-                <MdQrCode2 />
-                UPI on Delivery
+                <MdQrCode2 /> UPI on Delivery
                 {paymentMethod === 'upi' && <MdCheckCircle className="ckt-payment-check" />}
               </button>
             </div>
+          </section>
+
+          <section className="ckt-card">
+            <div className="ckt-card-head">
+              <span className="ckt-icon-badge"><MdLocalOffer /></span>
+              <h2>Apply Coupon</h2>
+            </div>
+            {appliedCoupon ? (
+              <div className="ckt-applied-coupon">
+                <span>
+                  <strong>{appliedCoupon.code}</strong> – {appliedCoupon.discountPercent}% OFF (−₹
+                  {appliedCoupon.discountAmount.toLocaleString('en-IN')})
+                </span>
+                <button type="button" className="ckt-change-btn" onClick={removeCoupon}>Remove</button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="ckt-add-address-btn"
+                onClick={() => { setCouponError(''); setCouponModalOpen(true); }}
+              >
+                + Apply Coupon
+              </button>
+            )}
+            {couponError && <p className="auth-error" role="alert" style={{ marginTop: 8 }}>{couponError}</p>}
           </section>
 
           <div className="ckt-mobile-bill-wrap">{billSummary}</div>
@@ -386,21 +544,38 @@ export default function Checkout() {
                 </button>
               </div>
             ) : selectedAddress && !addressPanelOpen ? (
-              <div className="ckt-address-card">
-                <span className="ckt-address-icon"><MdHome /></span>
-                <div className="ckt-address-body">
-                  <div className="ckt-address-top">
-                    <strong>{selectedAddress.name || 'Address'}</strong>
-                    {selectedAddress.type && <span className="ckt-tag">{selectedAddress.type.toUpperCase()}</span>}
+              <div>
+                <div className="ckt-address-card">
+                  <span className="ckt-address-icon"><MdHome /></span>
+                  <div className="ckt-address-body">
+                    <div className="ckt-address-top">
+                      <strong>{selectedAddress.name || 'Address'}</strong>
+                      {selectedAddress.type && (
+                        <span className="ckt-tag">{selectedAddress.type.toUpperCase()}</span>
+                      )}
+                    </div>
+                    <p>
+                      {selectedAddress.address_line}, {selectedAddress.city} - {selectedAddress.pincode}
+                    </p>
+                    {selectedAddress.phone && (
+                      <p className="ckt-phone"><MdPhone /> {selectedAddress.phone}</p>
+                    )}
                   </div>
-                  <p>{selectedAddress.address_line}, {selectedAddress.city} - {selectedAddress.pincode}</p>
-                  {selectedAddress.phone && (
-                    <p className="ckt-phone"><MdPhone /> {selectedAddress.phone}</p>
-                  )}
+                  <button type="button" className="ckt-change-btn" onClick={() => setAddressPanelOpen(true)}>
+                    Change
+                  </button>
                 </div>
-                <button type="button" className="ckt-change-btn" onClick={() => setAddressPanelOpen(true)}>
-                  Change
-                </button>
+                {googleMapsNavUrl && (
+                  <a
+                    href={googleMapsNavUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ckt-change-btn"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: 4, marginTop: 10 }}
+                  >
+                    Navigate with Google Maps
+                  </a>
+                )}
               </div>
             ) : (
               <div className="ckt-address-panel">
@@ -422,46 +597,44 @@ export default function Checkout() {
                 ))}
 
                 {!showForm && (
-                  <button type="button" className="ckt-add-address-btn" onClick={() => setShowForm(true)}>
-                    + Add new address
-                  </button>
+                  <>
+                    <button type="button" className="ckt-add-address-btn" onClick={() => setShowForm(true)}>
+                      + Add new address
+                    </button>
+                    <button
+                      type="button"
+                      className="ckt-add-address-btn"
+                      onClick={fillAddressFromLocation}
+                      disabled={geoLoading}
+                      aria-busy={geoLoading}
+                      style={{ marginTop: 8 }}
+                    >
+                      {geoLoading ? 'Getting location…' : 'Use my current location'}
+                    </button>
+                    {geoError && (
+                      <p className="auth-error" role="alert" style={{ marginTop: 8 }}>{geoError}</p>
+                    )}
+                  </>
                 )}
 
                 {showForm && (
                   <form className="ckt-address-form" onSubmit={handleAddAddress}>
-                    <input
-                      placeholder="Full name"
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      required
-                    />
-                    <input
-                      placeholder="Phone"
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      required
-                    />
-                    <input
-                      placeholder="Address line"
-                      value={form.address_line}
-                      onChange={(e) => setForm({ ...form, address_line: e.target.value })}
-                      required
-                    />
-                    <input
-                      placeholder="City"
-                      value={form.city}
-                      onChange={(e) => setForm({ ...form, city: e.target.value })}
-                      required
-                    />
-                    <input
-                      placeholder="Pincode"
-                      value={form.pincode}
-                      onChange={(e) => setForm({ ...form, pincode: e.target.value })}
-                      required
-                    />
-                    <button type="submit" className="ckt-save-address-btn">
-                      Save address
+                    <input placeholder="Full name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
+                    <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} required />
+                    <input placeholder="Address line" value={form.address_line} onChange={(e) => setForm({ ...form, address_line: e.target.value })} required />
+                    <input placeholder="City" value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} required />
+                    <input placeholder="Pincode" value={form.pincode} onChange={(e) => setForm({ ...form, pincode: e.target.value })} required />
+                    <button
+                      type="button"
+                      className="ckt-add-address-btn"
+                      onClick={fillAddressFromLocation}
+                      disabled={geoLoading}
+                      aria-busy={geoLoading}
+                    >
+                      {geoLoading ? 'Getting location…' : 'Use my current location'}
                     </button>
+                    {geoError && <p className="auth-error" role="alert">{geoError}</p>}
+                    <button type="submit" className="ckt-save-address-btn">Save address</button>
                   </form>
                 )}
 
@@ -474,7 +647,7 @@ export default function Checkout() {
             )}
           </section>
 
-          {error && <p className="auth-error">{error}</p>}
+          {error && <p className="auth-error" role="alert">{error}</p>}
         </div>
 
         <aside className="ckt-sidebar">
@@ -485,11 +658,7 @@ export default function Checkout() {
             onClick={handlePlaceOrder}
             disabled={placing}
           >
-            {!isLoggedIn ? (
-              <><MdLogin /> Log in to Order</>
-            ) : (
-              <><MdArrowForward /> {placing ? 'Placing order...' : 'Place Order'}</>
-            )}
+            {!isLoggedIn ? (<><MdLogin /> Log in to Order</>) : (<><MdArrowForward /> {placing ? 'Placing order...' : 'Place Order'}</>)}
           </button>
         </aside>
       </div>
@@ -500,13 +669,47 @@ export default function Checkout() {
           <span>{totalQty} item{totalQty === 1 ? '' : 's'} • Total</span>
         </div>
         <button type="button" className="ckt-place-order-btn" onClick={handlePlaceOrder} disabled={placing}>
-          {!isLoggedIn ? (
-            <><MdLogin /> Log in to Order</>
-          ) : (
-            <><MdArrowForward /> {placing ? 'Placing order...' : 'Place Order'}</>
-          )}
+          {!isLoggedIn ? (<><MdLogin /> Log in to Order</>) : (<><MdArrowForward /> {placing ? 'Placing order...' : 'Place Order'}</>)}
         </button>
       </div>
+
+      {couponModalOpen && (
+        <div
+          className="ckt-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="coupon-modal-title"
+          onClick={() => setCouponModalOpen(false)}
+        >
+          <div className="ckt-modal" onClick={(e) => e.stopPropagation()}>
+            <h3 id="coupon-modal-title" style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800 }}>
+              Available Coupons
+            </h3>
+            <div className="ckt-offer-chip active" style={{ width: '100%', marginBottom: 14 }}>
+              <span className="ckt-offer-top">INDEPENDENCE5 – Get 5% OFF</span>
+              <span className="ckt-offer-sub">Valid on this order</span>
+              <button type="button" className="ckt-use-address-btn" style={{ marginTop: 10 }} onClick={() => applyCoupon('INDEPENDENCE5')}>
+                Apply
+              </button>
+            </div>
+            <div style={{ display: 'grid', gap: 8 }}>
+              <input
+                placeholder="Or enter coupon code"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value)}
+                aria-label="Coupon code"
+                style={{ width: '100%', padding: '10px 12px', borderRadius: 10, border: '1px solid #e2e8f0', fontSize: 13 }}
+              />
+              <button type="button" className="ckt-use-address-btn" onClick={() => applyCoupon(couponCode)}>
+                Apply Code
+              </button>
+            </div>
+            <button type="button" className="ckt-change-btn" style={{ marginTop: 14, display: 'block' }} onClick={() => setCouponModalOpen(false)}>
+              Close
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

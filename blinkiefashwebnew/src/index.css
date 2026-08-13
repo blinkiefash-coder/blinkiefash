@@ -76,7 +76,7 @@ img {
   margin: 0 auto;
   min-height: 100vh;
   background: transparent;
-  padding-bottom: 76px;
+  padding-bottom: 76px; /* space for mobile bottom nav */
   position: relative;
 }
 
@@ -84,6 +84,13 @@ img {
   .app-shell {
     max-width: 960px;
     box-shadow: var(--shadow-card);
+  }
+}
+
+/* No bottom-nav on desktop — drop reserved space */
+@media (min-width: 768px) {
+  .app-shell {
+    padding-bottom: 0;
   }
 }
 
@@ -113,6 +120,16 @@ img {
 }
 
 .app-shell.is-catalog {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  width: 100%;
+  background: transparent;
+}
+
+.app-shell.is-checkout,
+.app-shell.is-order-tracking {
   max-width: none;
   margin: 0;
   box-shadow: none;
