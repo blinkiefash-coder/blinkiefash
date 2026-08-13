@@ -22,10 +22,11 @@ const IconTag = () => (
     <circle cx="7.5" cy="7.5" r="1.5" />
   </svg>
 );
-const IconUser = () => (
+const IconTeam = () => (
   <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
   </svg>
 );
 const IconMap = () => (
@@ -97,12 +98,31 @@ const IconCart = () => (
   </svg>
 );
 
+/* ---------- trust footer icons ---------- */
+const IconClock = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 7v5l3 3" />
+  </svg>
+);
+const IconCheckCircle = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8.5 12.5 2.3 2.3L16 10" />
+  </svg>
+);
+const IconRefresh = () => (
+  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M21 12a9 9 0 1 1-2.64-6.36" />
+    <path d="M21 4v6h-6" />
+  </svg>
+);
+
 /* ---------- section config ---------- */
 const SECTIONS = [
   {
     id: 'activity',
     title: 'MY ACTIVITY',
-    layout: 'grid',
     items: [
       { label: 'My Orders', subtitle: 'Track, return or buy again', to: '/orders', icon: <IconOrders />, color: '#fce4ec', iconColor: '#c2185b' },
       { label: 'Wishlist', subtitle: 'Products you have saved', to: '/wishlist', icon: <IconHeart />, color: '#e8eaf6', iconColor: '#3f51b5' },
@@ -112,16 +132,14 @@ const SECTIONS = [
   {
     id: 'account',
     title: 'MY ACCOUNT',
-    layout: 'grid',
     items: [
-      { label: 'Manage Account', subtitle: 'Name, email, phone', to: '/account', icon: <IconUser />, color: '#e8eaf6', iconColor: '#3f51b5' },
+      { label: 'Manage Account', subtitle: 'Name, email, phone', to: '/account', icon: <IconTeam />, color: '#e8eaf6', iconColor: '#3f51b5' },
       { label: 'Saved Addresses', subtitle: 'Home, work and other addresses', to: '/checkout', icon: <IconMap />, color: '#e0f7fa', iconColor: '#00838f' },
     ],
   },
   {
     id: 'help',
     title: 'HELP & SUPPORT',
-    layout: 'list',
     items: [
       { label: 'Help & Query', subtitle: 'Call, WhatsApp, email & ticket', to: '/account', icon: <IconSupport />, color: '#e0f2f1', iconColor: '#00796b' },
     ],
@@ -129,20 +147,12 @@ const SECTIONS = [
   {
     id: 'legal',
     title: 'LEGAL & POLICIES',
-    layout: 'list',
     items: [
       { label: 'Terms & Conditions', subtitle: '', to: '/terms', icon: <IconDoc />, color: '#f3e5f5', iconColor: '#7b1fa2' },
       { label: 'Privacy Policy', subtitle: '', to: '/privacy-policy', icon: <IconShield />, color: '#eceff1', iconColor: '#455a64' },
       { label: 'Company Policy', subtitle: '', to: '/account', icon: <IconBuilding />, color: '#eceff1', iconColor: '#455a64' },
     ],
   },
-];
-
-const SIDE_LINKS = [
-  { id: 'activity', label: 'My Activity', icon: <IconOrders /> },
-  { id: 'account', label: 'My Account', icon: <IconUser /> },
-  { id: 'help', label: 'Help & Support', icon: <IconSupport /> },
-  { id: 'legal', label: 'Legal & Policies', icon: <IconDoc /> },
 ];
 
 export default function AccountPage() {
@@ -175,7 +185,6 @@ export default function AccountPage() {
       {/* top nav */}
       <nav className="acct-topnav">
         <div className="acct-topnav-inner">
-          {/* Brand */}
           <div className="acct-logo">
             <img src={logo} alt="BlinkieFash" className="acct-logo-img" />
             <div className="acct-logo-text-wrap">
@@ -186,7 +195,6 @@ export default function AccountPage() {
             </div>
           </div>
 
-          {/* Search + links + icons stay on the SAME horizontal line */}
           <div className="acct-nav-row">
             <div className="acct-nav-search">
               <IconSearch />
@@ -212,91 +220,98 @@ export default function AccountPage() {
         </div>
       </nav>
 
-      <div className="acct-layout">
-        {/* sidebar */}
-        <aside>
-          <div className="acct-profile-card">
-            <div className="acct-avatar-wrap">
-              <div className="acct-avatar">{initial}</div>
-              <button
-                type="button"
-                className="acct-avatar-edit"
-                onClick={() => navigate('/account')}
-                aria-label="Edit profile"
-              >
-                <IconEdit />
-              </button>
-            </div>
-            <h1>{user?.name || 'User'}</h1>
-            <p className="acct-phone">{user?.phone || '—'}</p>
+      <div className="acct-content">
+        {/* Profile banner */}
+        <div className="acct-profile-banner">
+          <div className="acct-avatar-wrap">
+            <div className="acct-avatar">{initial}</div>
             <button
               type="button"
-              className="acct-edit-btn"
+              className="acct-avatar-edit"
               onClick={() => navigate('/account')}
+              aria-label="Edit profile"
             >
-              Edit Profile
+              <IconEdit />
             </button>
           </div>
 
-          <div className="acct-side-links">
-            {SIDE_LINKS.map((link) => (
-              <a key={link.id} href={`#${link.id}`}>
-                {link.icon}
-                {link.label}
-              </a>
-            ))}
+          <div className="acct-profile-info">
+            <h1>{user?.name || 'User'}</h1>
+            <p className="acct-phone">{user?.phone || '—'}</p>
+            <button type="button" className="acct-edit-btn" onClick={() => navigate('/account')}>
+              Edit Profile
+            </button>
           </div>
-        </aside>
+        </div>
 
-        {/* main content */}
-        <main>
-          <h2 className="acct-main-title">My Account</h2>
-          <p className="acct-main-sub">
-            Manage your orders, wishlist, addresses and account settings.
-          </p>
+        {/* Sections — each is one card, items laid out in a row inside it */}
+        {SECTIONS.map((section) => (
+          <section key={section.id} id={section.id} className="acct-section">
+            <p className="acct-section-title">{section.title}</p>
+            <div className="acct-section-card">
+              {section.items.map((item) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  className="acct-item-row"
+                  onClick={() => navigate(item.to)}
+                >
+                  <span className="acct-ic" style={{ background: item.color, color: item.iconColor }}>
+                    {item.icon}
+                  </span>
+                  <span className="acct-item-text">
+                    <span className="t">{item.label}</span>
+                    {item.subtitle ? <span className="s">{item.subtitle}</span> : null}
+                  </span>
+                  <span className="acct-chev">
+                    <IconChevron />
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
 
-          {SECTIONS.map((section) => (
-            <section key={section.id} id={section.id} className="acct-section">
-              <p className="acct-section-title">{section.title}</p>
-              <div
-                className={
-                  section.layout === 'grid' ? 'acct-card-grid' : 'acct-single-list'
-                }
-              >
-                {section.items.map((item) => (
-                  <button
-                    key={item.label}
-                    type="button"
-                    className="acct-item-card"
-                    onClick={() => navigate(item.to)}
-                  >
-                    <span
-                      className="acct-ic"
-                      style={{ background: item.color, color: item.iconColor }}
-                    >
-                      {item.icon}
-                    </span>
-                    <span className="acct-item-text">
-                      <span className="t">{item.label}</span>
-                      {item.subtitle ? (
-                        <span className="s">{item.subtitle}</span>
-                      ) : null}
-                    </span>
-                    <span className="acct-chev">
-                      <IconChevron />
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </section>
-          ))}
+        {/* Footer trust bar */}
+        <div className="acct-trust-bar">
+          <div className="acct-trust-item">
+            <IconClock />
+            <div>
+              <span>60 Min Delivery</span>
+              <small>Lightning fast delivery</small>
+            </div>
+          </div>
+          <div className="acct-trust-item">
+            <IconCheckCircle />
+            <div>
+              <span>Try Before You Buy</span>
+              <small>100% satisfaction</small>
+            </div>
+          </div>
+          <div className="acct-trust-item">
+            <IconRefresh />
+            <div>
+              <span>Easy Returns</span>
+              <small>Hassle free returns</small>
+            </div>
+          </div>
+          <div className="acct-trust-item">
+            <IconSupport />
+            <div>
+              <span>Support 24/7</span>
+              <small>We are here to help</small>
+            </div>
+          </div>
+        </div>
 
-          <button type="button" className="acct-logout-btn" onClick={logout}>
-            <IconLogout />
-            Log Out
-          </button>
-          <p className="acct-version">BlinkieFash v2.0</p>
-        </main>
+        <button type="button" className="acct-logout-btn" onClick={logout}>
+          <IconLogout />
+          Log Out
+        </button>
+
+        <footer className="acct-footer">
+          <p className="acct-copyright">© 2024 BlinkieFash. All rights reserved. · BlinkieFash v2.0</p>
+        </footer>
       </div>
     </div>
   );
