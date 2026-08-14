@@ -126,7 +126,7 @@ const SECTIONS = [
     items: [
       { label: 'My Orders', subtitle: 'Track, return or buy again', to: '/orders', icon: <IconOrders />, color: '#fce4ec', iconColor: '#c2185b' },
       { label: 'Wishlist', subtitle: 'Products you have saved', to: '/wishlist', icon: <IconHeart />, color: '#e8eaf6', iconColor: '#3f51b5' },
-      { label: 'My Offers', subtitle: 'Coupons, rewards & referrals', to: '/account', icon: <IconTag />, color: '#fff8e1', iconColor: '#f9a825' },
+      { label: 'My Offers', subtitle: 'Coupons, rewards & referrals', to: '/offers', icon: <IconTag />, color: '#fff8e1', iconColor: '#f9a825' },
     ],
   },
   {

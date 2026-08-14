@@ -8,6 +8,7 @@ import Wishlist from './pages/Wishlist';
 import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import Account from './pages/Account';
+import Offers from './pages/Offers';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ComingSoon from './pages/ComingSoon';
@@ -92,6 +93,7 @@ export default function App() {
         <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
         <Route path="/parcel" element={<Parcel />} />
+        <Route path="/offers" element={<Offers />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route

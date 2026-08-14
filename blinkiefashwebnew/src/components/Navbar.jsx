@@ -253,6 +253,7 @@ export default function Navbar({ active }) {
 
             {profileOpen && (
               <div className="profile-dropdown">
+                <div onClick={() => navigate('/offers')}>My Offers &amp; Rewards</div>
                 <div onClick={() => navigate('/vendor')}>Vendor Dashboard</div>
                 <div onClick={() => navigate('/customer-service')}>Support</div>
                 <div onClick={() => navigate('/policies')}>Policies</div>
