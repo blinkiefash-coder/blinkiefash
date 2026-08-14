@@ -1,0 +1,704 @@
+/* ========== Fashion Quest ========== */
+@keyframes float-particle {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.25; }
+  50% { transform: translateY(-18px) translateX(8px); opacity: 0.55; }
+}
+
+.fashion-quest-page {
+  background: linear-gradient(160deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%);
+  min-height: 100vh;
+  color: #e2e8f0;
+  padding: 1.25rem 1.5rem 2.5rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.fashion-quest-page::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%, #fbbf24, transparent),
+    radial-gradient(1.5px 1.5px at 60% 70%, #60a5fa, transparent),
+    radial-gradient(1px 1px at 50% 50%, #a78bfa, transparent),
+    radial-gradient(1px 1px at 80% 10%, #fbbf24, transparent),
+    radial-gradient(1.5px 1.5px at 90% 60%, #60a5fa, transparent),
+    radial-gradient(1px 1px at 30% 80%, #a78bfa, transparent),
+    radial-gradient(1px 1px at 15% 60%, #ec4899, transparent);
+  background-repeat: repeat;
+  background-size: 220% 220%;
+  animation: float-particle 22s ease-in-out infinite;
+  z-index: 1;
+  opacity: 0.7;
+}
+
+.fashion-quest-page.page {
+  max-width: 100% !important;
+  margin: 0 !important;
+}
+
+.fq-breadcrumb {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-bottom: 1.1rem;
+  position: relative;
+  z-index: 10;
+}
+
+/* ========== TOP ========== */
+.fq-top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.75rem;
+  position: relative;
+  z-index: 10;
+}
+
+.fq-title-block h1 {
+  font-size: 2.35rem;
+  font-weight: 800;
+  margin: 0 0 0.25rem;
+  color: #f8fafc;
+  letter-spacing: -0.02em;
+}
+
+.fq-title-block .accent {
+  color: #c084fc;
+}
+
+.fq-title-block .game-icon {
+  font-size: 1.5rem;
+  margin-left: 0.35rem;
+}
+
+.fq-title-block p {
+  color: #94a3b8;
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.fq-stats-bar {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  background: #1e293b;
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+
+.fq-stat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  min-width: 100px;
+  padding: 0 0.35rem;
+}
+
+.fq-stat .stat-icon {
+  font-size: 1.2rem;
+  line-height: 1.3;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+/* Colored badge backgrounds behind each stat icon, matching the reference */
+.fq-stat:nth-child(1) .stat-icon {
+  background: rgba(168, 85, 247, 0.18);
+}
+
+.fq-stat:nth-child(2) .stat-icon {
+  background: rgba(236, 72, 153, 0.18);
+}
+
+.fq-stat:nth-child(3) .stat-icon {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.fq-stat:nth-child(4) .stat-icon,
+.fq-stat:nth-child(5) .stat-icon {
+  background: transparent;
+  width: auto;
+  height: auto;
+}
+
+.fq-stat strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.fq-stat span {
+  display: block;
+  font-size: 0.72rem;
+  color: #94a3b8;
+}
+
+.fq-stat small {
+  display: block;
+  font-size: 0.68rem;
+  color: #64748b;
+  margin-top: 1px;
+}
+
+.lives {
+  display: flex;
+  gap: 2px;
+  font-size: 0.9rem;
+  margin-top: 2px;
+}
+
+/* ========== MAIN LAYOUT ========== */
+.fq-main {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  align-items: stretch;          /* both columns same height */
+  position: relative;
+  z-index: 10;
+  width: 100%;
+}
+
+@media (max-width: 980px) {
+  .fq-main {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fq-left {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+}
+
+.fq-level-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  color: white;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.4rem 1rem;
+  border-radius: 999px;
+  margin-bottom: 0.45rem;
+  align-self: flex-start;
+  box-shadow: 0 4px 14px rgba(124, 58, 237, 0.35);
+}
+
+.fq-instruction {
+  color: #94a3b8;
+  margin: 0 0 1.1rem;
+  font-size: 0.9rem;
+}
+
+/* ========== CARDS ========== */
+.fq-card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.75rem;
+  width: 100%;
+}
+
+.fq-memory-card {
+  aspect-ratio: 3 / 4 !important;
+  min-height: 130px !important;
+  border: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  cursor: pointer;
+  perspective: 1000px;
+  position: relative !important;
+  width: 100% !important;
+  display: block !important;
+  box-sizing: border-box !important;
+}
+
+.fq-memory-card:disabled {
+  cursor: default;
+}
+
+.card-inner {
+  position: relative !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 130px !important;
+  transition: transform 0.45s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.fq-memory-card.open .card-inner,
+.fq-memory-card.matched .card-inner {
+  transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  backface-visibility: hidden !important;
+  -webkit-backface-visibility: hidden !important;
+  border-radius: 12px !important;
+  display: grid !important;
+  place-items: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Ornate purple card back */
+.card-back {
+  background:
+    radial-gradient(circle at 30% 30%, rgba(196, 181, 253, 0.15) 0%, transparent 50%),
+    radial-gradient(circle at 70% 70%, rgba(167, 139, 250, 0.12) 0%, transparent 45%),
+    linear-gradient(155deg, #6d28d9 0%, #5b21b6 50%, #4c1d95 100%) !important;
+  border: 2px solid #c4b5fd !important;
+  box-shadow:
+    0 8px 20px rgba(0, 0, 0, 0.4),
+    inset 0 0 16px rgba(196, 181, 253, 0.15) !important;
+  overflow: hidden !important;
+}
+
+/* Diamond pattern */
+.card-back::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(45deg, rgba(196, 181, 253, 0.08) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(196, 181, 253, 0.08) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(196, 181, 253, 0.08) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(196, 181, 253, 0.08) 75%);
+  background-size: 12px 12px;
+  background-position: 0 0, 0 6px, 6px -6px, -6px 0;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+/* Corners */
+.card-back::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 18px;
+  height: 18px;
+  border-top: 2px solid rgba(237, 233, 254, 0.9);
+  border-left: 2px solid rgba(237, 233, 254, 0.9);
+  border-radius: 3px 0 0 0;
+  z-index: 3;
+}
+
+.card-back-inner {
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-top: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-right: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-left: none !important;
+  border-bottom: none !important;
+  border-radius: 0 3px 0 0 !important;
+  z-index: 3;
+  background: transparent !important;
+}
+
+.card-back-inner-bottom {
+  position: absolute !important;
+  bottom: 8px !important;
+  left: 8px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-bottom: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-left: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-top: none !important;
+  border-right: none !important;
+  border-radius: 0 0 0 3px !important;
+  z-index: 3;
+  background: transparent !important;
+}
+
+.corner-br {
+  position: absolute !important;
+  bottom: 8px !important;
+  right: 8px !important;
+  width: 18px !important;
+  height: 18px !important;
+  border-bottom: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-right: 2px solid rgba(237, 233, 254, 0.9) !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-radius: 0 0 3px 0 !important;
+  z-index: 3;
+  background: transparent !important;
+}
+
+.center-frame {
+  position: absolute !important;
+  inset: 16% !important;
+  border: 1.5px solid rgba(196, 181, 253, 0.4) !important;
+  border-radius: 6px !important;
+  z-index: 2;
+  pointer-events: none;
+  background: transparent !important;
+}
+
+.card-front {
+  background: linear-gradient(145deg, #1e293b, #0f172a) !important;
+  border: 2px solid #a78bfa !important;
+  font-size: 2rem !important;
+  transform: rotateY(180deg);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4) !important;
+  font-weight: bold;
+}
+
+.fq-memory-card.matched .card-front {
+  background: linear-gradient(145deg, #166534, #14532d) !important;
+  border-color: #4ade80 !important;
+  box-shadow: 0 8px 20px rgba(74, 222, 128, 0.35) !important;
+}
+
+/* ========== RIGHT COLUMN – fills full height ========== */
+.fq-right {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+}
+
+/* Rewards panel grows to fill remaining vertical space */
+.fq-rewards-panel {
+  background: #1e293b;
+  border-radius: 18px;
+  padding: 1.2rem;
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fq-rewards-panel h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 1rem;
+  margin: 0 0 0.9rem;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+/* 3 columns to match the reference (1%/2%/5% then 10%/T-Shirt/Smartwatch) */
+.fq-rewards-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+  margin-bottom: 0.7rem;
+}
+
+.fq-reward {
+  border-radius: 11px;
+  padding: 0.9rem 0.35rem;
+  text-align: center;
+  font-weight: 800;
+  font-size: 0.78rem;
+  color: white;
+  letter-spacing: 0.02em;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  line-height: 1.3;
+}
+
+.fq-reward.yellow { background: linear-gradient(135deg, #eab308, #ca8a04); }
+.fq-reward.blue   { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+.fq-reward.green  { background: linear-gradient(135deg, #22c55e, #15803d); }
+.fq-reward.purple { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+.fq-reward.pink   { background: linear-gradient(135deg, #ec4899, #be185d); }
+.fq-reward.orange { background: linear-gradient(135deg, #f97316, #c2410c); }
+
+.fq-locked-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-top: auto;              /* pushes locked items to bottom of panel */
+}
+
+.fq-locked {
+  background: #0f172a;
+  border-radius: 11px;
+  padding: 0.65rem 0.4rem;
+  text-align: center;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #94a3b8;
+  border: 1.5px solid rgba(148, 163, 184, 0.12);
+}
+
+.fq-locked small {
+  display: block;
+  font-size: 0.62rem;
+  font-weight: 500;
+  margin-top: 0.2rem;
+  color: #64748b;
+}
+
+.fq-message {
+  margin-top: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+  font-size: 0.9rem;
+  position: relative;
+  z-index: 10;
+}
+
+.fq-message.success { color: #4ade80; }
+.fq-message.error   { color: #f87171; }
+
+.fq-reward-note {
+  margin-top: 0.4rem;
+  font-size: 0.85rem;
+  color: #a5b4fc;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+/* ========== BOTTOM BAR: info cards row + PLAY button side by side ========== */
+.fq-bottom-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 1rem;
+  width: 100%;
+  margin-top: 1.35rem;
+  position: relative;
+  z-index: 10;
+}
+
+.fq-info-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
+  margin-top: 0;
+}
+
+.fq-info-card {
+  background: #1e293b;
+  border-radius: 14px;
+  padding: 0.85rem 0.9rem;
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+
+.fq-info-card span {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  line-height: 1.2;
+}
+
+.fq-info-card strong {
+  display: block;
+  font-size: 0.82rem;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.fq-info-card p {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  line-height: 1.25;
+}
+
+/* Play button sits to the right of the info row, not stacked below it */
+.fq-play-btn {
+  width: auto;
+  flex: 0 0 300px;
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  background: linear-gradient(90deg, #ec4899, #8b5cf6);
+  color: white;
+  font-weight: 800;
+  font-size: 1rem;
+  letter-spacing: 0.04em;
+  padding: 0.95rem 1.5rem;
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  box-shadow: 0 10px 28px rgba(236, 72, 153, 0.4);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.2s;
+  text-transform: uppercase;
+}
+
+.fq-play-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(236, 72, 153, 0.5);
+}
+
+.fq-play-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ========== HOW IT WORKS ========== */
+.fq-how {
+  margin-top: 2rem;
+  background: #1e293b;
+  border-radius: 18px;
+  padding: 1.35rem 1.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  position: relative;
+  z-index: 10;
+}
+
+.fq-how h3 {
+  margin: 0 0 1.1rem;
+  font-size: 1.1rem;
+  color: #f1f5f9;
+  font-weight: 700;
+}
+
+.fq-steps {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.fq-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 140px;
+}
+
+.step-num {
+  width: 34px;
+  height: 34px;
+  background: linear-gradient(135deg, #7c3aed, #a855f7);
+  color: white;
+  font-weight: 800;
+  font-size: 0.95rem;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+}
+
+.fq-step strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #f1f5f9;
+}
+
+.fq-step p {
+  margin: 0.12rem 0 0;
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.25;
+}
+
+.step-arrow {
+  font-size: 1.15rem;
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.state-msg {
+  color: #94a3b8;
+  padding: 2.5rem 0;
+  font-size: 1.05rem;
+  text-align: center;
+  position: relative;
+  z-index: 10;
+}
+
+/* ========== RESPONSIVE ========== */
+@media (max-width: 980px) {
+  .fq-main {
+    grid-template-columns: 1fr;
+  }
+
+  .fq-right {
+    height: auto;
+  }
+
+  .fq-rewards-panel {
+    flex: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .fq-bottom-bar {
+    flex-direction: column;
+  }
+
+  .fq-play-btn {
+    flex: none;
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .fashion-quest-page {
+    padding: 1rem 1rem 1.75rem;
+  }
+
+  .fq-card-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.6rem;
+  }
+
+  .fq-memory-card {
+    min-height: 110px !important;
+  }
+
+  .fq-info-row {
+    grid-template-columns: 1fr;
+  }
+
+  .fq-title-block h1 {
+    font-size: 1.85rem;
+  }
+
+  .fq-stats-bar {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .fq-card-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

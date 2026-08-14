@@ -11,8 +11,6 @@ import Account from './pages/Account';
 import Offers from './pages/Offers';
 import ReferEarn from './pages/ReferEarn';
 import OldClothes from './pages/OldClothes';
-import SpinWheel from './pages/SpinWheel';
-import FashionQuest from './pages/FashionQuest';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ComingSoon from './pages/ComingSoon';
@@ -39,6 +37,8 @@ import { isAdmin } from './utils/adminSession';
 import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
+import SpinWheel from './pages/SpinWheel';
+import FashionQuest from './pages/FashionQuest';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
