@@ -9,6 +9,10 @@ import Checkout from './pages/Checkout';
 import Orders from './pages/Orders';
 import Account from './pages/Account';
 import Offers from './pages/Offers';
+import ReferEarn from './pages/ReferEarn';
+import OldClothes from './pages/OldClothes';
+import SpinWheel from './pages/SpinWheel';
+import FashionQuest from './pages/FashionQuest';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ComingSoon from './pages/ComingSoon';
@@ -63,6 +67,12 @@ export default function App() {
   const isOrderTrackingPage = pathname.startsWith('/orders/');
   const isAccountPage = pathname === '/account' || pathname.startsWith('/account/');
   const isParcelPage = pathname === '/parcel' || pathname.startsWith('/parcel/');
+  const isOffersPage =
+    pathname === '/offers' ||
+    pathname === '/refer-earn' ||
+    pathname === '/old-clothes' ||
+    pathname === '/spin-wheel' ||
+    pathname === '/play-and-win';
   const isInfoPage = [
     '/company',
     '/customer-service',
@@ -77,7 +87,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}`}
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}`}
     >
       {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
@@ -94,6 +104,10 @@ export default function App() {
         <Route path="/account" element={<Account />} />
         <Route path="/parcel" element={<Parcel />} />
         <Route path="/offers" element={<Offers />} />
+        <Route path="/refer-earn" element={<ReferEarn />} />
+        <Route path="/old-clothes" element={<OldClothes />} />
+        <Route path="/spin-wheel" element={<SpinWheel />} />
+        <Route path="/play-and-win" element={<FashionQuest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route
@@ -103,36 +117,6 @@ export default function App() {
               title="Notifications"
               emoji="🔔"
               description="No new notifications yet."
-            />
-          }
-        />
-        <Route
-          path="/spin-wheel"
-          element={
-            <ComingSoon
-              title="Spin & Win"
-              emoji="🎡"
-              description="The spin wheel is coming soon."
-            />
-          }
-        />
-        <Route
-          path="/play-and-win"
-          element={
-            <ComingSoon
-              title="Play & Win"
-              emoji="🎮"
-              description="Fashion quest is coming soon."
-            />
-          }
-        />
-        <Route
-          path="/refer-earn"
-          element={
-            <ComingSoon
-              title="Refer & Earn"
-              emoji="🎁"
-              description="Referral rewards are coming soon."
             />
           }
         />
@@ -204,6 +188,7 @@ export default function App() {
         <Route path="/faqs" element={<Faqs />} />
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+        <Route path="/terms" element={<Policies />} />
       </Routes>
       {!isHome &&
         !isVendorArea &&
@@ -211,7 +196,8 @@ export default function App() {
         !isCatalogPage &&
         !isCheckoutPage &&
         !isOrderTrackingPage &&
-        !isAccountPage && <BottomNav />}
+        !isAccountPage &&
+        !isOffersPage && <BottomNav />}
     </div>
   );
 }

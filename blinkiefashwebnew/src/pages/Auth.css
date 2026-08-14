@@ -202,3 +202,16 @@
 .auth-divider span {
   padding: 0 12px;
 }
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 16px 12px;
+  }
+  .auth-method-switch {
+    gap: 6px;
+  }
+  .auth-form input,
+  .auth-input-wrap {
+    font-size: 16px; /* avoids iOS zoom on focus */
+  }
+}

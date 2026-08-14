@@ -36,7 +36,6 @@ body {
   overflow-x: hidden;
 }
 
-/* Tricolor ambient glow — saffron top, green bottom */
 body::before {
   content: '';
   pointer-events: none;
@@ -49,7 +48,6 @@ body::before {
     radial-gradient(ellipse 60% 40% at 50% 50%, rgba(255, 255, 255, 0.22) 0%, transparent 80%);
 }
 
-/* Ensure all interactive content sits above the decorative layer */
 .app-shell,
 #root > * {
   position: relative;
@@ -76,7 +74,7 @@ img {
   margin: 0 auto;
   min-height: 100vh;
   background: transparent;
-  padding-bottom: 76px; /* space for mobile bottom nav */
+  padding-bottom: 76px;
   position: relative;
 }
 
@@ -87,7 +85,6 @@ img {
   }
 }
 
-/* No bottom-nav on desktop — drop reserved space */
 @media (min-width: 768px) {
   .app-shell {
     padding-bottom: 0;
@@ -131,7 +128,8 @@ img {
 .app-shell.is-checkout,
 .app-shell.is-order-tracking,
 .app-shell.is-account,
-.app-shell.is-parcel {
+.app-shell.is-parcel,
+.app-shell.is-offers {
   max-width: none;
   margin: 0;
   box-shadow: none;

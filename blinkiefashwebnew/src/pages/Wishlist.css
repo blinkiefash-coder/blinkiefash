@@ -49,3 +49,12 @@
   padding: 8px;
   font-size: 11px;
 }
+@media (max-width: 640px) {
+  .wishlist-page {
+    padding: 12px;
+  }
+  .wishlist-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+}

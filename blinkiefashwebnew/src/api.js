@@ -1,10 +1,18 @@
 import { API_API_BASE_URL, API_BASE_URL } from './apiBase';
 
 async function request(path, options = {}) {
+  const token = localStorage.getItem('bfw_token') || localStorage.getItem('token');
+  const { headers: customHeaders, ...rest } = options;
+
   const res = await fetch(`${API_API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...options,
+    ...rest,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(customHeaders || {}),
+    },
   });
+
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
@@ -113,7 +121,6 @@ export const getOrderById = (orderId) =>
 
 /* ========== Parcel / Deliver ========== */
 
-/** GET /api/deliver/estimate */
 export const estimateParcel = ({
   pickupLat,
   pickupLng,
@@ -136,19 +143,56 @@ export const estimateParcel = ({
   return request(`/deliver/estimate?${query}`);
 };
 
-/** POST /api/deliver/request */
 export const createParcelRequest = (payload) =>
   request('/deliver/request', {
     method: 'POST',
     body: JSON.stringify(payload),
   });
 
-/** GET /api/deliver/request/:id */
 export const getParcelRequest = (id) =>
   request(`/deliver/request/${id}`);
 
-/** PATCH /api/deliver/request/:id/cancel */
 export const cancelParcelRequest = (id) =>
   request(`/deliver/request/${id}/cancel`, {
     method: 'PATCH',
+  });
+
+/* ========== Referrals ========== */
+
+export const getReferralInfo = (userId) => request(`/referrals/${userId}`);
+
+export const validateReferralCode = (code) =>
+  request(`/referrals/validate/${encodeURIComponent(code)}`);
+
+export const applyReferralCode = (userId, referralCode) =>
+  request(`/users/${userId}/apply-referral-code`, {
+    method: 'POST',
+    body: JSON.stringify({ referralCode }),
+  });
+
+/* ========== Old clothes ========== */
+
+export const getOldClothes = (userId) => request(`/old-clothes/${userId}`);
+
+export const requestClothesPickup = (payload) =>
+  request('/old-clothes', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
+/* ========== Gamification (spin + quest) ========== */
+
+export const getGamificationState = (userId) =>
+  request(`/gamification/state?userId=${encodeURIComponent(userId)}`);
+
+export const spinWheel = (userId) =>
+  request('/gamification/spin', {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
+  });
+
+export const completeQuestLevel = (userId) =>
+  request('/gamification/quest/complete-level', {
+    method: 'POST',
+    body: JSON.stringify({ userId }),
   });

@@ -18,7 +18,7 @@ const OFFERS = [
     description: 'Give back old clothes & earn up to 5% off',
     action: 'Get 5% OFF',
     className: 'offer-green',
-    path: '/account',
+    path: '/old-clothes',
   },
   {
     icon: '🎡',
@@ -52,20 +52,42 @@ const OFFERS = [
 export default function Offers() {
   const navigate = useNavigate();
 
+  const go = (path) => {
+    if (path) navigate(path);
+  };
+
   return (
     <main className="page offers-page">
       <header className="offers-header">
         <div>
-          <h1>My Offers &amp; <span>Rewards</span></h1>
+          <h1>
+            My Offers &amp; <span>Rewards</span>
+          </h1>
           <p>Explore exciting offers, earn rewards and save more on every order.</p>
         </div>
-        <div className="offers-header-art" aria-hidden="true">🎁🏷️</div>
+        <div className="offers-header-art" aria-hidden="true">
+          🎁🏷️
+        </div>
       </header>
 
       <section className="offers-list" aria-label="Available offers">
         {OFFERS.map((offer) => (
-          <article className={`offer-row ${offer.className}`} key={offer.title}>
-            <div className="offer-icon" aria-hidden="true">{offer.icon}</div>
+          <article
+            className={`offer-row ${offer.className} offer-row-clickable`}
+            key={offer.title}
+            role="button"
+            tabIndex={0}
+            onClick={() => go(offer.path)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                go(offer.path);
+              }
+            }}
+          >
+            <div className="offer-icon" aria-hidden="true">
+              {offer.icon}
+            </div>
             <div className="offer-copy">
               <div className="offer-title-line">
                 <h2>{offer.title}</h2>
@@ -73,18 +95,36 @@ export default function Offers() {
               </div>
               <p>{offer.description}</p>
             </div>
-            <button type="button" className="offer-action" onClick={() => navigate(offer.path)}>
+            <button
+              type="button"
+              className="offer-action"
+              onClick={(e) => {
+                e.stopPropagation();
+                go(offer.path);
+              }}
+            >
               {offer.action}
             </button>
-            <span className="offer-arrow" aria-hidden="true">›</span>
+            <span className="offer-arrow" aria-hidden="true">
+              ›
+            </span>
           </article>
         ))}
       </section>
 
       <section className="offers-trust" aria-label="Offer benefits">
-        <div><strong>♢ 100% Safe &amp; Secure</strong><span>Your data is protected</span></div>
-        <div><strong>◇ Best Deals Everyday</strong><span>New offers updated daily</span></div>
-        <div><strong>♧ Need Help?</strong><span>Visit Help &amp; Support</span></div>
+        <div>
+          <strong>♢ 100% Safe &amp; Secure</strong>
+          <span>Your data is protected</span>
+        </div>
+        <div>
+          <strong>◇ Best Deals Everyday</strong>
+          <span>New offers updated daily</span>
+        </div>
+        <div>
+          <strong>♧ Need Help?</strong>
+          <span>Visit Help &amp; Support</span>
+        </div>
       </section>
     </main>
   );

@@ -1,0 +1,298 @@
+.offer-feature-page {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.offer-back {
+  background: none;
+  border: none;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 16px;
+  padding: 0;
+}
+
+.offer-back:hover {
+  color: #0f172a;
+}
+
+.offer-feature-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.offer-feature-emoji {
+  font-size: 48px;
+  line-height: 1;
+}
+
+.offer-feature-header h1 {
+  font-size: 28px;
+  margin: 0;
+}
+
+.offer-feature-header p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.offer-feature-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 16px;
+}
+
+.offer-feature-card h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+
+.refer-code-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff7ed;
+  border: 1px dashed #fb923c;
+  border-radius: 12px;
+}
+
+.refer-code {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ea580c;
+  flex: 1;
+  min-width: 120px;
+}
+
+.refer-code-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.refer-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.refer-stats div {
+  text-align: center;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.refer-stats strong {
+  display: block;
+  font-size: 22px;
+  color: #0f172a;
+}
+
+.refer-stats span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.refer-redeem-form {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.refer-redeem-form input {
+  flex: 1;
+  min-width: 160px;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 15px;
+  text-transform: uppercase;
+}
+
+.clothes-form {
+  display: grid;
+  gap: 12px;
+}
+
+.clothes-form label {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.clothes-form input,
+.clothes-form select,
+.clothes-form textarea {
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.muted-note {
+  font-size: 13px;
+  color: #64748b;
+  margin: 0 0 12px;
+}
+
+.link-btn {
+  background: none;
+  border: none;
+  color: #16a34a;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
+
+.pickup-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.pickup-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 0;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 14px;
+}
+
+.pickup-list li:last-child {
+  border-bottom: 0;
+}
+
+.pickup-list small {
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+.offer-success {
+  color: #15803d;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.offer-error {
+  color: #dc2626;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* Spin wheel */
+.spin-card {
+  text-align: center;
+  overflow: hidden;
+}
+
+.spin-pointer {
+  font-size: 28px;
+  color: #db2777;
+  margin-bottom: -8px;
+  position: relative;
+  z-index: 2;
+}
+
+.spin-wheel {
+  width: 280px;
+  height: 280px;
+  margin: 0 auto 20px;
+  border-radius: 50%;
+  position: relative;
+  border: 6px solid #fce7f3;
+  box-shadow: 0 8px 24px rgba(219, 39, 119, 0.15);
+  background: conic-gradient(
+    #22c55e 0deg 36deg,
+    #94a3b8 36deg 72deg,
+    #38bdf8 72deg 108deg,
+    #94a3b8 108deg 144deg,
+    #f59e0b 144deg 180deg,
+    #94a3b8 180deg 216deg,
+    #a855f7 216deg 252deg,
+    #ec4899 252deg 288deg,
+    #ef4444 288deg 324deg,
+    #16a34a 324deg 360deg
+  );
+}
+
+.spin-segment {
+  position: absolute;
+  width: 50%;
+  height: 50%;
+  left: 50%;
+  top: 0;
+  transform-origin: 0% 100%;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  background: transparent !important;
+}
+
+.spin-btn {
+  min-width: 180px;
+}
+
+/* Fashion quest grid */
+.quest-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.quest-card {
+  aspect-ratio: 1;
+  border: 2px solid #ddd6fe;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #f5f3ff, #ede9fe);
+  font-size: 28px;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.quest-card:hover:not(:disabled) {
+  transform: scale(1.04);
+}
+
+.quest-card.open {
+  background: #fff;
+  border-color: #a78bfa;
+}
+
+.quest-card.matched {
+  background: #f0fdf4;
+  border-color: #86efac;
+  opacity: 0.85;
+}
+
+@media (max-width: 520px) {
+  .spin-wheel {
+    width: 240px;
+    height: 240px;
+  }
+  .quest-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
