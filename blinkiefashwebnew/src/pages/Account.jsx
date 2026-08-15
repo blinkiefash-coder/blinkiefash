@@ -1,5 +1,7 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { updateUserProfile } from '../api';
 import logo from '../assets/logo.png';
 import './Account.css';
 
@@ -134,14 +136,14 @@ const SECTIONS = [
     title: 'MY ACCOUNT',
     items: [
       { label: 'Manage Account', subtitle: 'Name, email, phone', to: '/account', icon: <IconTeam />, color: '#e8eaf6', iconColor: '#3f51b5' },
-      { label: 'Saved Addresses', subtitle: 'Home, work and other addresses', to: '/checkout', icon: <IconMap />, color: '#e0f7fa', iconColor: '#00838f' },
+      { label: 'Saved Addresses', subtitle: 'Home, work and other addresses', to: '/account/addresses', icon: <IconMap />, color: '#e0f7fa', iconColor: '#00838f' },
     ],
   },
   {
     id: 'help',
     title: 'HELP & SUPPORT',
     items: [
-      { label: 'Help & Query', subtitle: 'Call, WhatsApp, email & ticket', to: '/account', icon: <IconSupport />, color: '#e0f2f1', iconColor: '#00796b' },
+      { label: 'Help & Query', subtitle: 'Call, WhatsApp, email & ticket', to: '/help-support', icon: <IconSupport />, color: '#e0f2f1', iconColor: '#00796b' },
     ],
   },
   {
@@ -157,7 +159,56 @@ const SECTIONS = [
 
 export default function AccountPage() {
   const navigate = useNavigate();
-  const { user, isLoggedIn, logout } = useAuth();
+  const { user, isLoggedIn, logout, updateUser } = useAuth();
+
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileName, setProfileName] = useState('');
+  const [profileEmail, setProfileEmail] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileError, setProfileError] = useState('');
+
+  const handleOpenProfile = () => {
+    setProfileName(user?.name || '');
+    setProfileEmail(user?.email || '');
+    setProfileError('');
+    setProfileOpen(true);
+  };
+
+  const handleCloseProfile = () => {
+    setProfileOpen(false);
+    setSavingProfile(false);
+    setProfileError('');
+  };
+
+  const handleSaveProfile = async () => {
+    const trimmedName = profileName.trim();
+    if (!trimmedName) {
+      setProfileError('Name is required');
+      return;
+    }
+    setSavingProfile(true);
+    setProfileError('');
+
+    try {
+      const result = await updateUserProfile({
+        userId: user?.id,
+        name: trimmedName,
+        email: profileEmail.trim(),
+      });
+
+      if (result.success) {
+        updateUser({ name: trimmedName, email: profileEmail.trim() });
+        setProfileOpen(false);
+      } else {
+        setProfileError(result.message || 'Could not update profile');
+      }
+    } catch (e) {
+      console.error('Profile update error:', e);
+      setProfileError('Something went wrong. Please try again.');
+    } finally {
+      setSavingProfile(false);
+    }
+  };
 
   if (!isLoggedIn) {
     return (
@@ -228,7 +279,7 @@ export default function AccountPage() {
             <button
               type="button"
               className="acct-avatar-edit"
-              onClick={() => navigate('/account')}
+              onClick={handleOpenProfile}
               aria-label="Edit profile"
             >
               <IconEdit />
@@ -238,7 +289,7 @@ export default function AccountPage() {
           <div className="acct-profile-info">
             <h1>{user?.name || 'User'}</h1>
             <p className="acct-phone">{user?.phone || '—'}</p>
-            <button type="button" className="acct-edit-btn" onClick={() => navigate('/account')}>
+            <button type="button" className="acct-edit-btn" onClick={handleOpenProfile}>
               Edit Profile
             </button>
           </div>
@@ -254,7 +305,9 @@ export default function AccountPage() {
                   key={item.label}
                   type="button"
                   className="acct-item-row"
-                  onClick={() => navigate(item.to)}
+                  onClick={() =>
+                    item.label === 'Manage Account' ? handleOpenProfile() : navigate(item.to)
+                  }
                 >
                   <span className="acct-ic" style={{ background: item.color, color: item.iconColor }}>
                     {item.icon}
@@ -313,6 +366,57 @@ export default function AccountPage() {
           <p className="acct-copyright">© 2024 BlinkieFash. All rights reserved. · BlinkieFash v2.0</p>
         </footer>
       </div>
+
+      {profileOpen && (
+        <div className="acct-modal-overlay" onClick={handleCloseProfile}>
+          <div className="acct-modal" onClick={(e) => e.stopPropagation()}>
+            <h3>My Profile</h3>
+
+            <label className="acct-field-label">Full Name</label>
+            <input
+              className="acct-input"
+              type="text"
+              value={profileName}
+              onChange={(e) => setProfileName(e.target.value)}
+              placeholder="Full Name"
+              disabled={savingProfile}
+            />
+
+            <label className="acct-field-label">Email (optional)</label>
+            <input
+              className="acct-input"
+              type="email"
+              value={profileEmail}
+              onChange={(e) => setProfileEmail(e.target.value)}
+              placeholder="Email (optional)"
+              disabled={savingProfile}
+            />
+
+            <p className="acct-phone-readonly">Phone: {user?.phone || '—'}</p>
+
+            {profileError && <p className="acct-modal-error">{profileError}</p>}
+
+            <div className="acct-modal-actions">
+              <button
+                type="button"
+                className="acct-modal-cancel"
+                onClick={handleCloseProfile}
+                disabled={savingProfile}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="acct-modal-save"
+                onClick={handleSaveProfile}
+                disabled={savingProfile}
+              >
+                {savingProfile ? 'Saving…' : 'Save Changes'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -11,6 +11,8 @@ import Account from './pages/Account';
 import Offers from './pages/Offers';
 import ReferEarn from './pages/ReferEarn';
 import OldClothes from './pages/OldClothes';
+import SpinWheel from './pages/SpinWheel';
+import FashionQuest from './pages/FashionQuest';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ComingSoon from './pages/ComingSoon';
@@ -37,8 +39,8 @@ import { isAdmin } from './utils/adminSession';
 import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
-import SpinWheel from './pages/SpinWheel';
-import FashionQuest from './pages/FashionQuest';
+import HelpSupport from './pages/HelpSupport'; 
+import SavedAddresses from './pages/SavedAddresses';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
@@ -73,6 +75,8 @@ export default function App() {
     pathname === '/old-clothes' ||
     pathname === '/spin-wheel' ||
     pathname === '/play-and-win';
+
+  const isHelpSupportPage = pathname === '/help-support';
   const isInfoPage = [
     '/company',
     '/customer-service',
@@ -87,7 +91,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}`}
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}`}
     >
       {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
@@ -189,6 +193,9 @@ export default function App() {
         <Route path="/policies" element={<Policies />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Policies />} />
+        <Route path="/help-support" element={<HelpSupport />} />
+        <Route path="/account" element={<Account />} />
+        <Route path="/account/addresses" element={<SavedAddresses />} />
       </Routes>
       {!isHome &&
         !isVendorArea &&
@@ -197,7 +204,8 @@ export default function App() {
         !isCheckoutPage &&
         !isOrderTrackingPage &&
         !isAccountPage &&
-        !isOffersPage && <BottomNav />}
+        !isOffersPage &&
+        !isHelpSupportPage && <BottomNav />}
     </div>
   );
 }

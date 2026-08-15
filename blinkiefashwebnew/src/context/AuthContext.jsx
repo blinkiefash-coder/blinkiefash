@@ -42,6 +42,10 @@ export function AuthProvider({ children }) {
     setToken(nextToken);
   };
 
+  const updateUser = (updates) => {
+    setUser((prev) => (prev ? { ...prev, ...updates } : prev));
+  };
+
   const logout = async () => {
     try {
       if (firebaseAuth?.currentUser) {
@@ -61,7 +65,7 @@ export function AuthProvider({ children }) {
   };
 
   const value = useMemo(
-    () => ({ user, token, isLoggedIn: !!user, login, logout }),
+    () => ({ user, token, isLoggedIn: !!user, login, logout, updateUser }),
     [user, token]
   );
 

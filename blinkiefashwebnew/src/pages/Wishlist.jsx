@@ -9,16 +9,16 @@ export default function Wishlist() {
   const { addToCart } = useCart();
 
   if (items.length === 0) {
-    return (
-      <div className="page">
-        <h1 className="cart-title">Wishlist</h1>
-        <p className="state-msg">You haven't saved anything yet.</p>
-        <button type="button" className="primary-btn" onClick={() => navigate('/shop')}>
-          Explore products
-        </button>
-      </div>
-    );
-  }
+  return (
+    <div className="page wishlist-page">
+      <h1 className="cart-title">Wishlist</h1>
+      <p className="state-msg">You haven't saved anything yet.</p>
+      <button type="button" className="primary-btn" onClick={() => navigate('/shop')}>
+        Explore products
+      </button>
+    </div>
+  );
+}
 
   return (
     <div className="page">

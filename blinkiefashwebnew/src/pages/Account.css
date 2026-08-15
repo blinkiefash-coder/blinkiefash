@@ -297,6 +297,116 @@ html, body, #root {
   box-shadow: 0 4px 14px rgba(229, 57, 53, 0.15);
 }
 
+/* ---------- profile edit modal ---------- */
+.acct-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.acct-modal {
+  background: #fff;
+  border-radius: 18px;
+  width: 100%;
+  max-width: 440px;
+  padding: 24px 22px 20px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.acct-modal h3 {
+  margin: 0 0 18px;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.acct-field-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  margin: 0 0 6px;
+}
+
+.acct-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-family: inherit;
+  color: var(--ink);
+  margin-bottom: 14px;
+}
+
+.acct-input:focus {
+  outline: none;
+  border-color: var(--green-mid);
+  box-shadow: 0 0 0 3px rgba(13, 159, 79, 0.15);
+}
+
+.acct-phone-readonly {
+  font-size: 13px;
+  color: var(--sub);
+  margin: 0 0 16px;
+}
+
+.acct-modal-error {
+  color: var(--red);
+  font-size: 13px;
+  margin: 0 0 10px;
+}
+
+.acct-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.acct-modal-cancel {
+  background: #f1f5f9;
+  border: none;
+  color: #475569;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.acct-modal-cancel:hover {
+  background: #e2e8f0;
+}
+
+.acct-modal-save {
+  background: var(--green-mid);
+  border: none;
+  color: #fff;
+  font-weight: 700;
+  font-size: 13.5px;
+  padding: 10px 22px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s;
+}
+
+.acct-modal-save:hover {
+  background: var(--green-dark);
+}
+
+.acct-modal-save:disabled {
+  background: #cfd6d1;
+  cursor: not-allowed;
+}
+
 /* =========================================================
    RESPONSIVE
    ========================================================= */

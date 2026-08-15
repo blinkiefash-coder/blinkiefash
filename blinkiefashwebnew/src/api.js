@@ -101,11 +101,45 @@ export const registerUser = (payload) =>
 export const getAddresses = (userId) =>
   request(`/checkout/addresses?userId=${userId}`);
 
-export const addAddress = (payload) =>
-  request('/checkout/addresses', {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  });
+/* ========== Addresses ========== */
+export const fetchAddresses = async (userId) => {
+  try {
+    const data = await request(`/addresses?userId=${encodeURIComponent(userId)}`);
+    return { success: true, addresses: data?.addresses || data || [] };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to load addresses' };
+  }
+};
+export const addAddress = async (payload) => {
+  try {
+    const data = await request('/addresses', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return { success: true, address: data?.address || data };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to save address' };
+  }
+};
+export const updateAddress = async (addressId, payload) => {
+  try {
+    const data = await request(`/addresses/${addressId}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+    return { success: true, address: data?.address || data };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to update address' };
+  }
+};
+export const deleteAddress = async (addressId) => {
+  try {
+    await request(`/addresses/${addressId}`, { method: 'DELETE' });
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to delete address' };
+  }
+};
 
 export const placeOrder = (payload) =>
   request('/checkout/orders', {
@@ -180,6 +214,21 @@ export const requestClothesPickup = (payload) =>
     body: JSON.stringify(payload),
   });
 
+
+/* ========== Support Tickets ========== */
+
+export const submitSupportTicket = async (payload) => {
+  try {
+    const ticket = await request('/support-tickets', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return { success: true, ticket };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to submit ticket' };
+  }
+};
+
 /* ========== Gamification (spin + quest) ========== */
 
 export const getGamificationState = (userId) =>
@@ -196,3 +245,17 @@ export const completeQuestLevel = (userId) =>
     method: 'POST',
     body: JSON.stringify({ userId }),
   });
+
+/* ========== Profile ========== */
+
+export const updateUserProfile = async ({ userId, name, email }) => {
+  try {
+    const data = await request('/auth/update-profile', {
+      method: 'PUT',
+      body: JSON.stringify({ userId, name, email }),
+    });
+    return { success: true, user: data?.user || data, message: data?.message };
+  } catch (error) {
+    return { success: false, error: error.message || 'Failed to update profile' };
+  }
+};
