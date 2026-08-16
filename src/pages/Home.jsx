@@ -92,6 +92,7 @@ function sortCategories(list) {
 
 const UNIVERSE_BRANDS = [
   { name: 'Puma', image: '/images/Pumabanner.jpeg', to: '/shop?search=Puma' },
+  { name: 'Dhanista Boutique', image: '/images/dhanista_banner.jpeg', to: '/vendor/dhanista-fashion-store' },
   { name: 'FCUK', image: '/images/FcukandFrenchconnection.jpeg', to: '/shop?search=FCUK' },
   { name: 'Libas', image: '/images/libasbanner.jpeg', to: '/shop?search=Libas%20Kurti%20Kurta%20Set' },
 ];

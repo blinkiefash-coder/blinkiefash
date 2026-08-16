@@ -101,6 +101,12 @@ const UNIVERSE_BRANDS = [
     to: "/shop?search=Puma",
   },
   {
+    name: "Dhanista Boutique",
+    image:
+      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1724079120/dhanista_fashion_banner_default.jpg",
+    to: "/vendor/dhanista-fashion-store",
+  },
+  {
     name: "FCUK",
     image:
       "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
