@@ -891,11 +891,10 @@ router.post("/orders", async (req, res) => {
         
         // Create a referral tracking record
         await client.query(
-          `INSERT INTO referrals (referrer_id, referred_user_id, order_id)
-           VALUES ($1, $2, $3)
-           ON CONFLICT (referrer_id, referred_user_id) DO UPDATE
-           SET order_id = $3, created_at = NOW()`,
-          [referrerId, userId, order.id]
+          `INSERT INTO referrals (referrer_id, referee_id, code, status)
+           VALUES ($1, $2, $3, 'completed')
+           ON CONFLICT (referee_id) DO NOTHING`,
+          [referrerId, userId, `REF-${referrerId.substring(0, 8)}`]
         );
         
         // Credit ₹50 to the referrer

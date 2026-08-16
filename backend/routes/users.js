@@ -117,9 +117,9 @@ router.post("/:userId/apply-referral-code", async (req, res) => {
 
     // Create a referral tracking record
     const { rows: referralRows } = await pool.query(
-      `INSERT INTO referrals (referrer_id, referred_user_id, code, status)
+      `INSERT INTO referrals (referrer_id, referee_id, code, status)
        VALUES ($1, $2, $3, 'completed')
-       ON CONFLICT (referred_user_id) DO NOTHING
+       ON CONFLICT (referee_id) DO NOTHING
        RETURNING id`,
       [referrerId, userId, trimmedCode]
     );
