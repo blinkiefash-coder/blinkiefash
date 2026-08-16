@@ -444,8 +444,8 @@
 
 .catalog-products-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   margin-bottom: 14px;
 }
 
@@ -763,16 +763,16 @@
   }
 
   .catalog-products-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 12px;
   }
 
   .catalog-card-image-wrap {
-    height: 160px;
+    height: 140px;
   }
 
   .catalog-card-body {
-    padding: 10px 10px 12px;
+    padding: 8px 8px 10px;
   }
 
   .catalog-location-pill span {
@@ -897,23 +897,37 @@
 }
 
 @media (max-width: 420px) {
-  .catalog-products-grid {
-    grid-template-columns: 1fr;
-  }
-
   .catalog-card-image-wrap {
-    height: 190px;
+    height: 150px;
   }
 
   .catalog-headline-row h2 {
-    font-size: 22px;
+    font-size: 20px;
   }
 
   .catalog-round-item {
-    min-width: 72px;
+    min-width: 68px;
+    font-size: 10px;
   }
 
   .catalog-filter-toggle {
     width: 100%;
+  }
+
+  .catalog-card-body h3 {
+    font-size: 12px;
+    min-height: 32px;
+  }
+
+  .catalog-card-body small {
+    font-size: 9px;
+  }
+
+  .catalog-card-price-row strong {
+    font-size: 14px;
+  }
+
+  .catalog-products-grid {
+    gap: 10px;
   }
 }

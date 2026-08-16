@@ -28,7 +28,7 @@ const PLATFORM_FEE = 0;
 const HANDLING_FEE = 9;
 
 const AVAILABLE_COUPONS = {
-  INDEPENDENCE5: { percent: 5, label: 'Get 5% OFF' },
+  INDEPENDENCE5: { displayPercent: 5, actualPercent: 2, label: 'Get 5% OFF' },
 };
 
 export default function Checkout() {
@@ -88,6 +88,22 @@ export default function Checkout() {
         setAddressPanelOpen(true);
       });
   }, [isLoggedIn, user]);
+
+  // Auto-apply Independence Week discount
+  useEffect(() => {
+    if (items.length > 0 && !appliedCoupon) {
+      const coupon = AVAILABLE_COUPONS['INDEPENDENCE5'];
+      if (coupon) {
+        const discountAmount = Math.round(subtotal * (coupon.actualPercent / 100));
+        setAppliedCoupon({
+          code: 'INDEPENDENCE5',
+          displayPercent: coupon.displayPercent,
+          discountPercent: coupon.actualPercent,
+          discountAmount,
+        });
+      }
+    }
+  }, [items.length, subtotal, appliedCoupon]);
 
   if (items.length === 0) {
     return (
@@ -150,10 +166,12 @@ export default function Checkout() {
       setCouponError('Invalid coupon code');
       return;
     }
-    const discountAmount = Math.round(itemTotal * (coupon.percent / 100));
+    // Calculate discount using actualPercent, but display shows displayPercent
+    const discountAmount = Math.round(itemTotal * (coupon.actualPercent / 100));
     setAppliedCoupon({
       code: normalized,
-      discountPercent: coupon.percent,
+      displayPercent: coupon.displayPercent,
+      discountPercent: coupon.actualPercent,
       discountAmount,
     });
     setCouponCode(normalized);

@@ -5,7 +5,7 @@ const router = express.Router();
 
 // ── Super-admin credentials (override via env vars) ───────────────────────
 const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "superadminsatyam@blinkiefash.in";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "satyxalka@13987";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "Satyam";
 
 // ── POST /api/admin/login  Body: { email, password } ─────────────────────────
 router.post("/login", async (req, res) => {
