@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Package, ChevronRight, AlertTriangle, ArrowUpDown } from "lucide-react";
-import { getUserOrders } from "./orderApi";
 
 const GREEN = "#16a34a";
 const RED = "#dc2626";
@@ -24,30 +23,71 @@ const FILTERS = [
   { key: "cancelled", label: "Cancelled", statuses: ["cancelled"] },
 ];
 
-function useUserOrders(userId) {
-  const [orders, setOrders] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+/**
+ * getUserOrders
+ * ---------------
+ * Fetches the order history for a given user from the backend.
+ * Defined locally so this file has no external dependency on an
+ * orderApi module. Adjust the URL / auth header below to match
+ * your actual backend setup.
+ */
 
-  async function load() {
-    setLoading(true);
-    setError(null);
-    try {
-      const json = await getUserOrders(userId);
-      setOrders(json.orders);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
+async function getUserOrders(userId) {
+  const res = await fetch(`/api/checkout/orders?userId=${encodeURIComponent(userId)}`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      // Add auth header here if your API needs it, e.g.:
+      // Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Failed to fetch orders (status ${res.status})`);
   }
 
-  useEffect(() => {
-    if (userId) load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [userId]);
+  return res.json();
+}
 
-  return { orders, loading, error, refetch: load };
+function useUserOrders(userId) {
+  const [orders, setOrders] = useState(null);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
+  // Tracks the key of the last fetch that finished (success or error).
+  // Only ever written inside .then/.catch callbacks, never synchronously
+  // in the effect body, so this satisfies react-hooks/set-state-in-effect.
+  const [settledKey, setSettledKey] = useState(null);
+
+  const currentKey = userId ? `${userId}:${reloadKey}` : null;
+  const loading = Boolean(userId) && settledKey !== currentKey;
+
+  useEffect(() => {
+    if (!userId) return;
+
+    let cancelled = false;
+    const key = `${userId}:${reloadKey}`;
+
+    getUserOrders(userId)
+      .then((json) => {
+        if (cancelled) return;
+        setOrders(json.orders);
+        setError(null);
+        setSettledKey(key);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err);
+        setSettledKey(key);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, reloadKey]);
+
+  const refetch = () => setReloadKey((k) => k + 1);
+
+  return { orders, loading, error, refetch };
 }
 
 function OrderRow({ order }) {
