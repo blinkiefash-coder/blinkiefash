@@ -193,3 +193,34 @@
     padding: 12px;
   }
 }
+
+@media (max-width: 480px) {
+  .parcel-page {
+    padding: 10px 12px 32px;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+
+  .parcel-hero h1 {
+    font-size: 20px;
+  }
+
+  .parcel-input-row input {
+    font-size: 16px;
+    min-height: 44px;
+  }
+
+  .parcel-cta {
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .parcel-trust {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .parcel-map-actions {
+    flex-direction: column;
+  }
+}

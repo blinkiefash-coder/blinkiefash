@@ -219,3 +219,47 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+@media (max-width: 480px) {
+  .footer {
+    border-radius: 12px;
+    margin-top: 24px;
+  }
+  .footer-main {
+    grid-template-columns: 1fr;
+  }
+  .footer-brand-col {
+    grid-column: span 1;
+  }
+  .footer-brand-col,
+  .footer-col,
+  .footer-col:not(:last-child) {
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .footer-col:last-child {
+    border-bottom: none;
+  }
+  .footer-brand-col,
+  .footer-col {
+    padding: 18px 16px;
+  }
+  .footer-logo-img {
+    width: 44px;
+    height: 44px;
+  }
+  .footer-logo-text {
+    font-size: 18px;
+  }
+  .app-buttons {
+    grid-template-columns: 1fr;
+  }
+  .store-badge {
+    min-height: 48px;
+  }
+  .social-icon {
+    width: 40px;
+    height: 40px;
+  }
+}

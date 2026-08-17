@@ -215,3 +215,41 @@
     font-size: 16px; /* avoids iOS zoom on focus */
   }
 }
+
+@media (max-width: 640px) {
+  .auth-page,
+  .login-page,
+  .auth-wrap {
+    padding: 16px 14px 32px;
+  }
+
+  .auth-card {
+    padding: 20px 16px;
+    border-radius: 14px;
+  }
+
+  .auth-card input,
+  .auth-form input,
+  .auth-form select,
+  .auth-card select,
+  .auth-card textarea {
+    font-size: 16px !important;
+    min-height: 48px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .auth-card .primary-btn,
+  .auth-form .primary-btn,
+  .auth-submit {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-card {
+    padding: 16px 12px;
+  }
+}

@@ -4,16 +4,16 @@
   left: 50%;
   transform: translateX(-50%);
   width: 100%;
-  max-width: 480px;
+  max-width: 100%;
   background: #fff;
   border-top: 1px solid var(--border);
   display: flex;
   justify-content: space-around;
-  padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   z-index: 40;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
 }
 
-/* Mobile-only: hide on tablet/desktop */
 @media (min-width: 768px) {
   .bottom-nav {
     display: none;
@@ -24,12 +24,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 600;
   flex: 1;
-  padding: 4px 0;
+  min-height: 52px;
+  padding: 6px 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .bottom-nav-item.active {
@@ -37,23 +43,23 @@
 }
 
 .bn-icon {
-  font-size: 18px;
+  font-size: 22px;
   position: relative;
   line-height: 1;
 }
 
 .bn-badge {
   position: absolute;
-  top: -8px;
+  top: -6px;
   right: -10px;
   background: var(--brand-green);
   color: #fff;
   border-radius: 999px;
-  font-size: 9px;
-  min-width: 15px;
-  height: 15px;
+  font-size: 10px;
+  min-width: 16px;
+  height: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 3px;
+  padding: 0 4px;
 }

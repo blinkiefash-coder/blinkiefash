@@ -10,129 +10,151 @@ export default function ProductAnalytics() {
   const navigate = useNavigate();
   const adminMode = isAdmin();
   const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
-  const [storeName, setStoreName] = useState(() => localStorage.getItem("store_name") || "My Store");
+  const [storeName, setStoreName] = useState(
+    () => localStorage.getItem("store_name") || "My Store"
+  );
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("sales");
-  const [timeFilter, setTimeFilter] = useState("month");
 
   useEffect(() => {
-    if (adminMode) {
-      // Admin: load all products across all vendors via admin orders/insights
-      fetch(`${API_API_BASE_URL}/admin/insights`, { headers: adminHeaders() })
-        .then(r => r.json())
-        .then(d => {
-          const top = Array.isArray(d.topProducts) ? d.topProducts : [];
-          setProducts(top.map(p => ({ ...p, totalSales: p.units_sold || 0, totalRevenue: p.revenue || 0, variants: [] })));
-        })
-        .catch(() => {})
-        .finally(() => setLoading(false));
-      return;
-    }
-    if (!vendorId) {
-      window.location.href = "/vendor";
-      return;
-    }
+    let cancelled = false;
 
-    const loadVendor = async () => {
-      const vendor = await fetchVendorProfile(vendorId);
-      if (vendor?.store_name) {
-        setStoreName(vendor.store_name);
-        localStorage.setItem("store_name", vendor.store_name);
-      }
-    };
-
-    loadVendor();
-    loadAnalyticsData();
-  }, [vendorId]);
-
-  const loadAnalyticsData = async () => {
-    try {
-      const [productsRes, ordersRes] = await Promise.all([
-        fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`),
-        fetch(`${API_API_BASE_URL}/vendor/${vendorId}/orders`),
-      ]);
-
-      const productsData = await productsRes.json();
-      const ordersData = await ordersRes.json();
-
-      // Calculate analytics from actual orders
-      const orderList = Array.isArray(ordersData) ? ordersData : [];
-      
-      const analyticsMap = {};
-      
-      // Initialize products with zero metrics
-      (Array.isArray(productsData) ? productsData : []).forEach((product) => {
-        analyticsMap[product.id] = {
-          ...product,
-          totalSales: 0,
-          salesThisMonth: 0,
-          salesThisWeek: 0,
-          totalRevenue: 0,
-          revenueThisMonth: 0,
-          views: Math.floor(Math.random() * 2000),
-          rating: (Math.random() * 2 + 3.5).toFixed(1),
-          conversionRate: (Math.random() * 5 + 5).toFixed(1),
-          sellThroughRate: 0,
-        };
-      });
-
-      // Calculate actual sales from orders
-      const now = new Date();
-      const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisWeekStart = new Date(now);
-      thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
-
-      orderList.forEach((order) => {
-        if (Array.isArray(order.items)) {
-          order.items.forEach((item) => {
-            const productId = item.product_id;
-            if (analyticsMap[productId]) {
-              const quantity = item.quantity || 1;
-              const itemTotal = (item.price || 0) * quantity;
-              
-              analyticsMap[productId].totalSales += quantity;
-              analyticsMap[productId].totalRevenue += itemTotal;
-
-              const orderDate = new Date(order.created_at);
-              if (orderDate >= thisMonthStart) {
-                analyticsMap[productId].salesThisMonth += quantity;
-                analyticsMap[productId].revenueThisMonth += itemTotal;
-              }
-              if (orderDate >= thisWeekStart) {
-                analyticsMap[productId].salesThisWeek += quantity;
-              }
-            }
+    (async () => {
+      // ── Admin mode ──────────────────────────────────────────────
+      if (adminMode) {
+        try {
+          const res = await fetch(`${API_API_BASE_URL}/admin/insights`, {
+            headers: adminHeaders(),
           });
-        }
-      });
+          const d = await res.json();
+          if (cancelled) return;
 
-      // Calculate sell-through rate
-      Object.values(analyticsMap).forEach((product) => {
-        if (Array.isArray(product.variants)) {
-          const totalStock = product.variants.reduce((sum, v) => sum + (v.quantity || 0), 0);
-          if (totalStock > 0) {
-            product.sellThroughRate = ((product.totalSales / (product.totalSales + totalStock)) * 100).toFixed(1);
+          const top = Array.isArray(d.topProducts) ? d.topProducts : [];
+          setProducts(
+            top.map((p) => ({
+              ...p,
+              totalSales: p.units_sold || 0,
+              totalRevenue: p.revenue || 0,
+              variants: [],
+            }))
+          );
+        } catch {
+          // ignore
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      // ── Vendor mode ─────────────────────────────────────────────
+      if (!vendorId) {
+        window.location.href = "/vendor";
+        return;
+      }
+
+      try {
+        // Load store name
+        const vendor = await fetchVendorProfile(vendorId);
+        if (cancelled) return;
+        if (vendor?.store_name) {
+          setStoreName(vendor.store_name);
+          localStorage.setItem("store_name", vendor.store_name);
+        }
+
+        // Load products + orders
+        const [productsRes, ordersRes] = await Promise.all([
+          fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`),
+          fetch(`${API_API_BASE_URL}/vendor/${vendorId}/orders`),
+        ]);
+
+        const productsData = await productsRes.json();
+        const ordersData = await ordersRes.json();
+        if (cancelled) return;
+
+        const orderList = Array.isArray(ordersData) ? ordersData : [];
+        const analyticsMap = {};
+
+        (Array.isArray(productsData) ? productsData : []).forEach((product) => {
+          analyticsMap[product.id] = {
+            ...product,
+            totalSales: 0,
+            salesThisMonth: 0,
+            salesThisWeek: 0,
+            totalRevenue: 0,
+            revenueThisMonth: 0,
+            views: Math.floor(Math.random() * 2000),
+            rating: (Math.random() * 2 + 3.5).toFixed(1),
+            conversionRate: (Math.random() * 5 + 5).toFixed(1),
+            sellThroughRate: 0,
+          };
+        });
+
+        const now = new Date();
+        const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const thisWeekStart = new Date(now);
+        thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
+
+        orderList.forEach((order) => {
+          if (Array.isArray(order.items)) {
+            order.items.forEach((item) => {
+              const productId = item.product_id;
+              if (analyticsMap[productId]) {
+                const quantity = item.quantity || 1;
+                const itemTotal = (item.price || 0) * quantity;
+
+                analyticsMap[productId].totalSales += quantity;
+                analyticsMap[productId].totalRevenue += itemTotal;
+
+                const orderDate = new Date(order.created_at);
+                if (orderDate >= thisMonthStart) {
+                  analyticsMap[productId].salesThisMonth += quantity;
+                  analyticsMap[productId].revenueThisMonth += itemTotal;
+                }
+                if (orderDate >= thisWeekStart) {
+                  analyticsMap[productId].salesThisWeek += quantity;
+                }
+              }
+            });
           }
-        }
-      });
+        });
 
-      const productsWithAnalytics = Object.values(analyticsMap);
-      setProducts(productsWithAnalytics);
-    } catch (err) {
-      console.error("Failed to load analytics data:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        Object.values(analyticsMap).forEach((product) => {
+          if (Array.isArray(product.variants)) {
+            const totalStock = product.variants.reduce(
+              (sum, v) => sum + (v.quantity || 0),
+              0
+            );
+            if (totalStock > 0) {
+              product.sellThroughRate = (
+                (product.totalSales / (product.totalSales + totalStock)) *
+                100
+              ).toFixed(1);
+            }
+          }
+        });
+
+        setProducts(Object.values(analyticsMap));
+      } catch (err) {
+        console.error("Failed to load analytics data:", err);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [vendorId, adminMode]);
 
   const sortedProducts = [...products].sort((a, b) => {
     if (sortBy === "sales") return b.totalSales - a.totalSales;
     if (sortBy === "revenue") return b.totalRevenue - a.totalRevenue;
     if (sortBy === "views") return b.views - a.views;
     if (sortBy === "rating") return parseFloat(b.rating) - parseFloat(a.rating);
-    if (sortBy === "sell-through") return parseFloat(b.sellThroughRate) - parseFloat(a.sellThroughRate);
+    if (sortBy === "sell-through")
+      return parseFloat(b.sellThroughRate) - parseFloat(a.sellThroughRate);
     return 0;
   });
 
@@ -151,7 +173,9 @@ export default function ProductAnalytics() {
 
   const topSellers = products.filter((p) => p.totalSales > 250);
   const fastMoving = products.filter((p) => p.salesThisMonth > 100);
-  const topRated = products.sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating)).slice(0, 5);
+  const topRated = [...products]
+    .sort((a, b) => parseFloat(b.rating) - parseFloat(a.rating))
+    .slice(0, 5);
 
   const menuItems = [
     { key: "dashboard", label: "Dashboard", icon: "⌂" },
@@ -172,14 +196,24 @@ export default function ProductAnalytics() {
 
   if (loading) {
     return (
-      <VendorLayout activeKey="analytics" storeName={storeName} menuItems={menuItems} onMenuClick={handleMenuClick}>
+      <VendorLayout
+        activeKey="analytics"
+        storeName={storeName}
+        menuItems={menuItems}
+        onMenuClick={handleMenuClick}
+      >
         <div className="analytics-loading">Loading analytics data...</div>
       </VendorLayout>
     );
   }
 
   return (
-    <VendorLayout activeKey="analytics" storeName={storeName} menuItems={menuItems} onMenuClick={handleMenuClick}>
+    <VendorLayout
+      activeKey="analytics"
+      storeName={storeName}
+      menuItems={menuItems}
+      onMenuClick={handleMenuClick}
+    >
       <div className="analytics-container">
         <div className="analytics-header">
           <h1>📊 Product Analytics</h1>
@@ -204,7 +238,12 @@ export default function ProductAnalytics() {
           </div>
           <div className="insight-card">
             <h3>📈 Total Revenue</h3>
-            <p className="insight-number">₹{products.reduce((sum, p) => sum + p.totalRevenue, 0).toLocaleString()}</p>
+            <p className="insight-number">
+              ₹
+              {products
+                .reduce((sum, p) => sum + p.totalRevenue, 0)
+                .toLocaleString()}
+            </p>
             <span className="insight-label">Across all products</span>
           </div>
         </div>
@@ -258,7 +297,9 @@ export default function ProductAnalytics() {
                     </td>
                     <td className="monthly-cell">{product.salesThisMonth}</td>
                     <td className="weekly-cell">{product.salesThisWeek}</td>
-                    <td className="revenue-cell">₹{product.totalRevenue.toLocaleString()}</td>
+                    <td className="revenue-cell">
+                      ₹{product.totalRevenue.toLocaleString()}
+                    </td>
                     <td className="views-cell">{product.views}</td>
                     <td>
                       <span className="rating-badge">⭐ {product.rating}</span>
@@ -271,7 +312,9 @@ export default function ProductAnalytics() {
                             width: `${Math.min(product.sellThroughRate, 100)}%`,
                           }}
                         />
-                        <span className="progress-text">{product.sellThroughRate}%</span>
+                        <span className="progress-text">
+                          {product.sellThroughRate}%
+                        </span>
                       </div>
                     </td>
                     <td>

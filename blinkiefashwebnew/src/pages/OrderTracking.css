@@ -593,3 +593,23 @@
     font-size: 10.5px;
   }
 }
+
+
+@media (max-width: 640px) {
+  .tracking-page, .order-tracking-page {
+    padding: 12px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .tracking-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .tracking-map, .ot-map {
+    min-height: 220px;
+    height: 40vh;
+  }
+}
+@media (max-width: 420px) {
+  .tracking-timeline, .ot-steps {
+    padding-left: 8px;
+  }
+}

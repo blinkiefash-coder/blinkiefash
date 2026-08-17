@@ -592,86 +592,88 @@
 
 @media (max-width: 640px) {
   .cart-page {
-    padding-top: 12px;
-    padding-bottom: 190px;
+    padding: 12px 12px 200px;
+    padding-bottom: calc(200px + env(safe-area-inset-bottom));
   }
 
   .cart-title {
-    font-size: 16px;
+    font-size: 18px;
   }
 
   .cart-subtitle {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   .cart-item-top {
-    padding: 10px;
-    gap: 9px;
+    padding: 12px;
+    gap: 12px;
   }
 
   .cart-item-media {
-    width: 78px;
-    height: 78px;
-  }
-
-  .cart-item-side {
-    width: auto;
+    width: 88px;
+    height: 110px;
+    border-radius: 10px;
+    object-fit: cover;
   }
 
   .cart-item-name {
-    font-size: 10px;
+    font-size: 13px;
+    line-height: 1.3;
   }
 
   .cart-item-price {
-    font-size: 11px;
+    font-size: 14px;
+    font-weight: 800;
   }
 
   .cart-item-delivery {
-    font-size: 7px;
-    padding: 3px 5px;
+    font-size: 11px;
+    padding: 4px 8px;
   }
 
   .cart-item-linetotal {
-    font-size: 11px;
+    font-size: 14px;
   }
 
   .cart-action {
-    font-size: 8px;
-    gap: 3px;
+    font-size: 12px;
+    gap: 4px;
+    min-height: 36px;
+  }
+
+  .cart-qty-btn {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
   }
 
   .cart-delivery-progress {
-    padding: 8px 9px;
-    gap: 7px;
+    padding: 10px 12px;
+    gap: 10px;
   }
 
   .cart-delivery-icon {
-    width: 27px;
-    height: 27px;
+    width: 32px;
+    height: 32px;
   }
 
   .cart-delivery-progress-body p {
-    font-size: 9px;
+    font-size: 12px;
   }
 
   .cart-delivery-remaining {
-    font-size: 8px;
+    font-size: 11px;
   }
 
   .cart-checkout-footer {
-    padding: 8px 10px 12px;
-  }
-
-  .cart-checkout-footer-inner {
-    max-width: 100%;
-    gap: 6px;
+    padding: 10px 12px calc(12px + env(safe-area-inset-bottom));
   }
 
   .cart-summary {
     flex-direction: column;
     align-items: stretch;
-    gap: 9px;
-    padding: 10px 12px;
+    gap: 10px;
+    padding: 12px;
   }
 
   .cart-summary-right {
@@ -681,5 +683,18 @@
   .cart-checkout-btn {
     flex: 1;
     min-width: 0;
+    min-height: 48px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 380px) {
+  .cart-item-media {
+    width: 72px;
+    height: 96px;
+  }
+
+  .cart-item-name {
+    font-size: 12px;
   }
 }

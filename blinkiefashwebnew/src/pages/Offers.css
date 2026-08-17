@@ -221,6 +221,7 @@
     justify-self: start;
     padding: 8px 12px;
     font-size: 12px;
+    min-height: 40px;
   }
 
   .offer-arrow {
@@ -237,5 +238,37 @@
   .offers-trust div {
     padding: 0;
     border-right: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .offers-page {
+    padding: 16px 12px 32px;
+    padding-bottom: calc(32px + env(safe-area-inset-bottom));
+  }
+
+  .offer-row {
+    grid-template-columns: 48px minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .offer-action {
+    grid-column: 2;
+    width: 100%;
+    min-height: 44px;
+    font-size: 13px;
+  }
+
+  .offer-arrow {
+    display: none;
+  }
+
+  .offer-title-line h2 {
+    font-size: 16px;
+  }
+
+  .offer-copy p {
+    font-size: 13px;
   }
 }

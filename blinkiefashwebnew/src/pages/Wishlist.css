@@ -25,6 +25,7 @@
   display: grid;
   gap: 6px;
   transition: box-shadow 0.15s, transform 0.15s;
+  min-width: 0;
 }
 
 .wishlist-card:hover {
@@ -80,18 +81,38 @@
   padding: 9px;
   font-size: 12px;
   border-radius: 8px;
+  min-height: 40px;
 }
 
 @media (max-width: 640px) {
   .page.wishlist-page {
     padding: 14px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
+
   .wishlist-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
   }
+
   .wishlist-card {
     padding: 8px;
     border-radius: 12px;
+  }
+
+  .wishlist-actions .primary-btn,
+  .wishlist-actions .secondary-btn {
+    min-height: 44px;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 380px) {
+  .wishlist-name {
+    font-size: 12px;
+  }
+
+  .wishlist-price {
+    font-size: 13px;
   }
 }

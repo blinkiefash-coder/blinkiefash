@@ -7,7 +7,9 @@ import './OfferFeature.css';
 export default function OldClothes() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
-  const [loading, setLoading] = useState(true);
+
+  // Start as true only when we actually need to fetch
+  const [loading, setLoading] = useState(() => isLoggedIn && !!user?.id);
   const [submitting, setSubmitting] = useState(false);
   const [pickups, setPickups] = useState([]);
   const [availablePercent, setAvailablePercent] = useState(0);
@@ -19,34 +21,52 @@ export default function OldClothes() {
   const [message, setMessage] = useState(null);
   const [error, setError] = useState(null);
 
-  const load = async () => {
-    if (!user?.id) return;
-    setLoading(true);
-    setError(null);
-    try {
-      const [clothes, addrs] = await Promise.all([
-        getOldClothes(user.id),
-        getAddresses(user.id).catch(() => ({ addresses: [] })),
-      ]);
-      setPickups(clothes.pickups || []);
-      setAvailableItems(clothes.availableItems || 0);
-      setAvailablePercent(clothes.availablePercent || 0);
-      const list = addrs.addresses || addrs || [];
-      setAddresses(Array.isArray(list) ? list : []);
-      if (list.length && !addressId) {
-        setAddressId(list[0].id || list[0].address_id || '');
-      }
-    } catch (err) {
-      setError(err.message || 'Failed to load');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    if (isLoggedIn && user?.id) load();
-    else setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Not logged in → nothing to fetch, just leave loading as false
+    if (!isLoggedIn || !user?.id) {
+      return;
+    }
+
+    let cancelled = false;
+
+    (async () => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const [clothes, addrs] = await Promise.all([
+          getOldClothes(user.id),
+          getAddresses(user.id).catch(() => ({ addresses: [] })),
+        ]);
+
+        if (cancelled) return;
+
+        setPickups(clothes.pickups || []);
+        setAvailableItems(clothes.availableItems || 0);
+        setAvailablePercent(clothes.availablePercent || 0);
+
+        const list = addrs.addresses || addrs || [];
+        setAddresses(Array.isArray(list) ? list : []);
+
+        // Only set addressId if we don't already have one selected
+        setAddressId((prev) => {
+          if (prev) return prev;
+          return list[0]?.id || list[0]?.address_id || '';
+        });
+      } catch (err) {
+        if (!cancelled) {
+          setError(err.message || 'Failed to load');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, user?.id]);
 
   const onSubmit = async (e) => {
@@ -55,9 +75,11 @@ export default function OldClothes() {
       setError('Please select an address');
       return;
     }
+
     setSubmitting(true);
     setError(null);
     setMessage(null);
+
     try {
       const res = await requestClothesPickup({
         userId: user.id,
@@ -65,10 +87,20 @@ export default function OldClothes() {
         itemCount: Number(itemCount),
         notes: notes.trim() || undefined,
       });
+
       if (res.success) {
         setMessage('Pickup scheduled successfully!');
         setNotes('');
-        await load();
+
+        // Refresh pickups list
+        try {
+          const clothes = await getOldClothes(user.id);
+          setPickups(clothes.pickups || []);
+          setAvailableItems(clothes.availableItems || 0);
+          setAvailablePercent(clothes.availablePercent || 0);
+        } catch {
+          // ignore refresh error
+        }
       } else {
         setError(res.message || 'Could not schedule pickup');
       }
@@ -130,10 +162,15 @@ export default function OldClothes() {
           <section className="offer-feature-card">
             <h2>Schedule a pickup</h2>
             <p className="muted-note">Max 5 pieces per pickup. Available after your first order.</p>
+
             <form className="clothes-form" onSubmit={onSubmit}>
               <label>
                 Address
-                <select value={addressId} onChange={(e) => setAddressId(e.target.value)} required>
+                <select
+                  value={addressId}
+                  onChange={(e) => setAddressId(e.target.value)}
+                  required
+                >
                   <option value="">Select address</option>
                   {addresses.map((a) => (
                     <option key={a.id || a.address_id} value={a.id || a.address_id}>
@@ -144,14 +181,20 @@ export default function OldClothes() {
                   ))}
                 </select>
               </label>
+
               {addresses.length === 0 && (
                 <p className="muted-note">
                   No saved addresses.{' '}
-                  <button type="button" className="link-btn" onClick={() => navigate('/checkout')}>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    onClick={() => navigate('/checkout')}
+                  >
                     Add one
                   </button>
                 </p>
               )}
+
               <label>
                 Number of items (1–5)
                 <input
@@ -162,6 +205,7 @@ export default function OldClothes() {
                   onChange={(e) => setItemCount(e.target.value)}
                 />
               </label>
+
               <label>
                 Notes (optional)
                 <textarea
@@ -171,7 +215,12 @@ export default function OldClothes() {
                   placeholder="e.g. leave at gate"
                 />
               </label>
-              <button type="submit" className="primary-btn" disabled={submitting || !addressId}>
+
+              <button
+                type="submit"
+                className="primary-btn"
+                disabled={submitting || !addressId}
+              >
                 {submitting ? 'Scheduling…' : 'Schedule pickup'}
               </button>
             </form>

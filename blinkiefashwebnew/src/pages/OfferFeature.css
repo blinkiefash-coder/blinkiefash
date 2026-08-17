@@ -2,6 +2,8 @@
   max-width: 720px;
   margin: 0 auto;
   padding: 28px 20px 48px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .offer-back {
@@ -12,7 +14,11 @@
   font-weight: 600;
   cursor: pointer;
   margin-bottom: 16px;
-  padding: 0;
+  padding: 8px 0;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .offer-back:hover {
@@ -29,17 +35,20 @@
 .offer-feature-emoji {
   font-size: 48px;
   line-height: 1;
+  flex-shrink: 0;
 }
 
 .offer-feature-header h1 {
   font-size: 28px;
   margin: 0;
+  line-height: 1.25;
 }
 
 .offer-feature-header p {
   margin: 6px 0 0;
   color: #64748b;
   font-size: 15px;
+  line-height: 1.45;
 }
 
 .offer-feature-card {
@@ -53,31 +62,6 @@
 .offer-feature-card h2 {
   font-size: 16px;
   margin: 0 0 12px;
-}
-
-.refer-code-box {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
-  background: #fff7ed;
-  border: 1px dashed #fb923c;
-  border-radius: 12px;
-}
-
-.refer-code {
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: #ea580c;
-  flex: 1;
-  min-width: 120px;
-}
-
-.refer-code-actions {
-  display: flex;
-  gap: 8px;
 }
 
 .refer-stats {
@@ -105,6 +89,32 @@
   color: #64748b;
 }
 
+.refer-code-box {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fff7ed;
+  border: 1px dashed #fb923c;
+  border-radius: 12px;
+}
+
+.refer-code {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #ea580c;
+  flex: 1;
+  min-width: 120px;
+}
+
+.refer-code-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .refer-redeem-form {
   display: flex;
   gap: 10px;
@@ -117,13 +127,14 @@
   padding: 10px 12px;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
-  font-size: 15px;
+  font-size: 16px;
   text-transform: uppercase;
+  min-height: 44px;
 }
 
 .clothes-form {
   display: grid;
-  gap: 12px;
+  gap: 14px;
 }
 
 .clothes-form label {
@@ -137,17 +148,45 @@
 .clothes-form input,
 .clothes-form select,
 .clothes-form textarea {
-  padding: 10px 12px;
+  padding: 12px 14px;
   border: 1px solid #cbd5e1;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: 10px;
+  font-size: 16px;
   font-weight: 400;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 48px;
+  background: #fff;
+  color: #0f172a;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.clothes-form select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%2364748b' d='M1 1l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.clothes-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+.clothes-form .primary-btn {
+  width: 100%;
+  min-height: 48px;
+  margin-top: 4px;
+  font-size: 15px;
 }
 
 .muted-note {
   font-size: 13px;
   color: #64748b;
   margin: 0 0 12px;
+  line-height: 1.45;
 }
 
 .link-btn {
@@ -156,8 +195,10 @@
   color: #16a34a;
   font-weight: 700;
   cursor: pointer;
-  padding: 0;
+  padding: 4px 0;
   text-decoration: underline;
+  min-height: 40px;
+  font-size: 13px;
 }
 
 .pickup-list {
@@ -169,10 +210,11 @@
 .pickup-list li {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 0;
+  gap: 4px;
+  padding: 12px 0;
   border-bottom: 1px solid #f1f5f9;
   font-size: 14px;
+  word-break: break-word;
 }
 
 .pickup-list li:last-child {
@@ -188,15 +230,16 @@
   color: #15803d;
   font-weight: 600;
   font-size: 14px;
+  padding: 10px 0;
 }
 
 .offer-error {
   color: #dc2626;
   font-weight: 600;
   font-size: 14px;
+  padding: 10px 0;
 }
 
-/* Spin wheel */
 .spin-card {
   text-align: center;
   overflow: hidden;
@@ -213,6 +256,7 @@
 .spin-wheel {
   width: 280px;
   height: 280px;
+  max-width: 100%;
   margin: 0 auto 20px;
   border-radius: 50%;
   position: relative;
@@ -253,9 +297,9 @@
 
 .spin-btn {
   min-width: 180px;
+  min-height: 48px;
 }
 
-/* Fashion quest grid */
 .quest-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -270,6 +314,7 @@
   font-size: 28px;
   cursor: pointer;
   transition: transform 0.15s ease, background 0.15s ease;
+  min-height: 44px;
 }
 
 .quest-card:hover:not(:disabled) {
@@ -287,12 +332,123 @@
   opacity: 0.85;
 }
 
-@media (max-width: 520px) {
-  .spin-wheel {
-    width: 240px;
-    height: 240px;
+@media (max-width: 640px) {
+  .offer-feature-page {
+    padding: 16px 14px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
   }
+
+  .offer-feature-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .offer-feature-emoji {
+    font-size: 40px;
+  }
+
+  .offer-feature-header h1 {
+    font-size: 22px;
+  }
+
+  .offer-feature-header p {
+    font-size: 14px;
+  }
+
+  .offer-feature-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .refer-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+
+  .refer-stats strong {
+    font-size: 20px;
+  }
+
+  .refer-code {
+    font-size: 18px;
+    min-width: 0;
+    width: 100%;
+    text-align: center;
+  }
+
+  .refer-code-actions {
+    width: 100%;
+  }
+
+  .refer-code-actions .primary-btn,
+  .refer-code-actions .secondary-btn {
+    flex: 1;
+    min-height: 44px;
+  }
+
+  .refer-redeem-form {
+    flex-direction: column;
+  }
+
+  .refer-redeem-form input {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .refer-redeem-form .primary-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 420px) {
+  .offer-feature-page {
+    padding: 12px 12px 36px;
+  }
+
+  .offer-feature-header h1 {
+    font-size: 20px;
+  }
+
+  .offer-feature-emoji {
+    font-size: 36px;
+  }
+
+  .refer-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .refer-stats div {
+    padding: 10px 8px;
+  }
+
+  .refer-stats strong {
+    font-size: 18px;
+  }
+
+  .spin-wheel {
+    width: min(240px, 85vw);
+    height: min(240px, 85vw);
+  }
+
   .quest-grid {
     grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .quest-card {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 360px) {
+  .refer-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .offer-feature-card {
+    padding: 14px;
   }
 }

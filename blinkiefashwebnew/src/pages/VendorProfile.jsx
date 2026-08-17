@@ -47,7 +47,7 @@ export default function VendorProfile() {
           }
           setDarkStoreId(data.dark_store_id || '');
         }
-      } catch (err) {
+      } catch {
         setError('Unable to load vendor profile.');
       }
     };

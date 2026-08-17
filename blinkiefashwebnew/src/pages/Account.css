@@ -456,3 +456,29 @@ html, body, #root {
   .acct-item-row:hover .acct-ic { transform: none; }
   .acct-item-row:hover .acct-chev { transform: none; color: #ccd1cb; }
 }
+
+@media (max-width: 600px) {
+  .acct-layout,
+  .account-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .acct-sidebar {
+    width: 100% !important;
+    max-width: 100%;
+  }
+
+  .account-menu a,
+  .account-menu button,
+  .acct-nav-item {
+    min-height: 48px;
+    padding: 14px 16px;
+    font-size: 15px;
+  }
+
+  .acct-page,
+  .account-page {
+    padding: 12px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+}

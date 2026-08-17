@@ -194,7 +194,6 @@ export default function App() {
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Policies />} />
         <Route path="/help-support" element={<HelpSupport />} />
-        <Route path="/account" element={<Account />} />
         <Route path="/account/addresses" element={<SavedAddresses />} />
       </Routes>
       {!isHome &&

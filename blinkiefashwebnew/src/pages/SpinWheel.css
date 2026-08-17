@@ -563,3 +563,24 @@
   padding: 3rem 0;
   font-size: 1.1rem;
 }
+
+
+@media (max-width: 640px) {
+  .spin-page {
+    padding: 12px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .spin-layout {
+    grid-template-columns: 1fr !important;
+  }
+  .spin-btn, .spin-action-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+}
+@media (max-width: 420px) {
+  .spin-wheel, .wheel-canvas {
+    width: min(260px, 88vw) !important;
+    height: min(260px, 88vw) !important;
+  }
+}

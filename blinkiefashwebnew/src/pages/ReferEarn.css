@@ -577,3 +577,30 @@
     flex-direction: column;
   }
 }
+
+
+@media (max-width: 640px) {
+  .refer-page, .refer-earn-page {
+    padding: 14px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .refer-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  .refer-code-box {
+    flex-direction: column;
+  }
+  .refer-redeem-form {
+    flex-direction: column;
+  }
+  .refer-redeem-form input {
+    font-size: 16px;
+    min-height: 48px;
+    width: 100%;
+  }
+  .refer-redeem-form .primary-btn,
+  .refer-code-actions button {
+    width: 100%;
+    min-height: 48px;
+  }
+}

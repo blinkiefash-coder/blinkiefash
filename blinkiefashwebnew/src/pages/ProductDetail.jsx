@@ -182,11 +182,16 @@ export default function ProductDetail() {
         }
 
         if (!cancelled) {
-          setRelatedProducts(
-            (rows || [])
-              .filter((item) => String(item.id) !== String(data.product.id))
-              .slice(0, 10)
-          );
+          const seen = new Set();
+          const unique = [];
+          for (const item of rows || []) {
+            const pid = String(item.id ?? '');
+            if (!pid || pid === String(data.product.id) || seen.has(pid)) continue;
+            seen.add(pid);
+            unique.push(item);
+            if (unique.length >= 10) break;
+          }
+          setRelatedProducts(unique);
         }
       } catch {
         if (!cancelled) setRelatedProducts([]);
@@ -298,8 +303,8 @@ export default function ProductDetail() {
   const wishlisted = isWishlisted(product.id);
   const hasVariants = Array.isArray(variants) && variants.length > 0;
   const stockLeft = Number(selectedVariant?.available_stock ?? 1);
-  const canPurchase = hasVariants ? Boolean(selectedVariant) : true;
   const outOfStock = hasVariants && Boolean(selectedVariant) && stockLeft <= 0;
+  const canPurchase = hasVariants ? Boolean(selectedVariant) && !outOfStock : true;
 
   const rating = Number(product.rating || 4.8);
   const roundedAvg = Math.min(Math.max(Math.round(rating), 0), 5);
@@ -913,12 +918,12 @@ export default function ProductDetail() {
                 </div>
 
                 <div className="pp-related-grid" ref={relatedListRef}>
-                  {relatedProducts.slice(0, visibleRelatedCount).map((item) => {
+                  {relatedProducts.slice(0, visibleRelatedCount).map((item, idx) => {
                     const itemPrice = Number(item.discount_price || item.price || 0);
                     const itemMrp = Number(item.price || 0);
                     const itemImage = item.image || item.image_url || item.url || null;
                     return (
-                      <div key={item.id} className="pp-related-card">
+                      <div key={`${item.id}-${idx}`} className="pp-related-card">
                         <a
                           className="pp-related-link"
                           href={`/product/${item.id}`}
@@ -1079,8 +1084,8 @@ export default function ProductDetail() {
               <p>Recently Viewed</p>
             </div>
             <div className="pp-related-grid pp-recent-grid">
-              {recentlyViewed.map((item) => (
-                <div key={item.id} className="pp-related-card">
+              {recentlyViewed.map((item, idx) => (
+                <div key={`${item.id}-${idx}`} className="pp-related-card">
                   <a
                     className="pp-related-link"
                     href={`/product/${item.id}`}

@@ -702,3 +702,39 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+@media (max-width: 980px) {
+  .fq-layout,
+  .fq-main-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .fq-page,
+  .fashion-quest-page {
+    padding: 12px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+
+  .fq-play-btn {
+    width: 100%;
+    min-height: 48px;
+    font-size: 15px;
+  }
+
+  .fq-info-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .quest-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 420px) {
+  .quest-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

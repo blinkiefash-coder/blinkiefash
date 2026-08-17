@@ -656,3 +656,28 @@
     grid-template-columns: 1fr;
   }
 }
+
+
+@media (max-width: 640px) {
+  .addresses-page, .saved-addresses-page {
+    padding: 14px 12px 40px;
+    padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  }
+  .address-form input,
+  .address-form select,
+  .address-form textarea,
+  .sa-form input,
+  .sa-form select,
+  .sa-form textarea {
+    font-size: 16px !important;
+    min-height: 48px;
+  }
+  .address-form .primary-btn,
+  .sa-form .primary-btn {
+    width: 100%;
+    min-height: 48px;
+  }
+  .address-card, .sa-card {
+    padding: 14px;
+  }
+}

@@ -109,7 +109,7 @@ export default function AddProduct() {
       setChildrenByParent(map);
       setParentCategories(map.ROOT || []);
     });
-  }, [vendorId]);
+  }, [vendorId, adminMode]);
 
   const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -221,8 +221,8 @@ export default function AddProduct() {
           store_id: vendorStoreId },
         variants: preparedVariants,
         bundleOffers: Object.entries(bundleOffers)
-          .filter(([_, enabled]) => enabled)
-          .map(([key, _]) => {
+          .filter(([, enabled]) => enabled)
+          .map(([key]) => {
             const mapping = {
               buy_2_at_999: { quantity_min: 2, quantity_max: 2, discount_value: 999 },
               buy_3_at_999: { quantity_min: 3, quantity_max: 3, discount_value: 999 },

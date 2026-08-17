@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
@@ -48,37 +48,6 @@ export default function EditProduct() {
     if (item.key === "orders")    navigate("/vendor/orders");
   };
 
-  useEffect(() => {
-    if (adminMode) {
-      fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() })
-        .then((r) => r.json())
-        .then((d) => {
-          const list = Array.isArray(d.vendors) ? d.vendors : [];
-          setAdminVendors(list);
-          // Default to "all" so admin sees everything at once
-          setSelectedAdminVendorId("all");
-          loadProducts("all", list);
-        })
-        .catch(() => setLoading(false));
-      return;
-    }
-    if (!vendorId) { window.location.href = "/vendor"; return; }
-    fetchVendorProfile(vendorId).then((v) => {
-      if (v?.store_name) { setStoreName(v.store_name); localStorage.setItem("store_name", v.store_name); }
-      if (v?.dark_store_id) {
-        setVendorStoreId(v.dark_store_id);
-        localStorage.setItem("vendor_store_id", String(v.dark_store_id));
-      }
-    });
-    loadProducts(vendorId);
-  }, [vendorId, adminMode]);
-
-  useEffect(() => {
-    if (adminMode && selectedAdminVendorId) {
-      loadProducts(selectedAdminVendorId);
-    }
-  }, [selectedAdminVendorId]);
-
   const resolveVariantPrice = (rawValue, mrpValue) => {
     const text = String(rawValue ?? "").trim();
     if (!text) return null;
@@ -95,7 +64,7 @@ export default function EditProduct() {
     return Number.isFinite(numericValue) ? Math.round(numericValue) : null;
   };
 
-  const loadProducts = async (vid, vendorList) => {
+  const loadProducts = useCallback(async (vid, vendorList) => {
     if (!vid) return;
     setLoading(true);
     try {
@@ -138,7 +107,71 @@ export default function EditProduct() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [adminVendors]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const run = async () => {
+      if (adminMode) {
+        try {
+          const r = await fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() });
+          const d = await r.json();
+          if (cancelled) return;
+          const list = Array.isArray(d.vendors) ? d.vendors : [];
+          setAdminVendors(list);
+          // Default to "all" so admin sees everything at once
+          setSelectedAdminVendorId("all");
+          await loadProducts("all", list);
+        } catch {
+          if (!cancelled) setLoading(false);
+        }
+        return;
+      }
+
+      if (!vendorId) {
+        window.location.href = "/vendor";
+        return;
+      }
+
+      try {
+        const v = await fetchVendorProfile(vendorId);
+        if (cancelled) return;
+        if (v?.store_name) {
+          setStoreName(v.store_name);
+          localStorage.setItem("store_name", v.store_name);
+        }
+        if (v?.dark_store_id) {
+          setVendorStoreId(v.dark_store_id);
+          localStorage.setItem("vendor_store_id", String(v.dark_store_id));
+        }
+      } catch {
+        /* profile is optional */
+      }
+
+      if (cancelled) return;
+      await loadProducts(vendorId);
+    };
+
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [vendorId, adminMode, loadProducts]);
+
+  useEffect(() => {
+    if (!adminMode || !selectedAdminVendorId) return undefined;
+
+    let cancelled = false;
+    const run = async () => {
+      await loadProducts(selectedAdminVendorId);
+      void cancelled;
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedAdminVendorId, adminMode, loadProducts]);
 
   const filtered = products.filter((p) =>
     (p.name?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
@@ -184,8 +217,6 @@ export default function EditProduct() {
       });
       const data = await res.json();
       if (!data.success) throw new Error(data.message || "Failed");
-    } catch (err) {
-      throw err;
     } finally {
       setSaving(null);
     }
@@ -310,7 +341,7 @@ export default function EditProduct() {
           {!loading && filtered.length > 0 && (
             <button
               className="ep-save-all-btn"
-              disabled={savingAll}
+              disabled={savingAll || saving !== null}
               onClick={saveAll}
             >
               {savingAll ? "Saving all…" : "✓ Save All Changes"}
