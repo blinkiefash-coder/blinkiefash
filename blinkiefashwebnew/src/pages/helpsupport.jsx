@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { submitSupportTicket } from '../api';
 
-import './HelpSupport.css';
+import './helpsupport.css';
 
 /* ---------- contact + support config (same as mobile app) ---------- */
 const PHONE_DISPLAY = '+91 98279 01891';

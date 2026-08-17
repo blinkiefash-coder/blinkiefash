@@ -39,7 +39,7 @@ import { isAdmin } from './utils/adminSession';
 import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
-import HelpSupport from './pages/HelpSupport'; 
+import HelpSupport from './pages/helpsupport'; 
 import SavedAddresses from './pages/SavedAddresses';
 
 function RequireVendorOrAdmin({ children }) {
