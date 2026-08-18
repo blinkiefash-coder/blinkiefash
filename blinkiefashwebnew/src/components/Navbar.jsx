@@ -1,6 +1,8 @@
 import "./Navbar.css";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ConfirmDialog from "./ConfirmDialog";
+import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 
 const LOGO_URL =
   "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
@@ -38,15 +40,24 @@ export default function Navbar() {
     navigate(path);
   };
 
-  const handleLogout = (e) => {
-    e?.stopPropagation?.();
+  // The actual logout side-effects, unchanged from before — just no longer
+  // fired directly from onClick. useLogoutConfirm calls this after the user
+  // confirms, then navigates to /login for us.
+  const performLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
     setUserName("");
     setProfileOpen(false);
     closeDrawer();
-    navigate("/login");
   };
+
+  const {
+    open: logoutConfirmOpen,
+    loading: loggingOut,
+    requestLogout,
+    cancel: cancelLogout,
+    confirm: confirmLogout,
+  } = useLogoutConfirm(performLogout, "/login");
 
   return (
     <header className="navbar">
@@ -150,7 +161,13 @@ export default function Navbar() {
                 <div onClick={() => navigate("/customer-service")}>Support</div>
                 <div onClick={() => navigate("/policies")}>Policies</div>
                 <div className="divider" />
-                <div className="logout" onClick={handleLogout}>
+                <div
+                  className="logout"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    requestLogout();
+                  }}
+                >
                   Logout
                 </div>
               </div>
@@ -252,7 +269,7 @@ export default function Navbar() {
               <button
                 type="button"
                 className="nav-drawer-link nav-drawer-logout"
-                onClick={handleLogout}
+                onClick={requestLogout}
               >
                 ⎋ Logout
               </button>
@@ -260,6 +277,18 @@ export default function Navbar() {
           </aside>
         </>
       )}
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Log out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log out"
+        cancelLabel="Cancel"
+        destructive
+        loading={loggingOut}
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+      />
     </header>
   );
 }

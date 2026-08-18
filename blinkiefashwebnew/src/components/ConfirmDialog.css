@@ -1,0 +1,83 @@
+.cd-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.cd-dialog {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 100%;
+  max-width: 360px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
+  animation: cd-pop 0.15s ease-out;
+}
+
+@keyframes cd-pop {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.cd-title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.cd-message {
+  margin: 0 0 20px;
+  color: #555;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cd-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.cd-btn {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cd-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cd-btn-cancel {
+  background: #f2f2f2;
+  color: #222;
+}
+
+.cd-btn-cancel:hover:not(:disabled) {
+  background: #e6e6e6;
+}
+
+/* Destructive = the logout action. Red, not the site's brand color,
+   so it visually reads as "this ends your session" rather than a routine action. */
+.cd-btn-destructive {
+  background: #e53935;
+  color: #fff;
+}
+
+.cd-btn-destructive:hover:not(:disabled) {
+  background: #c62828;
+}
+
+.cd-btn-primary {
+  background: #111;
+  color: #fff;
+}

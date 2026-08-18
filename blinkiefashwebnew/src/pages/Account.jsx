@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { updateUserProfile } from '../api';
 import logo from '../assets/logo.png';
+import ConfirmDialog from '../components/ConfirmDialog';
+import { useLogoutConfirm } from '../hooks/useLogoutConfirm';
 import './Account.css';
 
 /* ---------- icons ---------- */
@@ -166,6 +168,18 @@ export default function AccountPage() {
   const [profileEmail, setProfileEmail] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileError, setProfileError] = useState('');
+
+  // logout() from AuthContext is already async (clears Firebase session +
+  // all local/vendor storage keys) — useLogoutConfirm awaits it either way.
+  // redirectTo is null because this page already re-renders into the guest
+  // view automatically once isLoggedIn flips to false (see the check below).
+  const {
+    open: logoutConfirmOpen,
+    loading: loggingOut,
+    requestLogout,
+    cancel: cancelLogout,
+    confirm: confirmLogout,
+  } = useLogoutConfirm(logout, null);
 
   const handleOpenProfile = () => {
     setProfileName(user?.name || '');
@@ -361,9 +375,9 @@ export default function AccountPage() {
           </div>
         </div>
 
-        <button type="button" className="acct-logout-btn" onClick={logout}>
+        <button type="button" className="acct-logout-btn" onClick={requestLogout} disabled={loggingOut}>
           <IconLogout />
-          Log Out
+          {loggingOut ? 'Logging out…' : 'Log Out'}
         </button>
 
         <footer className="acct-footer">
@@ -421,6 +435,18 @@ export default function AccountPage() {
           </div>
         </div>
       )}
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Log out"
+        message="Are you sure you want to log out?"
+        confirmLabel="Log out"
+        cancelLabel="Cancel"
+        destructive
+        loading={loggingOut}
+        onConfirm={confirmLogout}
+        onCancel={cancelLogout}
+      />
     </div>
   );
 }
