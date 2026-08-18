@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getOrderById } from '../api';
+import { getOrderById, cancelOrder } from '../api';
 import Loader from '../components/Loader';
 import './OrderTracking.css';
 
@@ -86,10 +86,11 @@ export default function OrderTracking() {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     setCancelling(true);
     try {
-      // await cancelOrder(orderId);
-      setOrder((prev) => ({ ...prev, status: 'cancelled' }));
+      const res = await cancelOrder(orderId);
+      const updated = res.order || res;
+      setOrder((prev) => ({ ...prev, ...updated, status: updated?.status || 'cancelled' }));
     } catch (err) {
-      alert(err.message || 'Failed to cancel order');
+      alert(err.message || 'Failed to cancel order. Please try again.');
     } finally {
       setCancelling(false);
     }

@@ -153,6 +153,12 @@ export const getOrders = (userId) =>
 export const getOrderById = (orderId) =>
   request(`/checkout/orders/${orderId}`);
 
+export const cancelOrder = (orderId, cancelReason) =>
+  request(`/checkout/orders/${orderId}/status`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'cancelled', cancelReason }),
+  });
+
 /* ========== Parcel / Deliver ========== */
 
 export const estimateParcel = ({

@@ -6,6 +6,12 @@
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.26);
 }
 
+@media (max-width: 767px) {
+  .footer {
+    margin-bottom: calc(70px + env(safe-area-inset-bottom));
+  }
+}
+
 .footer-main {
   display: grid;
   grid-template-columns: 1.45fr 1fr 1fr 1fr 1.2fr 1fr;
