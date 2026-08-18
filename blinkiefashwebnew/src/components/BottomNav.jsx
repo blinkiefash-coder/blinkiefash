@@ -35,9 +35,10 @@ export default function BottomNav() {
           >
             <span className="bn-icon">
               {item.icon}
-              {item.showBadge && (
+              {/* Only show badge when count > 0 */}
+              {item.showBadge && badgeCount > 0 && (
                 <span className="bn-badge" aria-label={`${badgeCount} items`}>
-                  {badgeCount}
+                  {badgeCount > 99 ? '99+' : badgeCount}
                 </span>
               )}
             </span>

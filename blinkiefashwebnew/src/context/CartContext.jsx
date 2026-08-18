@@ -10,15 +10,16 @@ function normalizeItems(raw) {
     .filter((i) => i && (i.productId || i.variantId))
     .map((i) => ({
       ...i,
-      qty: Math.max(1, Number(i.qty) || 1),
+      qty: Math.max(0, Number(i.qty) || 0),
       price: Number(i.price) || 0,
-    }));
+    }))
+    .filter((i) => Number(i.qty) > 0);
 }
 
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
-      return normalizeItems(JSON.parse(localStorage.getItem(STORAGE_KEY)) || []);
+      return normalizeItems(JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'));
     } catch {
       return [];
     }
@@ -58,7 +59,7 @@ export function CartProvider({ children }) {
   };
 
   const updateQty = (key, qty) => {
-    const nextQty = Number(qty);
+    const nextQty = Math.max(0, Number(qty) || 0);
     setItems((prev) =>
       prev
         .map((i) => ((i.variantId || i.productId) === key ? { ...i, qty: nextQty } : i))
@@ -74,7 +75,7 @@ export function CartProvider({ children }) {
       0
     );
     const count = items.reduce((sum, i) => sum + (Number(i.qty) || 0), 0);
-    return { subtotal, count };
+    return { subtotal, count: Number(count) || 0 };
   }, [items]);
 
   const value = useMemo(
