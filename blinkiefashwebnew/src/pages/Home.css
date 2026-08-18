@@ -917,6 +917,10 @@
 }
 
 
+.hp-deals-wrap {
+  position: relative;
+}
+
 .hp-deals-rail {
   display: grid;
   grid-auto-flow: column;
@@ -1011,6 +1015,13 @@
 
 .hp-deals-prev { left: -12px; }
 .hp-deals-next { right: -12px; }
+
+@media (max-width: 640px) {
+  .hp-deals-prev,
+  .hp-deals-next {
+    display: none;
+  }
+}
 
 .hp-deals-prev svg,
 .hp-deals-next svg {
