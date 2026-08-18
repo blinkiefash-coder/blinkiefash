@@ -71,7 +71,7 @@ img {
 }
 
 .app-shell {
-  max-width: 640px;
+  max-width: 1950px;
   margin: 0 auto;
   min-height: 100vh;
   background: transparent;
@@ -130,7 +130,8 @@ img {
 .app-shell.is-order-tracking,
 .app-shell.is-account,
 .app-shell.is-parcel,
-.app-shell.is-offers {
+.app-shell.is-offers,
+.app-shell.is-help-support {
   max-width: none;
   margin: 0;
   box-shadow: none;

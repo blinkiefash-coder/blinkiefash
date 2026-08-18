@@ -1,13 +1,20 @@
 .hp {
   --hp-max: 1950px;
+  /* Space for fixed navbar (utility + main header + category nav) */
+  --hp-header-h: 136px;
   background: #f8fafc;
-  overflow-x: hidden;
+  overflow-x: clip;
+  padding-top: var(--hp-header-h);
 }
 
 .hp-top-fixed {
-  position: sticky;
+  position: fixed;
   top: 0;
-  z-index: 45;
+  left: 0;
+  right: 0;
+  width: 100%;
+  z-index: 100;
+  background: #fff;
 }
 
 .hp-utility-bar {
@@ -386,14 +393,18 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
-  font-size: 10.5px;
+  gap: 4px;
+  font-size: 6px;
   font-weight: 700;
   color: var(--brand-dark);
 }
 
+.hp-header-actions button span {
+  font-size: 10px !important;
+}
+
 .hp-header-actions svg {
-  font-size: 20px;
+  font-size: 18px;
   color: #374151;
 }
 
@@ -919,6 +930,9 @@
 
 .hp-deals-wrap {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .hp-deals-rail {
@@ -926,13 +940,16 @@
   grid-auto-flow: column;
   grid-auto-columns: 188px;
   gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   overflow-y: hidden;
   padding: 4px 2px 10px;
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-x;
   overscroll-behavior-x: contain;
 }
 
@@ -1016,13 +1033,6 @@
 .hp-deals-prev { left: -12px; }
 .hp-deals-next { right: -12px; }
 
-@media (max-width: 640px) {
-  .hp-deals-prev,
-  .hp-deals-next {
-    display: none;
-  }
-}
-
 .hp-deals-prev svg,
 .hp-deals-next svg {
   font-size: 18px;
@@ -1077,7 +1087,7 @@
   overflow-x: auto;
   padding: 4px 0 14px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-x;
   overscroll-behavior-x: contain;
 }
 
@@ -1164,7 +1174,7 @@
   overflow-x: auto;
   padding: 4px 0 10px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-x;
   overscroll-behavior-x: contain;
 }
 
@@ -1457,7 +1467,7 @@
   overflow-x: auto;
   padding: 4px 2px 8px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x pan-y;
+  touch-action: pan-x;
   overscroll-behavior-x: contain;
 }
 
@@ -1883,7 +1893,7 @@
     padding-bottom: 6px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x pan-y;
+    touch-action: pan-x;
     overscroll-behavior-x: contain;
   }
 
@@ -2120,3 +2130,138 @@
     justify-self: end;
   }
 }
+
+/* Fixed navbar height offsets (must match .hp-top-fixed content height) */
+@media (max-width: 900px) {
+  .hp {
+    --hp-header-h: 148px;
+  }
+}
+
+@media (max-width: 760px) {
+  .hp {
+    /* Header stacks: brand row + search row + category nav + utility */
+    --hp-header-h: 196px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp {
+    --hp-header-h: 210px;
+  }
+}
+
+/* =========================================================
+   HORIZONTAL RAIL FIX — mobile swipe works (no arrows on mobile)
+   Root cause: rail was growing to fit all cards, so overflow never scrolled.
+   Fix: force width:100% on rails + hide arrows under 640px.
+   ========================================================= */
+
+.hp-deals-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden; /* contain children; inner rail scrolls */
+}
+
+.hp-deals-rail {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 188px;
+  gap: 14px;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: hidden;
+  padding: 4px 2px 10px;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  /* Critical: prevent grid from expanding parent */
+  min-width: 0;
+}
+
+.hp-deal-card {
+  scroll-snap-align: start;
+  min-width: 0;
+}
+
+.hp-collection-chips,
+.hp-subcat-rail,
+.hp-top-brands-rail {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.hp-collection-chip {
+  scroll-snap-align: start;
+  flex: none;
+}
+
+/* Parent must not block nested horizontal pan on some mobile browsers */
+.hp-main {
+  overflow-x: clip;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.hp {
+  /* clip instead of hidden — less likely to break nested touch scroll */
+  overflow-x: clip;
+}
+
+@media (min-width: 1200px) {
+  .hp-deals-rail {
+    grid-auto-columns: calc((100% - 70px) / 6);
+  }
+}
+
+@media (min-width: 1600px) {
+  .hp-deals-rail {
+    grid-auto-columns: calc((100% - 84px) / 7);
+  }
+}
+
+@media (max-width: 900px) {
+  .hp-deals-rail {
+    grid-auto-columns: 160px;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 640px) {
+  /* No arrows on mobile — swipe only */
+  .hp-deals-prev,
+  .hp-deals-next {
+    display: none !important;
+  }
+
+  .hp-deals-rail {
+    grid-auto-columns: 148px;
+    gap: 10px;
+    padding-bottom: 12px;
+  }
+
+  .hp-deal-media {
+    height: 150px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-deals-rail {
+    grid-auto-columns: 152px;
+    gap: 10px;
+  }
+
+  .hp-deal-media {
+    height: 136px;
+  }
+}
+

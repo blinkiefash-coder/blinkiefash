@@ -18,12 +18,20 @@
 
 .hs-page {
   width: 100%;
+  max-width: 100%;
   margin: 0;
-  padding: 24px clamp(20px, 4vw, 60px) 60px;
+  padding: 24px 16px 60px;
   background: var(--hs-page-bg);
   min-height: 70vh;
   font-family: inherit;
   color: var(--hs-text);
+  box-sizing: border-box;
+}
+
+.hs-page-inner {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   box-sizing: border-box;
 }
 
@@ -96,6 +104,7 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 14px;
   margin-bottom: 20px;
+  width: 100%;
 }
 
 .hs-contact-card {
@@ -111,6 +120,8 @@
   text-align: left;
   font-family: inherit;
   transition: border-color 0.15s, box-shadow 0.15s, transform 0.12s;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hs-contact-card:hover {
@@ -204,6 +215,7 @@
   font-family: inherit;
   margin-bottom: 24px;
   transition: opacity 0.15s, transform 0.12s;
+  box-sizing: border-box;
 }
 
 .hs-chat-banner:hover {
@@ -259,6 +271,8 @@
   border: 1.5px solid var(--hs-border);
   border-radius: 16px;
   padding: 18px 18px 14px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .hs-topics-title {
@@ -424,9 +438,7 @@
   cursor: not-allowed;
 }
 
-/* =========================================================
-   TICKET MODAL — category chips + success (aligned with mobile)
-   ========================================================= */
+/* Ticket modal */
 .hs-modal-label {
   font-size: 13px;
   font-weight: 700;
@@ -505,9 +517,7 @@
   line-height: 1.45;
 }
 
-/* =========================================================
-   RESPONSIVE
-   ========================================================= */
+/* Responsive */
 @media (max-width: 1024px) {
   .hs-contact-grid {
     grid-template-columns: repeat(2, 1fr);
@@ -520,7 +530,7 @@
 
 @media (max-width: 700px) {
   .hs-page {
-    padding: 16px 14px 40px;
+    padding: 16px 12px 40px;
   }
   .hs-header {
     flex-direction: column;
@@ -560,6 +570,9 @@
 }
 
 @media (max-width: 420px) {
+  .hs-page {
+    padding: 14px 10px 36px;
+  }
   .hs-contact-grid {
     grid-template-columns: 1fr 1fr;
   }

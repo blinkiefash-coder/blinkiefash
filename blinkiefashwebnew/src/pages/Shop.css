@@ -436,7 +436,7 @@
   color: #16a34a;
 }
 
-/* ---------- Product grid ---------- */
+/* ---------- Product grid — 6 columns on desktop ---------- */
 
 .catalog-products-scroll {
   flex: 1;
@@ -444,17 +444,13 @@
 
 .catalog-products-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
   margin-bottom: 14px;
 }
 
 .catalog-product-card {
-  position: relative; /* FIX: establishes a positioning context so
-    .catalog-card-top (and the wishlist button inside it) anchors to
-    this card instead of the page/viewport. Without this, the absolute
-    badge/wishlist row was escaping the card and getting clipped by the
-    edge of the screen, especially in the single-column mobile layout. */
+  position: relative;
   border: 1px solid #eef1f5;
   border-radius: 18px;
   background: #fff;
@@ -472,11 +468,7 @@
 
 .catalog-card-top {
   position: absolute;
-  top: 0; /* FIX: explicit anchor so this always sits at the card's
-    own top-left corner instead of relying on the browser's "static
-    position" fallback, which was not respecting the card's rounded
-    corners / overflow:hidden clipping and could visually drift to the
-    screen edge on narrow viewports. */
+  top: 0;
   left: 0;
   z-index: 2;
   display: flex;
@@ -707,6 +699,25 @@
   box-shadow: 0 10px 22px rgba(22, 163, 74, 0.25);
 }
 
+/* Product grid responsive tiers */
+@media (max-width: 1400px) {
+  .catalog-products-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1200px) {
+  .catalog-products-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .catalog-products-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1100px) {
   .catalog-headline-row h2 {
     font-size: 26px;
@@ -817,9 +828,6 @@
     white-space: nowrap;
   }
 
-  /* FIXED: removed width:100% + justify-content:space-between,
-     which were pushing the profile and wishlist icons apart.
-     Now they sit close together, spaced only by `gap`. */
   .catalog-header-actions-wrap .hp-header-actions {
     border-left: 0;
     padding-left: 0;
@@ -878,8 +886,6 @@
     min-width: 76px;
   }
 
-  /* FIXED: was width:100% + justify-content:space-between,
-     which re-stretched the icons apart at narrower widths. */
   .catalog-header-actions-wrap {
     justify-content: space-between;
   }
@@ -898,8 +904,23 @@
 }
 
 @media (max-width: 420px) {
+  .catalog-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .catalog-products-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
   .catalog-card-image-wrap {
-    height: 150px;
+    height: auto;
+    aspect-ratio: 3 / 4;
+  }
+
+  .catalog-card-body {
+    padding: 6px 6px 8px;
   }
 
   .catalog-headline-row h2 {
@@ -926,30 +947,6 @@
 
   .catalog-card-price-row strong {
     font-size: 14px;
-  }
-
-  .catalog-products-grid {
-    gap: 10px;
-  }
-}
-
-@media (max-width: 420px) {
-  .catalog-main {
-    padding-left: 12px;
-    padding-right: 12px;
-  }
-
-  .catalog-products-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
-  }
-
-  .catalog-card-body {
-    padding: 6px 6px 8px;
-  }
-
-  .catalog-headline-row h2 {
-    font-size: 20px;
   }
 
   .catalog-mobile-search input {

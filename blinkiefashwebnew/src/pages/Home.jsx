@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FaApple } from 'react-icons/fa';
 import {
   MdLocationOn,
   MdVisibility,
@@ -17,6 +16,8 @@ import {
   MdTrackChanges,
   MdArrowForward,
   MdPersonOutline,
+  MdKeyboardArrowDown,
+  MdClose,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -29,6 +30,7 @@ import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, ge
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
+import './Shop.css';
 import './Home.css';
 
 // Same logic as blinkiefashmob's _imgUrl(): resolves category_url from the database, absolute or relative.
@@ -193,10 +195,49 @@ function chipFallbackIcon(label, audience) {
   return CHIP_ICON_BY_AUDIENCE[audienceKey] || '🛍️';
 }
 
+// ---- Search-suggestion helpers (mirrors Shop.jsx's suggestion ranking exactly) ----
+const normalizeText = (value) => String(value || '').trim().toLowerCase();
+
+const rankedMatches = (items, query, limit, getter) => {
+  const prefix = [];
+  const contains = [];
+  const lower = normalizeText(query);
+
+  for (const item of items) {
+    const text = normalizeText(getter(item));
+    if (!text) continue;
+    if (text.startsWith(lower)) {
+      prefix.push(item);
+    } else if (text.includes(lower)) {
+      contains.push(item);
+    }
+    if (prefix.length >= limit) break;
+  }
+
+  return [...prefix, ...contains].slice(0, limit);
+};
+
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
+const RECENT_SEARCH_KEY = 'bfw_recent_searches';
 
 // Module-level cache — survives navigation, cleared on full page reload
 let _homeCache = null;
+
+
+/** Scroll a product/chip rail by N cards (default 6). */
+function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
+  if (!el) return;
+  const dir = direction < 0 ? -1 : 1;
+  const card = el.querySelector('.hp-deal-card, .hp-collection-chip, .hp-subcat-chip');
+  let step = Math.round(el.clientWidth * 0.95);
+  if (card) {
+    const styles = window.getComputedStyle(el);
+    const gap = parseFloat(styles.columnGap || styles.gap || '14') || 14;
+    const cardW = card.getBoundingClientRect().width;
+    step = Math.round((cardW + gap) * cardsPerPage);
+  }
+  el.scrollBy({ left: dir * step, behavior: 'smooth' });
+}
 
 export default function Home() {
   const navigate = useNavigate();
@@ -204,7 +245,6 @@ export default function Home() {
   const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
   const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
-  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
   const { count, addToCart } = useCart();
   const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
 
@@ -252,6 +292,21 @@ export default function Home() {
   const dealsRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
+
+  // ---- Search bar state (matches Shop.jsx's header search exactly) ----
+  const [searchInput, setSearchInput] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
+  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || '[]');
+      return Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : [];
+    } catch {
+      return [];
+    }
+  });
+  const searchBlurTimerRef = useRef(null);
+  const searchSuggestTimerRef = useRef(null);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -711,6 +766,23 @@ export default function Home() {
     return pinned ? [pinned, ...rest] : rest;
   }, [newProducts, pinnedNewProduct]);
 
+  // Combined, de-duplicated pool of already-loaded products used to power header search suggestions.
+  const suggestionProductPool = useMemo(() => {
+    const seen = new Set();
+    const pool = [];
+    [newProducts, mensProducts, womensProducts, kidsProducts, electronicsProducts, trendyShoesProducts].forEach(
+      (list) => {
+        (Array.isArray(list) ? list : []).forEach((item) => {
+          const key = String(item?.id ?? '');
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          pool.push(item);
+        });
+      }
+    );
+    return pool;
+  }, [newProducts, mensProducts, womensProducts, kidsProducts, electronicsProducts, trendyShoesProducts]);
+
   const handleDetectLocation = async () => {
     setLocating(true);
     setLocationError('');
@@ -751,10 +823,115 @@ export default function Home() {
     setLocationSheetOpen(false);
   };
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    const q = e.target.elements.q.value.trim();
-    navigate(q ? `/shop?search=${encodeURIComponent(q)}` : '/shop');
+  // ---- Search bar handlers (mirrors Shop.jsx exactly) ----
+  const saveRecentSearch = (rawValue) => {
+    const value = String(rawValue || '').trim();
+    if (!value) return;
+    const deduped = [value, ...recentSearches.filter((item) => normalizeText(item) !== normalizeText(value))].slice(0, 8);
+    setRecentSearches(deduped);
+    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(deduped));
+  };
+
+  const updateSearchSuggestions = (value) => {
+    if (searchSuggestTimerRef.current) {
+      clearTimeout(searchSuggestTimerRef.current);
+      searchSuggestTimerRef.current = null;
+    }
+
+    const query = String(value || '').trim();
+    if (!query) {
+      searchSuggestTimerRef.current = setTimeout(() => {
+        setSearchSuggestions(
+          recentSearches.map((item) => ({ text: item, type: 'search', subtitle: 'Recent search' })).slice(0, 8)
+        );
+      }, 50);
+      return;
+    }
+
+    searchSuggestTimerRef.current = setTimeout(() => {
+      const q = normalizeText(query);
+      const seen = new Set();
+      const ranked = [];
+
+      const pushCandidate = (entry) => {
+        const clean = String(entry?.text || '').trim();
+        if (!clean) return;
+        const key = `${entry.type}:${clean.toLowerCase()}`;
+        if (seen.has(key)) return;
+        seen.add(key);
+        ranked.push(entry);
+      };
+
+      // 0) Explicit search query first.
+      pushCandidate({ text: query, type: 'search' });
+
+      // 1) Categories max 2, prefix first.
+      rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
+        pushCandidate({ text: item.name, type: 'category', id: item.id ? String(item.id) : '' });
+      });
+
+      // 2) Brands max 2, fallback top 2 when no matches.
+      const matchingBrands = rankedMatches(topBrands, q, 2, (item) => item.name);
+      const brandsToShow = matchingBrands.length > 0 ? matchingBrands : topBrands.slice(0, 2);
+      brandsToShow.forEach((item) => {
+        pushCandidate({
+          text: item.name,
+          type: 'brand',
+          subtitle: matchingBrands.length === 0 ? 'Popular brand' : '',
+        });
+      });
+
+      // 3) Product names max 4, prefix first.
+      rankedMatches(suggestionProductPool, q, 4, (item) => item.name).forEach((item) => {
+        pushCandidate({ text: item.name, type: 'product' });
+      });
+
+      setSearchSuggestions(ranked.slice(0, 8));
+    }, 150);
+  };
+
+  const handleTopSearch = (event) => {
+    event.preventDefault();
+    const value = String(searchInput || '').trim();
+    saveRecentSearch(value);
+    setShowSearchSuggestions(false);
+    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop');
+  };
+
+  // FIX: Tapping/focusing the search box now takes the user straight to the
+  // Shop (all products) page instead of just opening the inline suggestions
+  // dropdown. If they'd already typed something, we carry it over as the
+  // initial search query on the Shop page.
+  const handleSearchInputFocus = () => {
+    setShowSearchSuggestions(false);
+    const value = String(searchInput || '').trim();
+    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop');
+  };
+
+  const handleSearchInputBlur = () => {
+    searchBlurTimerRef.current = setTimeout(() => {
+      setShowSearchSuggestions(false);
+    }, 120);
+  };
+
+  const applySuggestion = (item) => {
+    const type = item?.type || 'product';
+    const text = String(item?.text || '').trim();
+    const id = String(item?.id || '').trim();
+
+    if (!text) return;
+
+    setShowSearchSuggestions(false);
+
+    if (type === 'category') {
+      setSearchInput('');
+      navigate(id ? `/shop?category_id=${id}` : '/shop');
+      return;
+    }
+
+    setSearchInput(text);
+    saveRecentSearch(text);
+    navigate(`/shop?search=${encodeURIComponent(text)}`);
   };
 
   const enrichItems = (items) =>
@@ -764,67 +941,6 @@ export default function Home() {
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
       return { ...item, _price: price, _mrp: mrp, _discount: discount };
     });
-
-  
-
-  const renderCategoryChips = (chips, audienceLabel = '') => {
-    if (!Array.isArray(chips) || chips.length === 0) return null;
-    const activeId = activeCollectionCats[audienceLabel] ?? chips[0]?.id;
-    const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
-    return (
-      <div className="hp-collection-chip-group">
-        <div className="hp-collection-chips" role="list">
-          {chips.map((cat, idx) => {
-            const icon = resolveImageUrl(cat.image);
-            const fallback = chipFallbackIcon(cat.name, audienceLabel);
-            const isActive = String(cat.id) === String(activeId);
-            return (
-              <button
-                key={`${cat.id || cat.name || 'chip'}-${idx}`}
-                type="button"
-                className={`hp-collection-chip${isActive ? ' active' : ''}`}
-                role="listitem"
-                onClick={() =>
-                  setActiveCollectionCats((prev) => ({
-                    ...prev,
-                    [audienceLabel]: cat.id,
-                  }))
-                }
-              >
-                <span className="hp-collection-chip-icon" aria-hidden="true">
-                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
-                </span>
-                <span className="hp-collection-chip-label">{cat.name}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
-          <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
-            {activeCat.subcategories.map((sub, subIdx) => {
-              const subImg = resolveImageUrl(sub.image);
-              const subFallback = chipFallbackIcon(sub.name, audienceLabel);
-              return (
-                <button
-                  key={`${sub.id || sub.name || 'sub'}-${subIdx}`}
-                  type="button"
-                  className="hp-subcat-chip"
-                  role="listitem"
-                  onClick={() => navigate(`/shop?category_id=${sub.id}`)}
-                >
-                  <span className="hp-subcat-chip-icon" aria-hidden="true">
-                    {subImg ? <img src={subImg} alt="" loading="lazy" /> : <span>{subFallback}</span>}
-                  </span>
-                  <span className="hp-subcat-chip-label">{sub.name}</span>
-                </button>
-              );
-            })}
-          </div>
-        ) : null}
-      </div>
-    );
-  };
 
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
@@ -855,81 +971,103 @@ export default function Home() {
         </div>
 
         <div className="hp-sticky-head">
-          <header className="hp-main-header">
-            <button type="button" className="hp-brand" onClick={() => navigate('/')}>
+          {/* ---- Navbar: exact markup/classes copied from Shop.jsx's catalog header ---- */}
+          <header className="hp-main-header catalog-main-header">
+            <button type="button" className="hp-brand" onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}>
               <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
               <span className="hp-brand-text">
                 <span className="hp-brand-name">
                   BLINKIE<span className="hp-brand-accent">FASH</span>
                 </span>
-              </span>
-            </button>
-            <button type="button" className="hp-delivery-location" onClick={openLocationSheet}>
-              <span className="hp-delivery-location-title">Delivered in 60 Minutes</span>
-              <span className="hp-delivery-location-sub">
-                <MdLocationOn className="hp-delivery-location-pin" />
-                {locating ? 'Detecting...' : city}
+                <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
               </span>
             </button>
 
-            <form className="hp-header-search" onSubmit={handleSearch}>
+            <form className="hp-header-search catalog-mobile-search" onSubmit={handleTopSearch}>
               <MdSearch className="hp-search-icon" />
               <input
                 name="q"
-                type="text"
+                value={searchInput}
+                readOnly
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setSearchInput(value);
+                  updateSearchSuggestions(value);
+                }}
+                onFocus={handleSearchInputFocus}
+                onBlur={handleSearchInputBlur}
+                onClick={handleSearchInputFocus}
                 placeholder="Search Ethnic Wear, Sneakers, Bags & more..."
-                onFocus={() => navigate('/shop')}
               />
-              <button type="submit" className="hp-search-btn">
+              {searchInput.trim() ? (
+                <button
+                  type="button"
+                  className="catalog-search-clear"
+                  aria-label="Clear search"
+                  onClick={() => {
+                    setSearchInput('');
+                    updateSearchSuggestions('');
+                  }}
+                >
+                  <MdClose />
+                </button>
+              ) : null}
+              <button type="submit" className="hp-search-btn" aria-label="Search products">
                 <MdSearch />
               </button>
+              {showSearchSuggestions && searchSuggestions.length > 0 ? (
+                <div className="catalog-search-suggestions" role="listbox" aria-label="Search suggestions">
+                  {searchSuggestions.map((item, idx) => (
+                    <button
+                      key={`${item.type}-${item.text}-${idx}`}
+                      type="button"
+                      className="catalog-suggestion-item"
+                      onMouseDown={(event) => event.preventDefault()}
+                      onClick={() => applySuggestion(item)}
+                    >
+                      <MdSearch />
+                      <span className="catalog-suggestion-text">{item.text}</span>
+                      <span className="catalog-suggestion-type">{item.subtitle || item.type}</span>
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </form>
 
-            <div className="hp-header-actions">
-              {canSwitchToVendor && (
-                <button type="button" onClick={() => navigate('/vendor/orders')}>
-                  <MdArrowForward />
-                  <span>Switch to Vendor</span>
+            <div className="catalog-header-actions-wrap">
+              <button type="button" className="catalog-location-pill" onClick={openLocationSheet}>
+                <MdLocationOn />
+                <span>{locating ? 'Detecting...' : city}</span>
+                <MdKeyboardArrowDown />
+              </button>
+
+              <div className="hp-header-actions">
+                {canSwitchToVendor && (
+                  <button type="button" onClick={() => navigate('/vendor/orders')}>
+                    <MdArrowForward />
+                    <span>Vendor</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}
+                >
+                  <MdPersonOutline />
+                  <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>
                 </button>
-              )}
-              <a
-                className="hp-store-btn hp-store-btn-header"
-                href="https://play.google.com/store"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Get it on Google Play"
-              >
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/d/d0/Google_Play_Arrow_logo.svg"
-                  alt="Google Play"
-                  className="hp-store-color-icon"
-                />
-                <span>Google Play</span>
-              </a>
-              <a
-                className="hp-store-btn hp-store-btn-header"
-                href="https://www.apple.com/app-store/"
-                target="_blank"
-                rel="noreferrer"
-                aria-label="Download on the App Store"
-              >
-                <FaApple />
-                <span>App Store</span>
-              </a>
-              <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
-                <MdPersonOutline />
-                <span>{accountLabel}</span>
-              </button>
-              <button type="button" onClick={() => navigate('/wishlist')}>
-                <MdFavoriteBorder />
-                <span>Wishlist</span>
-                {wishlistItems.length > 0 && <span className="hp-icon-badge">{wishlistItems.length}</span>}
-              </button>
-              <button type="button" onClick={() => navigate('/cart')}>
-                <MdOutlineShoppingCart />
-                <span>Cart</span>
-                {count > 0 && <span className="hp-icon-badge">{count}</span>}
-              </button>
+                <button type="button" onClick={() => navigate('/wishlist')}>
+                  <MdFavoriteBorder />
+                  {wishlistItems.length > 0 && (
+                    <span className="hp-icon-badge">{wishlistItems.length}</span>
+                  )}
+                  <span>Wishlist</span>
+                </button>
+                <button type="button" onClick={() => navigate('/cart')}>
+                  <MdOutlineShoppingCart />
+                  {count > 0 && <span className="hp-icon-badge">{count}</span>}
+                  <span>Cart</span>
+                </button>
+              </div>
             </div>
           </header>
 
@@ -1100,7 +1238,7 @@ export default function Home() {
                 onClick={() => {
                   const el = dealsRef.current;
                   if (!el) return;
-                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                  scrollRailByCards(el, -1, 6);
                 }}
               >
                 <MdChevronLeft />
@@ -1178,7 +1316,7 @@ export default function Home() {
                 onClick={() => {
                   const el = dealsRef.current;
                   if (!el) return;
-                  el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                  scrollRailByCards(el, 1, 6);
                 }}
               >
                 <MdChevronRight />
@@ -1236,7 +1374,7 @@ export default function Home() {
                 onClick={() => {
                   const el = recentlyViewedRailRef.current;
                   if (!el) return;
-                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                  scrollRailByCards(el, -1, 6);
                 }}
               >
                 <MdChevronLeft />
@@ -1314,7 +1452,7 @@ export default function Home() {
                 onClick={() => {
                   const el = recentlyViewedRailRef.current;
                   if (!el) return;
-                  el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                  scrollRailByCards(el, 1, 6);
                 }}
               >
                 <MdChevronRight />
@@ -1339,7 +1477,7 @@ export default function Home() {
                 onClick={() => {
                   const el = newOnBlinkiefashRailRef.current;
                   if (!el) return;
-                  el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                  scrollRailByCards(el, -1, 6);
                 }}
               >
                 <MdChevronLeft />
@@ -1415,7 +1553,7 @@ export default function Home() {
               onClick={() => {
                 const el = newOnBlinkiefashRailRef.current;
                 if (!el) return;
-                el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+                scrollRailByCards(el, 1, 6);
               }}
             >
               <MdChevronRight />
@@ -1432,7 +1570,13 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderCategoryChips(mensCats, 'Men')}
+            <CategoryChipsRail
+              chips={mensCats}
+              audienceLabel="Men"
+              activeId={activeCollectionCats.Men ?? mensCats[0]?.id}
+              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))}
+              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
+            />
             {mensProducts.length > 0 ? <RailCards items={mensProducts} keyPrefix="men" /> : null}
           </section>
         )}
@@ -1445,7 +1589,13 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderCategoryChips(womensCats, 'Women')}
+            <CategoryChipsRail
+              chips={womensCats}
+              audienceLabel="Women"
+              activeId={activeCollectionCats.Women ?? womensCats[0]?.id}
+              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))}
+              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
+            />
             {womensProducts.length > 0 ? <RailCards items={womensProducts} keyPrefix="women" /> : null}
           </section>
         )}
@@ -1458,7 +1608,13 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderCategoryChips(kidsCats, 'Kids')}
+            <CategoryChipsRail
+              chips={kidsCats}
+              audienceLabel="Kids"
+              activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id}
+              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))}
+              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
+            />
             {kidsProducts.length > 0 ? <RailCards items={kidsProducts} keyPrefix="kids" /> : null}
           </section>
         )}
@@ -1471,7 +1627,13 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderCategoryChips(electronicsCats, 'Electronics')}
+            <CategoryChipsRail
+              chips={electronicsCats}
+              audienceLabel="Electronics"
+              activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id}
+              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))}
+              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
+            />
             {electronicsProducts.length > 0 ? <RailCards items={electronicsProducts} keyPrefix="electronics" /> : null}
           </section>
         )}
@@ -1484,7 +1646,13 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {renderCategoryChips(trendyShoesCats, 'Trendy Shoes')}
+            <CategoryChipsRail
+              chips={trendyShoesCats}
+              audienceLabel="Trendy Shoes"
+              activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id}
+              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))}
+              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
+            />
             {trendyShoesProducts.length > 0 ? <RailCards items={trendyShoesProducts} keyPrefix="shoes" /> : null}
           </section>
         )}
@@ -1690,6 +1858,86 @@ export default function Home() {
   );
 }
 
+// Category chip rail with left/right scroll-arrow controls (keyboard-focusable <button>s).
+function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
+  const chipsRef = useRef(null);
+  if (!Array.isArray(chips) || chips.length === 0) return null;
+  const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
+
+  const scrollBy = (dir) => {
+    scrollRailByCards(chipsRef.current, dir, 6);
+  };
+
+  return (
+    <div className="hp-collection-chip-group">
+      <div className="hp-deals-wrap">
+        <button
+          type="button"
+          className="hp-deals-prev"
+          aria-label={`Scroll ${audienceLabel} categories left`}
+          onClick={() => scrollBy(-1)}
+        >
+          <MdChevronLeft />
+        </button>
+
+        <div className="hp-collection-chips" role="list" ref={chipsRef}>
+          {chips.map((cat, idx) => {
+            const icon = resolveImageUrl(cat.image);
+            const fallback = chipFallbackIcon(cat.name, audienceLabel);
+            const isActive = String(cat.id) === String(activeId);
+            return (
+              <button
+                key={`${cat.id || cat.name || 'chip'}-${idx}`}
+                type="button"
+                className={`hp-collection-chip${isActive ? ' active' : ''}`}
+                role="listitem"
+                onClick={() => onChipSelect(cat.id)}
+              >
+                <span className="hp-collection-chip-icon" aria-hidden="true">
+                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
+                </span>
+                <span className="hp-collection-chip-label">{cat.name}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          className="hp-deals-next"
+          aria-label={`Scroll ${audienceLabel} categories right`}
+          onClick={() => scrollBy(1)}
+        >
+          <MdChevronRight />
+        </button>
+      </div>
+
+      {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
+        <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
+          {activeCat.subcategories.map((sub, subIdx) => {
+            const subImg = resolveImageUrl(sub.image);
+            const subFallback = chipFallbackIcon(sub.name, audienceLabel);
+            return (
+              <button
+                key={`${sub.id || sub.name || 'sub'}-${subIdx}`}
+                type="button"
+                className="hp-subcat-chip"
+                role="listitem"
+                onClick={() => onSubSelect(sub.id)}
+              >
+                <span className="hp-subcat-chip-icon" aria-hidden="true">
+                  {subImg ? <img src={subImg} alt="" loading="lazy" /> : <span>{subFallback}</span>}
+                </span>
+                <span className="hp-subcat-chip-label">{sub.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
   const railRef = useRef(null);
   const navigate = useNavigate();
@@ -1712,7 +1960,7 @@ function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
         onClick={() => {
           const el = railRef.current;
           if (!el) return;
-          el.scrollBy({ left: -Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+          scrollRailByCards(el, -1, 6);
         }}
       >
         <MdChevronLeft />
@@ -1791,7 +2039,7 @@ function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
         onClick={() => {
           const el = railRef.current;
           if (!el) return;
-          el.scrollBy({ left: Math.max(el.clientWidth * 0.9, 600), behavior: 'smooth' });
+          scrollRailByCards(el, 1, 6);
         }}
       >
         <MdChevronRight />
