@@ -932,7 +932,7 @@
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
 }
 
@@ -1077,7 +1077,7 @@
   overflow-x: auto;
   padding: 4px 0 14px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
 }
 
@@ -1164,7 +1164,7 @@
   overflow-x: auto;
   padding: 4px 0 10px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
 }
 
@@ -1457,7 +1457,7 @@
   overflow-x: auto;
   padding: 4px 2px 8px;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
 }
 
@@ -1883,7 +1883,7 @@
     padding-bottom: 6px;
     scrollbar-width: none;
     -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
+    touch-action: pan-x pan-y;
     overscroll-behavior-x: contain;
   }
 
