@@ -256,11 +256,11 @@ export const completeQuestLevel = (userId) =>
 
 export const updateUserProfile = async ({ userId, name, email }) => {
   try {
-    const data = await request('/auth/update-profile', {
-      method: 'PUT',
-      body: JSON.stringify({ userId, name, email }),
+    const data = await request(`/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name, email }),
     });
-    return { success: true, user: data?.user || data, message: data?.message };
+    return { success: true, user: data?.user, message: data?.message };
   } catch (error) {
     return { success: false, error: error.message || 'Failed to update profile' };
   }

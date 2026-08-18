@@ -197,10 +197,14 @@ export default function AccountPage() {
       });
 
       if (result.success) {
-        updateUser({ name: trimmedName, email: profileEmail.trim() });
+        const savedUser = result.user || {};
+        updateUser({
+          name: savedUser.name ?? trimmedName,
+          email: savedUser.email ?? profileEmail.trim(),
+        });
         setProfileOpen(false);
       } else {
-        setProfileError(result.message || 'Could not update profile');
+        setProfileError(result.error || 'Could not update profile');
       }
     } catch (e) {
       console.error('Profile update error:', e);
