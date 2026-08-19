@@ -18,20 +18,55 @@ export default function StockMonitoring() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
+  // Admin: load dark-store list once
   useEffect(() => {
-    if (adminMode) {
-      loadDarkStores();
-      return;
-    }
+    if (!adminMode) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const res = await fetch(`${API_API_BASE_URL}/checkout/darkstores`, {
+          headers: adminHeaders(),
+        });
+        if (cancelled) return;
+        const data = await res.json();
+        if (cancelled) return;
+        const stores = Array.isArray(data?.stores) ? data.stores : [];
+        setDarkStores(stores);
+        // Default to "All" so admin sees everything at once
+        setSelectedStoreId("all");
+      } catch (err) {
+        console.error("Failed to load dark stores:", err);
+        if (!cancelled) {
+          setDarkStores([]);
+          setProducts([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminMode]);
+
+  // Vendor: auth gate + load own products
+  useEffect(() => {
+    if (adminMode) return;
 
     if (!vendorId) {
-      window.location.href = "/vendor";
+      navigate("/vendor", { replace: true });
       return;
     }
 
-    const loadVendorData = async () => {
+    let cancelled = false;
+
+    (async () => {
       try {
         const vendor = await fetchVendorProfile(vendorId);
+        if (cancelled) return;
         if (vendor?.store_name) {
           setStoreName(vendor.store_name);
           localStorage.setItem("store_name", vendor.store_name);
@@ -40,81 +75,80 @@ export default function StockMonitoring() {
           localStorage.setItem("vendor_name", vendor.owner_name);
         }
 
-        // Vendor mode should always show all products owned by the vendor account.
         const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/products`);
+        if (cancelled) return;
         const productsData = await res.json();
+        if (cancelled) return;
         setProducts(Array.isArray(productsData) ? productsData : []);
       } catch (err) {
         console.error("Failed to load vendor stock:", err);
-        setProducts([]);
+        if (!cancelled) setProducts([]);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
+    })();
+
+    return () => {
+      cancelled = true;
     };
+  }, [adminMode, vendorId, navigate]);
 
-    loadVendorData();
-  }, [adminMode, vendorId]);
-
+  // Admin: load products when selected store changes
   useEffect(() => {
-    if (!adminMode || !selectedStoreId) {
-      return;
-    }
-    loadProductsForStore(selectedStoreId);
-  }, [adminMode, selectedStoreId, darkStores.length]);
+    if (!adminMode || !selectedStoreId) return;
 
-  const loadDarkStores = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`${API_API_BASE_URL}/checkout/darkstores`, {
-        headers: adminHeaders(),
-      });
-      const data = await res.json();
-      const stores = Array.isArray(data?.stores) ? data.stores : [];
-      setDarkStores(stores);
-      // Default to "All" so admin sees everything at once
-      setSelectedStoreId("all");
-    } catch (err) {
-      console.error("Failed to load dark stores:", err);
-      setDarkStores([]);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    let cancelled = false;
 
-  const loadProductsForStore = async (storeId) => {
-    try {
-      setLoading(true);
-      if (storeId === "all") {
-        // Fetch all stores in parallel and merge products
-        const allStoreIds = darkStores.map(s => s.id);
-        const results = await Promise.all(
-          allStoreIds.map(id =>
-            fetch(`${API_API_BASE_URL}/checkout/darkstore/${id}/products`, { headers: adminHeaders() })
-              .then(r => r.json()).catch(() => [])
-          )
-        );
-        const seen = new Set();
-        const merged = [];
-        results.flat().forEach(p => {
-          if (!seen.has(p.id)) { seen.add(p.id); merged.push(p); }
-        });
-        setProducts(merged);
-      } else {
-        const res = await fetch(
-          `${API_API_BASE_URL}/checkout/darkstore/${storeId}/products`,
-          { headers: adminHeaders() }
-        );
-        const productsData = await res.json();
-        setProducts(Array.isArray(productsData) ? productsData : []);
+    (async () => {
+      try {
+        // Defer loading flag so it is not a synchronous setState in the effect body
+        await Promise.resolve();
+        if (cancelled) return;
+        setLoading(true);
+
+        if (selectedStoreId === "all") {
+          const allStoreIds = darkStores.map((s) => s.id);
+          const results = await Promise.all(
+            allStoreIds.map((id) =>
+              fetch(`${API_API_BASE_URL}/checkout/darkstore/${id}/products`, {
+                headers: adminHeaders(),
+              })
+                .then((r) => r.json())
+                .catch(() => [])
+            )
+          );
+          if (cancelled) return;
+          const seen = new Set();
+          const merged = [];
+          results.flat().forEach((p) => {
+            if (!seen.has(p.id)) {
+              seen.add(p.id);
+              merged.push(p);
+            }
+          });
+          setProducts(merged);
+        } else {
+          const res = await fetch(
+            `${API_API_BASE_URL}/checkout/darkstore/${selectedStoreId}/products`,
+            { headers: adminHeaders() }
+          );
+          if (cancelled) return;
+          const productsData = await res.json();
+          if (cancelled) return;
+          setProducts(Array.isArray(productsData) ? productsData : []);
+        }
+      } catch (err) {
+        console.error("Failed to load products for dark store:", err);
+        if (!cancelled) setProducts([]);
+      } finally {
+        if (!cancelled) setLoading(false);
       }
-    } catch (err) {
-      console.error("Failed to load products for dark store:", err);
-      setProducts([]);
-    } finally {
-      setLoading(false);
-    }
-  };
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [adminMode, selectedStoreId, darkStores]);
 
   const filteredProducts = products.filter(
     (product) =>

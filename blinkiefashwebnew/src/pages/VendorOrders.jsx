@@ -178,7 +178,7 @@ export default function VendorOrders() {
 
   useEffect(() => {
     if (!vendorId && !isAdmin()) {
-      window.location.href = "/vendor";
+      navigate('/vendor', { replace: true });
       return;
     }
     requestNotificationPermission();
@@ -196,7 +196,7 @@ export default function VendorOrders() {
     fetchOrders();
     const timer = setInterval(fetchOrders, POLL_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [vendorId, statusFilter, fetchOrders]);
+  }, [vendorId, statusFilter, fetchOrders, navigate]);
 
   const updateStatus = async (orderId, newStatus, cancelReason = "") => {
     setActionLoading(orderId + newStatus);

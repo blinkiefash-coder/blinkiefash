@@ -50,7 +50,7 @@ export default function ProductAnalytics() {
 
       // ── Vendor mode ─────────────────────────────────────────────
       if (!vendorId) {
-        window.location.href = "/vendor";
+        navigate('/vendor', { replace: true });
         return;
       }
 
@@ -146,7 +146,7 @@ export default function ProductAnalytics() {
     return () => {
       cancelled = true;
     };
-  }, [vendorId, adminMode]);
+  }, [vendorId, adminMode, navigate]);
 
   const sortedProducts = [...products].sort((a, b) => {
     if (sortBy === "sales") return b.totalSales - a.totalSales;

@@ -84,7 +84,7 @@ export default function AddProduct() {
       });
       return;
     }
-    if (!vendorId) { window.location.href = "/vendor"; return; }
+    if (!vendorId) { navigate('/vendor', { replace: true }); return; }
 
     const loadVendor = async () => {
       const vendor = await fetchVendorProfile(vendorId);
@@ -109,7 +109,7 @@ export default function AddProduct() {
       setChildrenByParent(map);
       setParentCategories(map.ROOT || []);
     });
-  }, [vendorId, adminMode]);
+  }, [vendorId, adminMode, navigate]);
 
   const updateForm = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
 

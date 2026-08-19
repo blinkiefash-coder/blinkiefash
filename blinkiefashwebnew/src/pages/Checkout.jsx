@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSmartBack } from '../utils/navigation';
 import {
   MdArrowBack,
   MdArrowForward,
@@ -33,6 +34,7 @@ const AVAILABLE_COUPONS = {
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const goBack = useSmartBack('/cart');
   const { user, isLoggedIn } = useAuth();
   const cartCtx = useCart();
   const { items, subtotal, clearCart } = cartCtx;
@@ -57,7 +59,10 @@ export default function Checkout() {
   const [donatePrompted, setDonatePrompted] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState(null);
+  // manualCoupon: user-chosen coupon (null = none / use auto promo)
+  // couponDismissed: user explicitly removed the auto promo
+  const [manualCoupon, setManualCoupon] = useState(null);
+  const [couponDismissed, setCouponDismissed] = useState(false);
   const [couponError, setCouponError] = useState('');
   const [couponModalOpen, setCouponModalOpen] = useState(false);
 
@@ -89,21 +94,32 @@ export default function Checkout() {
       });
   }, [isLoggedIn, user]);
 
-  // Auto-apply Independence Week discount
-  useEffect(() => {
-    if (items.length > 0 && !appliedCoupon) {
+  // Derive applied coupon during render (no setState-in-effect).
+  // Auto-applies INDEPENDENCE5 unless the user dismissed it or picked another code.
+  const appliedCoupon = useMemo(() => {
+    if (manualCoupon) {
+      const coupon = AVAILABLE_COUPONS[manualCoupon.code];
+      if (!coupon) return manualCoupon;
+      return {
+        ...manualCoupon,
+        displayPercent: coupon.displayPercent,
+        discountPercent: coupon.actualPercent,
+        discountAmount: Math.round(subtotal * (coupon.actualPercent / 100)),
+      };
+    }
+    if (!couponDismissed && items.length > 0) {
       const coupon = AVAILABLE_COUPONS['INDEPENDENCE5'];
       if (coupon) {
-        const discountAmount = Math.round(subtotal * (coupon.actualPercent / 100));
-        setAppliedCoupon({
+        return {
           code: 'INDEPENDENCE5',
           displayPercent: coupon.displayPercent,
           discountPercent: coupon.actualPercent,
-          discountAmount,
-        });
+          discountAmount: Math.round(subtotal * (coupon.actualPercent / 100)),
+        };
       }
     }
-  }, [items.length, subtotal, appliedCoupon]);
+    return null;
+  }, [manualCoupon, couponDismissed, items.length, subtotal]);
 
   if (items.length === 0) {
     return (
@@ -168,18 +184,20 @@ export default function Checkout() {
     }
     // Calculate discount using actualPercent, but display shows displayPercent
     const discountAmount = Math.round(itemTotal * (coupon.actualPercent / 100));
-    setAppliedCoupon({
+    setManualCoupon({
       code: normalized,
       displayPercent: coupon.displayPercent,
       discountPercent: coupon.actualPercent,
       discountAmount,
     });
+    setCouponDismissed(false);
     setCouponCode(normalized);
     setCouponModalOpen(false);
   };
 
   const removeCoupon = () => {
-    setAppliedCoupon(null);
+    setManualCoupon(null);
+    setCouponDismissed(true); // prevent auto promo from coming back
     setCouponCode('');
     setCouponError('');
   };
@@ -398,7 +416,7 @@ export default function Checkout() {
       />
 
       <div className="ckt-topbar">
-        <button type="button" className="ckt-back" onClick={() => navigate(-1)} aria-label="Go back">
+        <button type="button" className="ckt-back" onClick={goBack} aria-label="Go back">
           <MdArrowBack />
         </button>
         <h1>Checkout</h1>

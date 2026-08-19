@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import VendorLayout from '../components/VendorLayout';
 import { API_API_BASE_URL } from '../apiBase';
 import { fetchVendorProfile } from '../utils/vendorSession';
 import './vendorDashboard.css';
 
 export default function VendorProfile() {
+  const navigate = useNavigate();
   const [vendorId] = useState(() => localStorage.getItem('vendor_id') || '');
   const [storeName, setStoreName] = useState(() => localStorage.getItem('store_name') || 'My Store');
   const [vendor, setVendor] = useState(null);
@@ -23,16 +25,16 @@ export default function VendorProfile() {
   ];
 
   const handleMenuClick = (item) => {
-    if (item.key === 'orders') window.location.href = '/vendor/orders';
-    if (item.key === 'products') window.location.href = '/vendor/add-product';
-    if (item.key === 'edit') window.location.href = '/vendor/edit-product';
-    if (item.key === 'stock') window.location.href = '/vendor/stock-monitoring';
-    if (item.key === 'analytics') window.location.href = '/vendor/product-analytics';
+    if (item.key === 'orders') navigate('/vendor/orders');
+    if (item.key === 'products') navigate('/vendor/add-product');
+    if (item.key === 'edit') navigate('/vendor/edit-product');
+    if (item.key === 'stock') navigate('/vendor/stock-monitoring');
+    if (item.key === 'analytics') navigate('/vendor/product-analytics');
   };
 
   useEffect(() => {
     if (!vendorId) {
-      window.location.href = '/vendor';
+      navigate('/vendor', { replace: true });
       return;
     }
 
@@ -53,7 +55,7 @@ export default function VendorProfile() {
     };
 
     load();
-  }, [vendorId]);
+  }, [vendorId, navigate]);
 
   const saveProfile = async () => {
     if (!vendorId) return;
@@ -88,7 +90,7 @@ export default function VendorProfile() {
             <p>Review your vendor profile and link it to a dark store when needed.</p>
           </div>
           <div className="vd-actions">
-            <button className="vd-btn secondary" type="button" onClick={() => window.location.href = '/vendor/orders'}>Back to Orders</button>
+            <button className="vd-btn secondary" type="button" onClick={() => navigate('/vendor/orders')}>Back to Orders</button>
             <button className="vd-btn" type="button" onClick={saveProfile} disabled={saving}>{saving ? 'Saving…' : 'Save Profile'}</button>
           </div>
         </section>

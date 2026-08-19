@@ -130,7 +130,7 @@ export default function EditProduct() {
       }
 
       if (!vendorId) {
-        window.location.href = "/vendor";
+        navigate('/vendor', { replace: true });
         return;
       }
 
@@ -157,7 +157,7 @@ export default function EditProduct() {
     return () => {
       cancelled = true;
     };
-  }, [vendorId, adminMode, loadProducts]);
+  }, [vendorId, adminMode, loadProducts, navigate]);
 
   useEffect(() => {
     if (!adminMode || !selectedAdminVendorId) return undefined;

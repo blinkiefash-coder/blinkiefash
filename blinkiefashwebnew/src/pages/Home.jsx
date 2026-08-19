@@ -973,7 +973,7 @@ export default function Home() {
         <div className="hp-sticky-head">
           {/* ---- Navbar: exact markup/classes copied from Shop.jsx's catalog header ---- */}
           <header className="hp-main-header catalog-main-header">
-            <button type="button" className="hp-brand" onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}>
+            <button type="button" className="hp-brand" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
               <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
               <span className="hp-brand-text">
                 <span className="hp-brand-name">
@@ -1050,7 +1050,7 @@ export default function Home() {
                 )}
                 <button
                   type="button"
-                  onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}
+                  onClick={() => navigate(isLoggedIn ? '/account' : '/login')}
                 >
                   <MdPersonOutline />
                   <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>

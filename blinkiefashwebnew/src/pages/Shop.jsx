@@ -412,7 +412,7 @@ export default function Shop() {
     return [{ id: null, name: "All" }, ...roots];
   }, [getChildren]);
 
-  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId } = {}) => {
+  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId, replace = true } = {}) => {
     const params = new URLSearchParams();
     const cleanSearch = String(nextSearch || "").trim();
     const cleanCategoryId = nextCategoryId ? String(nextCategoryId) : "";
@@ -420,7 +420,8 @@ export default function Shop() {
     if (cleanSearch) params.set("search", cleanSearch);
     if (cleanCategoryId) params.set("category_id", cleanCategoryId);
 
-    navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
+    // replace:true so Back leaves /shop instead of cycling every filter/search change
+    navigate(params.toString() ? `/shop?${params.toString()}` : "/shop", { replace });
   };
 
   const saveRecentSearch = (rawValue) => {

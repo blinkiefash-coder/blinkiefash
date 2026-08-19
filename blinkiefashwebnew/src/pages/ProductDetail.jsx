@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useSmartBack } from '../utils/navigation';
 import {
   MdArrowBack,
   MdAutorenew,
@@ -79,6 +80,7 @@ function pickPrice(...candidates) {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const goBack = useSmartBack('/shop');
   const { addToCart, count } = useCart();
   const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
   const { user, isLoggedIn } = useAuth();
@@ -635,7 +637,7 @@ export default function ProductDetail() {
       <div className="pp-page">
         {/* Breadcrumb */}
         <nav className="pp-breadcrumb" aria-label="Breadcrumb">
-          <button type="button" className="pd-back" onClick={() => navigate(-1)}>
+          <button type="button" className="pd-back" onClick={goBack}>
             <MdArrowBack size={13} /> Back
           </button>
           {breadcrumb.map((crumb, i) => (
