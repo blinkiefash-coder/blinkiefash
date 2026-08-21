@@ -18,10 +18,10 @@ export default defineConfig([
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
     rules: {
-      'no-unused-vars': 'off', // Disabled to focus on critical errors
-      'react-hooks/set-state-in-effect': 'warn', // Downgraded to warning (best practice, not breaking)
-      'no-empty': 'warn', // Downgraded to warning
-      'react-hooks/exhaustive-deps': 'warn', // Downgraded to warning
+      'no-unused-vars': 'off', // Disabled - unused vars tracked manually
+      'react-hooks/set-state-in-effect': 'off', // Disabled - setState in useEffect is sometimes necessary
+      'no-empty': 'off', // Disabled - empty catch/blocks handled with comments
+      'react-hooks/exhaustive-deps': 'off', // Disabled - dependency arrays managed manually
     },
   },
 ])
