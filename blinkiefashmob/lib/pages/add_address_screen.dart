@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:http/http.dart' as http;
+import 'package:geocoding/geocoding.dart';
 
 import '../services/api_client.dart';
-import '../widgets/bf_loader.dart';
 
 class AddAddressScreen extends StatefulWidget {
   final ApiClient api;
@@ -45,37 +43,25 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
   Future<void> _detectCurrentLocation() async {
     setState(() => _detectingLocation = true);
+
     try {
-      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) throw Exception('Location services disabled');
-      LocationPermission perm = await Geolocator.checkPermission();
-      if (perm == LocationPermission.denied) {
-        perm = await Geolocator.requestPermission();
-      }
-      if (perm == LocationPermission.denied ||
-          perm == LocationPermission.deniedForever) {
-        throw Exception('Location permission denied');
-      }
       final position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
-        timeLimit: const Duration(seconds: 15),
       );
+
       if (mounted) {
         setState(() {
           _selectedLat = position.latitude;
           _selectedLng = position.longitude;
         });
+
         await _reverseGeocodeLocation(position.latitude, position.longitude);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(
-              content: Text('Error detecting location: ${e.toString()}'),
-            ),
-          );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error detecting location: ${e.toString()}')),
+        );
       }
     } finally {
       if (mounted) setState(() => _detectingLocation = false);
@@ -84,35 +70,19 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
   Future<void> _reverseGeocodeLocation(double lat, double lng) async {
     try {
-      final uri = Uri.parse(
-        'https://nominatim.openstreetmap.org/reverse?lat=$lat&lon=$lng&format=json&addressdetails=1',
-      );
-      final res = await http
-          .get(uri, headers: {'User-Agent': 'BlinkieFashApp/1.0'})
-          .timeout(const Duration(seconds: 8));
-      if (!mounted) return;
-      final data = jsonDecode(res.body) as Map<String, dynamic>;
-      final addr = data['address'] as Map<String, dynamic>? ?? {};
-      final street = [
-        addr['road'],
-        addr['neighbourhood'],
-        addr['suburb'],
-      ].whereType<String>().where((s) => s.isNotEmpty).take(2).join(', ');
-      final city =
-          (addr['city'] ??
-                  addr['town'] ??
-                  addr['state_district'] ??
-                  addr['state'] ??
-                  '')
-              .toString();
-      final pincode = (addr['postcode'] ?? '').toString();
-      setState(() {
-        if (street.isNotEmpty) _addressController.text = street;
-        if (city.isNotEmpty) _cityController.text = city;
-        if (pincode.isNotEmpty) _pincodeController.text = pincode;
-      });
+      final placemarks = await placemarkFromCoordinates(lat, lng);
+      if (placemarks.isNotEmpty && mounted) {
+        final place = placemarks.first;
+        setState(() {
+          _addressController.text =
+              '${place.street ?? ''}, ${place.subLocality ?? ''}'.trim();
+          _cityController.text =
+              place.locality ?? place.administrativeArea ?? '';
+          _pincodeController.text = place.postalCode ?? '';
+        });
+      }
     } catch (e) {
-      debugPrint('Reverse geocode failed: $e');
+      debugPrint('Error reverse geocoding: $e');
     }
   }
 
@@ -122,16 +92,16 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
     final pincode = _pincodeController.text.trim();
 
     if (address.isEmpty || city.isEmpty || pincode.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('Please fill all fields')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please fill all fields')));
       return;
     }
 
     if (widget.userId == null || widget.userId!.isEmpty) {
-      ScaffoldMessenger.of(context)
-        ..removeCurrentSnackBar()
-        ..showSnackBar(const SnackBar(content: Text('User ID not found')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('User ID not found')));
       return;
     }
 
@@ -152,14 +122,12 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
 
         if (response.isNotEmpty && response['id'] != null) {
           if (mounted) {
-            ScaffoldMessenger.of(context)
-              ..removeCurrentSnackBar()
-              ..showSnackBar(
-                const SnackBar(
-                  content: Text('Address saved successfully'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Address saved successfully'),
+                duration: Duration(seconds: 2),
+              ),
+            );
 
             widget.onAddressAdded?.call();
             Navigator.pop(context, {
@@ -172,19 +140,17 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
             });
           }
         } else {
-          ScaffoldMessenger.of(context)
-            ..removeCurrentSnackBar()
-            ..showSnackBar(
-              const SnackBar(content: Text('Failed to save address')),
-            );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Failed to save address')),
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _loading = false);
-        ScaffoldMessenger.of(context)
-          ..removeCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     }
   }
@@ -272,7 +238,7 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
                             const SizedBox(
                               width: 20,
                               height: 20,
-                              child: BfSpinner(),
+                              child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           else
                             const Icon(Icons.chevron_right, color: _green),
@@ -414,7 +380,14 @@ class _AddAddressScreenState extends State<AddAddressScreen> {
               ),
               onPressed: _loading ? null : _saveAddress,
               child: _loading
-                  ? const SizedBox(height: 20, width: 20, child: BfSpinner())
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
                   : const Text(
                       'Save Address',
                       style: TextStyle(
