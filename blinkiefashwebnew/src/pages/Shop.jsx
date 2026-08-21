@@ -17,6 +17,7 @@ import {
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
+import { productImageUrlContain, productImageSrcSetContain } from "../utils/cloudinaryImage";
 import { useAuth } from "../context/AuthContext";
 import { hasVendorPasswordAuth } from "../utils/vendorSession";
 import "./Home.css";
@@ -48,7 +49,7 @@ const buildChildrenMap = (data) => {
   const map = {};
 
   data.forEach((category) => {
-    const parentKey = category.parent_id || "ROOT";
+    const parentKey = category.parent_id != null && category.parent_id !== "" ? String(category.parent_id) : "ROOT";
     if (!map[parentKey]) map[parentKey] = [];
     map[parentKey].push(category);
   });
@@ -105,7 +106,11 @@ export default function Shop() {
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
 
-  const getChildren = useCallback((parentId) => childrenByParent[parentId] || [], [childrenByParent]);
+  const getChildren = useCallback((parentId) => {
+    if (parentId === null || parentId === undefined) return [];
+    const key = parentId === "ROOT" ? "ROOT" : String(parentId);
+    return childrenByParent[key] || childrenByParent[parentId] || [];
+  }, [childrenByParent]);
 
   const toCategoryKey = (value) => (value === null || value === undefined ? null : String(value));
 
@@ -412,7 +417,7 @@ export default function Shop() {
     return [{ id: null, name: "All" }, ...roots];
   }, [getChildren]);
 
-  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId, replace = true } = {}) => {
+  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId } = {}) => {
     const params = new URLSearchParams();
     const cleanSearch = String(nextSearch || "").trim();
     const cleanCategoryId = nextCategoryId ? String(nextCategoryId) : "";
@@ -420,8 +425,7 @@ export default function Shop() {
     if (cleanSearch) params.set("search", cleanSearch);
     if (cleanCategoryId) params.set("category_id", cleanCategoryId);
 
-    // replace:true so Back leaves /shop instead of cycling every filter/search change
-    navigate(params.toString() ? `/shop?${params.toString()}` : "/shop", { replace });
+    navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
   };
 
   const saveRecentSearch = (rawValue) => {
@@ -964,7 +968,15 @@ export default function Shop() {
 
                     <div className="catalog-card-image-wrap">
                       {product.image ? (
-                        <img src={product.image} alt={product.name} />
+                        <img
+                          src={productImageUrlContain(product.image, 400, 533)}
+                          srcSet={productImageSrcSetContain(product.image)}
+                          sizes="(max-width: 420px) 45vw, (max-width: 760px) 46vw, (max-width: 900px) 31vw, (max-width: 1200px) 23vw, (max-width: 1400px) 18vw, 15vw"
+                          alt={product.name}
+                          loading="lazy"
+                          width="400"
+                          height="533"
+                        />
                       ) : (
                         <div className="catalog-no-image"><MdCheckroom /></div>
                       )}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useSmartBack } from '../utils/navigation';
 import {
   MdArrowBack,
@@ -80,7 +80,10 @@ function pickPrice(...candidates) {
 export default function ProductDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const goBack = useSmartBack('/shop');
+  const location = useLocation();
+  const fromPath = location.state?.fromPath || '/shop';
+  const fromLabel = location.state?.fromLabel || null;
+  const goBack = useSmartBack(fromPath);
   const { addToCart, count } = useCart();
   const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
   const { user, isLoggedIn } = useAuth();
@@ -380,18 +383,20 @@ export default function ProductDetail() {
     ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
     : variants || [];
 
-  const breadcrumb = [
-    'Home',
-    product.category_name || product.category || 'Category',
-    product.brand || 'Brand',
-    product.name,
-  ];
+  const breadcrumb = fromLabel
+    ? ['Home', fromLabel, product.name]
+    : [
+        'Home',
+        product.category_name || product.category || 'Category',
+        product.brand || 'Brand',
+        product.name,
+      ];
 
   const hasDetails =
     product.brand || product.category_name || product.category ||
     selectedVariant?.color || selectedVariant?.size || selectedVariant?.sku;
 
-  const handleAddToCart = () => {
+  const handleAddToCart = (fulfillment = 'standard') => {
     if (hasVariants && !selectedVariant) {
       window.alert('Please select a size/color before adding to cart.');
       return false;
@@ -422,6 +427,7 @@ export default function ProductDetail() {
         size: selectedVariant?.size,
         color: selectedVariant?.color,
         qty: 1,
+        fulfillment,
       });
       setCartAdded(true);
       window.setTimeout(() => setCartAdded(false), 2000);
@@ -431,6 +437,22 @@ export default function ProductDetail() {
       window.alert('Could not add to cart. Please try again.');
       return false;
     }
+  };
+
+  const logEvent = (name, params = {}) => {
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+      window.gtag('event', name, params);
+    }
+  };
+
+  const handleBuyNowClick = () => {
+    logEvent('buy_now_clicked', { product_id: product.id });
+    if (handleAddToCart()) navigate('/checkout');
+  };
+
+  const handleTryAndBuyClick = () => {
+    logEvent('try_and_buy_clicked', { product_id: product.id });
+    if (handleAddToCart('try_and_buy')) navigate('/checkout');
   };
 
   const handleSearchSubmit = (event) => {
@@ -640,12 +662,30 @@ export default function ProductDetail() {
           <button type="button" className="pd-back" onClick={goBack}>
             <MdArrowBack size={13} /> Back
           </button>
-          {breadcrumb.map((crumb, i) => (
-            <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-              <MdChevronRight size={13} />
-              {i === breadcrumb.length - 1 ? <strong>{crumb}</strong> : <span>{crumb}</span>}
-            </span>
-          ))}
+          {breadcrumb.map((crumb, i) => {
+            const isLast = i === breadcrumb.length - 1;
+            const onCrumbClick = () => {
+              if (isLast) return;
+              if (crumb === 'Home') navigate('/');
+              else if (fromPath && crumb === fromLabel) navigate(fromPath);
+            };
+            return (
+              <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <MdChevronRight size={13} />
+                {isLast ? (
+                  <strong>{crumb}</strong>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onCrumbClick}
+                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit' }}
+                  >
+                    {crumb}
+                  </button>
+                )}
+              </span>
+            );
+          })}
         </nav>
 
         <div className="pp-main-grid">
@@ -874,18 +914,30 @@ export default function ProductDetail() {
                 type="button"
                 className="pp-buy-now"
                 disabled={canPurchase === false}
-                onClick={() => {
-                  if (handleAddToCart()) navigate('/checkout');
-                }}
+                aria-label={`Buy ${product.name} now`}
+                data-testid="buy-now-button"
+                onClick={handleBuyNowClick}
               >
                 <MdBolt size={16} /> Buy Now
               </button>
 
               <button
                 type="button"
+                className="pp-try-buy"
+                disabled={canPurchase === false}
+                aria-label={`Try and buy ${product.name}`}
+                data-testid="try-and-buy-button"
+                onClick={handleTryAndBuyClick}
+              >
+                <MdVerified size={16} /> Try and Buy
+              </button>
+
+              <button
+                type="button"
                 className="pp-add-cart"
                 disabled={canPurchase === false}
-                onClick={handleAddToCart}
+                data-testid="add-to-cart-button"
+                onClick={() => handleAddToCart()}
               >
                 <MdOutlineShoppingCart size={16} />
                 {cartAdded ? 'Added ✓' : 'Add to Cart'}
@@ -914,7 +966,7 @@ export default function ProductDetail() {
               <div className="pp-related">
                 <div className="pp-related-head">
                   <p>You May Also Like</p>
-                  <button type="button" className="pp-related-viewall" onClick={() => navigate('/shop')}>
+                  <button type="button" className="pp-related-viewall" onClick={() => navigate(fromPath || '/shop')}>
                     View All
                   </button>
                 </div>

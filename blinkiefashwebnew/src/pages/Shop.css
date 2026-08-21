@@ -1,4 +1,6 @@
 .catalog-page {
+  width: 100%;
+  max-width: 100%;
   min-height: 100vh;
   background: #f8fafc;
   color: #111827;
@@ -144,13 +146,14 @@
 /* ---------- Main content ---------- */
 
 .catalog-main {
-  max-width: 1420px;
+  max-width: 100%;
   width: 100%;
-  margin: 0 auto;
+  margin: 0;
   padding: 22px 24px 32px;
   flex: 1;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
 }
 
 .catalog-headline-row {
@@ -529,12 +532,14 @@
 
 .catalog-card-image-wrap {
   position: relative;
-  height: 200px;
+  width: 100%;
+  aspect-ratio: 3 / 4;
   padding: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #f8fafc;
+  box-sizing: border-box;
 }
 
 .catalog-card-image-wrap img {
@@ -542,6 +547,8 @@
   height: 100%;
   object-fit: contain;
   transition: transform 0.25s ease;
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 
 .catalog-product-card:hover .catalog-card-image-wrap img {
@@ -778,11 +785,6 @@
     gap: 10px;
   }
 
-  .catalog-card-image-wrap {
-    height: auto;
-    aspect-ratio: 3 / 4;
-  }
-
   .catalog-card-body {
     padding: 8px 8px 10px;
   }
@@ -912,11 +914,6 @@
   .catalog-products-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
-  }
-
-  .catalog-card-image-wrap {
-    height: auto;
-    aspect-ratio: 3 / 4;
   }
 
   .catalog-card-body {

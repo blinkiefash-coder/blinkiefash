@@ -119,16 +119,15 @@
   margin-bottom: 20px;
 }
 
-/* Form */
+/* Form: gap-based spacing instead of scattered per-element margins */
 .vendor-card form {
   display: flex;
   flex-direction: column;
+  gap: 18px;
 }
 
 .vendor-card label {
   font-size: 13px;
-  margin-bottom: 4px;
-  margin-top: 12px;
 }
 
 /* Inputs */
@@ -139,11 +138,14 @@
   outline: none;
   font-size: 14px;
   background: #fff;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Button */
-.vendor-card button {
-  margin-top: 20px;
+/* Submit button — scoped to [type="submit"] so it no longer bleeds
+   its styles onto the password-visibility toggle button below */
+.vendor-card button[type="submit"] {
+  margin-top: 4px;
   padding: 13px 14px;
   border: none;
   border-radius: 12px;
@@ -155,7 +157,7 @@
   box-shadow: 0 16px 30px rgba(34, 197, 94, 0.22);
 }
 
-.vendor-card button:hover {
+.vendor-card button[type="submit"]:hover {
   transform: translateY(-1px);
 }
 
@@ -173,6 +175,90 @@
 
 .vendor-register-link a:hover {
   text-decoration: underline;
+}
+
+/* Screen-reader-only utility: keeps content in the accessibility tree
+   (announced by AT) while removing it from visual layout. */
+.vendor-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Password field + show/hide toggle */
+.vendor-password-field {
+  position: relative;
+}
+
+.vendor-password-field input {
+  width: 100%;
+  padding-right: 44px; /* room for the toggle button */
+  box-sizing: border-box;
+}
+
+/* Scoped under .vendor-card to out-specificity the old bare
+   ".vendor-card button" rule that was overriding this */
+.vendor-card .vendor-password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 18px;
+  box-shadow: none;
+}
+
+.vendor-card .vendor-password-toggle:hover,
+.vendor-card .vendor-password-toggle:focus-visible {
+  background: rgba(22, 163, 74, 0.1);
+  color: #16a34a;
+}
+
+.vendor-card .vendor-password-toggle:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+/* Forgot password link */
+.vendor-forgot-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: -6px; /* pulls it a bit closer under the password field since gap already spaces it */
+}
+
+.vendor-forgot-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: #15803d;
+  text-decoration: none;
+}
+
+.vendor-forgot-link:hover,
+.vendor-forgot-link:focus-visible {
+  text-decoration: underline;
+}
+
+.vendor-forgot-link:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+  border-radius: 4px;
 }
 
 /* Success state */
@@ -244,6 +330,10 @@
     border-radius: 12px;
   }
 
+  .vendor-card form {
+    gap: 14px;
+  }
+
   .vendor-card h2 {
     font-size: 20px;
     margin-bottom: 4px;
@@ -256,7 +346,6 @@
 
   .vendor-card label {
     font-size: 12px;
-    margin-top: 10px;
   }
 
   .vendor-card input {
@@ -266,8 +355,8 @@
     border-radius: 6px;
   }
 
-  .vendor-card button {
-    margin-top: 16px;
+  .vendor-card button[type="submit"] {
+    margin-top: 2px;
     padding: 10px;
     font-size: 14px;
     border-radius: 8px;
@@ -303,6 +392,10 @@
     border-radius: 10px;
   }
 
+  .vendor-card form {
+    gap: 12px;
+  }
+
   .vendor-card h2 {
     font-size: 18px;
     margin-bottom: 8px;
@@ -315,7 +408,6 @@
 
   .vendor-card label {
     font-size: 11px;
-    margin-top: 8px;
   }
 
   .vendor-card input {
@@ -324,8 +416,8 @@
     min-height: 40px;
   }
 
-  .vendor-card button {
-    margin-top: 14px;
+  .vendor-card button[type="submit"] {
+    margin-top: 2px;
     padding: 8px 12px;
     font-size: 13px;
   }
@@ -356,7 +448,7 @@
     min-height: 36px;
   }
 
-  .vendor-card button {
+  .vendor-card button[type="submit"] {
     font-size: 12px;
   }
 }

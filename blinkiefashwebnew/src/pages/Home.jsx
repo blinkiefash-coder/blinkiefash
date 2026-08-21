@@ -30,6 +30,7 @@ import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, ge
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
+import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 import './Shop.css';
 import './Home.css';
 
@@ -973,7 +974,7 @@ export default function Home() {
         <div className="hp-sticky-head">
           {/* ---- Navbar: exact markup/classes copied from Shop.jsx's catalog header ---- */}
           <header className="hp-main-header catalog-main-header">
-            <button type="button" className="hp-brand" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
+            <button type="button" className="hp-brand" onClick={() => navigate('/')}>
               <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
               <span className="hp-brand-text">
                 <span className="hp-brand-name">
@@ -1050,7 +1051,7 @@ export default function Home() {
                 )}
                 <button
                   type="button"
-                  onClick={() => navigate(isLoggedIn ? '/account' : '/login')}
+                  onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}
                 >
                   <MdPersonOutline />
                   <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>
@@ -1076,18 +1077,27 @@ export default function Home() {
               className="hp-nav-links"
               onMouseLeave={() => setHoveredNav(null)}
             >
-              {categories.slice(0, 8).map((cat) => (
+              {categories.slice(0, 8).map((cat) => {
+                const nameKey = String(cat.name || '').toLowerCase().trim();
+                const goCategory = () => {
+                  if (nameKey === 'men' || nameKey === 'mens') navigate('/men');
+                  else if (nameKey === 'women' || nameKey === 'womens') navigate('/women');
+                  else if (nameKey === 'kids' || nameKey === 'kid' || nameKey === 'children') navigate('/kids');
+                  else navigate(`/shop?category_id=${cat.id}`);
+                };
+                return (
                 <button
                   key={cat.id}
                   type="button"
                   className="hp-nav-link"
-                  onClick={() => navigate(`/shop?category_id=${cat.id}`)}
+                  onClick={goCategory}
                   onMouseEnter={() => setHoveredNav(cat.name)}
                   onFocus={() => setHoveredNav(cat.name)}
                 >
                   {cat.name}
                 </button>
-              ))}
+                );
+              })}
 
               {/* Mega menu panel shown on hover */}
               {hoveredNav ? (
@@ -1566,7 +1576,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>MEN&apos;S COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/shop?search=men')}>
+              <button type="button" onClick={() => navigate('/men')}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1585,7 +1595,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>WOMEN&apos;S COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/shop?search=women')}>
+              <button type="button" onClick={() => navigate('/women')}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1604,7 +1614,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>KIDS COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/shop?search=kids')}>
+              <button type="button" onClick={() => navigate('/kids')}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1770,7 +1780,19 @@ export default function Home() {
                     onClick={() => navigate(`/product/${p.id}`)}
                   >
                     <div className="hp-explore-media">
-                      {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
+                      {image ? (
+                        <img
+                          src={productImageUrlContain(image, 320, 305)}
+                          srcSet={productImageSrcSetContain(image, [200, 280, 320, 480, 600], 1 / 1.05)}
+                          sizes="(max-width: 900px) 46vw, 15vw"
+                          alt={p.name}
+                          loading="lazy"
+                          width="320"
+                          height="305"
+                        />
+                      ) : (
+                        <div className="hp-deal-fallback">No image</div>
+                      )}
                     </div>
                     <div className="hp-explore-body">
                       {p.brand ? <p className="hp-explore-brand">{p.brand.toUpperCase()}</p> : null}

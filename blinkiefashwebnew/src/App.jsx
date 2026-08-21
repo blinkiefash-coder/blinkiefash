@@ -2,6 +2,9 @@ import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
+import Men from './pages/Men';
+import Kids from './pages/Kids';
+import Women from './pages/Women';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
@@ -63,6 +66,8 @@ export default function App() {
   const isCatalogPage =
     pathname === '/shop' ||
     pathname === '/catalog' ||
+    pathname === '/men' ||
+    pathname === '/kids' ||
     pathname === '/women' ||
     pathname.startsWith('/product/');
   const isCheckoutPage = pathname === '/checkout';
@@ -98,7 +103,9 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/catalog" element={<Shop />} />
-        <Route path="/women" element={<Shop />} />
+        <Route path="/men" element={<Men />} />
+        <Route path="/kids" element={<Kids />} />
+        <Route path="/women" element={<Women />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
@@ -106,7 +113,6 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
-        <Route path="/Account" element={<Navigate to="/account" replace />} />
         <Route path="/parcel" element={<Parcel />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/refer-earn" element={<ReferEarn />} />
@@ -126,6 +132,7 @@ export default function App() {
           }
         />
         <Route path="/vendor" element={<VendorAuth />} />
+        <Route path="/vendor/forgot-password" element={<VendorAuth />} />
         <Route path="/vendor/register" element={<SellerRegistration />} />
         <Route
           path="/vendor/add-product"

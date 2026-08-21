@@ -1,16 +1,29 @@
 import { useNavigate } from "react-router-dom";
 import "./Footer.css";
 
-const LOGO_URL = "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
+const LOGO_URL =
+  "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
+
+const PLAY_STORE_URL =
+  "https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share";
 
 export default function Footer() {
   const navigate = useNavigate();
+
+  /** Navigate and always land at the top of the new page */
+  const go = (path) => {
+    navigate(path);
+    // Defer so React Router can update the DOM first
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    });
+  };
 
   return (
     <footer className="footer">
       <div className="footer-main">
         <div className="footer-brand-col">
-          <div className="footer-brand">
+          <div className="footer-brand" onClick={() => go("/")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') go('/'); }} style={{ cursor: 'pointer' }}>
             <img src={LOGO_URL} alt="Blinkiefash Logo" className="footer-logo-img" />
             <h1 className="footer-logo-text">
               BLINKIE<span>FASH</span>
@@ -20,61 +33,57 @@ export default function Footer() {
         </div>
 
         <div className="footer-col">
-          <h3 onClick={() => navigate("/customer-service")}>CUSTOMER SERVICE</h3>
+          <h3 onClick={() => go("/customer-service")}>CUSTOMER SERVICE</h3>
           <ul>
-            <li onClick={() => navigate("/customer-service")}>Contact Us</li>
-            <li onClick={() => navigate("/customer-service")}>FAQs</li>
-            <li onClick={() => navigate("/customer-service")}>Shipping &amp; Delivery</li>
-            <li onClick={() => navigate("/customer-service")}>Returns &amp; Refunds</li>
+            <li onClick={() => go("/contact-us")}>Contact Us</li>
+            <li onClick={() => go("/faqs")}>FAQs</li>
+            <li onClick={() => go("/customer-service")}>Shipping &amp; Delivery</li>
+            <li onClick={() => go("/customer-service")}>Returns &amp; Refunds</li>
+            <li onClick={() => go("/help-support")}>Help &amp; Support</li>
           </ul>
         </div>
 
         <div className="footer-col">
-          <h3 onClick={() => navigate("/company")}>COMPANY</h3>
+          <h3 onClick={() => go("/company")}>COMPANY</h3>
           <ul>
-            <li onClick={() => navigate("/company")}>About Us</li>
-            <li onClick={() => navigate("/company")}>Careers</li>
-            <li onClick={() => navigate("/company")}>Blinkie Blog</li>
-            <li onClick={() => navigate("/company")}>Press &amp; Media</li>
+            <li onClick={() => go("/about")}>About Us</li>
+            <li onClick={() => go("/careers")}>Careers</li>
+            <li onClick={() => go("/stores")}>Stores</li>
+            <li onClick={() => go("/company")}>Blinkie Blog</li>
+            <li onClick={() => go("/company")}>Press &amp; Media</li>
           </ul>
         </div>
 
         <div className="footer-col">
-          <h3 onClick={() => navigate("/policies")}>POLICIES</h3>
+          <h3 onClick={() => go("/policies")}>POLICIES</h3>
           <ul>
-            <li onClick={() => navigate("/privacy-policy")}>Privacy Policy</li>
-            <li onClick={() => navigate("/policies")}>Terms of Service</li>
-            <li onClick={() => navigate("/policies")}>Cancellation Policy</li>
-            <li onClick={() => navigate("/policies")}>EPR Compliance</li>
-            <li className="footer-seller-link" onClick={() => navigate("/vendor")}>Become a Vendor</li>
+            <li onClick={() => go("/privacy-policy")}>Privacy Policy</li>
+            <li onClick={() => go("/terms")}>Terms of Service</li>
+            <li onClick={() => go("/policies")}>Cancellation Policy</li>
+            <li onClick={() => go("/policies")}>EPR Compliance</li>
+            <li className="footer-seller-link" onClick={() => go("/vendor")}>
+              Become a Vendor
+            </li>
           </ul>
         </div>
 
         <div className="footer-col footer-app-col">
           <h3>GET THE APP</h3>
           <div className="app-buttons">
-            <button className="store-badge" type="button">
+            <a
+              className="store-badge"
+              href={PLAY_STORE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <span className="store-badge-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16.84 12.94c-.02-2.32 1.9-3.43 1.98-3.48-1.08-1.58-2.76-1.8-3.36-1.82-1.43-.14-2.8.84-3.52.84-.73 0-1.85-.82-3.04-.8-1.56.02-3 .91-3.8 2.31-1.62 2.81-.41 6.98 1.16 9.25.77 1.11 1.69 2.35 2.89 2.31 1.16-.05 1.6-.75 3-.75 1.41 0 1.8.75 3.03.72 1.25-.02 2.03-1.12 2.79-2.24.88-1.29 1.24-2.54 1.26-2.6-.03-.01-2.41-.92-2.43-3.74Zm-1.79-6.42c.63-.77 1.06-1.84.94-2.91-.91.04-2.01.61-2.66 1.38-.58.67-1.08 1.75-.95 2.79 1.01.08 2.04-.51 2.67-1.26Z" />
-                </svg>
-              </span>
-              <span className="store-badge-text">
-                <small>Download on the</small>
-                <strong>App Store</strong>
-              </span>
-            </button>
-            <button className="store-badge" type="button">
-              <span className="store-badge-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3.61 2.23 13.8 12 3.61 21.77c-.29-.19-.48-.52-.48-.9V3.13c0-.38.19-.71.48-.9Zm11.58 11.1 2.6 2.49-10.5 5.92 7.9-8.41Zm3.56-2.01 2.48 1.4c.84.47.84 1.68 0 2.15l-2.48 1.4L15.7 12l3.05-1.68ZM7.29 2.26l10.5 5.92-2.6 2.49-7.9-8.41Z" />
-                </svg>
+                ▶
               </span>
               <span className="store-badge-text">
                 <small>GET IT ON</small>
                 <strong>Google Play</strong>
               </span>
-            </button>
+            </a>
           </div>
         </div>
 
@@ -94,7 +103,15 @@ export default function Footer() {
               aria-label="Instagram"
             >
               <svg viewBox="0 0 24 24" fill="none">
-                <rect x="3.5" y="3.5" width="17" height="17" rx="4.5" stroke="currentColor" strokeWidth="1.8" />
+                <rect
+                  x="3.5"
+                  y="3.5"
+                  width="17"
+                  height="17"
+                  rx="4.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                />
                 <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
                 <circle cx="17.3" cy="6.7" r="1.1" fill="currentColor" />
               </svg>

@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useWishlist } from '../context/WishlistContext';
+import { productImageUrl, productImageSrcSet } from '../utils/cloudinaryImage';
 import './ProductCard.css';
 
 export default function ProductCard({ product }) {
@@ -14,7 +15,15 @@ export default function ProductCard({ product }) {
     <div className="product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="pc-media">
         {product.image ? (
-          <img src={product.image} alt={product.name} loading="lazy" />
+          <img
+            src={productImageUrl(product.image, 400)}
+            srcSet={productImageSrcSet(product.image)}
+            sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 24vw"
+            alt={product.name}
+            loading="lazy"
+            width="400"
+            height="533"
+          />
         ) : (
           <div className="pc-placeholder">No image</div>
         )}

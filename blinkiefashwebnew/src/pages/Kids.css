@@ -1,0 +1,838 @@
+/* ---------- Kids landing page ---------- */
+
+.kids-page {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.catalog-page.kids-page {
+  width: 100%;
+  max-width: 100%;
+}
+
+.kids-page .catalog-main,
+.kids-main {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 18px 24px 48px;
+  box-sizing: border-box;
+}
+
+.kids-page .hp-sticky-head,
+.kids-page .hp-main-header,
+.kids-page .hp-category-nav,
+.kids-page .catalog-home-topbar,
+.kids-page .catalog-main-header {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.kids-topnav {
+  justify-content: space-between;
+}
+
+.kids-page .hp-nav-link.active {
+  color: var(--brand-green-dark, #15803d);
+  font-weight: 800;
+}
+
+.kids-page .hp-nav-link.active::after {
+  transform: scaleX(1);
+}
+
+.kids-nav-offers {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-dark, #111827);
+  cursor: pointer;
+  padding: 12px 0 12px 16px;
+  white-space: nowrap;
+}
+
+.kids-nav-offers:hover {
+  color: var(--brand-green-dark, #15803d);
+}
+
+/* Breadcrumb */
+.kids-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #6b7280;
+  margin-bottom: 16px;
+}
+
+.kids-breadcrumb button {
+  border: none;
+  background: none;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.kids-breadcrumb button:hover {
+  color: #15803d;
+}
+
+.kids-breadcrumb .current {
+  color: #111827;
+  font-weight: 700;
+}
+
+/* Hero: main + shop by age */
+.kids-hero-row {
+  display: grid;
+  grid-template-columns: 1.75fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+  align-items: start;
+}
+
+.kids-hero-main {
+  border-radius: 20px;
+  padding: 28px 32px;
+  min-height: 260px;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(120deg, #fef9c3 0%, #ecfccb 40%, #d1fae5 100%);
+  display: flex;
+  align-items: center;
+  color: #111827;
+}
+
+.kids-hero-copy {
+  position: relative;
+  z-index: 1;
+  max-width: 46%;
+}
+
+.kids-hero-kicker {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #4b5563;
+  margin: 0 0 6px;
+}
+
+.kids-hero-main h1 {
+  font-size: clamp(26px, 3vw, 36px);
+  font-weight: 800;
+  margin: 0 0 10px;
+  line-height: 1.15;
+  color: #14532d;
+}
+
+.kids-hero-main h1 em {
+  font-style: normal;
+  color: #16a34a;
+}
+
+.kids-hero-sub {
+  font-size: 14px;
+  color: #4b5563;
+  margin: 0 0 16px;
+  line-height: 1.45;
+}
+
+/* Shop by age */
+.kids-age-card {
+  border-radius: 20px;
+  background: linear-gradient(160deg, #eef2ff 0%, #f5f3ff 100%);
+  padding: 20px 18px;
+  box-sizing: border-box;
+}
+
+.kids-age-card h3 {
+  margin: 0 0 14px;
+  font-size: 16px;
+  font-weight: 800;
+  color: #312e81;
+}
+
+.kids-age-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.kids-age-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.kids-age-avatar {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  border: 2px solid #e0e7ff;
+  display: grid;
+  place-items: center;
+  font-size: 26px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.08);
+  transition: border-color 0.15s, transform 0.15s;
+}
+
+.kids-age-item:hover .kids-age-avatar {
+  border-color: #16a34a;
+  transform: translateY(-2px);
+}
+
+.kids-age-item span {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  line-height: 1.25;
+}
+
+/* Boys / Girls + category strip */
+.kids-gender-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.4fr;
+  gap: 14px;
+  margin-bottom: 16px;
+  align-items: stretch;
+}
+
+.kids-gender-card {
+  border: none;
+  border-radius: 16px;
+  padding: 18px 20px;
+  min-height: 140px;
+  text-align: left;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.kids-gender-card.boys {
+  background: linear-gradient(120deg, #dbeafe 0%, #eff6ff 100%);
+  color: #1e3a8a;
+}
+
+.kids-gender-card.girls {
+  background: linear-gradient(120deg, #fce7f3 0%, #fdf2f8 100%);
+  color: #9d174d;
+}
+
+.kids-shop-cat {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 14px 12px;
+}
+
+.kids-shop-cat h3 {
+  margin: 0 0 12px 4px;
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.kids-cat-list {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.kids-cat-list::-webkit-scrollbar {
+  display: none;
+}
+
+.kids-cat-item {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-width: 72px;
+  padding: 2px;
+}
+
+.kids-cat-icon-wrap {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: 2px solid #e5e7eb;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+}
+
+.kids-cat-icon-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kids-cat-fallback-icon {
+  font-size: 22px;
+  color: #16a34a;
+  display: inline-flex;
+}
+
+.kids-cat-item span:last-child {
+  font-size: 11px;
+  font-weight: 600;
+  color: #374151;
+  text-align: center;
+  max-width: 76px;
+  line-height: 1.25;
+}
+
+.kids-cat-item:hover .kids-cat-icon-wrap {
+  border-color: #16a34a;
+}
+
+/* Promo trio */
+.kids-promo-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.kids-promo-card {
+  border: none;
+  border-radius: 16px;
+  padding: 18px 20px;
+  min-height: 120px;
+  text-align: left;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 6px;
+}
+
+.kids-promo-card h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.kids-promo-card p {
+  margin: 0;
+  font-size: 12.5px;
+  opacity: 0.85;
+}
+
+.kids-promo-card .kids-promo-cta {
+  align-self: flex-start;
+  margin-top: 8px;
+  border: 1px solid currentColor;
+  background: transparent;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kids-promo-toys {
+  background: linear-gradient(120deg, #faf5ff 0%, #f3e8ff 100%);
+  color: #6b21a8;
+}
+
+.kids-promo-essentials {
+  background: linear-gradient(120deg, #ecfdf5 0%, #d1fae5 100%);
+  color: #166534;
+}
+
+.kids-promo-school {
+  background: linear-gradient(120deg, #eff6ff 0%, #dbeafe 100%);
+  color: #1e40af;
+}
+
+/* Section head / empty */
+.kids-picks-section {
+  margin-bottom: 12px;
+}
+
+.kids-empty-state {
+  color: #6b7280;
+  font-size: 13.5px;
+  padding: 24px 0;
+}
+
+.kids-brands-section {
+  margin: 20px 0 28px;
+}
+
+/* Trust */
+.kids-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  background: #f4f8f5;
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin-bottom: 10px;
+}
+
+.kids-trust-strip > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.kids-trust-strip svg {
+  font-size: 22px;
+  color: #15803d;
+  flex: none;
+}
+
+.kids-trust-strip strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.kids-trust-strip span {
+  color: #6b7280;
+  font-size: 11.5px;
+}
+
+/* ---- Banner images (hero / boys / girls) ---- */
+.kids-hero-main--banner {
+  padding: 0;
+  min-height: 0;
+  background: #fefce8;
+  display: block;
+}
+
+.kids-hero-banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 20px;
+  object-fit: contain;
+  object-position: center;
+}
+
+.kids-hero-copy--sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.kids-gender-card--banner {
+  padding: 0 !important;
+  min-height: 0 !important;
+  background: transparent !important;
+  overflow: hidden;
+  height: 100%;
+  min-height: 220px;
+}
+
+.kids-gender-banner-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 220px;
+  border-radius: 16px;
+  object-fit: cover;
+  object-position: center;
+  transition: transform 0.2s ease;
+}
+
+.kids-gender-card--banner:hover .kids-gender-banner-img {
+  transform: scale(1.015);
+}
+
+/* ---- Header: location pill, notifications, categories ---- */
+.kids-location-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kids-location-icon {
+  font-size: 20px;
+  color: #15803d;
+  flex: none;
+}
+
+.kids-location-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.2;
+}
+
+.kids-location-label {
+  font-size: 10.5px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.kids-location-city {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.kids-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.kids-icon-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 11px;
+  color: #374151;
+  position: relative;
+  padding: 2px 4px;
+}
+
+.kids-icon-action svg {
+  font-size: 22px;
+  color: #111827;
+}
+
+.kids-icon-action:hover,
+.kids-icon-action:hover svg {
+  color: #15803d;
+}
+
+.kids-icon-action .hp-icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -6px;
+}
+
+.kids-categories-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: none;
+  background: none;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #111827;
+  cursor: pointer;
+  padding: 12px 16px 12px 0;
+  white-space: nowrap;
+}
+
+.kids-categories-btn svg:first-child {
+  font-size: 18px;
+}
+
+.kids-categories-btn svg:last-child {
+  font-size: 16px;
+  color: #6b7280;
+}
+
+.kids-categories-btn:hover {
+  color: #15803d;
+}
+
+/* ============================================================
+   RESPONSIVE BREAKPOINTS
+   ============================================================ */
+
+/* Tablet / small desktop */
+@media (max-width: 1100px) {
+  .kids-hero-row {
+    grid-template-columns: 1fr;
+  }
+
+  .kids-hero-copy {
+    max-width: 100%;
+  }
+
+  .kids-gender-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .kids-shop-cat {
+    grid-column: 1 / -1;
+  }
+
+  .kids-promo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .kids-trust-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .kids-hero-banner-img,
+  .kids-gender-banner-img {
+    border-radius: 14px;
+  }
+
+  .kids-gender-card--banner,
+  .kids-gender-banner-img {
+    min-height: 180px;
+  }
+}
+
+/* Mobile (phones) */
+@media (max-width: 640px) {
+  .kids-main {
+    padding: 12px 12px 32px;
+  }
+
+  /* Header compactness */
+  .kids-header-actions {
+    gap: 12px;
+  }
+
+  .kids-icon-action {
+    font-size: 10px;
+    gap: 1px;
+  }
+
+  .kids-icon-action svg {
+    font-size: 20px;
+  }
+
+  .kids-location-pill {
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .kids-location-label {
+    font-size: 9.5px;
+  }
+
+  .kids-location-city {
+    font-size: 12.5px;
+  }
+
+  .kids-location-icon {
+    font-size: 18px;
+  }
+
+  /* Breadcrumb */
+  .kids-breadcrumb {
+    font-size: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* Hero */
+  .kids-hero-row {
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .kids-hero-banner-img {
+    border-radius: 14px;
+  }
+
+  /* Age card */
+  .kids-age-card {
+    padding: 16px 12px;
+    border-radius: 16px;
+  }
+
+  .kids-age-card h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .kids-age-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .kids-age-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 22px;
+  }
+
+  .kids-age-item span {
+    font-size: 10px;
+  }
+
+  /* Gender + categories */
+  .kids-gender-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .kids-gender-card--banner,
+  .kids-gender-banner-img {
+    min-height: 160px;
+    border-radius: 14px;
+  }
+
+  .kids-shop-cat {
+    padding: 12px 10px;
+  }
+
+  .kids-shop-cat h3 {
+    font-size: 14px;
+    margin-bottom: 10px;
+  }
+
+  .kids-cat-item {
+    min-width: 64px;
+  }
+
+  .kids-cat-icon-wrap {
+    width: 48px;
+    height: 48px;
+  }
+
+  .kids-cat-fallback-icon {
+    font-size: 20px;
+  }
+
+  .kids-cat-item span:last-child {
+    font-size: 10px;
+    max-width: 68px;
+  }
+
+  /* Promo cards */
+  .kids-promo-row {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .kids-promo-card {
+    padding: 16px;
+    min-height: 100px;
+    border-radius: 14px;
+  }
+
+  .kids-promo-card h4 {
+    font-size: 15px;
+  }
+
+  .kids-promo-card p {
+    font-size: 12px;
+  }
+
+  /* Top Picks rail – make cards more mobile-friendly */
+  .kids-picks-section .hp-deals-wrap {
+    margin: 0 -4px;
+  }
+
+  .kids-picks-section .hp-deals-prev,
+  .kids-picks-section .hp-deals-next {
+    width: 32px;
+    height: 32px;
+    font-size: 18px;
+  }
+
+  /* Brands */
+  .kids-brands-section {
+    margin: 16px 0 20px;
+  }
+
+  /* Trust strip */
+  .kids-trust-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px 12px;
+    border-radius: 14px;
+  }
+
+  .kids-trust-strip > div {
+    gap: 8px;
+  }
+
+  .kids-trust-strip svg {
+    font-size: 20px;
+  }
+
+  .kids-trust-strip strong {
+    font-size: 12px;
+  }
+
+  .kids-trust-strip span {
+    font-size: 11px;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .kids-main {
+    padding: 10px 10px 28px;
+  }
+
+  .kids-age-grid {
+    gap: 6px;
+  }
+
+  .kids-age-avatar {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+
+  .kids-age-item span {
+    font-size: 9.5px;
+  }
+
+  .kids-cat-item {
+    min-width: 58px;
+  }
+
+  .kids-cat-icon-wrap {
+    width: 44px;
+    height: 44px;
+  }
+
+  .kids-trust-strip {
+    gap: 10px;
+    padding: 14px 10px;
+  }
+
+  .kids-header-actions {
+    gap: 8px;
+  }
+
+  .kids-icon-action span {
+    display: none; /* hide text labels on very small screens, keep icons */
+  }
+}
