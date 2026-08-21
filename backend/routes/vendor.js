@@ -188,9 +188,8 @@ router.get("/:id/products", async (req, res) => {
     const vendorUserId = vendorStore.rows[0]?.user_id || null;
     const ownerIds = [id, vendorUserId].filter(Boolean).map(String);
 
-    if (!linkedStoreId) {
-      return res.json([]);
-    }
+    // Note: We don't require dark_store_id to exist — products can exist without it
+    // dark_store_id is only used for inventory-specific features
     
     // First, get all products for this vendor
     const productsResult = await pool.query(
