@@ -7187,6 +7187,8 @@ class _HomeScreenState extends State<HomeScreen>
     });
   }
 
+  // Legacy Parcel UI retained temporarily for reference; Parcel is no longer navigable.
+  // ignore: unused_element
   Widget _deliverBody() {
     if (!_deliverPickupAutoInitialized) {
       Future.microtask(_setDeliverPickupFromCurrentLocation);
