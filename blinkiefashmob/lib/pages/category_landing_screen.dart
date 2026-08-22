@@ -86,6 +86,12 @@ class CategoryLandingScreen extends StatefulWidget {
 
 class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   static const Color _green = Color(0xFF16A34A);
+  static const _womenHeroAsset = 'assets/images/women_hero_new.jpeg';
+  static const _womenFeatureStripAsset =
+      'assets/images/women_feature_strip.jpeg';
+  static const _womenKurtaTileAsset = 'assets/images/women_kurta_tile.jpeg';
+  static const _womenNewTileAsset = 'assets/images/women_new_tile.jpeg';
+  static const _womenMediaBannerAsset = 'assets/images/women_media_banner.jpeg';
 
   final ApiClient _api = ApiClient();
   final ScrollController _scrollCtrl = ScrollController();
@@ -202,6 +208,11 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
     if (_minPrice != null || _maxPrice != null) c++;
     if (_sort != 'newest') c++;
     return c;
+  }
+
+  bool get _isWomenCategory {
+    final text = widget.categoryName.toLowerCase();
+    return text.contains('women') || text.contains('woman') || text == 'ladies';
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -429,6 +440,8 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
           slivers: [
             // Header
             SliverToBoxAdapter(child: _buildHeader()),
+            if (_isWomenCategory)
+              SliverToBoxAdapter(child: _buildWomenShowcase()),
             // Sub-categories row
             if (_subCats.isNotEmpty)
               SliverToBoxAdapter(child: _buildSubCatRow()),
@@ -441,6 +454,100 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
               sliver: _buildProductsSliver(),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWomenShowcase() {
+    return Container(
+      color: _theme.bg,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Column(
+        children: [
+          _showcaseImage(
+            _womenHeroAsset,
+            height: 168,
+            radius: 20,
+            fallbackIcon: Icons.image_outlined,
+          ),
+          const SizedBox(height: 10),
+          _showcaseImage(
+            _womenFeatureStripAsset,
+            height: 62,
+            radius: 14,
+            fallbackIcon: Icons.local_offer_outlined,
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _showcaseImage(
+                  _womenKurtaTileAsset,
+                  height: 96,
+                  radius: 14,
+                  fallbackIcon: Icons.checkroom_outlined,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _showcaseImage(
+                  _womenNewTileAsset,
+                  height: 96,
+                  radius: 14,
+                  fallbackIcon: Icons.auto_awesome_outlined,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _showcaseImage(
+            _womenMediaBannerAsset,
+            height: 90,
+            radius: 14,
+            fallbackIcon: Icons.campaign_outlined,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _showcaseImage(
+    String assetPath, {
+    required double height,
+    required double radius,
+    required IconData fallbackIcon,
+  }) {
+    return Container(
+      height: height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(radius),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(radius),
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.cover,
+          filterQuality: FilterQuality.high,
+          errorBuilder: (_, _, _) => Container(
+            color: const Color(0xFFF1F5F9),
+            child: Center(
+              child: Icon(
+                fallbackIcon,
+                color: const Color(0xFF94A3B8),
+                size: 28,
+              ),
+            ),
+          ),
         ),
       ),
     );
