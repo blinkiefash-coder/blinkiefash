@@ -106,23 +106,16 @@ class _HomeScreenState extends State<HomeScreen>
       'route': 'brand',
       'brand': 'Puma',
     },
+    {'image': 'assets/images/hero_mk.png', 'route': 'brand', 'brand': 'MK'},
     {
-      'image':
-          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
+      'image': 'assets/images/hero_crimsoune.jpeg',
       'route': 'brand',
-      'brand': 'Nike',
+      'brand': 'Crimsoune',
     },
     {
-      'image':
-          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099597/file_00000000b408820bb1ef180a5b19df30_scfowa.png',
+      'image': 'assets/images/hero_kids.jpeg',
       'route': 'brand',
-      'brand': 'Adidas',
-    },
-    {
-      'image':
-          'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
-      'route': 'brand',
-      'brand': 'US Polo',
+      'brand': 'KIDS',
     },
   ];
 
@@ -527,14 +520,42 @@ class _HomeScreenState extends State<HomeScreen>
           locationProvided &&
           (nearestStore == null || (distKm != null && distKm > radiusKm));
 
+      final productsInStore = (storeResult['products'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+
+      final brandCountsById = <String, int>{};
+      final brandCountsByName = <String, int>{};
+      for (final p in productsInStore) {
+        final brandId =
+            (p['brand_id'] ?? p['brandId'])?.toString().trim() ?? '';
+        if (brandId.isNotEmpty) {
+          brandCountsById[brandId] = (brandCountsById[brandId] ?? 0) + 1;
+        }
+
+        final rawName =
+            (p['brand'] ?? p['brand_name'] ?? p['brandName'])?.toString() ?? '';
+        final brandName = rawName.toLowerCase().trim();
+        if (brandName.isNotEmpty) {
+          brandCountsByName[brandName] =
+              (brandCountsByName[brandName] ?? 0) + 1;
+        }
+      }
+
+      int itemCountForBrand(Map<String, dynamic> brand) {
+        final id = brand['id']?.toString().trim() ?? '';
+        final name = (brand['name']?.toString() ?? '').toLowerCase().trim();
+        final byId = id.isEmpty ? 0 : (brandCountsById[id] ?? 0);
+        final byName = name.isEmpty ? 0 : (brandCountsByName[name] ?? 0);
+        return math.max(byId, byName);
+      }
+
       setState(() {
         _outOfServiceArea = outOfArea;
         // Keep the full fetched batch (not just a handful) so the Deals of the
         // Day / New & Trendy filters below have enough products to reliably
         // fill a 10-slide scroller instead of running out after a few items.
-        _products = (storeResult['products'] as List? ?? [])
-            .whereType<Map<String, dynamic>>()
-            .toList();
+        _products = productsInStore;
         _categories =
             cats
                 .whereType<Map<String, dynamic>>()
@@ -558,7 +579,12 @@ class _HomeScreenState extends State<HomeScreen>
         _allCategories = (cats).whereType<Map<String, dynamic>>().toList();
         _categoryMirrorRootIds = _buildCategoryMirrorRootIds(mirrorLinks);
         _brands = brs.whereType<Map<String, dynamic>>().toList()
+          ..retainWhere((b) => itemCountForBrand(b) > 0)
           ..sort((a, b) {
+            final ac = itemCountForBrand(a);
+            final bc = itemCountForBrand(b);
+            if (ac != bc) return bc.compareTo(ac);
+
             final an = (a['name'] ?? '').toString().toLowerCase().trim();
             final bn = (b['name'] ?? '').toString().toLowerCase().trim();
             // Well-known clothing brands surface first so shoppers
