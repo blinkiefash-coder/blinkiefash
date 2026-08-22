@@ -1051,7 +1051,7 @@
   left: -28px;
   width: 90px;
   transform: rotate(-45deg);
-  background: #ea580c;
+  background: red;
   color: #fff;
   text-align: center;
   font-size: 9px;
@@ -1290,7 +1290,8 @@
 
 .hp-deal-mrp {
   font-size: 11px;
-  color: #94a3b8;
+  color: #64748b;
+  opacity: 1;
   text-decoration: line-through;
 }
 
@@ -1303,8 +1304,9 @@
 
 .hp-deal-off {
   color: var(--brand-green-dark);
-  font-size: 11px;
+  font-size: 0.75rem;
   font-weight: 800;
+  background: #dcfce7;
 }
 
 .hp-deal-cart {
