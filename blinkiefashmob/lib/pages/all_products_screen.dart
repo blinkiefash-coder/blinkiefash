@@ -592,9 +592,29 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         limit: _pageSize,
         offset: reset ? 0 : _offset,
       );
-      final rows = (data['products'] as List? ?? [])
+      var rows = (data['products'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
           .toList();
+      if (reset &&
+          rows.isEmpty &&
+          searchTerm != null &&
+          searchTerm.toLowerCase().contains('libas')) {
+        final fallbackData = await _api.fetchAllProducts(
+          categoryId: _selectedCategoryId,
+          brandId: _selectedBrandId,
+          search: 'kurta set',
+          sort: _sort,
+          minPrice: _minPrice,
+          maxPrice: _maxPrice,
+          minDiscount: _minDiscount,
+          noDiscount: _noDiscount,
+          limit: _pageSize,
+          offset: 0,
+        );
+        rows = (fallbackData['products'] as List? ?? [])
+            .whereType<Map<String, dynamic>>()
+            .toList();
+      }
       if (!mounted) return;
       if (reset && searchTerm != null) {
         AnalyticsService.instance.logSearch(
@@ -1141,7 +1161,9 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     : imageUrl != null
                     ? CachedNetworkImage(
                         imageUrl: imageUrl,
-                        memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
+                        memCacheWidth:
+                            (320 * MediaQuery.of(context).devicePixelRatio)
+                                .round(),
                         fit: BoxFit.cover,
                         placeholder: (_, _) =>
                             Container(color: const Color(0xFFF1F5F9)),
@@ -1298,11 +1320,12 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2F3E8)),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x0D000000),
-              blurRadius: 8,
-              offset: Offset(0, 2),
+              color: Color(0x1A166534),
+              blurRadius: 12,
+              offset: Offset(0, 4),
             ),
           ],
         ),
@@ -1321,7 +1344,9 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     child: img != null
                         ? CachedNetworkImage(
                             imageUrl: img,
-                            memCacheWidth: (320 * MediaQuery.of(context).devicePixelRatio).round(),
+                            memCacheWidth:
+                                (320 * MediaQuery.of(context).devicePixelRatio)
+                                    .round(),
                             fit: BoxFit.contain,
                             alignment: Alignment.center,
                             fadeInDuration: const Duration(milliseconds: 200),
@@ -1549,6 +1574,30 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                       ),
                     ),
                   const SizedBox(height: 6),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hasDiscount
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFF166534),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        hasDiscount ? offLabel : 'NEW',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -1557,7 +1606,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                         style: const TextStyle(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
-                          color: Color(0xFF0F172A),
+                          color: Color(0xFF15803D),
                         ),
                       ),
                       if (hasDiscount) ...[
@@ -1565,26 +1614,12 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                         Text(
                           '\u20b9$origPrice',
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 13,
                             color: Color(0xFF9CA3AF),
                             decoration: TextDecoration.lineThrough,
                           ),
                         ),
                       ],
-                      const Spacer(),
-                      Container(
-                        width: 28,
-                        height: 28,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDCFCE7),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: const Icon(
-                          Icons.shopping_cart_outlined,
-                          size: 15,
-                          color: _green,
-                        ),
-                      ),
                     ],
                   ),
                 ],

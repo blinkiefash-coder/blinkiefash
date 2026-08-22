@@ -243,7 +243,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
             _VendorEditProductsTab(vendorId: widget.vendorId),
             _VendorStockUpdateTab(vendorId: widget.vendorId),
             _VendorOrdersTab(vendorId: widget.vendorId),
-            _VendorDeliverTab(vendorId: widget.vendorId),
           ],
         ),
         bottomNavigationBar: BottomNavigationBar(
@@ -284,11 +283,6 @@ class _VendorDashboardScreenState extends State<VendorDashboardScreen> {
               icon: Icon(Icons.receipt_long_outlined),
               activeIcon: Icon(Icons.receipt_long_rounded),
               label: 'Orders',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.local_shipping_outlined),
-              activeIcon: Icon(Icons.local_shipping_rounded),
-              label: 'Parcel',
             ),
           ],
         ),
