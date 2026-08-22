@@ -81,10 +81,12 @@ const HERO_SLIDES = [
   {
     image:
         'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
+        to:'/shop?search=men',
   },
   {
     image:
         "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png",
+        to:'/shop?search=women',
   },
 ];
 
