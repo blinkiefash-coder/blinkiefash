@@ -91,7 +91,6 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
       'assets/images/women_feature_strip.jpeg';
   static const _womenKurtaTileAsset = 'assets/images/women_kurta_tile.jpeg';
   static const _womenNewTileAsset = 'assets/images/women_new_tile.jpeg';
-  static const _womenMediaBannerAsset = 'assets/images/women_media_banner.jpeg';
 
   final ApiClient _api = ApiClient();
   final ScrollController _scrollCtrl = ScrollController();
@@ -213,6 +212,30 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   bool get _isWomenCategory {
     final text = widget.categoryName.toLowerCase();
     return text.contains('women') || text.contains('woman') || text == 'ladies';
+  }
+
+  Color get _surfaceBg => _isWomenCategory ? Colors.transparent : _theme.bg;
+
+  void _applyWomenPromoFilter({required bool kurtaOnly}) {
+    setState(() {
+      _selectedSubId = null;
+      _selectedSubSubId = null;
+      if (kurtaOnly) {
+        _searchCtrl.text = 'kurta';
+        _searchQuery = 'kurta';
+      } else {
+        _searchCtrl.clear();
+        _searchQuery = '';
+      }
+    });
+    _loadProducts(reset: true);
+    if (_scrollCtrl.hasClients) {
+      _scrollCtrl.animateTo(
+        620,
+        duration: const Duration(milliseconds: 350),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -432,44 +455,58 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   Widget build(BuildContext context) {
     final subSub = _subSubCats();
     return Scaffold(
-      backgroundColor: _theme.bg,
-      body: SafeArea(
-        bottom: false,
-        child: CustomScrollView(
-          controller: _scrollCtrl,
-          slivers: [
-            // Header
-            SliverToBoxAdapter(child: _buildHeader()),
-            if (_isWomenCategory)
-              SliverToBoxAdapter(child: _buildWomenShowcase()),
-            // Sub-categories row
-            if (_subCats.isNotEmpty)
-              SliverToBoxAdapter(child: _buildSubCatRow()),
-            // Sub-sub-categories row (only when a sub is selected and has children)
-            if (subSub.isNotEmpty)
-              SliverToBoxAdapter(child: _buildSubSubCatRow(subSub)),
-            // Products
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
-              sliver: _buildProductsSliver(),
-            ),
-          ],
+      backgroundColor: _isWomenCategory ? const Color(0xFFFFF2F7) : _theme.bg,
+      body: Container(
+        decoration: _isWomenCategory
+            ? const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Color(0xFFFFF0F5), Color(0xFFFFF7FB)],
+                ),
+              )
+            : null,
+        child: SafeArea(
+          bottom: false,
+          child: CustomScrollView(
+            controller: _scrollCtrl,
+            slivers: [
+              // Header
+              SliverToBoxAdapter(child: _buildHeader()),
+              if (_isWomenCategory)
+                SliverToBoxAdapter(child: _buildWomenTopShowcase()),
+              // Sub-categories row
+              if (_subCats.isNotEmpty)
+                SliverToBoxAdapter(child: _buildSubCatRow()),
+              // Sub-sub-categories row (only when a sub is selected and has children)
+              if (subSub.isNotEmpty)
+                SliverToBoxAdapter(child: _buildSubSubCatRow(subSub)),
+              if (_isWomenCategory)
+                SliverToBoxAdapter(child: _buildWomenPromoCards()),
+              // Products
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(12, 4, 12, 32),
+                sliver: _buildProductsSliver(),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildWomenShowcase() {
+  Widget _buildWomenTopShowcase() {
     return Container(
-      color: _theme.bg,
+      color: _surfaceBg,
       padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
       child: Column(
         children: [
           _showcaseImage(
             _womenHeroAsset,
-            height: 168,
+            height: 176,
             radius: 20,
             fallbackIcon: Icons.image_outlined,
+            fit: BoxFit.contain,
           ),
           const SizedBox(height: 10),
           _showcaseImage(
@@ -477,35 +514,43 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
             height: 62,
             radius: 14,
             fallbackIcon: Icons.local_offer_outlined,
+            fit: BoxFit.contain,
           ),
-          const SizedBox(height: 10),
-          Row(
-            children: [
-              Expanded(
-                child: _showcaseImage(
-                  _womenKurtaTileAsset,
-                  height: 96,
-                  radius: 14,
-                  fallbackIcon: Icons.checkroom_outlined,
-                ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWomenPromoCards() {
+    return Container(
+      color: _surfaceBg,
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _applyWomenPromoFilter(kurtaOnly: true),
+              child: _showcaseImage(
+                _womenKurtaTileAsset,
+                height: 102,
+                radius: 14,
+                fallbackIcon: Icons.checkroom_outlined,
+                fit: BoxFit.contain,
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _showcaseImage(
-                  _womenNewTileAsset,
-                  height: 96,
-                  radius: 14,
-                  fallbackIcon: Icons.auto_awesome_outlined,
-                ),
-              ),
-            ],
+            ),
           ),
-          const SizedBox(height: 10),
-          _showcaseImage(
-            _womenMediaBannerAsset,
-            height: 90,
-            radius: 14,
-            fallbackIcon: Icons.campaign_outlined,
+          const SizedBox(width: 10),
+          Expanded(
+            child: GestureDetector(
+              onTap: () => _applyWomenPromoFilter(kurtaOnly: false),
+              child: _showcaseImage(
+                _womenNewTileAsset,
+                height: 102,
+                radius: 14,
+                fallbackIcon: Icons.auto_awesome_outlined,
+                fit: BoxFit.contain,
+              ),
+            ),
           ),
         ],
       ),
@@ -517,6 +562,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
     required double height,
     required double radius,
     required IconData fallbackIcon,
+    BoxFit fit = BoxFit.cover,
   }) {
     return Container(
       height: height,
@@ -536,7 +582,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
         borderRadius: BorderRadius.circular(radius),
         child: Image.asset(
           assetPath,
-          fit: BoxFit.cover,
+          fit: fit,
           filterQuality: FilterQuality.high,
           errorBuilder: (_, _, _) => Container(
             color: const Color(0xFFF1F5F9),
@@ -556,7 +602,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   // ── Header ─────────────────────────────────────────────────────────────────
   Widget _buildHeader() {
     return Container(
-      color: _theme.bg,
+      color: _surfaceBg,
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -861,7 +907,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   // ── Sub-category chips row ─────────────────────────────────────────────────
   Widget _buildSubCatRow() {
     return Container(
-      color: _theme.bg,
+      color: _surfaceBg,
       padding: const EdgeInsets.only(bottom: 4),
       child: SizedBox(
         height: 95,
@@ -997,7 +1043,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
   // ── Sub-sub-category chips row (circular image style, smaller) ────────────────
   Widget _buildSubSubCatRow(List<Map<String, dynamic>> subSubs) {
     return Container(
-      color: _theme.bg,
+      color: _surfaceBg,
       padding: const EdgeInsets.only(bottom: 6),
       child: SizedBox(
         height: 80,
