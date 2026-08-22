@@ -73,6 +73,19 @@ const HERO_SLIDES = [
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
     to: '/shop?search=US Polo',
   },
+  {
+    image:
+       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
+       to: '/shop?search=kids',  
+  },
+  {
+    image:
+        'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
+  },
+  {
+    image:
+        "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png",
+  },
 ];
 
 const UTILITY_ITEMS = [
@@ -127,6 +140,7 @@ const UNIVERSE_BRANDS = [
       "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
     to: "/shop?search=MK",
   },
+  
 ];
 
 const KNOWN_BRANDS = [
