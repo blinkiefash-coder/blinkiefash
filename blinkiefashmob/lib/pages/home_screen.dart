@@ -1538,14 +1538,16 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ),
             _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
-            _sectionHeader(
-              'TOP BRANDS',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+            if (_brands.isNotEmpty) ...[
+              _sectionHeader(
+                'TOP BRANDS',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+                ),
               ),
-            ),
-            _topBrands(),
+              _topBrands(),
+            ],
             _sectionHeader('MORE TO EXPLORE'),
             _shopByCategorySection(),
             _newsletterStrip(),
