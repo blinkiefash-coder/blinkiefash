@@ -45,12 +45,12 @@ function resolveImageUrl(raw) {
 
 // Same hero cards as blinkiefashmob's home screen (assets/images/hero_main.jpeg + brand banners).
 const HERO_SLIDES = [
-  {
-    image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
-    to: '/shop?search=Puma',
-    pos: 'center 20%',
-  },
+  // {
+  //   image:
+  //     'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
+  //   to: '/shop?search=Puma',
+  //   pos: 'center 20%',
+  // },
   {
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
