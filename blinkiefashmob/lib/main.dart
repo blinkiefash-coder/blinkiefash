@@ -1,6 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+import 'firebase_options.dart';
+import 'services/firebase_app_check_config.dart';
+import 'services/notification_service.dart';
+import 'splash_screen.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseAppCheckConfig.initialize();
+  await NotificationService.instance.init();
   runApp(const MyApp());
 }
 
@@ -11,8 +21,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'BlinkieFash',
-      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
-      home: const Scaffold(body: Center(child: Text('BlinkieFash Mobile App'))),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF22C55E)),
+        useMaterial3: true,
+      ),
+      home: const SplashScreen(),
     );
   }
 }

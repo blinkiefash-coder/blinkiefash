@@ -3,8 +3,8 @@ import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
 import 'login_screen.dart';
-import 'location_picker_screen.dart';
-import 'checkout_screen.dart';
+import 'location_picker_screen.dart' show LocationPickerScreen, PickedAddress;
+import 'checkout_screen.dart' hide PickedAddress;
 import '../widgets/bf_loader.dart';
 
 /// Page 1 of the 2-page checkout flow — Myntra-style address selection.
@@ -202,15 +202,9 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
 
   void _continue() {
     if (_selectedAddressId == null) return;
-    final selected = _addresses.firstWhere(
-      (a) => a['id'].toString() == _selectedAddressId,
-      orElse: () => <String, dynamic>{},
-    );
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CheckoutScreen(
-          selectedAddressId: _selectedAddressId!,
-          selectedAddress: selected,
           isTryOrder: widget.isTryOrder,
           overrideItems: widget.overrideItems,
         ),

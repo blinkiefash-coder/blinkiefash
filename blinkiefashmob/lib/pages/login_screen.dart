@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
 
 class LoginScreen extends StatelessWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    super.key,
+    this.startAsVendor = false,
+    this.redirectBuilder,
+  });
+
+  final bool startAsVendor;
+  final Widget Function(BuildContext)? redirectBuilder;
 
   @override
   Widget build(BuildContext context) {

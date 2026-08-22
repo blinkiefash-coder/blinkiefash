@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../models/cart_item.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
@@ -76,7 +75,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final userId = UserSession.instance.userId;
     if (userId == null) return;
     try {
-      final data = await _api.fetchAvailableRewards(userId: userId);
+      final data = await _api.fetchAvailableRewards(userId);
       if (!mounted) return;
       setState(() {
         _availableReferralAmount =
@@ -208,7 +207,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final items = cartItems
         .map(
           (ci) => {
-            'variantId': ci.id,
+            'variantId': ci.productId,
             'quantity': ci.quantity,
             'price': double.tryParse(ci.rawPrice) ?? 0.0,
           },

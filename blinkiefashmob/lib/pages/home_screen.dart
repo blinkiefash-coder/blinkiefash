@@ -8,7 +8,7 @@ import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
 import '../services/notification_service.dart';
-import '../services/wishlist_manager.dart';
+import '../services/wishlist_manager.dart' show WishlistManager, WishlistItem;
 import 'all_brands_screen.dart';
 import 'all_products_screen.dart';
 import 'category_landing_screen.dart';
@@ -121,16 +121,13 @@ class _HomeScreenState extends State<HomeScreen>
             .take(8)
             .toList();
         _nearestStoreName = nearestStore?['name']?.toString();
-        _categories = (cats as List<dynamic>)
+        _categories = (cats)
             .whereType<Map<String, dynamic>>()
             .where((c) => c['parent_id'] == null)
             .take(6)
             .toList();
         _allCategories = (cats).whereType<Map<String, dynamic>>().toList();
-        _brands = (brs as List<dynamic>)
-            .whereType<Map<String, dynamic>>()
-            .take(8)
-            .toList();
+        _brands = (brs).whereType<Map<String, dynamic>>().take(8).toList();
         final bestsellersData = (bests as Map<String, dynamic>?) ?? {};
         _bestsellers = (bestsellersData['products'] as List? ?? [])
             .whereType<Map<String, dynamic>>()
@@ -1195,7 +1192,14 @@ class _HomeScreenState extends State<HomeScreen>
                             onTap: () {
                               final id = item['id']?.toString() ?? '';
                               if (id.isEmpty) return;
-                              WishlistManager.instance.toggle(id);
+                              WishlistManager.instance.toggle(
+                                WishlistItem(
+                                  productId: id,
+                                  name: name,
+                                  price: price,
+                                  imageUrl: _imgUrl(item["image"]),
+                                ),
+                              );
                               setState(() {});
                             },
                             child: Container(
@@ -1470,7 +1474,14 @@ class _HomeScreenState extends State<HomeScreen>
                             onTap: () {
                               final id = item['id']?.toString() ?? '';
                               if (id.isEmpty) return;
-                              WishlistManager.instance.toggle(id);
+                              WishlistManager.instance.toggle(
+                                WishlistItem(
+                                  productId: id,
+                                  name: name,
+                                  price: price,
+                                  imageUrl: _imgUrl(item["image"]),
+                                ),
+                              );
                               setState(() {});
                             },
                             child: Container(
