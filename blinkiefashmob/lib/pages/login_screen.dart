@@ -46,6 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
     'assets/images/hero1.png',
     'assets/images/hero_mk.png',
     'assets/images/hero_crimsoune.jpeg',
+    'assets/images/hero_kids.jpeg',
   ];
   final PageController _heroCtrl = PageController();
   int _heroIndex = 0;
