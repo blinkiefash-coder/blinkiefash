@@ -91,6 +91,9 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
       'assets/images/women_feature_strip.jpeg';
   static const _womenKurtaTileAsset = 'assets/images/women_kurta_tile.jpeg';
   static const _womenNewTileAsset = 'assets/images/women_new_tile.jpeg';
+  static const double _womenHeroAspect = 1536 / 1024;
+  static const double _womenFeatureAspect = 1860 / 845;
+  static const double _womenPromoAspect = 1536 / 1024;
 
   final ApiClient _api = ApiClient();
   final ScrollController _scrollCtrl = ScrollController();
@@ -503,18 +506,18 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
         children: [
           _showcaseImage(
             _womenHeroAsset,
-            height: 176,
+            aspectRatio: _womenHeroAspect,
             radius: 20,
             fallbackIcon: Icons.image_outlined,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
           ),
           const SizedBox(height: 10),
           _showcaseImage(
             _womenFeatureStripAsset,
-            height: 62,
+            aspectRatio: _womenFeatureAspect,
             radius: 14,
             fallbackIcon: Icons.local_offer_outlined,
-            fit: BoxFit.contain,
+            fit: BoxFit.cover,
           ),
         ],
       ),
@@ -532,10 +535,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
               onTap: () => _applyWomenPromoFilter(kurtaOnly: true),
               child: _showcaseImage(
                 _womenKurtaTileAsset,
-                height: 102,
+                aspectRatio: _womenPromoAspect,
                 radius: 14,
                 fallbackIcon: Icons.checkroom_outlined,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -545,10 +548,10 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
               onTap: () => _applyWomenPromoFilter(kurtaOnly: false),
               child: _showcaseImage(
                 _womenNewTileAsset,
-                height: 102,
+                aspectRatio: _womenPromoAspect,
                 radius: 14,
                 fallbackIcon: Icons.auto_awesome_outlined,
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
               ),
             ),
           ),
@@ -559,17 +562,38 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
 
   Widget _showcaseImage(
     String assetPath, {
-    required double height,
+    double? height,
+    double? aspectRatio,
     required double radius,
     required IconData fallbackIcon,
     BoxFit fit = BoxFit.cover,
   }) {
+    Widget image = ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: Image.asset(
+        assetPath,
+        fit: fit,
+        filterQuality: FilterQuality.high,
+        errorBuilder: (_, _, _) => Container(
+          color: const Color(0xFFF1F5F9),
+          child: Center(
+            child: Icon(fallbackIcon, color: const Color(0xFF94A3B8), size: 28),
+          ),
+        ),
+      ),
+    );
+
+    if (aspectRatio != null) {
+      image = AspectRatio(aspectRatio: aspectRatio, child: image);
+    }
+
     return Container(
       height: height,
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: const Color(0x10E11D48)),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0D000000),
@@ -578,24 +602,7 @@ class _CategoryLandingScreenState extends State<CategoryLandingScreen> {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(radius),
-        child: Image.asset(
-          assetPath,
-          fit: fit,
-          filterQuality: FilterQuality.high,
-          errorBuilder: (_, _, _) => Container(
-            color: const Color(0xFFF1F5F9),
-            child: Center(
-              child: Icon(
-                fallbackIcon,
-                color: const Color(0xFF94A3B8),
-                size: 28,
-              ),
-            ),
-          ),
-        ),
-      ),
+      child: image,
     );
   }
 
