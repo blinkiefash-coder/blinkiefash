@@ -88,7 +88,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   // Shop By Category section
   String? _shopCatId;
-  int _shopCatChipIndex = 0;
+  final int _shopCatChipIndex = 0;
   List<Map<String, dynamic>> _shopProducts = const [];
   bool _shopLoading = false;
   bool _shopHasMore = false;
@@ -1362,6 +1362,15 @@ class _HomeScreenState extends State<HomeScreen>
             _serviceAreaGate(),
           ] else ...[
             _heroBanner(),
+            _sectionHeader(
+              'TOP BRANDS',
+              actionLabel: 'View All',
+              onAction: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+              ),
+            ),
+            _topBrands(),
+            const SizedBox(height: 8),
             _sectionHeader(
               'SHOP BY CATEGORY',
               actionLabel: 'View All',
@@ -2668,13 +2677,15 @@ class _HomeScreenState extends State<HomeScreen>
         const SizedBox(height: 10),
         // ── Product cards — same style as Deals of the Day ────────────
         SizedBox(
-          height: 300,
+          height: 302,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 12),
             itemCount: slides.length,
             itemBuilder: (_, i) {
               final item = slides[i];
+              return _standardHomeProductCard(item);
+              // ignore: dead_code
               final name = item['name']?.toString() ?? 'Product';
               final brand = item['brand']?.toString() ?? '';
               final variantData = _getCardVariant(item);
@@ -2895,7 +2906,226 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  Widget _standardHomeProductCard(Map<String, dynamic> item) {
+    final name = item['name']?.toString() ?? 'Product';
+    final brand = item['brand']?.toString() ?? '';
+    final variantData = _getCardVariant(item);
+    final price = _fmt(variantData['discount_price']);
+    final mrp = _fmt(variantData['price']);
+    final off = item['off']?.toString() ?? _offLabel(item);
+    final image = _imgUrl(variantData['image_url'] ?? item['image']);
+    final hasDiscount = mrp.isNotEmpty && mrp != price && mrp != '0';
+    final wishItem = WishlistItem(
+      productId: item['id']?.toString() ?? '',
+      name: name,
+      price: price,
+      imageUrl: image,
+    );
+
+    return GestureDetector(
+      onTap: item['id'] != null ? () => _openProduct(item) : null,
+      child: Container(
+        width: 160,
+        margin: const EdgeInsets.only(right: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2F3E8)),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1A166534),
+              blurRadius: 12,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                    child: image == null
+                        ? Container(
+                            color: const Color(0xFFF7FAF8),
+                            child: const Icon(
+                              Icons.checkroom_outlined,
+                              color: Color(0xFFCBD5E1),
+                              size: 36,
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: image,
+                            fit: BoxFit.contain,
+                            alignment: Alignment.center,
+                            memCacheWidth: 480,
+                            placeholder: (_, _) =>
+                                Container(color: const Color(0xFFF7FAF8)),
+                            errorWidget: (_, _, _) => Container(
+                              color: const Color(0xFFF7FAF8),
+                              child: const Icon(Icons.broken_image_outlined),
+                            ),
+                          ),
+                  ),
+                  if (item['is_bestseller'] == true)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _collectionBadge('BESTSELLER'),
+                    )
+                  else if (item['is_try_and_buy'] == true)
+                    Positioned(
+                      top: 8,
+                      left: 8,
+                      child: _collectionBadge('TRY_AND_BUY'),
+                    ),
+                  Positioned(
+                    top: 6,
+                    right: 6,
+                    child: GestureDetector(
+                      onTap: () {
+                        WishlistManager.instance.toggle(wishItem);
+                        setState(() {});
+                      },
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          WishlistManager.instance.isWishlisted(
+                                wishItem.productId,
+                              )
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
+                          size: 16,
+                          color:
+                              WishlistManager.instance.isWishlisted(
+                                wishItem.productId,
+                              )
+                              ? const Color(0xFFE11D48)
+                              : const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              flex: 2,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (brand.isNotEmpty)
+                      Text(
+                        brand.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 10,
+                          color: Color(0xFF94A3B8),
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                    const SizedBox(height: 2),
+                    Text(
+                      name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF0F172A),
+                        height: 1.2,
+                      ),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 7,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: hasDiscount
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFF166534),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        hasDiscount ? off : 'NEW',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Row(
+                      children: [
+                        Text(
+                          '₹$price',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF15803D),
+                          ),
+                        ),
+                        if (hasDiscount) ...[
+                          const SizedBox(width: 4),
+                          Text(
+                            '₹$mrp',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF94A3B8),
+                              decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _collectionBadge(String kind) {
+    if (kind == 'NEW') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2563EB),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Text(
+          'NEW',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.5,
+          ),
+        ),
+      );
+    }
+
     if (kind == 'BESTSELLER') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
@@ -3043,11 +3273,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _dealsOfTheDayCategories() {
     final topDeals = _topDiscountedProducts();
     if (topDeals.isEmpty) return _stockOutBanner();
-    return _buildDiscountDealCards(
-      topDeals,
-      ribbonText: 'HOT DEAL',
-      ribbonColor: const Color(0xFFEA580C),
-    );
+    return _buildDiscountDealCards(topDeals);
   }
 
   // ── New & Trendy: Full-price products (no discount), newest first ─────────
@@ -3077,11 +3303,7 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _newAndTrendyCategories() {
     final trendy = _newAndTrendyProducts();
     if (trendy.isEmpty) return _stockOutBanner();
-    return _buildDiscountDealCards(
-      trendy,
-      ribbonText: 'NEW',
-      ribbonColor: const Color(0xFF2563EB),
-    );
+    return _buildDiscountDealCards(trendy, isNew: true);
   }
 
   Widget _buildRecentlyExploredSection() {
@@ -3089,7 +3311,7 @@ class _HomeScreenState extends State<HomeScreen>
       return const SizedBox.shrink();
     }
     return SizedBox(
-      height: 300,
+      height: 302,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -3282,6 +3504,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                           const Spacer(),
+                          const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 6,
@@ -3341,17 +3564,18 @@ class _HomeScreenState extends State<HomeScreen>
 
   Widget _buildDiscountDealCards(
     List<Map<String, dynamic>> topDeals, {
-    required String ribbonText,
-    required Color ribbonColor,
+    bool isNew = false,
   }) {
     return SizedBox(
-      height: 300,
+      height: 302,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: topDeals.length,
         itemBuilder: (_, i) {
           final item = topDeals[i];
+          return _standardHomeProductCard(item);
+          // ignore: dead_code
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
           final variantData = _getCardVariant(item);
@@ -3429,39 +3653,17 @@ class _HomeScreenState extends State<HomeScreen>
                                   ),
                                 ),
                         ),
-                        // Deal ribbon
+                        // Standard product badge
                         Positioned(
                           top: 8,
-                          left: -30,
-                          child: Transform.rotate(
-                            angle: -0.785,
-                            child: Container(
-                              width: 90,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: ribbonColor,
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: ribbonColor.withValues(alpha: 0.4),
-                                    blurRadius: 8,
-                                  ),
-                                ],
-                              ),
-                              child: Text(
-                                ribbonText,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 9,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ),
-                          ),
+                          left: 8,
+                          child: item['is_bestseller'] == true
+                              ? _collectionBadge('BESTSELLER')
+                              : item['is_try_and_buy'] == true
+                              ? _collectionBadge('TRY_AND_BUY')
+                              : isNew
+                              ? _collectionBadge('NEW')
+                              : const SizedBox.shrink(),
                         ),
                         // Wishlist
                         Positioned(
@@ -3534,7 +3736,7 @@ class _HomeScreenState extends State<HomeScreen>
                               height: 1.2,
                             ),
                           ),
-                          const Spacer(),
+                          const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 7,
@@ -3607,13 +3809,15 @@ class _HomeScreenState extends State<HomeScreen>
         ? items.take(_kSectionSlideLimit).toList()
         : items;
     return SizedBox(
-      height: 300,
+      height: 302,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12),
         itemCount: slides.length,
         itemBuilder: (_, i) {
           final item = slides[i];
+          return _standardHomeProductCard(item);
+          // ignore: dead_code
           final name = item['name']?.toString() ?? 'Product';
           final brand = item['brand']?.toString() ?? '';
           final variantData = _getCardVariant(item);
@@ -3872,6 +4076,7 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                           const Spacer(),
+                          const SizedBox(height: 4),
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Container(
@@ -4036,17 +4241,14 @@ class _HomeScreenState extends State<HomeScreen>
           final chip = chips[i];
           final selected = _shopCatChipIndex == i;
           return GestureDetector(
-            onTap: () {
-              if (_shopCatChipIndex == i) return;
-              setState(() {
-                _shopCatChipIndex = i;
-                _shopCatId = chip['id'];
-                _shopProducts = const [];
-                _shopOffset = 0;
-                _shopHasMore = false;
-              });
-              _loadShopProducts(reset: true);
-            },
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => AllProductsScreen(
+                  categoryId: chip['id'],
+                  categoryName: chip['name'],
+                ),
+              ),
+            ),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
               margin: const EdgeInsets.only(right: 8),
@@ -4484,11 +4686,12 @@ class _HomeScreenState extends State<HomeScreen>
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFE2F3E8)),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x0F000000),
-                blurRadius: 10,
-                offset: Offset(0, 3),
+                color: Color(0x1A166534),
+                blurRadius: 12,
+                offset: Offset(0, 4),
               ),
             ],
           ),
@@ -4518,9 +4721,9 @@ class _HomeScreenState extends State<HomeScreen>
                               width: double.infinity,
                               height: double.infinity,
                               placeholder: (ctx, url) =>
-                                  Container(color: const Color(0xFFF1F5F9)),
+                                  Container(color: const Color(0xFFF7FAF8)),
                               errorWidget: (ctx, url, err) => Container(
-                                color: const Color(0xFFF1F5F9),
+                                color: const Color(0xFFF7FAF8),
                                 child: const Icon(
                                   Icons.image_not_supported_outlined,
                                   color: Color(0xFFCBD5E1),
@@ -4644,9 +4847,9 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           '₹$price',
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF111827),
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF15803D),
                           ),
                         ),
                         if (origP.isNotEmpty && origP != price) ...[
@@ -4654,7 +4857,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Text(
                             '₹$origP',
                             style: const TextStyle(
-                              fontSize: 12,
+                              fontSize: 13,
                               color: Color(0xFF94A3B8),
                               decoration: TextDecoration.lineThrough,
                             ),

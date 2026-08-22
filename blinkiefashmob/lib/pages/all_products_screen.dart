@@ -1260,7 +1260,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         padding: const EdgeInsets.all(12),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
-          childAspectRatio: 0.62,
+          childAspectRatio: 0.53,
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
         ),
