@@ -1075,7 +1075,7 @@ router.get("/orders/:orderId", async (req, res) => {
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
        LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
-       WHERE o.id = $1`,
+       WHERE o.id = $1::UUID`,
       [orderId]
     );
     if (!orderRows.length) return res.status(404).json({ success: false, message: "Order not found" });
@@ -1097,7 +1097,7 @@ router.get("/orders/:orderId", async (req, res) => {
        FROM order_items oi
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
-       WHERE oi.order_id = $1`,
+       WHERE oi.order_id = $1::UUID`,
       [orderId]
     );
 
@@ -1221,7 +1221,7 @@ router.get("/orders/:orderId/invoice", async (req, res) => {
        FROM orders o
        JOIN users u ON u.id = o.user_id
        JOIN addresses a ON a.id = o.address_id
-       WHERE o.id = $1`,
+       WHERE o.id = $1::UUID`,
       [orderId]
     );
     if (!orderRows.length) return res.status(404).send("Order not found");
@@ -1601,7 +1601,7 @@ router.get("/orders/:orderId/delivery-status", async (req, res) => {
        LEFT JOIN deliveries d ON d.order_id = o.id 
          AND d.is_active = TRUE
          AND d.status NOT IN ('cancelled', 'returned')
-       WHERE o.id = $1
+       WHERE o.id = $1::UUID
        ORDER BY d.started_at DESC NULLS LAST
        LIMIT 1`,
       [orderId]
