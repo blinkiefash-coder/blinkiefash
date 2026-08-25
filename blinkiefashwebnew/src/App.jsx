@@ -39,7 +39,6 @@ import Careers from './pages/Careers';
 import ContactUs from './pages/ContactUs';
 import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
-import IndependenceThemeBanner from './components/IndependenceThemeBanner';
 import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
 import HelpSupport from './pages/helpsupport'; 
@@ -98,7 +97,6 @@ export default function App() {
     <div
       className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}`}
     >
-      {!isVendorArea && <IndependenceThemeBanner />}
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />

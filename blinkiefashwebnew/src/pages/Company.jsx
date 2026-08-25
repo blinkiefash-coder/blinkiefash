@@ -1,27 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
-import logo from "../assets/logo.png";
 import "./companyLanding.css";
 import Footer from "../components/Footer";
 import PartnerModal from "../components/PartnerModal";
 import LpNav from "../components/LpNav";
-
-const appScreens = [
-  { img: "/images/home-store.png", label: "Home", sub: "Discover trending fashion near you" },
-  { img: "/images/cloth.png", label: "Product Details", sub: "Check sizes, colors and offers" },
-  { img: "/images/Payment.png", label: "Try Before You Buy", sub: "Try at home, pay only for what you keep" },
-  { img: "/images/travel.png", label: "Track Order", sub: "Real-time tracking of your orders" },
-  { img: "/images/return.png", label: "Secure Checkout", sub: "Multiple payment options" },
-];
-
-const trustItems = [
-  { icon: "🛡️", label: "100% Original\nProducts" },
-  { icon: "👗", label: "Top Fashion\nBrands" },
-  { icon: "🏷️", label: "Best Prices &\nExclusive Deals" },
-  { icon: "🔒", label: "Secure\nPayments" },
-  { icon: "🔄", label: "Easy Returns &\nRefunds" },
-  { icon: "🎧", label: "Dedicated\nCustomer Support" },
-];
 
 const whyItems = [
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "60 Min Delivery", sub: "Lightning fast delivery to your doorstep" },

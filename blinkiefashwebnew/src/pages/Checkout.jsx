@@ -28,9 +28,7 @@ const FREE_DELIVERY_THRESHOLD = 999;
 const PLATFORM_FEE = 0;
 const HANDLING_FEE = 9;
 
-const AVAILABLE_COUPONS = {
-  INDEPENDENCE5: { displayPercent: 5, actualPercent: 2, label: 'Get 5% OFF' },
-};
+const AVAILABLE_COUPONS = {};
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -728,13 +726,6 @@ export default function Checkout() {
             <h3 id="coupon-modal-title" style={{ margin: '0 0 16px', fontSize: 16, fontWeight: 800 }}>
               Available Coupons
             </h3>
-            <div className="ckt-offer-chip active" style={{ width: '100%', marginBottom: 14 }}>
-              <span className="ckt-offer-top">INDEPENDENCE5 – Get 5% OFF</span>
-              <span className="ckt-offer-sub">Valid on this order</span>
-              <button type="button" className="ckt-use-address-btn" style={{ marginTop: 10 }} onClick={() => applyCoupon('INDEPENDENCE5')}>
-                Apply
-              </button>
-            </div>
             <div style={{ display: 'grid', gap: 8 }}>
               <input
                 placeholder="Or enter coupon code"

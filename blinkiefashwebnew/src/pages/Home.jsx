@@ -59,22 +59,6 @@ const HERO_SLIDES = [
   },
   {
     image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
-    to: '/shop?search=Nike',
-  },
-  {
-    image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099597/file_00000000b408820bb1ef180a5b19df30_scfowa.png',
-    to: '/shop?search=Adidas',
-    pos: 'center 20%',
-  },
-  {
-    image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
-    to: '/shop?search=US Polo',
-  },
-  {
-    image:
        'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
        to: '/shop?search=kids',  
   },
@@ -1186,14 +1170,6 @@ export default function Home() {
               <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
             ))}
           </div>
-        </section>
-
-        <section className="hp-independence-banner" aria-label="Independence Day launch message">
-          <p className="hp-ind-kicker">15 August Launch Special</p>
-          <h3>Happy Independence Day, India!</h3>
-          <p>
-            Celebrating freedom with fast fashion delivery, festive styles, and launch offers made just for you.
-          </p>
         </section>
 
         {error && <p className="state-msg">{error}</p>}
