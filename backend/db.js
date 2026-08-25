@@ -116,7 +116,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS vendors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      user_id TEXT,
       business_name VARCHAR(255) NOT NULL,
       owner_name VARCHAR(255) NOT NULL,
       email VARCHAR(255) UNIQUE NOT NULL,
@@ -186,7 +186,7 @@ export const ensureDatabaseTables = async () => {
       ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'pending',
       ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      ADD COLUMN IF NOT EXISTS user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      ADD COLUMN IF NOT EXISTS user_id TEXT,
       ADD COLUMN IF NOT EXISTS slug VARCHAR(255),
       ADD COLUMN IF NOT EXISTS vendor_img_url TEXT,
       ADD COLUMN IF NOT EXISTS lat DECIMAL(10, 8),
@@ -329,7 +329,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS carts (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT UNIQUE,
       created_at TIMESTAMP DEFAULT now(),
       updated_at TIMESTAMP DEFAULT now()
     );
@@ -375,7 +375,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS "Riders" (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT UNIQUE NOT NULL,
       vehicle_type VARCHAR(50) DEFAULT 'Bike',
       is_available BOOLEAN DEFAULT false,
       current_lat DECIMAL(10, 8),
@@ -402,7 +402,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS rider (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT UNIQUE NOT NULL,
       vehicle_type VARCHAR(50) DEFAULT 'Bike',
       vehicle_number VARCHAR(50),
       license_number VARCHAR(50),
@@ -489,7 +489,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS old_clothes_pickups (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
       address_id UUID REFERENCES addresses(id) ON DELETE SET NULL,
       item_count INT NOT NULL CHECK (item_count > 0),
       pickup_slot VARCHAR(100),
@@ -510,7 +510,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_rewards (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
       type VARCHAR(30) NOT NULL,
       value DECIMAL(12, 2) NOT NULL DEFAULT 0,
       status VARCHAR(20) DEFAULT 'available',
@@ -739,7 +739,7 @@ export const ensureDatabaseTables = async () => {
     CREATE TABLE IF NOT EXISTS product_reviews (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       product_id UUID NOT NULL REFERENCES products(id) ON DELETE CASCADE,
-      user_id UUID,
+      user_id TEXT,
       reviewer_name VARCHAR(255),
       rating SMALLINT NOT NULL CHECK (rating BETWEEN 1 AND 5),
       review_text TEXT NOT NULL,
@@ -751,7 +751,7 @@ export const ensureDatabaseTables = async () => {
   });
 
   // Backfill columns for legacy tables that may already exist.
-  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS user_id UUID`).catch(() => {});
+  await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS user_id TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS reviewer_name VARCHAR(255)`).catch(() => {});
   await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS image_url TEXT`).catch(() => {});
   await pool.query(`ALTER TABLE product_reviews ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT now()`).catch(() => {});
@@ -765,7 +765,7 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS user_activity_events (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-      user_id UUID REFERENCES users(id) ON DELETE SET NULL,
+      user_id TEXT,
       session_id TEXT NOT NULL,
       event_type TEXT NOT NULL,
       search_query TEXT,
