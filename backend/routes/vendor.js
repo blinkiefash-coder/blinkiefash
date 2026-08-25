@@ -326,7 +326,11 @@ router.get("/:id/orders", async (req, res) => {
            'product_id', p.id,
            'variant_id', oi.variant_id,
            'quantity', oi.quantity,
-           'price', oi.price,
+           'price', CASE 
+             WHEN LOWER(b.name) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
+             WHEN LOWER(b.name) LIKE '%puma%' THEN GREATEST(0, (oi.price - 7)::DECIMAL)
+             ELSE oi.price
+           END,
            'item_status', oi.item_status,
            'product_name', p.name,
            'image_url', COALESCE(
@@ -357,6 +361,7 @@ router.get("/:id/orders", async (req, res) => {
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
+       LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE p.vendor_id::text = ANY($1::text[])
