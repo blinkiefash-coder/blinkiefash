@@ -85,13 +85,20 @@ export default function Checkout() {
         items: items.map((i) => ({ variantId: i.variantId, quantity: i.qty, price: i.price })),
       });
       if (!res.success) {
-        setError(res.message || 'Could not place order');
+        const errorMsg = res.message || 'Could not place order';
+        console.error('❌ Order placement failed:', errorMsg);
+        console.error('Full response:', res);
+        setError(errorMsg);
         return;
       }
       clearCart();
       navigate('/orders');
     } catch (err) {
-      setError(err.message || 'Could not place order');
+      const errorMsg = err.message || 'Could not place order';
+      console.error('❌ Order placement error:', errorMsg);
+      console.error('Full error object:', err);
+      console.error('Error stack:', err.stack);
+      setError(errorMsg);
     } finally {
       setPlacing(false);
     }
@@ -178,7 +185,29 @@ export default function Checkout() {
         </div>
       </section>
 
-      {error && <p className="auth-error">{error}</p>}
+      {error && (
+        <div 
+          className="auth-error" 
+          role="alert"
+          style={{
+            padding: '12px 16px',
+            backgroundColor: '#fee',
+            border: '1px solid #f88',
+            borderRadius: '6px',
+            marginBottom: '12px',
+            fontSize: '14px',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-wrap',
+            wordBreak: 'break-word',
+            fontFamily: 'monospace',
+            userSelect: 'text',
+            cursor: 'text'
+          }}
+        >
+          <strong>❌ Order Error:</strong><br />
+          {error}
+        </div>
+      )}
 
       <button type="button" className="primary-btn checkout-place-btn" onClick={handlePlaceOrder} disabled={placing}>
         {placing ? 'Placing order...' : 'Place order'}

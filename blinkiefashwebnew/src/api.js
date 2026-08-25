@@ -15,7 +15,13 @@ async function request(path, options = {}) {
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new Error(data?.message || data?.error || `Request failed (${res.status})`);
+    const errorMessage = data?.message || data?.error || `Request failed (${res.status})`;
+    console.error(`API Error on ${path}:`, {
+      status: res.status,
+      message: errorMessage,
+      fullResponse: data
+    });
+    throw new Error(errorMessage);
   }
   return data;
 }

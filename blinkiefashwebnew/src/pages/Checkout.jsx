@@ -335,7 +335,10 @@ export default function Checkout() {
         couponCode: appliedCoupon ? appliedCoupon.code : null,
       });
       if (!res.success) {
-        setError(res.message || 'Could not place order');
+        const errorMsg = res.message || 'Could not place order';
+        console.error('❌ Order placement failed:', errorMsg);
+        console.error('Full response:', res);
+        setError(errorMsg);
         return;
       }
       if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
@@ -351,7 +354,11 @@ export default function Checkout() {
         state: { fromCheckout: true },
       });
     } catch (err) {
-      setError(err.message || 'Could not place order');
+      const errorMsg = err.message || 'Could not place order';
+      console.error('❌ Order placement error:', errorMsg);
+      console.error('Full error object:', err);
+      console.error('Error stack:', err.stack);
+      setError(errorMsg);
     } finally {
       setPlacing(false);
     }
@@ -691,7 +698,29 @@ export default function Checkout() {
             )}
           </section>
 
-          {error && <p className="auth-error" role="alert">{error}</p>}
+          {error && (
+            <div 
+              className="auth-error" 
+              role="alert"
+              style={{
+                padding: '12px 16px',
+                backgroundColor: '#fee',
+                border: '1px solid #f88',
+                borderRadius: '6px',
+                marginBottom: '12px',
+                fontSize: '14px',
+                lineHeight: '1.5',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                fontFamily: 'monospace',
+                userSelect: 'text',
+                cursor: 'text'
+              }}
+            >
+              <strong>❌ Order Error:</strong><br />
+              {error}
+            </div>
+          )}
         </div>
 
         <aside className="ckt-sidebar">
