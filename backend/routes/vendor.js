@@ -403,22 +403,35 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     const order = orderRows[0];
 
     const { rows: items } = await pool.query(
-      `SELECT oi.quantity, oi.price, p.name AS product_name, v.size, v.color, v.barcode
+      `SELECT oi.quantity, oi.price, p.name AS product_name, v.size, v.color, v.barcode, b.name AS brand_name
        FROM order_items oi
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
+       LEFT JOIN brands b ON b.id = p.brand_id
        WHERE oi.order_id = $1 AND p.vendor_id::text = ANY($2::text[])`,
       [orderId, ownerIds]
     );
     if (!items.length) return res.status(404).send("No items found for this vendor on this order");
 
+    // Calculate vendor price based on brand discount
+    const calculateVendorPrice = (price, brandName) => {
+      const brand = (brandName || "").toLowerCase();
+      if (brand.includes("crimsoune")) return price * 0.9;
+      if (brand.includes("puma")) return Math.max(0, price - 7);
+      return price;
+    };
+
     const shortId = orderId.toString().slice(-8).toUpperCase();
     const date = new Date(order.created_at).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric"
     });
-    const subtotal = items.reduce((s, it) => s + parseFloat(it.price) * it.quantity, 0);
-
-    const itemRows = items.map(it => `
+    
+    let subtotal = 0;
+    const itemRows = items.map(it => {
+      const vendorPrice = calculateVendorPrice(parseFloat(it.price), it.brand_name);
+      const lineTotal = vendorPrice * it.quantity;
+      subtotal += lineTotal;
+      return `
       <tr>
         <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0">${it.product_name}
           ${it.size ? `<br/><span style="color:#6b7280;font-size:12px">Size: ${it.size}</span>` : ""}
@@ -426,9 +439,10 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
         </td>
         <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center;font-family:monospace">${it.barcode || "—"}</td>
         <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:center">${it.quantity}</td>
-        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${parseFloat(it.price).toFixed(0)}</td>
-        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${(parseFloat(it.price) * it.quantity).toFixed(0)}</td>
-      </tr>`).join("");
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${vendorPrice.toFixed(0)}</td>
+        <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0;text-align:right">₹${lineTotal.toFixed(0)}</td>
+      </tr>`;
+    }).join("");
 
     const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
