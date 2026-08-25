@@ -113,6 +113,21 @@ export const ensureDatabaseTables = async () => {
     console.log("Note: user_rewards.user_id column migration skipped (may already be TEXT)");
   });
 
+  // Fix orders table amount columns from TEXT/VARCHAR to DECIMAL
+  await pool.query(`
+    ALTER TABLE orders 
+    ALTER COLUMN total_amount TYPE DECIMAL(12,2) USING CAST(total_amount AS DECIMAL(12,2))
+  `).catch((err) => {
+    console.log("Note: orders.total_amount column migration skipped (may already be DECIMAL)");
+  });
+
+  await pool.query(`
+    ALTER TABLE orders 
+    ALTER COLUMN final_amount TYPE DECIMAL(12,2) USING CAST(final_amount AS DECIMAL(12,2))
+  `).catch((err) => {
+    console.log("Note: orders.final_amount column migration skipped (may already be DECIMAL)");
+  });
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS vendors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
