@@ -1286,7 +1286,7 @@ export default function Home() {
                         {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
                       </div>
                       <div className="hp-deal-footer-row">
-                        <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
+                        <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
                         <button
                           type="button"
                           className="hp-deal-cart"
@@ -1423,7 +1423,7 @@ export default function Home() {
                         {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
                       </div>
                       <div className="hp-deal-footer-row">
-                        <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
+                        <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
                         <button
                           type="button"
                           className="hp-deal-cart"
@@ -2021,7 +2021,7 @@ function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
                   {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
                 </div>
                 <div className="hp-deal-footer-row">
-                  <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}</span>
+                  <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}</span>
                   <button
                     type="button"
                     className="hp-deal-cart"

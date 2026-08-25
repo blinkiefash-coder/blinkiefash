@@ -1313,6 +1313,11 @@
   background: #dcfce7;
 }
 
+.hp-deal-off.discount {
+  color: #fff;
+  background: #dc2626;
+}
+
 .hp-deal-cart {
   width: 30px;
   height: 30px;

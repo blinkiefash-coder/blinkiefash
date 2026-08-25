@@ -493,7 +493,7 @@
 }
 
 .catalog-card-badge.discount {
-  background: linear-gradient(90deg, #ea580c, #f97316);
+  background: #dc2626;
 }
 
 .catalog-card-badge.try-buy {
@@ -625,8 +625,8 @@
   border-radius: 5px;
   font-size: 10px;
   font-weight: 800;
-  color: #166534;
-  background: #dcfce7;
+  color: #fff;
+  background: #dc2626;
 }
 
 .catalog-card-cart {

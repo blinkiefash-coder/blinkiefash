@@ -621,7 +621,7 @@ export default function Men() {
                         {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
                       </div>
                       <div className="hp-deal-footer-row">
-                        <span className="hp-deal-off">
+                        <span className={`hp-deal-off${p.discount > 0 ? ' discount' : ''}`}>
                           {p.discount > 0 ? `${p.discount}% OFF` : "BESTSELLER"}
                         </span>
                         <button
