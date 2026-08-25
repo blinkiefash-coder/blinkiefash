@@ -2297,7 +2297,7 @@ class _HomeScreenState extends State<HomeScreen>
                     () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => const AllProductsScreen(
-                          initialSearch: 'Libas Kurti Kurta Set',
+                          initialSearch: 'Libas',
                         ),
                       ),
                     ),
