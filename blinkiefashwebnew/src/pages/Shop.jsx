@@ -2,6 +2,7 @@ import "./Shop.css";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
+import CategoryDrawer from "../components/CategoryDrawer";
 
 import {
   MdClose,
@@ -33,6 +34,8 @@ const COLORS = [
   ["White", "#ffffff"],
   ["Grey", "#9ca3af"],
 ];
+
+const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 const API_BASE = API_API_BASE_URL;
 const RECENT_SEARCH_KEY = "bfw_recent_searches";
@@ -83,6 +86,9 @@ export default function Shop() {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
   const [activeBrand, setActiveBrand] = useState([]);
   const [activeColor, setActiveColor] = useState([]);
+  const [activeGender, setActiveGender] = useState([]);
+  const [minDiscount, setMinDiscount] = useState(0);
+  const [inStockOnly, setInStockOnly] = useState(false);
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInput, setSearchInput] = useState("");
@@ -103,6 +109,12 @@ export default function Shop() {
   const [loading, setLoading] = useState(true);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [cartCount, setCartCount] = useState(0);
+
+  // --- Category drawer state ---
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [drawerParent, setDrawerParent] = useState(null);
+  const activeCategoryTriggerRef = useRef(null);
+
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
 
@@ -298,11 +310,21 @@ export default function Shop() {
           const detailData = await response.json();
           const categoryId = detailData?.product?.category_id || null;
           const gender = detailData?.product?.gender || null;
+          const variants = Array.isArray(detailData?.variants) ? detailData.variants : [];
+          // Mirrors the same "available" rule used by add-to-cart/wishlist:
+          // a variant with no stock field at all is treated as available.
+          const inStock =
+            variants.length === 0 ||
+            variants.some(
+              (variant) =>
+                Number(variant.available_stock || 0) > 0 || variant.available_stock === undefined
+            );
 
           return {
             productId: product.id,
             categoryId,
             gender,
+            inStock,
           };
         })
       );
@@ -313,8 +335,8 @@ export default function Shop() {
       detailResults.forEach((result) => {
         if (result.status !== "fulfilled" || !result.value) return;
 
-        const { productId, categoryId, gender } = result.value;
-        nextMeta[productId] = { categoryId, gender };
+        const { productId, categoryId, gender, inStock } = result.value;
+        nextMeta[productId] = { categoryId, gender, inStock };
       });
 
       setProductMetaById(nextMeta);
@@ -351,6 +373,34 @@ export default function Shop() {
     if (activeColor.length > 0) {
       const productColor = typeof product.color === "string" ? product.color : "";
       if (productColor && !activeColor.map(normalizeText).includes(productColor.trim().toLowerCase())) {
+        return false;
+      }
+    }
+
+    if (activeGender.length > 0) {
+      const productGender = normalizeText(productMetaById[product.id]?.gender || product.gender);
+      if (!productGender || !activeGender.map(normalizeText).includes(productGender)) {
+        return false;
+      }
+    }
+
+    if (minDiscount > 0) {
+      const basePrice = Number(product.price || 0);
+      const discountedPrice = Number(product.discount_price) > 0 ? Number(product.discount_price) : basePrice;
+      const offPercent =
+        basePrice > 0 && discountedPrice < basePrice
+          ? Math.round(((basePrice - discountedPrice) / basePrice) * 100)
+          : 0;
+      if (offPercent < minDiscount) {
+        return false;
+      }
+    }
+
+    if (inStockOnly) {
+      const meta = productMetaById[product.id];
+      // Treat products whose meta hasn't loaded yet as available, so the
+      // grid doesn't flash empty while the per-product detail calls resolve.
+      if (meta && meta.inStock === false) {
         return false;
       }
     }
@@ -411,6 +461,24 @@ export default function Shop() {
   const visibleBrands = brands.filter((brand) =>
     brand.name.toLowerCase().includes(brandSearch.toLowerCase())
   );
+
+  const availableGenders = useMemo(() => {
+    const seen = new Map();
+    products.forEach((product) => {
+      const raw = productMetaById[product.id]?.gender || product.gender;
+      const clean = String(raw || "").trim();
+      if (!clean) return;
+      const key = clean.toLowerCase();
+      if (!seen.has(key)) seen.set(key, clean);
+    });
+
+    // Fall back to a sensible default set before per-product gender detail
+    // has finished loading, so the filter column isn't empty on first paint.
+    if (seen.size === 0) {
+      return ["Men", "Women", "Kids", "Unisex"];
+    }
+    return Array.from(seen.values()).sort();
+  }, [products, productMetaById]);
 
   const topCategoryStrip = useMemo(() => {
     const roots = getChildren("ROOT");
@@ -590,6 +658,35 @@ export default function Shop() {
     );
   };
 
+  const toggleGenderFilter = (name) => {
+    setActiveGender((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
+  };
+
+  const selectMinDiscount = (value) => {
+    // Clicking the already-active bucket clears the discount filter.
+    setMinDiscount((prev) => (prev === value ? 0 : value));
+  };
+
+  const activeFilterCount =
+    activeBrand.length +
+    activeColor.length +
+    activeGender.length +
+    (minDiscount > 0 ? 1 : 0) +
+    (inStockOnly ? 1 : 0) +
+    (maxPrice < 10000 ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setActiveBrand([]);
+    setActiveColor([]);
+    setActiveGender([]);
+    setMinDiscount(0);
+    setInStockOnly(false);
+    setMaxPrice(10000);
+    setBrandSearch("");
+  };
+
   const formatPrice = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
 
   const resolveAvailableVariantId = async (product) => {
@@ -676,6 +773,32 @@ export default function Shop() {
       alert("Unable to add to cart right now");
     }
   };
+
+  // --- Category drawer handlers ---
+  const openCategoryDrawer = (category, triggerEl) => {
+    activeCategoryTriggerRef.current = triggerEl;
+    setDrawerParent(category);
+    setDrawerOpen(true);
+  };
+
+  const closeCategoryDrawer = () => setDrawerOpen(false);
+
+  const handleCategoryTap = (event, category) => {
+    const children = category.id ? getChildren(category.id) : [];
+    if (children.length > 0) {
+      openCategoryDrawer(category, event.currentTarget);
+    } else {
+      navigateWithFilters({ nextCategoryId: category.id || null });
+    }
+  };
+
+  const handleDrawerSelect = (category) => {
+    setDrawerOpen(false);
+    setActiveCategoryId(category?.id ? String(category.id) : null);
+    navigateWithFilters({ nextCategoryId: category?.id || null });
+  };
+
+  const drawerSubcategories = drawerParent?.id ? getChildren(drawerParent.id) : [];
 
   return (
     <div className="catalog-page">
@@ -804,6 +927,9 @@ export default function Shop() {
               onClick={() => setShowFilters((prev) => !prev)}
             >
               <MdTune /> Filter
+              {activeFilterCount > 0 ? (
+                <span className="catalog-filter-count">{activeFilterCount}</span>
+              ) : null}
             </button>
           </div>
         </div>
@@ -815,13 +941,16 @@ export default function Shop() {
               const image = dbImage || getCategoryImage(category.name) || "";
               const hasImage = Boolean(image);
               const isActive = toCategoryKey(category.id) === toCategoryKey(activeCategoryId);
+              const hasChildren = category.id ? getChildren(category.id).length > 0 : false;
 
               return (
                 <button
                   key={category.id || "all-round"}
                   type="button"
                   className={`catalog-round-item ${isActive ? "active" : ""}`}
-                  onClick={() => navigateWithFilters({ nextCategoryId: category.id || null })}
+                  aria-haspopup={hasChildren ? "dialog" : undefined}
+                  aria-expanded={hasChildren ? (drawerOpen && toCategoryKey(drawerParent?.id) === toCategoryKey(category.id)) : undefined}
+                  onClick={(event) => handleCategoryTap(event, category)}
                 >
                   <span className="catalog-round-image-wrap">
                     {hasImage ? (
@@ -854,6 +983,15 @@ export default function Shop() {
 
         {showFilters ? (
           <section className="catalog-filters-panel">
+            <div className="catalog-filters-panel-header">
+              <h3>Filters</h3>
+              {activeFilterCount > 0 ? (
+                <button type="button" className="catalog-filters-clear" onClick={clearAllFilters}>
+                  Clear All
+                </button>
+              ) : null}
+            </div>
+
             <div className="catalog-filter-col">
               <h4>Brand</h4>
               <input
@@ -907,6 +1045,52 @@ export default function Shop() {
                 onChange={(e) => setMaxPrice(Number(e.target.value))}
               />
               <p>Up to Rs. {maxPrice.toLocaleString("en-IN")}</p>
+            </div>
+
+            <div className="catalog-filter-col">
+              <h4>Gender</h4>
+              <div className="catalog-filter-list">
+                {availableGenders.map((name) => (
+                  <label key={name}>
+                    <input
+                      type="checkbox"
+                      checked={activeGender.includes(name)}
+                      onChange={() => toggleGenderFilter(name)}
+                    />
+                    <span>{name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="catalog-filter-col">
+              <h4>Discount Range</h4>
+              <div className="catalog-filter-chips">
+                {DISCOUNT_BUCKETS.map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={`catalog-filter-chip ${minDiscount === value ? "active" : ""}`}
+                    onClick={() => selectMinDiscount(value)}
+                  >
+                    {value}% and above
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="catalog-filter-col">
+              <h4>Availability</h4>
+              <div className="catalog-filter-list">
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={inStockOnly}
+                    onChange={(e) => setInStockOnly(e.target.checked)}
+                  />
+                  <span>In stock only</span>
+                </label>
+              </div>
             </div>
           </section>
         ) : null}
@@ -1023,6 +1207,15 @@ export default function Shop() {
           ) : null}
         </div>
       </main>
+
+      <CategoryDrawer
+        open={drawerOpen}
+        parentCategory={drawerParent}
+        subcategories={drawerSubcategories}
+        onClose={closeCategoryDrawer}
+        onSelect={handleDrawerSelect}
+        triggerRef={activeCategoryTriggerRef}
+      />
     </div>
   );
 }

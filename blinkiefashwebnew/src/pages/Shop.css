@@ -237,6 +237,7 @@
   color: #1f2937;
   cursor: pointer;
   transition: all 0.15s ease;
+  position: relative;
 }
 
 .catalog-filter-toggle svg {
@@ -253,6 +254,27 @@
   border-color: #16a34a;
   color: #fff;
   box-shadow: 0 6px 16px rgba(22, 163, 74, 0.28);
+}
+
+/* Badge showing how many filters are currently active */
+.catalog-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #ec4899;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.catalog-filter-toggle.active .catalog-filter-count {
+  background: #fff;
+  color: #16a34a;
 }
 
 /* ---------- Category strip ---------- */
@@ -347,7 +369,7 @@
 
 .catalog-filters-panel {
   display: grid;
-  grid-template-columns: 1.4fr 1.2fr 0.9fr;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
   gap: 24px;
   border: 1px solid #e7ebf0;
   background: #fff;
@@ -355,6 +377,39 @@
   padding: 18px 20px;
   margin-bottom: 18px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.catalog-filters-panel-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.catalog-filters-panel-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #0f172a;
+}
+
+.catalog-filters-clear {
+  border: 0;
+  background: transparent;
+  color: #ec4899;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.catalog-filters-clear:hover {
+  text-decoration: underline;
 }
 
 .catalog-filter-col h4 {
@@ -437,6 +492,39 @@
   font-size: 12.5px;
   font-weight: 700;
   color: #16a34a;
+}
+
+/* Discount range chips */
+.catalog-filter-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.catalog-filter-chip {
+  border: 1px solid #e0e5eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4453;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.catalog-filter-chip:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+}
+
+.catalog-filter-chip.active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
 }
 
 /* ---------- Product grid — 6 columns on desktop ---------- */
@@ -775,6 +863,11 @@
   .catalog-filters-panel {
     grid-template-columns: 1fr;
     padding: 16px;
+  }
+
+  .catalog-filters-panel-header {
+    flex-wrap: wrap;
+    gap: 8px;
   }
 
   .catalog-filter-list {

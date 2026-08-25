@@ -111,7 +111,10 @@ export default function App() {
         <Route path="/orders" element={<Orders />} />
         <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
+<<<<<<< HEAD
         <Route path="/account/addresses" element={<SavedAddresses />} />
+=======
+>>>>>>> 89e8a35 (medha)
         <Route path="/parcel" element={<Parcel />} />
         <Route path="/offers" element={<Offers />} />
         <Route path="/refer-earn" element={<ReferEarn />} />

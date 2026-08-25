@@ -9,8 +9,8 @@ const PRIZES = [
   { label: 'FREE\nSMARTWATCH', short: 'Smartwatch', icon: '🎧' },
   { label: 'LOCK', short: 'Locked', icon: '🔒' },
   { label: 'DISCOUNT', short: 'Discount', icon: '🏷️' },
-  { label: '5%\nDISCOUNT', short: '5% Off', icon: '5%' },
-  { label: '2%\nDISCOUNT', short: '2% Off', icon: '2%' },
+  { label: '5%\nDISCOUNT', short: '5% Off', icon: '💰' },
+  { label: '2%\nDISCOUNT', short: '2% Off', icon: '🏷️' },
   { label: '10%\nDISCOUNT', short: '10% Off', icon: '⚡' },
   { label: 'TRY\nAGAIN', short: 'Try Again', icon: '🔄' },
   { label: 'FREE\nT-SHIRT', short: 'T-Shirt', icon: '👕' },
@@ -19,6 +19,7 @@ const PRIZES = [
 export default function SpinWheel() {
   const navigate = useNavigate();
   const { user, isLoggedIn } = useAuth();
+
   const [loading, setLoading] = useState(true);
   const [spinning, setSpinning] = useState(false);
   const [hasSpunToday, setHasSpunToday] = useState(false);
@@ -26,6 +27,7 @@ export default function SpinWheel() {
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
   const [rotation, setRotation] = useState(0);
+
   const wheelRef = useRef(null);
 
   useEffect(() => {
@@ -36,25 +38,37 @@ export default function SpinWheel() {
         setLoading(false);
         return;
       }
+
       setLoading(true);
+
       try {
         const data = await getGamificationState(user.id);
+
         if (cancelled) return;
+
         setHasSpunToday(!!data.hasSpunToday);
         setSpinRewardPct(data.spinRewardPct || 0);
       } catch (err) {
-        if (!cancelled) setError(err.message || 'Failed to load');
+        if (!cancelled) {
+          setError(err.message || 'Failed to load');
+        }
       } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     load();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, user?.id]);
 
   const onSpin = async () => {
     if (!user?.id || spinning || hasSpunToday) return;
+
     setSpinning(true);
     setError(null);
     setResult(null);
@@ -72,8 +86,13 @@ export default function SpinWheel() {
       const index = data.spinIndex ?? 0;
       const segment = 360 / PRIZES.length;
 
-      // Land the center of the winning segment under the top pointer
-      const target = 360 * 6 + (360 - (index * segment + segment / 2));
+      /*
+       * Place the center of the winning segment
+       * directly under the top pointer.
+       */
+      const target =
+        360 * 6 + (360 - (index * segment + segment / 2));
+
       setRotation(target);
 
       setTimeout(() => {
@@ -82,10 +101,13 @@ export default function SpinWheel() {
           pct: data.rewardPct,
           isSorry: data.isSorry,
         });
+
         setHasSpunToday(true);
+
         if (!data.isSorry && data.rewardPct > 0) {
           setSpinRewardPct((p) => p + data.rewardPct);
         }
+
         setSpinning(false);
       }, 4500);
     } catch (err) {
@@ -97,13 +119,26 @@ export default function SpinWheel() {
   if (!isLoggedIn) {
     return (
       <main className="page offer-feature-page spin-page">
-        <button type="button" className="offer-back" onClick={() => navigate('/offers')}>
+        <button
+          type="button"
+          className="offer-back"
+          onClick={() => navigate('/offers')}
+        >
           ← Back to Offers
         </button>
+
         <div className="offer-feature-card">
           <h1>Spin &amp; Win</h1>
-          <p>Log in to spin the wheel once a day and win discounts.</p>
-          <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+
+          <p>
+            Log in to spin the wheel once a day and win discounts.
+          </p>
+
+          <button
+            type="button"
+            className="primary-btn"
+            onClick={() => navigate('/login')}
+          >
             Log in
           </button>
         </div>
@@ -113,31 +148,52 @@ export default function SpinWheel() {
 
   return (
     <main className="page offer-feature-page spin-page">
-      <div className="spin-breadcrumb">Home &nbsp;›&nbsp; Spin &amp; Win</div>
+
+      <div className="spin-breadcrumb">
+        Home <span>›</span> Spin &amp; Win
+      </div>
 
       <div className="spin-layout">
-        {/* LEFT */}
+
+        {/* ================= LEFT ================= */}
+
         <div className="spin-left">
+
           <header className="spin-title-block">
             <h1>
               Spin &amp; <span className="accent">Win</span>
               <span className="sparkle">✨</span>
             </h1>
-            <p>Spin the wheel and win exciting rewards!</p>
+
+            <p>
+              Spin the wheel and win exciting rewards!
+            </p>
           </header>
 
           <section className="spin-card">
+
             {loading ? (
-              <p className="state-msg">Loading…</p>
+              <p className="state-msg">
+                Loading…
+              </p>
             ) : (
               <>
+                {/* ================= WHEEL ================= */}
+
                 <div className="wheel-wrapper">
+
+                  {/* Pointer */}
                   <div className="spin-pointer">
-                    <div className="pointer-triangle"></div>
-                    <div className="pointer-hub">✦</div>
+                    <div className="pointer-triangle" />
+
+                    <div className="pointer-hub">
+                      <span>✦</span>
+                    </div>
                   </div>
 
+                  {/* Outer Wheel */}
                   <div className="wheel-outer">
+
                     <div
                       className="spin-wheel"
                       ref={wheelRef}
@@ -148,35 +204,51 @@ export default function SpinWheel() {
                           : 'none',
                       }}
                     >
-                      {PRIZES.map((p, i) => {
-                        const slice = 360 / PRIZES.length;
-                        const angle = slice * i + slice / 2;
+
+                      {PRIZES.map((prize, index) => {
+                        const angle =
+                          (360 / PRIZES.length) * index;
+
+                        const lines = prize.label.split('\n');
 
                         return (
                           <div
-                            key={i}
+                            key={index}
                             className="spin-label"
                             style={{
-                              transform: `rotate(${angle}deg) translateY(-110px)`,
+                              '--angle': `${angle}deg`,
                             }}
                           >
-                            <div
-                              className="spin-label-inner"
-                              style={{ transform: `rotate(${-angle}deg)` }}
-                            >
-                              <span className="segment-icon">{p.icon}</span>
-                              <span className="segment-label">{p.label}</span>
+                            <div className="spin-label-inner">
+
+                              <div className="segment-icon">
+                                {prize.icon}
+                              </div>
+
+                              <div className="segment-label">
+                                {lines.map((line, lineIndex) => (
+                                  <span key={lineIndex}>
+                                    {line}
+                                  </span>
+                                ))}
+                              </div>
+
                             </div>
                           </div>
                         );
                       })}
+
                     </div>
 
+                    {/* Center Hub */}
                     <div className="wheel-center">
-                      <div className="wheel-center-inner"></div>
+                      <div className="wheel-center-inner" />
                     </div>
+
                   </div>
                 </div>
+
+                {/* ================= CTA ================= */}
 
                 <button
                   type="button"
@@ -185,120 +257,198 @@ export default function SpinWheel() {
                   disabled={spinning || hasSpunToday}
                 >
                   <span className="dice">🎲</span>
-                  {spinning
-                    ? 'SPINNING…'
-                    : hasSpunToday
-                    ? 'COME BACK TOMORROW'
-                    : 'SPIN FOR REWARD'}
+
+                  <span>
+                    {spinning
+                      ? 'SPINNING…'
+                      : hasSpunToday
+                      ? 'COME BACK TOMORROW'
+                      : 'SPIN FOR REWARD'}
+                  </span>
                 </button>
 
+                {/* Secure text */}
                 <p className="spin-secure">
-                  <span>🛡️</span> Win rewards instantly • No hidden charges
+                  <span className="secure-icon">🛡️</span>
+
+                  <span>
+                    Win rewards instantly
+                    <b>•</b>
+                    No hidden charges
+                  </span>
                 </p>
 
+                {/* Result */}
                 {result && (
-                  <p className={`spin-result ${result.isSorry ? 'sorry' : 'win'}`}>
+                  <p
+                    className={`spin-result ${
+                      result.isSorry ? 'sorry' : 'win'
+                    }`}
+                  >
                     {result.isSorry
                       ? 'Better luck tomorrow!'
-                      : `You won: ${result.label}${result.pct ? ` (${result.pct}% off)` : ''}!`}
+                      : `You won: ${result.label}${
+                          result.pct
+                            ? ` (${result.pct}% off)`
+                            : ''
+                        }!`}
                   </p>
                 )}
-                {error && <p className="spin-result sorry">{error}</p>}
+
+                {/* Error */}
+                {error && (
+                  <p className="spin-result sorry">
+                    {error}
+                  </p>
+                )}
+
+                {/* Available reward */}
                 {spinRewardPct > 0 && (
                   <p className="spin-reward-note">
-                    Available spin reward: {spinRewardPct}% off
+                    Available spin reward:{' '}
+                    <strong>{spinRewardPct}% off</strong>
                   </p>
                 )}
               </>
             )}
+
           </section>
         </div>
 
-        {/* RIGHT */}
+        {/* ================= RIGHT ================= */}
+
         <div className="spin-right">
+
+          {/* Daily banner */}
           <div className="spin-banner">
-            <div className="banner-icon">🎁</div>
-            <div>
-              <strong>Your daily luck window is open!</strong>
-              <p>Spin now and grab exciting rewards.</p>
+
+            <div className="banner-icon">
+              🎁
             </div>
-            <div className="banner-gifts">🎁 🪙 🏷️</div>
+
+            <div className="banner-content">
+              <strong>
+                Your daily luck window is open!
+              </strong>
+
+              <p>
+                Spin now and grab exciting rewards.
+              </p>
+            </div>
+
+            <div className="banner-gifts">
+              <span>🎁</span>
+              <span>🪙</span>
+              <span>🏷️</span>
+            </div>
+
           </div>
 
+          {/* Rewards */}
           <div className="rewards-panel">
+
             <h3>
-              <span>🎁</span> Possible Rewards
+              <span className="reward-title-icon">
+                🎁
+              </span>
+
+              Possible Rewards
             </h3>
+
             <div className="rewards-grid">
+
               <div className="reward-card">
                 <span className="r-icon">🏷️</span>
                 <span>1% Discount</span>
               </div>
+
               <div className="reward-card">
                 <span className="r-icon">%</span>
                 <span>2% Discount</span>
               </div>
+
               <div className="reward-card">
                 <span className="r-icon">🏅</span>
                 <span>5% Discount</span>
               </div>
+
               <div className="reward-card">
                 <span className="r-icon">⚡</span>
                 <span>10% Discount</span>
               </div>
+
               <div className="reward-card">
                 <span className="r-icon">👕</span>
                 <span>Free T-shirt</span>
               </div>
+
               <div className="reward-card">
                 <span className="r-icon">⌚</span>
                 <span>Free Smartwatch</span>
               </div>
+
             </div>
 
             <div className="locked-row">
+
               <div className="locked-item">
-                <span>🔄</span> Try Again Tomorrow
+                <span>🔄</span>
+                <span>Try Again Tomorrow</span>
               </div>
+
               <div className="locked-item locked">
-                <span>🔒</span> Car Locked
+                <span>🔒</span>
+                <span>Cart Locked</span>
               </div>
+
             </div>
+
           </div>
         </div>
       </div>
 
-      {/* Trust bar */}
+      {/* ================= TRUST BAR ================= */}
+
       <div className="spin-trust">
-        <div>
-          <span>🛡️</span>
+
+        <div className="trust-item">
+          <span className="trust-icon">🛡️</span>
+
           <div>
-            <strong>100% Safe & Secure</strong>
+            <strong>100% Safe &amp; Secure</strong>
             <p>Your data is protected</p>
           </div>
         </div>
-        <div>
-          <span>⚡</span>
+
+        <div className="trust-item">
+          <span className="trust-icon">⚡</span>
+
           <div>
             <strong>Instant Rewards</strong>
             <p>Rewards are credited instantly</p>
           </div>
         </div>
-        <div>
-          <span>🔗</span>
+
+        <div className="trust-item">
+          <span className="trust-icon">🔗</span>
+
           <div>
             <strong>Easy to Share</strong>
-            <p>Share with friends & family</p>
+            <p>Share with friends &amp; family</p>
           </div>
         </div>
-        <div>
-          <span>🏷️</span>
+
+        <div className="trust-item">
+          <span className="trust-icon">🏷️</span>
+
           <div>
             <strong>Best Deals Everyday</strong>
             <p>Use rewards on any order</p>
           </div>
         </div>
+
       </div>
+
     </main>
   );
 }

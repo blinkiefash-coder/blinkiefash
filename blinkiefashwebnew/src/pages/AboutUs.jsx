@@ -81,6 +81,12 @@ export default function AboutUs() {
           </div>
         </section>
 
+        <div className="au-team-credit">
+          <p className="au-credit-ceo">CEO — Alakananda Bag</p>
+          <p className="au-credit-label">Created by</p>
+          <p className="au-credit-by">Satyam Mohanty &middot; Dibyajyoti Mohanty &middot; K Medha Rani</p>
+        </div>
+
         <section className="au-cta">
           <h2>Ready to Experience BlinkieFash?</h2>
           <p>Download the app and get your first fashion order in 60 minutes.</p>

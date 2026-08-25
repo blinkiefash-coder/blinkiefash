@@ -34,7 +34,6 @@ import { productImageUrlContain, productImageSrcSetContain } from '../utils/clou
 import './Shop.css';
 import './Home.css';
 
-// Same logic as blinkiefashmob's _imgUrl(): resolves category_url from the database, absolute or relative.
 function resolveImageUrl(raw) {
   const value = (raw ?? '').toString().trim();
   if (!value) return null;
@@ -43,9 +42,9 @@ function resolveImageUrl(raw) {
   return `${API_BASE_URL}/${value}`;
 }
 
-// Same hero cards as blinkiefashmob's home screen (assets/images/hero_main.jpeg + brand banners).
 const HERO_SLIDES = [
   // {
+<<<<<<< HEAD
   //   image:
   //     'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
   //   to: '/shop?search=Puma',
@@ -76,6 +75,29 @@ const HERO_SLIDES = [
     image:
         "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png",
         to:'/shop?search=women',
+=======
+  //   image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
+  //   to: '/shop?search=Puma',
+  //   pos: 'center 20%',
+  // },
+  {
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+    to: '/shop?search=Puma',
+    pos: 'center 20%',
+  },
+  {
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
+    to: '/shop?search=Nike',
+  },
+  {
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099597/file_00000000b408820bb1ef180a5b19df30_scfowa.png',
+    to: '/shop?search=Adidas',
+    pos: 'center 20%',
+  },
+  {
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
+    to: '/shop?search=US Polo',
+>>>>>>> 89e8a35 (medha)
   },
 ];
 
@@ -87,7 +109,6 @@ const UTILITY_ITEMS = [
   { icon: MdTrackChanges, label: 'Track Your Order' },
 ];
 
-// Same root category ordering as blinkiefashmob: Women, Men, Footwear, Electronics, Beauty first, then A-Z.
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, beauty: 4 };
 function sortCategories(list) {
   return [...list].sort((a, b) => {
@@ -103,54 +124,46 @@ function sortCategories(list) {
 const UNIVERSE_BRANDS = [
   {
     name: "Puma",
-    image:
-      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
+    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
     to: "/shop?search=Puma",
   },
   {
+<<<<<<< HEAD
+=======
+    name: "Dhanista Boutique",
+    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/mkbanner_habbh6.jpg",
+    to: "/vendor/dhanista-fashion-store",
+  },
+  {
+>>>>>>> 89e8a35 (medha)
     name: "FCUK",
-    image:
-      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
+    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
     to: "/shop?search=FCUK",
   },
   {
     name: "Libas",
+<<<<<<< HEAD
     image:
       "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
     to: "/shop?search=Libas",
+=======
+    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
+    to: "/shop?search=Libas%20Kurti%20Kurta%20Set",
+>>>>>>> 89e8a35 (medha)
   },
   {
     name: "MK",
-    image:
-      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
+    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
     to: "/shop?search=MK",
   },
   
 ];
 
 const KNOWN_BRANDS = [
-  'nike',
-  'adidas',
-  'puma',
-  "levi's",
-  'levis',
-  'zara',
-  'h&m',
-  'reebok',
-  'tommy hilfiger',
-  'calvin klein',
-  'us polo',
-  'us polo assn',
-  'allen solly',
-  'peter england',
-  'van heusen',
-  'raymond',
-  'pepe jeans',
-  'wrangler',
-  'jack & jones',
-  'vero moda',
-  'biba',
-  'fabindia',
+  'nike', 'adidas', 'puma', "levi's", 'levis', 'zara', 'h&m', 'reebok',
+  'tommy hilfiger', 'calvin klein', 'us polo', 'us polo assn', 'allen solly',
+  'peter england', 'van heusen', 'raymond', 'pepe jeans', 'wrangler',
+  'jack & jones', 'vero moda', 'biba', 'fabindia',
 ];
 
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
@@ -195,7 +208,6 @@ function chipFallbackIcon(label, audience) {
   return CHIP_ICON_BY_AUDIENCE[audienceKey] || '🛍️';
 }
 
-// ---- Search-suggestion helpers (mirrors Shop.jsx's suggestion ranking exactly) ----
 const normalizeText = (value) => String(value || '').trim().toLowerCase();
 
 const rankedMatches = (items, query, limit, getter) => {
@@ -220,11 +232,8 @@ const rankedMatches = (items, query, limit, getter) => {
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 const RECENT_SEARCH_KEY = 'bfw_recent_searches';
 
-// Module-level cache — survives navigation, cleared on full page reload
 let _homeCache = null;
 
-
-/** Scroll a product/chip rail by N cards (default 6). */
 function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   if (!el) return;
   const dir = direction < 0 ? -1 : 1;
@@ -279,7 +288,6 @@ export default function Home() {
   const [exploreOffset, setExploreOffset] = useState(0);
   const [exploreHasMore, setExploreHasMore] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
-  // Skip loading state when returning to cached data
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
@@ -293,7 +301,6 @@ export default function Home() {
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
 
-  // ---- Search bar state (matches Shop.jsx's header search exactly) ----
   const [searchInput, setSearchInput] = useState('');
   const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
@@ -307,6 +314,13 @@ export default function Home() {
   });
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
+
+  // Mobile drawer
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [expandedDrawerCats, setExpandedDrawerCats] = useState(() => new Set());
+  const drawerRef = useRef(null);
+  const drawerTriggerRef = useRef(null);
+  const drawerFirstLinkRef = useRef(null);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -322,8 +336,6 @@ export default function Home() {
     return () => window.removeEventListener('focus', loadRecent);
   }, []);
 
-  // If stored recently-viewed snapshots lack price info (0), fetch product details
-  // in the background and enrich the cached snapshots so the UI can show correct prices.
   useEffect(() => {
     if (!recentlyViewedProductsData || recentlyViewedProductsData.length === 0) return;
     const idsToFetch = recentlyViewedProductsData
@@ -361,7 +373,7 @@ export default function Home() {
 
         setRecentlyViewedProductsData(updated);
       } catch {
-        // ignore enrichment errors
+        // ignore
       }
     })();
 
@@ -409,7 +421,6 @@ export default function Home() {
             .filter(Boolean);
           if (normalizedNeedles.length === 0) return null;
 
-          // Exact match first to avoid "women" matching when searching "men"
           const root =
             allCats.find((c) => {
               if (c.parent_id) return false;
@@ -465,13 +476,8 @@ export default function Home() {
         };
 
         const [
-          menRes,
-          womenRes,
-          kidsRes,
-          electronicsRes,
-          trendyShoesRes,
-          under999Res,
-          under1999Res,
+          menRes, womenRes, kidsRes, electronicsRes, trendyShoesRes,
+          under999Res, under1999Res,
         ] = await Promise.all([
           fetchCollection('Men', 'men'),
           fetchCollection('Women', 'women'),
@@ -505,14 +511,7 @@ export default function Home() {
         const fallbackMen = pickByKeywords(sourcePool, ['men', 'mens', 'shirt', 'trouser', 'hoodie', 't-shirt']);
         const fallbackWomen = pickByKeywords(sourcePool, ['women', 'womens', 'kurti', 'dress', 'saree', 'blouse']);
         const fallbackKids = pickByKeywords(sourcePool, ['kids', 'boys', 'girls', 'children']);
-        const fallbackElectronics = pickByKeywords(sourcePool, [
-          'electronics',
-          'headphone',
-          'speaker',
-          'mobile',
-          'earbuds',
-          'watch',
-        ]);
+        const fallbackElectronics = pickByKeywords(sourcePool, ['electronics', 'headphone', 'speaker', 'mobile', 'earbuds', 'watch']);
         const fallbackShoes = pickByKeywords(sourcePool, ['shoe', 'sneaker', 'footwear', 'sandal', 'slipper']);
 
         const priced = sourcePool.map((p) => ({
@@ -586,7 +585,6 @@ export default function Home() {
         const freshHomeLivingCats = childCatsFor(['Home Living', 'Living', 'Home & Living']);
         const freshTravelCats = childCatsFor(['Travel and Backpack', 'Travel & Backpack', 'Travel']);
 
-        // Persist to module-level cache so next visit skips the loader
         _homeCache = {
           categories: freshCategories, deals: freshDeals, newProducts: freshNewProducts,
           pinnedNewProduct: freshPinned, mensProducts: freshMens, womensProducts: freshWomens,
@@ -642,7 +640,7 @@ export default function Home() {
     track.scrollTo({ left, behavior: 'smooth' });
   }, [heroIndex]);
 
-  useEffect(() => {
+    useEffect(() => {
     let cancelled = false;
     const loadExploreProducts = async () => {
       setExploreLoading(true);
@@ -650,14 +648,14 @@ export default function Home() {
         const res = await getProducts({
           category_id: exploreCatId || undefined,
           sort: 'newest',
-          limit: 8,
+          limit: 6,
           offset: 0,
         });
         const items = res?.products || (Array.isArray(res) ? res : []);
         if (cancelled) return;
         setExploreProducts(Array.isArray(items) ? items : []);
         setExploreOffset(Array.isArray(items) ? items.length : 0);
-        setExploreHasMore(Array.isArray(items) && items.length === 8);
+        setExploreHasMore(Array.isArray(items) && items.length === 6);
       } catch {
         if (!cancelled) {
           setExploreProducts([]);
@@ -675,14 +673,56 @@ export default function Home() {
     };
   }, [exploreCatId]);
 
-  const loadMoreExploreProducts = async () => {
+  // Drawer focus trap
+  useEffect(() => {
+    if (!drawerOpen) return;
+
+    const focusTimer = setTimeout(() => {
+      drawerFirstLinkRef.current?.focus();
+    }, 50);
+
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setDrawerOpen(false);
+        drawerTriggerRef.current?.focus();
+        return;
+      }
+      if (e.key === 'Tab' && drawerRef.current) {
+        const focusables = drawerRef.current.querySelectorAll(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        );
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', onKeyDown);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      clearTimeout(focusTimer);
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [drawerOpen]);
+
+    const loadMoreExploreProducts = async () => {
     if (exploreLoading || !exploreHasMore) return;
     setExploreLoading(true);
     try {
       const res = await getProducts({
         category_id: exploreCatId || undefined,
         sort: 'newest',
-        limit: 8,
+        limit: 6,
         offset: exploreOffset,
       });
       const items = res?.products || (Array.isArray(res) ? res : []);
@@ -699,7 +739,7 @@ export default function Home() {
         return merged;
       });
       setExploreOffset((prev) => prev + nextItems.length);
-      setExploreHasMore(nextItems.length === 8);
+      setExploreHasMore(nextItems.length === 6);
     } finally {
       setExploreLoading(false);
     }
@@ -707,6 +747,32 @@ export default function Home() {
 
   const goToSlide = (delta) => {
     setHeroIndex((i) => (i + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+  };
+
+  // Shared lookup: category display name -> its mega-menu / drawer subcategory columns.
+  // Used by both the desktop hover mega menu and the mobile drawer accordion so the
+  // exact same subcategory groups appear in both places.
+  const getCategoryCols = (name) => {
+    const key = (name || '').toString().toLowerCase();
+    if (key.includes('women')) return womensCats;
+    if (key.includes('men')) return mensCats;
+    if (key.includes('kids')) return kidsCats;
+    if (key.includes('beaut')) return beautyCats;
+    if (key.includes('living') || key.includes('home')) return homeLivingCats;
+    if (key.includes('travel') || key.includes('backpack')) return travelCats;
+    if (key.includes('elect')) return electronicsCats;
+    if (key.includes('shoe') || key.includes('foot')) return trendyShoesCats;
+    return [];
+  };
+
+  const toggleDrawerCat = (id) => {
+    setExpandedDrawerCats((prev) => {
+      const next = new Set(prev);
+      const key = String(id);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
   };
 
   const enrichedDeals = useMemo(() => {
@@ -728,12 +794,8 @@ export default function Home() {
       .map((p) => ({
         ...p,
         id: p.id,
-        // be permissive with possible field names saved by older clients
         _price: Number(p._price ?? p.discount_price ?? p.price ?? 0) || 0,
-        _mrp:
-          Number(
-            p._mrp ?? p.original_price ?? p.mrp ?? p.price ?? p._price ?? 0
-          ) || 0,
+        _mrp: Number(p._mrp ?? p.original_price ?? p.mrp ?? p.price ?? p._price ?? 0) || 0,
         _discount: Number(p._discount ?? p.discount ?? 0) || 0,
       }))
       .filter((p) => p.id)
@@ -766,7 +828,6 @@ export default function Home() {
     return pinned ? [pinned, ...rest] : rest;
   }, [newProducts, pinnedNewProduct]);
 
-  // Combined, de-duplicated pool of already-loaded products used to power header search suggestions.
   const suggestionProductPool = useMemo(() => {
     const seen = new Set();
     const pool = [];
@@ -823,7 +884,6 @@ export default function Home() {
     setLocationSheetOpen(false);
   };
 
-  // ---- Search bar handlers (mirrors Shop.jsx exactly) ----
   const saveRecentSearch = (rawValue) => {
     const value = String(rawValue || '').trim();
     if (!value) return;
@@ -862,15 +922,12 @@ export default function Home() {
         ranked.push(entry);
       };
 
-      // 0) Explicit search query first.
       pushCandidate({ text: query, type: 'search' });
 
-      // 1) Categories max 2, prefix first.
       rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
         pushCandidate({ text: item.name, type: 'category', id: item.id ? String(item.id) : '' });
       });
 
-      // 2) Brands max 2, fallback top 2 when no matches.
       const matchingBrands = rankedMatches(topBrands, q, 2, (item) => item.name);
       const brandsToShow = matchingBrands.length > 0 ? matchingBrands : topBrands.slice(0, 2);
       brandsToShow.forEach((item) => {
@@ -881,7 +938,6 @@ export default function Home() {
         });
       });
 
-      // 3) Product names max 4, prefix first.
       rankedMatches(suggestionProductPool, q, 4, (item) => item.name).forEach((item) => {
         pushCandidate({ text: item.name, type: 'product' });
       });
@@ -898,10 +954,6 @@ export default function Home() {
     navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop');
   };
 
-  // FIX: Tapping/focusing the search box now takes the user straight to the
-  // Shop (all products) page instead of just opening the inline suggestions
-  // dropdown. If they'd already typed something, we carry it over as the
-  // initial search query on the Shop page.
   const handleSearchInputFocus = () => {
     setShowSearchSuggestions(false);
     const value = String(searchInput || '').trim();
@@ -942,6 +994,25 @@ export default function Home() {
       return { ...item, _price: price, _mrp: mrp, _discount: discount };
     });
 
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    drawerTriggerRef.current?.focus();
+  };
+
+  const drawerGoCategory = (cat) => {
+    const nameKey = String(cat.name || '').toLowerCase().trim();
+    closeDrawer();
+    if (nameKey === 'men' || nameKey === 'mens') navigate('/men');
+    else if (nameKey === 'women' || nameKey === 'womens') navigate('/women');
+    else if (nameKey === 'kids' || nameKey === 'kid' || nameKey === 'children') navigate('/kids');
+    else navigate(`/shop?category_id=${cat.id}`);
+  };
+
+  const drawerGoSubcategory = (id) => {
+    closeDrawer();
+    navigate(`/shop?category_id=${id}`);
+  };
+
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
       <PageSEO
@@ -971,7 +1042,6 @@ export default function Home() {
         </div>
 
         <div className="hp-sticky-head">
-          {/* ---- Navbar: exact markup/classes copied from Shop.jsx's catalog header ---- */}
           <header className="hp-main-header catalog-main-header">
             <button type="button" className="hp-brand" onClick={() => navigate('/')}>
               <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
@@ -1048,10 +1118,14 @@ export default function Home() {
                     <span>Vendor</span>
                   </button>
                 )}
+<<<<<<< HEAD
                 <button
                   type="button"
                   onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}
                 >
+=======
+                <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
+>>>>>>> 89e8a35 (medha)
                   <MdPersonOutline />
                   <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>
                 </button>
@@ -1071,11 +1145,29 @@ export default function Home() {
             </div>
           </header>
 
+          {/* CATEGORY NAV + MOBILE DRAWER */}
           <nav className="hp-category-nav">
-            <div
-              className="hp-nav-links"
-              onMouseLeave={() => setHoveredNav(null)}
+            <button
+              type="button"
+              className="hp-drawer-toggle"
+              ref={drawerTriggerRef}
+              aria-expanded={drawerOpen}
+              aria-controls="hp-category-drawer"
+              aria-label="Open categories menu"
+              onClick={() => setDrawerOpen(true)}
             >
+<<<<<<< HEAD
+=======
+              <span className="hp-drawer-toggle-bars" aria-hidden="true">
+                <span />
+                <span />
+                <span />
+              </span>
+              <span className="hp-drawer-toggle-label">Categories</span>
+            </button>
+
+            <div className="hp-nav-links" onMouseLeave={() => setHoveredNav(null)}>
+>>>>>>> 89e8a35 (medha)
               {categories.slice(0, 8).map((cat) => {
                 const nameKey = String(cat.name || '').toLowerCase().trim();
                 const goCategory = () => {
@@ -1085,6 +1177,7 @@ export default function Home() {
                   else navigate(`/shop?category_id=${cat.id}`);
                 };
                 return (
+<<<<<<< HEAD
                 <button
                   key={cat.id}
                   type="button"
@@ -1095,40 +1188,51 @@ export default function Home() {
                 >
                   {cat.name}
                 </button>
+=======
+                  <button
+                    key={cat.id}
+                    type="button"
+                    className="hp-nav-link"
+                    onClick={goCategory}
+                    onMouseEnter={() => setHoveredNav(cat.name)}
+                    onFocus={() => setHoveredNav(cat.name)}
+                  >
+                    {cat.name}
+                  </button>
+>>>>>>> 89e8a35 (medha)
                 );
               })}
 
-              {/* Mega menu panel shown on hover */}
               {hoveredNav ? (
                 <div className="hp-mega-menu" onMouseEnter={() => {}} onMouseLeave={() => setHoveredNav(null)}>
                   <div className="hp-mega-columns">
-                    {(function getCols() {
-                      const key = (hoveredNav || '').toString().toLowerCase();
-                      let cols = [];
-                      if (key.includes('women')) cols = womensCats;
-                      else if (key.includes('men')) cols = mensCats;
-                      else if (key.includes('kids')) cols = kidsCats;
-                      else if (key.includes('beaut') || key.includes('beauty')) cols = beautyCats;
-                      else if (key.includes('living') || key.includes('home')) cols = homeLivingCats;
-                      else if (key.includes('travel') || key.includes('backpack')) cols = travelCats;
-                      else if (key.includes('elect')) cols = electronicsCats;
-                      else if (key.includes('shoe') || key.includes('foot')) cols = trendyShoesCats;
-                      // fallback: try to find a matching category id's children if available
-                      return cols.length > 0 ? cols : [];
-                    })().map((parent) => (
+                    {getCategoryCols(hoveredNav).map((parent) => (
                       <div key={parent.id} className="hp-mega-col">
-                        <button type="button" className="hp-mega-col-title" onClick={() => navigate(`/shop?category_id=${parent.id}`)}>
+                        <button
+                          type="button"
+                          className="hp-mega-col-title"
+                          onClick={() => navigate(`/shop?category_id=${parent.id}`)}
+                        >
                           {parent.name}
                         </button>
                         {Array.isArray(parent.subcategories) && parent.subcategories.length > 0 ? (
                           <ul className="hp-mega-sublist">
                             {parent.subcategories.map((sub) => (
                               <li key={sub.id}>
-                                <button type="button" onClick={() => navigate(`/shop?category_id=${sub.id}`)} className="hp-mega-sublink">
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/shop?category_id=${sub.id}`)}
+                                  className="hp-mega-sublink"
+                                >
                                   {(() => {
                                     const subImg = resolveImageUrl(sub.image || parent.image);
-                                    return subImg ? <img src={subImg} alt={sub.name} /> : <span className="hp-mega-sub-fallback">•</span>;
-                                  })()} {sub.name}
+                                    return subImg ? (
+                                      <img src={subImg} alt={sub.name} />
+                                    ) : (
+                                      <span className="hp-mega-sub-fallback">•</span>
+                                    );
+                                  })()}{' '}
+                                  {sub.name}
                                 </button>
                               </li>
                             ))}
@@ -1141,6 +1245,105 @@ export default function Home() {
               ) : null}
             </div>
           </nav>
+
+          {drawerOpen && (
+            <div className="hp-drawer-backdrop" onClick={closeDrawer} aria-hidden="true" />
+          )}
+
+          <aside
+            id="hp-category-drawer"
+            className={`hp-category-drawer${drawerOpen ? ' open' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Shop by category"
+            ref={drawerRef}
+          >
+            <div className="hp-drawer-head">
+              <span className="hp-drawer-title">Categories</span>
+              <button
+                type="button"
+                className="hp-drawer-close"
+                aria-label="Close categories menu"
+                onClick={closeDrawer}
+              >
+                <MdClose />
+              </button>
+            </div>
+
+            <ul className="hp-drawer-list" role="list">
+              {categories.map((cat, idx) => {
+                const cols = getCategoryCols(cat.name);
+                const hasCols = Array.isArray(cols) && cols.length > 0;
+                const isExpanded = expandedDrawerCats.has(String(cat.id));
+                return (
+                  <li key={cat.id} className="hp-drawer-item">
+                    <div className="hp-drawer-row">
+                      <button
+                        type="button"
+                        className="hp-drawer-link"
+                        ref={idx === 0 ? drawerFirstLinkRef : null}
+                        onClick={() => drawerGoCategory(cat)}
+                      >
+                        {cat.name}
+                      </button>
+                      {hasCols ? (
+                        <button
+                          type="button"
+                          className={`hp-drawer-expand${isExpanded ? ' open' : ''}`}
+                          aria-expanded={isExpanded}
+                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${cat.name} subcategories`}
+                          onClick={() => toggleDrawerCat(cat.id)}
+                        >
+                          <MdKeyboardArrowDown />
+                        </button>
+                      ) : null}
+                    </div>
+
+                    {hasCols && isExpanded ? (
+                      <div className="hp-drawer-subpanel">
+                        {cols.map((parent) => (
+                          <div key={parent.id} className="hp-drawer-subgroup">
+                            <button
+                              type="button"
+                              className="hp-drawer-subgroup-title"
+                              onClick={() => drawerGoSubcategory(parent.id)}
+                            >
+                              {parent.name}
+                            </button>
+                            {Array.isArray(parent.subcategories) && parent.subcategories.length > 0 ? (
+                              <ul className="hp-drawer-subgroup-list" role="list">
+                                {parent.subcategories.map((sub) => {
+                                  const subImg = resolveImageUrl(sub.image || parent.image);
+                                  return (
+                                    <li key={sub.id}>
+                                      <button
+                                        type="button"
+                                        className="hp-drawer-subgroup-link"
+                                        onClick={() => drawerGoSubcategory(sub.id)}
+                                      >
+                                        <span className="hp-drawer-subgroup-icon" aria-hidden="true">
+                                          {subImg ? (
+                                            <img src={subImg} alt="" loading="lazy" />
+                                          ) : (
+                                            <span className="hp-drawer-subgroup-fallback">•</span>
+                                          )}
+                                        </span>
+                                        {sub.name}
+                                      </button>
+                                    </li>
+                                  );
+                                })}
+                              </ul>
+                            ) : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </aside>
         </div>
       </div>
 
@@ -1171,57 +1374,71 @@ export default function Home() {
           </div>
         </section>
 
+<<<<<<< HEAD
+=======
+        {/* <section className="hp-independence-banner" aria-label="Independence Day launch message">
+          <p className="hp-ind-kicker">15 August Launch Special</p>
+          <h3>Happy Independence Day, India!</h3>
+          <p>
+            Celebrating freedom with fast fashion delivery, festive styles, and launch offers made just for you.
+          </p>
+        </section> */}
+
+>>>>>>> 89e8a35 (medha)
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
 
         <section className="section hp-rewards-section">
-          <div className="hp-rewards-grid">
-            <div className="hp-reward-panel hp-reward-spin">
-              <div className="hp-reward-copy">
-                <h3>SPIN &amp; WIN</h3>
-                <p>Spin the wheel &amp; win exciting discounts!</p>
-                <div className="hp-reward-amount">Up To ₹500</div>
-                <button type="button" onClick={() => navigate('/spin-wheel')}>
-                  SPIN NOW <MdArrowForward />
-                </button>
-              </div>
-              <div className="hp-reward-graphic hp-spin-wheel" aria-hidden="true">
-                🎡
-              </div>
+        <div className="hp-rewards-grid">
+          {/* 1. SPIN & WIN */}
+          <div className="hp-reward-panel hp-reward-spin">
+            <div className="hp-reward-copy">
+              <h3>SPIN &amp; WIN</h3>
+              <p>Spin the wheel &amp; win exciting discounts!</p>
+              <div className="hp-reward-amount">Up To ₹500</div>
+              <button type="button" onClick={() => navigate('/spin-wheel')}>
+                SPIN NOW <MdArrowForward />
+              </button>
             </div>
-
-            <div className="hp-reward-panel hp-reward-play">
-              <div className="hp-reward-copy">
-                <h3>PLAY &amp; WIN</h3>
-                <p>Play fun games &amp; win big discounts!</p>
-                <div className="hp-reward-amount">Up To ₹250</div>
-                <button type="button" onClick={() => navigate('/play-and-win')}>
-                  PLAY NOW <MdArrowForward />
-                </button>
-              </div>
-              <div className="hp-reward-graphic" aria-hidden="true">
-                🎮
-              </div>
-            </div>
-
-            <div className="hp-reward-panel hp-reward-refer">
-              <div className="hp-reward-copy">
-                <h3>REFER &amp; EARN</h3>
-                <p>Refer your friend &amp; you both get ₹100 off!</p>
-                <div className="hp-referral-code">
-                  <span>YOUR REFERRAL CODE</span>
-                  <strong>BLINK100</strong>
-                </div>
-                <button type="button" onClick={() => navigate('/refer-earn')}>
-                  REFER NOW <MdArrowForward />
-                </button>
-              </div>
-              <div className="hp-reward-graphic" aria-hidden="true">
-                🎁
-              </div>
+            <div className="hp-reward-graphic hp-spin-wheel" aria-hidden="true">
+              🎡
             </div>
           </div>
-        </section>
+
+          {/* 2. PLAY & WIN  (now next to Spin) */}
+          <div className="hp-reward-panel hp-reward-play">
+            <div className="hp-reward-copy">
+              <h3>PLAY &amp; WIN</h3>
+              <p>Play fun games &amp; win big discounts!</p>
+              <div className="hp-reward-amount">Up To ₹250</div>
+              <button type="button" onClick={() => navigate('/play-and-win')}>
+                PLAY NOW <MdArrowForward />
+              </button>
+            </div>
+            <div className="hp-reward-graphic" aria-hidden="true">
+              🎮
+            </div>
+          </div>
+
+          {/* 3. REFER & EARN  (full width below) */}
+          <div className="hp-reward-panel hp-reward-refer">
+            <div className="hp-reward-copy">
+              <h3>REFER &amp; EARN</h3>
+              <p>Refer your friend &amp; you both get ₹100 off!</p>
+              <div className="hp-referral-code">
+                <span>YOUR REFERRAL CODE</span>
+                <strong>BLINK100</strong>
+              </div>
+              <button type="button" onClick={() => navigate('/refer-earn')}>
+                REFER NOW <MdArrowForward />
+              </button>
+            </div>
+            <div className="hp-reward-graphic" aria-hidden="true">
+              🎁
+            </div>
+          </div>
+        </div>
+      </section>
 
         {topDeals.length > 0 && (
           <section className="section">
@@ -1247,14 +1464,15 @@ export default function Home() {
 
               <div className="hp-deals-rail" role="list" ref={dealsRef}>
                 {topDeals.map((p, idx) => {
-                const image = resolveImageUrl(p.image);
-                const wishlistPayload = {
-                  productId: p.id,
-                  name: p.name,
-                  image: image || p.image,
-                  price: p._price,
-                };
+                  const image = resolveImageUrl(p.image);
+                  const wishlistPayload = {
+                    productId: p.id,
+                    name: p.name,
+                    image: image || p.image,
+                    price: p._price,
+                  };
 
+<<<<<<< HEAD
                 return (
                   <article
                     key={`deal-${p.id}-${idx}`}
@@ -1286,27 +1504,60 @@ export default function Home() {
                       </div>
                       <div className="hp-deal-footer-row">
                         <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
+=======
+                  return (
+                    <article
+                      key={`deal-${p.id}-${idx}`}
+                      className="hp-deal-card"
+                      role="listitem"
+                      onClick={() => navigate(`/product/${p.id}`)}
+                    >
+                      <div className="hp-deal-media">
+                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
+                        <span className="hp-deal-ribbon">HOT DEAL</span>
+>>>>>>> 89e8a35 (medha)
                         <button
                           type="button"
-                          className="hp-deal-cart"
+                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            addToCart({
-                              productId: p.id,
-                              variantId: p.id,
-                              name: p.name,
-                              image: image || p.image,
-                              price: p._price,
-                            });
+                            toggleWishlist(wishlistPayload);
                           }}
-                          aria-label="Add to cart"
+                          aria-label="Toggle wishlist"
                         >
-                          <MdOutlineShoppingCart />
+                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
                         </button>
                       </div>
-                    </div>
-                  </article>
-                );
+                      <div className="hp-deal-body">
+                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
+                        <p className="hp-deal-name">{p.name}</p>
+                        <div className="hp-deal-price-row">
+                          <span className="hp-deal-price">₹{p._price}</span>
+                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
+                        </div>
+                        <div className="hp-deal-footer-row">
+                          <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
+                          <button
+                            type="button"
+                            className="hp-deal-cart"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                productId: p.id,
+                                variantId: p.id,
+                                name: p.name,
+                                image: image || p.image,
+                                price: p._price,
+                              });
+                            }}
+                            aria-label="Add to cart"
+                          >
+                            <MdOutlineShoppingCart />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
                 })}
               </div>
 
@@ -1381,15 +1632,16 @@ export default function Home() {
                 <MdChevronLeft />
               </button>
               <div className="hp-deals-rail" role="list" ref={recentlyViewedRailRef}>
-              {recentlyViewedProducts.map((p, idx) => {
-                const image = resolveImageUrl(p.image);
-                const wishlistPayload = {
-                  productId: p.id,
-                  name: p.name,
-                  image: image || p.image,
-                  price: p._price,
-                };
+                {recentlyViewedProducts.map((p, idx) => {
+                  const image = resolveImageUrl(p.image);
+                  const wishlistPayload = {
+                    productId: p.id,
+                    name: p.name,
+                    image: image || p.image,
+                    price: p._price,
+                  };
 
+<<<<<<< HEAD
                 return (
                   <article
                     key={`recent-${p.id}-${idx}`}
@@ -1423,29 +1675,64 @@ export default function Home() {
                       </div>
                       <div className="hp-deal-footer-row">
                         <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
+=======
+                  return (
+                    <article
+                      key={`recent-${p.id}-${idx}`}
+                      className="hp-deal-card"
+                      role="listitem"
+                      onClick={() => navigate(`/product/${p.id}`)}
+                    >
+                      <div className="hp-deal-media">
+                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
+                        <span className={`hp-deal-ribbon${p._discount === 0 ? ' new' : ''}`}>
+                          {p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}
+                        </span>
+>>>>>>> 89e8a35 (medha)
                         <button
                           type="button"
-                          className="hp-deal-cart"
+                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            addToCart({
-                              productId: p.id,
-                              variantId: p.id,
-                              name: p.name,
-                              image: image || p.image,
-                              price: p._price,
-                            });
+                            toggleWishlist(wishlistPayload);
                           }}
-                          aria-label="Add to cart"
+                          aria-label="Toggle wishlist"
                         >
-                          <MdOutlineShoppingCart />
+                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
                         </button>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                      <div className="hp-deal-body">
+                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
+                        <p className="hp-deal-name">{p.name}</p>
+                        <div className="hp-deal-price-row">
+                          <span className="hp-deal-price">₹{p._price}</span>
+                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
+                        </div>
+                        <div className="hp-deal-footer-row">
+                          <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
+                          <button
+                            type="button"
+                            className="hp-deal-cart"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                productId: p.id,
+                                variantId: p.id,
+                                name: p.name,
+                                image: image || p.image,
+                                price: p._price,
+                              });
+                            }}
+                            aria-label="Add to cart"
+                          >
+                            <MdOutlineShoppingCart />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
               <button
                 type="button"
                 className="hp-deals-next"
@@ -1484,82 +1771,82 @@ export default function Home() {
                 <MdChevronLeft />
               </button>
               <div className="hp-deals-rail" role="list" ref={newOnBlinkiefashRailRef}>
-              {newOnBlinkiefash.map((p, idx) => {
-                const image = resolveImageUrl(p.image);
-                const wishlistPayload = {
-                  productId: p.id,
-                  name: p.name,
-                  image: image || p.image,
-                  price: p._price,
-                };
+                {newOnBlinkiefash.map((p, idx) => {
+                  const image = resolveImageUrl(p.image);
+                  const wishlistPayload = {
+                    productId: p.id,
+                    name: p.name,
+                    image: image || p.image,
+                    price: p._price,
+                  };
 
-                return (
-                  <article
-                    key={`new-${p.id}-${idx}`}
-                    className="hp-deal-card"
-                    role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`)}
-                  >
-                    <div className="hp-deal-media">
-                      {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                      <span className="hp-deal-ribbon new">NEW</span>
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist(wishlistPayload);
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p._price}</span>
-                        {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span className="hp-deal-off">NEW</span>
+                  return (
+                    <article
+                      key={`new-${p.id}-${idx}`}
+                      className="hp-deal-card"
+                      role="listitem"
+                      onClick={() => navigate(`/product/${p.id}`)}
+                    >
+                      <div className="hp-deal-media">
+                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
+                        <span className="hp-deal-ribbon new">NEW</span>
                         <button
                           type="button"
-                          className="hp-deal-cart"
+                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            addToCart({
-                              productId: p.id,
-                              variantId: p.id,
-                              name: p.name,
-                              image: image || p.image,
-                              price: p._price,
-                            });
+                            toggleWishlist(wishlistPayload);
                           }}
-                          aria-label="Add to cart"
+                          aria-label="Toggle wishlist"
                         >
-                          <MdOutlineShoppingCart />
+                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
                         </button>
                       </div>
-                    </div>
-                  </article>
-                );
-              })}
+                      <div className="hp-deal-body">
+                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
+                        <p className="hp-deal-name">{p.name}</p>
+                        <div className="hp-deal-price-row">
+                          <span className="hp-deal-price">₹{p._price}</span>
+                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
+                        </div>
+                        <div className="hp-deal-footer-row">
+                          <span className="hp-deal-off">NEW</span>
+                          <button
+                            type="button"
+                            className="hp-deal-cart"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              addToCart({
+                                productId: p.id,
+                                variantId: p.id,
+                                name: p.name,
+                                image: image || p.image,
+                                price: p._price,
+                              });
+                            }}
+                            aria-label="Add to cart"
+                          >
+                            <MdOutlineShoppingCart />
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Next New on Blinkiefash"
+                onClick={() => {
+                  const el = newOnBlinkiefashRailRef.current;
+                  if (!el) return;
+                  scrollRailByCards(el, 1, 6);
+                }}
+              >
+                <MdChevronRight />
+              </button>
             </div>
-            <button
-              type="button"
-              className="hp-deals-next"
-              aria-label="Next New on Blinkiefash"
-              onClick={() => {
-                const el = newOnBlinkiefashRailRef.current;
-                if (!el) return;
-                scrollRailByCards(el, 1, 6);
-              }}
-            >
-              <MdChevronRight />
-            </button>
-          </div>
           </section>
         )}
 
@@ -1871,7 +2158,7 @@ export default function Home() {
   );
 }
 
-// Category chip rail with left/right scroll-arrow controls (keyboard-focusable <button>s).
+// Helper components (keep these)
 function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
@@ -1884,12 +2171,7 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   return (
     <div className="hp-collection-chip-group">
       <div className="hp-deals-wrap">
-        <button
-          type="button"
-          className="hp-deals-prev"
-          aria-label={`Scroll ${audienceLabel} categories left`}
-          onClick={() => scrollBy(-1)}
-        >
+        <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
           <MdChevronLeft />
         </button>
 
@@ -1915,12 +2197,7 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
           })}
         </div>
 
-        <button
-          type="button"
-          className="hp-deals-next"
-          aria-label={`Scroll ${audienceLabel} categories right`}
-          onClick={() => scrollBy(1)}
-        >
+        <button type="button" className="hp-deals-next" aria-label={`Scroll ${audienceLabel} categories right`} onClick={() => scrollBy(1)}>
           <MdChevronRight />
         </button>
       </div>
@@ -1966,16 +2243,7 @@ function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
 
   return (
     <div className="hp-deals-wrap">
-      <button
-        type="button"
-        className="hp-deals-prev"
-        aria-label="Previous"
-        onClick={() => {
-          const el = railRef.current;
-          if (!el) return;
-          scrollRailByCards(el, -1, 6);
-        }}
-      >
+      <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRailByCards(railRef.current, -1, 6)}>
         <MdChevronLeft />
       </button>
 
@@ -2045,16 +2313,7 @@ function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
         })}
       </div>
 
-      <button
-        type="button"
-        className="hp-deals-next"
-        aria-label="Next"
-        onClick={() => {
-          const el = railRef.current;
-          if (!el) return;
-          scrollRailByCards(el, 1, 6);
-        }}
-      >
+      <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollRailByCards(railRef.current, 1, 6)}>
         <MdChevronRight />
       </button>
     </div>
