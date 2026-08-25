@@ -623,14 +623,14 @@ router.get("/rewards", async (req, res) => {
       `SELECT COALESCE(SUM(value), 0)::float AS amount,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1::UUID AND type = 'referral_50' AND status = 'available'`,
+       WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'`,
       [userId]
     );
     const { rows: clothRows } = await pool.query(
       `SELECT COALESCE(SUM(value), 0)::int AS items,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1::UUID AND type = 'clothing_pct' AND status = 'available'`,
+       WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'`,
       [userId]
     );
     const items = clothRows[0].items;
@@ -678,7 +678,7 @@ router.post("/orders", async (req, res) => {
 
     // Find the address with city and coordinates
     const { rows: addrRows } = await client.query(
-      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID AND user_id = $2::UUID`, [addressId, userId]
+      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID AND user_id = $2`, [addressId, userId]
     );
     if (!addrRows.length) {
       await client.query("ROLLBACK");
