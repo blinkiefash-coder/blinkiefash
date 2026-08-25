@@ -62,6 +62,29 @@ const TABS = [
   { key: 'reviews', label: 'Ratings & Reviews' },
 ];
 
+// Standard apparel size order — anything not in this list falls back to
+// alphabetical order after the known sizes.
+const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '3XL', '4XL', '5XL'];
+
+function sortSizes(sizes) {
+  return [...sizes].sort((a, b) => {
+    const aKey = String(a).toUpperCase().trim();
+    const bKey = String(b).toUpperCase().trim();
+    const aIdx = SIZE_ORDER.indexOf(aKey);
+    const bIdx = SIZE_ORDER.indexOf(bKey);
+
+    // Numeric sizes (e.g. "28", "30", "32") sort numerically
+    const aNum = Number(aKey);
+    const bNum = Number(bKey);
+    if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
+
+    if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
+    if (aIdx !== -1) return -1;
+    if (bIdx !== -1) return 1;
+    return aKey.localeCompare(bKey);
+  });
+}
+
 function toCurrency(value) {
   const num = Number(value || 0);
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.max(num, 0));
@@ -842,7 +865,7 @@ export default function ProductDetail() {
                   <p className="pp-label">Select Size</p>
                 </div>
                 <div className="pp-size-row">
-                  {[...new Set(sizeOptions.map((v) => v.size || 'Default'))].map((size) => {
+                  {sortSizes([...new Set(sizeOptions.map((v) => v.size || 'Default'))]).map((size) => {
                     const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
                     // Visual hint only — still allow selection (inventory rows are often missing)
                     const lowStock = Number(scoped?.available_stock || 0) <= 0;
