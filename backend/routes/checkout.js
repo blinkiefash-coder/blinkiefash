@@ -430,7 +430,7 @@ router.get("/addresses", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type
-       FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, id DESC`,
+       FROM addresses WHERE user_id = $1::TEXT ORDER BY is_default DESC, id DESC`,
       [userId]
     );
     res.json({ success: true, addresses: rows });
@@ -557,7 +557,7 @@ router.post("/addresses", async (req, res) => {
   try {
     // If this is the first address, make it default
     const { rows: existing } = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1`, [userId]
+      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1::TEXT`, [userId]
     );
     const isDefault = parseInt(existing[0].cnt) === 0;
 
@@ -623,20 +623,20 @@ router.get("/rewards", async (req, res) => {
       `SELECT COALESCE(SUM(value), 0)::float AS amount,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'`,
+       WHERE user_id = $1::TEXT AND type = 'referral_50' AND status = 'available'`,
       [userId]
     );
     const { rows: clothRows } = await pool.query(
       `SELECT COALESCE(SUM(value), 0)::int AS items,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'`,
+       WHERE user_id = $1::TEXT AND type = 'clothing_pct' AND status = 'available'`,
       [userId]
     );
     const items = clothRows[0].items;
     // Check if user is a first-time buyer (no successful orders yet)
     const { rows: orderRows } = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
+      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1::TEXT AND status NOT IN ('cancelled')`,
       [userId]
     );
     const isFirstOrder = orderRows[0].cnt === 0;
@@ -678,7 +678,7 @@ router.post("/orders", async (req, res) => {
 
     // Find the address with city and coordinates
     const { rows: addrRows } = await client.query(
-      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID AND user_id = $2`, [addressId, userId]
+      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID AND user_id = $2::TEXT`, [addressId, userId]
     );
     if (!addrRows.length) {
       await client.query("ROLLBACK");
@@ -814,7 +814,7 @@ router.post("/orders", async (req, res) => {
     if (useReferralReward) {
       const { rows: refRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'
+         WHERE user_id = $1::TEXT AND type = 'referral_50' AND status = 'available'
          ORDER BY created_at ASC
          LIMIT 1
          FOR UPDATE`,
@@ -827,7 +827,7 @@ router.post("/orders", async (req, res) => {
     } else if (useClothingReward) {
       const { rows: clothRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'
+         WHERE user_id = $1::TEXT AND type = 'clothing_pct' AND status = 'available'
          ORDER BY created_at ASC
          FOR UPDATE`,
         [userId]
@@ -858,7 +858,7 @@ router.post("/orders", async (req, res) => {
           payment_method, dark_store_id, is_try_order,
           referral_discount, clothing_discount, bundle_discount, first_order_discount,
           pickup_route, route_distance_km)
-       VALUES ($1, $2::UUID, $3, $4::DECIMAL, $5::DECIMAL, $6, $7::UUID, $8::BOOLEAN, $9::DECIMAL, $10::DECIMAL, $11::DECIMAL, $12::DECIMAL, $13::JSONB, $14::DECIMAL)
+       VALUES ($1::TEXT, $2::UUID, $3::TEXT, $4::DECIMAL, $5::DECIMAL, $6::TEXT, $7::UUID, $8::BOOLEAN, $9::DECIMAL, $10::DECIMAL, $11::DECIMAL, $12::DECIMAL, $13::JSONB, $14::DECIMAL)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, 'placed', itemsSubtotal, finalAmount, 'cod', darkStoreId, isTryOrder === true,
        referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
@@ -870,7 +870,7 @@ router.post("/orders", async (req, res) => {
       await client.query(
         `INSERT INTO order_vendor_offers
            (order_id, vendor_id, distance_km, status, offered_at)
-         VALUES ($1::UUID, $2::UUID, $3::DECIMAL, $4, CASE WHEN $4 = 'offered' THEN NOW() ELSE NULL END)`,
+         VALUES ($1::UUID, $2::UUID, $3::DECIMAL, $4::TEXT, CASE WHEN $4::TEXT = 'offered' THEN NOW() ELSE NULL END)`,
         [order.id, candidate.vendorId, candidate.distanceKm, index === 0 ? 'offered' : 'queued']
       );
     }
@@ -908,13 +908,14 @@ router.post("/orders", async (req, res) => {
     }
 
     // ── Track referral: if this user was referred, credit the referrer ₹50 on first order ──
+    // Note: Since users.id is UUID but we're searching with Firebase UID (TEXT), cast id to TEXT
     const { rows: userRows } = await client.query(
-      `SELECT referred_by FROM users WHERE id = $1`, [userId]
+      `SELECT referred_by FROM users WHERE id::TEXT = $1`, [userId]
     );
     if (userRows.length && userRows[0].referred_by) {
       // Check if this is the user's first order (excluding try orders)
       const { rows: orderCountRows } = await client.query(
-        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1 AND is_try_order = false AND id != $2::UUID`,
+        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1::TEXT AND is_try_order = false AND id != $2::UUID`,
         [userId, order.id]
       );
       if (parseInt(orderCountRows[0].cnt) === 0) {
@@ -974,8 +975,13 @@ router.post("/orders", async (req, res) => {
       etaMaxMinutes: deliveryInfo.etaMaxMinutes,
     });
   } catch (err) {
-    await client.query("ROLLBACK");
-    console.error("POST orders error:", err.message, err.detail ?? '');
+    await client.query("ROLLBACK").catch(() => {});
+    console.error("POST orders error:", {
+      message: err.message,
+      detail: err.detail,
+      code: err.code,
+      stack: err.stack
+    });
     res.status(500).json({ success: false, message: err.detail ?? err.message ?? "Server error" });
   } finally {
     client.release();
@@ -1026,7 +1032,7 @@ router.get("/orders", async (req, res) => {
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
-       WHERE o.user_id = $1
+       WHERE o.user_id = $1::TEXT
        GROUP BY o.id, a.address_line, a.city, a.pincode
        ORDER BY o.created_at DESC`,
       [userId]

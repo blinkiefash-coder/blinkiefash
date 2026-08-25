@@ -133,17 +133,31 @@ const listenOnAvailablePort = (startPort) => {
 
 const startServer = async () => {
   try {
-    await ensureDatabaseTables();
+    console.log("[server] Initializing database tables...");
+    // Add 10 second timeout to database initialization
+    const dbInitPromise = ensureDatabaseTables();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Database initialization timeout")), 10000)
+    );
+    await Promise.race([dbInitPromise, timeoutPromise]);
+    console.log("[server] Database tables initialized ✓");
   } catch (error) {
     console.warn("[server] continuing without DB initialization:", error.message);
   }
 
   try {
-    await ensureGamificationTables();
+    console.log("[server] Initializing gamification tables...");
+    const gamInitPromise = ensureGamificationTables();
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("Gamification initialization timeout")), 10000)
+    );
+    await Promise.race([gamInitPromise, timeoutPromise]);
+    console.log("[server] Gamification tables initialized ✓");
   } catch (error) {
     console.warn("[server] continuing without gamification init:", error.message);
   }
 
+  console.log("[server] Starting to listen on available port...");
   const { port } = await listenOnAvailablePort(DEFAULT_PORT);
   console.log(`✅ Backend running on port ${port}`);
 
