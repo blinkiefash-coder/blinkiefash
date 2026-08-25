@@ -162,6 +162,8 @@ export default function Orders() {
             {orders.map((order) => {
               const { label, tone } = statusInfo(order.status);
               const itemCount = order.items?.length || 0;
+              const firstItem = order.items?.[0];
+              const firstImage = firstItem?.image || firstItem?.image_url;
               return (
                 <div
                   className="order-card"
@@ -171,7 +173,11 @@ export default function Orders() {
                   onClick={() => navigate(`/orders/${order.id}`)}
                   onKeyDown={(e) => e.key === 'Enter' && navigate(`/orders/${order.id}`)}
                 >
-                  <span className={`order-status-icon tone-${tone}`}>{TONE_ICON[tone]}</span>
+                  {firstImage ? (
+                    <img className="order-card-image" src={firstImage} alt="" />
+                  ) : (
+                    <span className={`order-status-icon tone-${tone}`}>{TONE_ICON[tone]}</span>
+                  )}
 
                   <div className="order-card-body">
                     <div className="order-card-top">

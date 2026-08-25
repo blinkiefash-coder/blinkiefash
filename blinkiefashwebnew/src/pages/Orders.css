@@ -67,6 +67,15 @@
   flex-shrink: 0;
 }
 
+.order-card-image {
+  width: 58px;
+  height: 58px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: #f1f5f9;
+  flex-shrink: 0;
+}
+
 .order-card-body {
   flex: 1;
   min-width: 0;
