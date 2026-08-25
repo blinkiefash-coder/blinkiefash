@@ -23,6 +23,7 @@ export default function OrderTracking() {
   const [error, setError] = useState('');
   const [cancelling, setCancelling] = useState(false);
   const [showPlacedBanner, setShowPlacedBanner] = useState(!!location.state?.fromCheckout);
+  const [confirmationNow, setConfirmationNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (!isLoggedIn || !orderId) return;
@@ -75,6 +76,16 @@ export default function OrderTracking() {
       document.removeEventListener('visibilitychange', onVis);
     };
   }, [orderId, isLoggedIn]);
+
+  useEffect(() => {
+    const deadline = order?.vendor_confirmation_deadline;
+    if ((order?.status || '').toLowerCase() !== 'placed' || !deadline) {
+      return undefined;
+    }
+
+    const timer = setInterval(() => setConfirmationNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [order]);
 
   useEffect(() => {
     if (!showPlacedBanner) return;
@@ -158,6 +169,12 @@ export default function OrderTracking() {
     : status === 'out_for_delivery'
     ? 'Out for Delivery'
     : status.replace(/_/g, ' ');
+  const confirmationSecondsLeft = Math.max(
+    0,
+    Math.ceil((new Date(order.vendor_confirmation_deadline).getTime() - confirmationNow) / 1000),
+  );
+  const confirmationMinutes = Math.floor(confirmationSecondsLeft / 60);
+  const confirmationSeconds = String(confirmationSecondsLeft % 60).padStart(2, '0');
 
   return (
     <div className="ot-page">
@@ -178,6 +195,17 @@ export default function OrderTracking() {
           <div className="ot-banner success" role="status">
             <span>🎉 Order placed successfully! Track its progress below.</span>
             <button type="button" onClick={() => setShowPlacedBanner(false)} aria-label="Dismiss">✕</button>
+          </div>
+        )}
+
+        {status === 'placed' && confirmationSecondsLeft > 0 && (
+          <div className="ot-confirmation-window" role="status">
+            <span className="ot-confirmation-icon" aria-hidden="true">🔔</span>
+            <span className="ot-confirmation-copy">
+              <strong>Waiting for the store to confirm your order</strong>
+              <small>The store has a limited window to accept or reject this order.</small>
+            </span>
+            <strong className="ot-confirmation-timer">{confirmationMinutes}:{confirmationSeconds}</strong>
           </div>
         )}
 

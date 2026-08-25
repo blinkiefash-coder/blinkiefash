@@ -106,6 +106,45 @@
   padding: 2px 6px;
 }
 
+.ot-confirmation-window {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  border-radius: 14px;
+  color: #9a3412;
+}
+
+.ot-confirmation-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 50%;
+  background: #ffedd5;
+  font-size: 18px;
+}
+
+.ot-confirmation-copy {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.ot-confirmation-copy strong { color: #7c2d12; font-size: 14px; }
+.ot-confirmation-copy small { color: #9a3412; font-size: 12px; }
+.ot-confirmation-timer { color: #c2410c; font-size: 17px; white-space: nowrap; }
+
+@media (max-width: 520px) {
+  .ot-confirmation-window { align-items: flex-start; }
+  .ot-confirmation-timer { margin-left: auto; }
+}
+
 /* ========== Card ========== */
 .ot-card {
   background: #fff;

@@ -3956,6 +3956,15 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Please accept or reject within 5 minutes',
+                    style: TextStyle(
+                      color: Color(0xFF9A3412),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 12,
+                    ),
+                  ),
                   const SizedBox(height: 12),
                   Container(
                     width: double.infinity,

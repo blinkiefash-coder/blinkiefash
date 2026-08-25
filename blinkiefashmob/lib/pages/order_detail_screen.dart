@@ -109,6 +109,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   // Full order auto-refresh (every 15 s while order is active)
   Timer? _orderRefreshTimer;
 
+  Timer? _vendorConfirmationTimer;
+  int _vendorConfirmationSecondsLeft = 0;
+
   @override
   void initState() {
     super.initState();
@@ -122,6 +125,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     _trialCountdownTimer?.cancel();
     _deliveryCountdownTimer?.cancel();
     _orderRefreshTimer?.cancel();
+    _vendorConfirmationTimer?.cancel();
     _mapController.dispose();
     super.dispose();
   }
@@ -145,6 +149,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       _loadRiderInfo(order);
       _startDeliveryStatusPolling(order['status']?.toString() ?? '');
       _startDeliveryCountdown(order);
+      _startVendorConfirmationCountdown(order);
       _startOrderAutoRefresh(order['status']?.toString() ?? '');
     } else {
       setState(() {
@@ -407,12 +412,69 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
         final order = data['order'] as Map<String, dynamic>;
         final newStatus = order['status']?.toString() ?? '';
         setState(() => _order = order);
+        _startVendorConfirmationCountdown(order);
         // Stop auto-refresh once done
         if (terminal.contains(newStatus)) {
           _orderRefreshTimer?.cancel();
         }
       }
     });
+  }
+
+  void _startVendorConfirmationCountdown(Map<String, dynamic> order) {
+    _vendorConfirmationTimer?.cancel();
+    final status = order['status']?.toString().toLowerCase() ?? '';
+    final deadline = DateTime.tryParse(
+      (order['vendor_confirmation_deadline'] ?? '').toString(),
+    )?.toLocal();
+    if (status != 'placed' || deadline == null) {
+      if (mounted) setState(() => _vendorConfirmationSecondsLeft = 0);
+      return;
+    }
+
+    void update() {
+      if (!mounted) return;
+      final left = deadline.difference(DateTime.now()).inSeconds;
+      setState(() => _vendorConfirmationSecondsLeft = left.clamp(0, 3600));
+      if (left <= 0) _vendorConfirmationTimer?.cancel();
+    }
+
+    update();
+    if (_vendorConfirmationSecondsLeft > 0) {
+      _vendorConfirmationTimer = Timer.periodic(
+        const Duration(seconds: 1),
+        (_) => update(),
+      );
+    }
+  }
+
+  Widget _vendorConfirmationBanner() {
+    final minutes = _vendorConfirmationSecondsLeft ~/ 60;
+    final seconds = _vendorConfirmationSecondsLeft % 60;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7ED),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFFED7AA)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.notifications_active_rounded, color: Color(0xFFEA580C)),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Waiting for the store to confirm your order.',
+              style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF9A3412)),
+            ),
+          ),
+          Text(
+            '$minutes:${seconds.toString().padLeft(2, '0')}',
+            style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFC2410C)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _startDeliveryCountdown(Map<String, dynamic> order) {
@@ -827,6 +889,10 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           children: [
             _placedDate(order),
             const SizedBox(height: 12),
+            if (status == 'placed' && _vendorConfirmationSecondsLeft > 0) ...[
+              _vendorConfirmationBanner(),
+              const SizedBox(height: 12),
+            ],
             _statusTimeline(status),
             const SizedBox(height: 12),
             if (!isCancelled) ...[

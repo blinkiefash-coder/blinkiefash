@@ -17,26 +17,37 @@ const STATUS_LABELS = {
 
 const POLL_INTERVAL_MS = 15_000;
 
-// Play a simple beep using Web Audio API
-function playAlertSound() {
+// Start a repeating laptop ring and return a function that stops it.
+function startAlertSound() {
+  let ctx;
+  let ringTimer;
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const times = [0, 0.35, 0.7];
-    times.forEach((t) => {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const playRing = () => {
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      [0, 0.22].forEach((offset) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
       gain.connect(ctx.destination);
-      osc.frequency.value = 880;
-      osc.type = "sine";
-      gain.gain.setValueAtTime(0, ctx.currentTime + t);
-      gain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + t + 0.05);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + t + 0.25);
-      osc.start(ctx.currentTime + t);
-      osc.stop(ctx.currentTime + t + 0.3);
-    });
+      osc.frequency.value = offset === 0 ? 880 : 660;
+      osc.type = "triangle";
+      gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+      gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + offset + 0.04);
+      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
+      osc.start(ctx.currentTime + offset);
+      osc.stop(ctx.currentTime + offset + 0.2);
+      });
+    };
+    playRing();
+    ringTimer = window.setInterval(playRing, 1400);
+    return () => {
+      window.clearInterval(ringTimer);
+      ctx.close().catch(() => {});
+    };
   } catch {
-    // Web Audio API unavailable/blocked - alert sound is best-effort
+    // Web Audio API unavailable or blocked; the visual alert remains active.
+    return () => {};
   }
 }
 
@@ -95,8 +106,11 @@ export default function VendorOrders() {
   const [refreshing, setRefreshing] = useState(false);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+  const [incomingOrders, setIncomingOrders] = useState([]);
+  const [ringSecondsLeft, setRingSecondsLeft] = useState(300);
   const knownOrderIds = useRef(new Set());
   const isFirstPoll = useRef(true);
+  const ringSoundRef = useRef(null);
 
   const menuItems = [
     { key: "orders",    label: "Orders",            icon: "\u25cd" },
@@ -152,7 +166,16 @@ export default function VendorOrders() {
             o.status === "placed" && !knownOrderIds.current.has(o.id)
         );
         if (newOnes.length > 0) {
-          playAlertSound();
+          ringSoundRef.current?.();
+          ringSoundRef.current = startAlertSound();
+          setIncomingOrders(newOnes);
+          const deadline = newOnes
+            .map((order) => new Date(order.vendor_confirmation_deadline).getTime())
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)[0];
+          setRingSecondsLeft(
+            deadline ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : 300
+          );
           showBrowserNotification(
             `🛒 ${newOnes.length} New Order${newOnes.length > 1 ? "s" : ""}!`,
             `You have ${newOnes.length} new order${newOnes.length > 1 ? "s" : ""} waiting for confirmation.`
@@ -175,6 +198,16 @@ export default function VendorOrders() {
       setRefreshing(false);
     }
   }, [vendorId, statusFilter]);
+
+  useEffect(() => {
+    if (incomingOrders.length === 0) return undefined;
+    const timer = setInterval(() => {
+      setRingSecondsLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [incomingOrders.length]);
+
+  useEffect(() => () => ringSoundRef.current?.(), []);
 
   useEffect(() => {
     if (!vendorId && !isAdmin()) {
@@ -213,6 +246,9 @@ export default function VendorOrders() {
       );
       const data = await res.json();
       if (!data.success) throw new Error(data.error || "Update failed");
+      ringSoundRef.current?.();
+      ringSoundRef.current = null;
+      setIncomingOrders([]);
       await fetchOrders();
     } catch (err) {
       alert(`Failed: ${err.message}`);
@@ -306,6 +342,8 @@ export default function VendorOrders() {
     { label: "Delivered", value: deliveredCount, tone: "green" },
     { label: "Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, tone: "neutral" },
   ];
+  const ringMinutes = Math.floor(ringSecondsLeft / 60);
+  const ringSeconds = String(ringSecondsLeft % 60).padStart(2, "0");
 
   return (
     <VendorLayout
@@ -315,6 +353,31 @@ export default function VendorOrders() {
       onMenuClick={handleMenuClick}
     >
       <div className="vo-page">
+        {incomingOrders.length > 0 && (
+          <div className="vo-incoming-alert" role="alertdialog" aria-live="assertive">
+            <div className="vo-incoming-icon" aria-hidden="true">🔔</div>
+            <div className="vo-incoming-copy">
+              <strong>{incomingOrders.length === 1 ? "New order received" : `${incomingOrders.length} new orders received`}</strong>
+              <span>Accept or reject before the store confirmation window closes.</span>
+              <b>{ringMinutes}:{ringSeconds} remaining</b>
+            </div>
+            <div className="vo-incoming-actions">
+              <button
+                className="vo-btn vo-btn-accept"
+                onClick={() => document.querySelector(".vo-card-new")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+              >View order</button>
+              <button
+                className="vo-alert-dismiss"
+                onClick={() => {
+                  ringSoundRef.current?.();
+                  ringSoundRef.current = null;
+                  setIncomingOrders([]);
+                }}
+                aria-label="Dismiss incoming order alert"
+              >✕</button>
+            </div>
+          </div>
+        )}
         <div className="vo-hero">
           <div className="vo-hero-copy">
             <p className="vo-eyebrow">Vendor dashboard</p>
