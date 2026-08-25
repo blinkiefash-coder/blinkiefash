@@ -110,6 +110,12 @@ export const ensureDatabaseTables = async () => {
   });
 
   // Fix user_rewards.user_id column to support Firebase UIDs
+  // First drop any foreign key constraints
+  await pool.query(`
+    ALTER TABLE user_rewards 
+    DROP CONSTRAINT IF EXISTS "user_rewards_user_id_fkey"
+  `).catch(() => {});
+
   await pool.query(`
     ALTER TABLE user_rewards 
     ALTER COLUMN user_id TYPE TEXT USING user_id::text

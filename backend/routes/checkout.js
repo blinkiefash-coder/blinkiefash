@@ -858,7 +858,7 @@ router.post("/orders", async (req, res) => {
           payment_method, dark_store_id, is_try_order,
           referral_discount, clothing_discount, bundle_discount, first_order_discount,
           pickup_route, route_distance_km)
-       VALUES ($1, $2::UUID, $3::TEXT, $4::DECIMAL, $5::DECIMAL, $6::TEXT, $7::UUID, $8::BOOLEAN, $9::DECIMAL, $10::DECIMAL, $11::DECIMAL, $12::DECIMAL, $13::JSONB, $14::DECIMAL)
+       VALUES ($1, $2::UUID, $3::VARCHAR, $4::DECIMAL, $5::DECIMAL, $6::VARCHAR, $7::UUID, $8::BOOLEAN, $9::DECIMAL, $10::DECIMAL, $11::DECIMAL, $12::DECIMAL, $13::JSONB, $14::DECIMAL)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, 'placed', itemsSubtotal, finalAmount, 'cod', darkStoreId, isTryOrder === true,
        referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
