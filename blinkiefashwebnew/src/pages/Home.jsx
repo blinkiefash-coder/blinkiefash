@@ -117,7 +117,7 @@ const UNIVERSE_BRANDS = [
     name: "Libas",
     image:
       "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
-    to: "/shop?search=Libas%20Kurti%20Kurta%20Set",
+    to: "/shop?search=Libas",
   },
   {
     name: "MK",
