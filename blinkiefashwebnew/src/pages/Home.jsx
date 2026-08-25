@@ -59,6 +59,11 @@ const HERO_SLIDES = [
   },
   {
     image:
+      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+    to: '/shop?search=Xinso',
+  },
+  {
+    image:
        'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
        to: '/shop?search=kids',  
   },
