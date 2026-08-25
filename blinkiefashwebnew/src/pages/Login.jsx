@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   authLoginVendorWithEmailPassword,
   authLoginWithEmailPassword,
+  authStart,
   authVerify,
 } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
@@ -35,9 +36,9 @@ export default function Login() {
 
     if (!window.recaptchaVerifier) {
       window.recaptchaVerifier = new RecaptchaVerifier(
+        auth,
         'recaptcha-container',
-        { size: 'invisible' },
-        auth
+        { size: 'invisible' }
       );
     }
 
@@ -154,11 +155,20 @@ export default function Login() {
     setLoading(true);
     try {
       const formattedPhone = formatPhone(phone);
+      const accountCheck = await authStart(formattedPhone, 'customer');
+      if (!accountCheck.success) {
+        setError(accountCheck.message || 'Mobile number not found');
+        return;
+      }
       const appVerifier = ensureRecaptcha();
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
       setStep('otp');
     } catch (err) {
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        delete window.recaptchaVerifier;
+      }
       setError(err.message || 'Could not send OTP. Please try again.');
     } finally {
       setLoading(false);
