@@ -104,7 +104,7 @@ export const getAddresses = (userId) =>
 /* ========== Addresses ========== */
 export const fetchAddresses = async (userId) => {
   try {
-    const data = await request(`/addresses?userId=${encodeURIComponent(userId)}`);
+    const data = await request(`/checkout/addresses?userId=${encodeURIComponent(userId)}`);
     return { success: true, addresses: data?.addresses || data || [] };
   } catch (error) {
     return { success: false, error: error.message || 'Failed to load addresses' };
@@ -112,7 +112,7 @@ export const fetchAddresses = async (userId) => {
 };
 export const addAddress = async (payload) => {
   try {
-    const data = await request('/addresses', {
+    const data = await request('/checkout/addresses', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
@@ -123,8 +123,8 @@ export const addAddress = async (payload) => {
 };
 export const updateAddress = async (addressId, payload) => {
   try {
-    const data = await request(`/addresses/${addressId}`, {
-      method: 'PUT',
+    const data = await request(`/checkout/addresses/${addressId}`, {
+      method: 'PATCH',
       body: JSON.stringify(payload),
     });
     return { success: true, address: data?.address || data };
@@ -134,7 +134,7 @@ export const updateAddress = async (addressId, payload) => {
 };
 export const deleteAddress = async (addressId) => {
   try {
-    await request(`/addresses/${addressId}`, { method: 'DELETE' });
+    await request(`/checkout/addresses/${addressId}`, { method: 'DELETE' });
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message || 'Failed to delete address' };
