@@ -855,7 +855,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ].contains(status);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFF3F5F9),  // Matches web checkout/order tracking
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF0F172A),
