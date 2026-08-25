@@ -328,7 +328,7 @@ router.get("/:id/orders", async (req, res) => {
            'quantity', oi.quantity,
            'price', CASE 
              WHEN LOWER(b.name) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
-             WHEN LOWER(b.name) LIKE '%puma%' THEN GREATEST(0, (oi.price - 7)::DECIMAL)
+             WHEN LOWER(b.name) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
              ELSE oi.price
            END,
            'item_status', oi.item_status,
@@ -422,7 +422,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     const calculateVendorPrice = (price, brandName) => {
       const brand = (brandName || "").toLowerCase();
       if (brand.includes("crimsoune")) return price * 0.9;
-      if (brand.includes("puma")) return Math.max(0, price - 7);
+      if (brand.includes("puma")) return price * 0.93;
       return price;
     };
 
