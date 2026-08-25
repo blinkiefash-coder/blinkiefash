@@ -106,6 +106,12 @@ class _HomeScreenState extends State<HomeScreen>
       'route': 'brand',
       'brand': 'Puma',
     },
+    {
+      'image':
+          'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+      'route': 'brand',
+      'brand': 'Xinso',
+    },
     {'image': 'assets/images/hero_mk.png', 'route': 'brand', 'brand': 'MK'},
     {
       'image': 'assets/images/hero_crimsoune.jpeg',
