@@ -859,8 +859,8 @@ router.post("/orders", async (req, res) => {
           referral_discount, clothing_discount, bundle_discount, first_order_discount,
           pickup_route, route_distance_km, assigned_vendor_id,
           vendor_confirmation_deadline)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10, $11, $12, $13,
-               CASE WHEN $13 IS NULL THEN NULL ELSE NOW() + INTERVAL '5 minutes' END)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10, $11, $12, $13::UUID,
+               CASE WHEN $13::UUID IS NULL THEN NULL ELSE NOW() + INTERVAL '5 minutes' END)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
        referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
