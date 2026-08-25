@@ -114,6 +114,12 @@ export const ensureDatabaseTables = async () => {
   });
 
   // Fix orders.user_id column to support Firebase UIDs (TEXT instead of UUID)
+  // This must drop the foreign key first since it prevents type conversion
+  await pool.query(`
+    ALTER TABLE orders 
+    DROP CONSTRAINT IF EXISTS "orders_customer_id_fkey"
+  `).catch(() => {});
+
   await pool.query(`
     ALTER TABLE orders 
     ALTER COLUMN user_id TYPE TEXT USING user_id::text
