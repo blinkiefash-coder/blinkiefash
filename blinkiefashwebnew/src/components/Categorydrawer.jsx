@@ -1,10 +1,10 @@
 import { useEffect, useRef } from "react";
 import { MdClose, MdChevronRight } from "react-icons/md";
-import "./CategoryDrawer.css";
+import "./Categorydrawer.css";
 
 const FOCUSABLE = 'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export default function CategoryDrawer({
+export default function Categorydrawer({
   open,
   parentCategory,
   subcategories,
