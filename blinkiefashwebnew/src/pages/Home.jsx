@@ -105,7 +105,7 @@ const UNIVERSE_BRANDS = [
   },
   {
     name: "Dhanista Boutique",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/mkbanner_habbh6.jpg",
+    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png",
     to: "/vendor/dhanista-fashion-store",
   },
   {

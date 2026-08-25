@@ -171,6 +171,21 @@ function normalizeProduct(p) {
   };
 }
 
+// Banner images for the Men hero cards: [main, trending side, arrivals side]
+const MEN_BANNERS = [
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0014.jpg",
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657706/IMG-20260825-WA0012.jpg",
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657885/IMG-20260825-WA0013.jpg",
+];
+
+function heroBannerStyle(url) {
+  return {
+    backgroundImage: `url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+}
+
 export default function Men() {
   const navigate = useNavigate();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
@@ -473,42 +488,23 @@ export default function Men() {
         </div>
 
         <section className="men-hero-grid" aria-label="Men's fashion highlights">
-          <div className="men-hero-card men-hero-main">
-            <div className="men-hero-copy">
-              <p className="men-hero-kicker">STYLE THAT MOVES WITH YOU</p>
-              <h1>Delivered in a Blink!</h1>
-              <p className="men-hero-sub">
-                Latest trends, top brands &amp; everyday essentials — all in 60 minutes.
-              </p>
-              <ul className="men-hero-features">
-                <li><MdBolt /> 60 MINS Delivery</li>
-                <li><MdAutorenew /> Easy Returns</li>
-                <li><MdVerifiedUser /> Top Quality Products</li>
-                <li><MdSecurity /> Safe &amp; Trusted</li>
-              </ul>
-              <button type="button" className="men-hero-btn" onClick={() => navigate(menScopedShopUrl())}>
-                Shop Now <MdArrowForward />
-              </button>
-            </div>
-          </div>
+          <div
+            className="men-hero-card men-hero-main"
+            style={{ ...heroBannerStyle(MEN_BANNERS[0]), cursor: "pointer" }}
+            onClick={() => navigate(menScopedShopUrl())}
+          />
 
-          <div className="men-hero-card men-hero-side men-hero-trending">
-            <p className="men-hero-tag">TRENDING NOW</p>
-            <h3>Hot Right Now!</h3>
-            <p>Most loved styles this week.</p>
-            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
-              Explore Now <MdArrowForward />
-            </button>
-          </div>
+          <div
+            className="men-hero-card men-hero-side men-hero-trending"
+            style={{ ...heroBannerStyle(MEN_BANNERS[1]), cursor: "pointer" }}
+            onClick={() => navigate(menScopedShopUrl())}
+          />
 
-          <div className="men-hero-card men-hero-side men-hero-arrivals">
-            <p className="men-hero-tag">NEW ARRIVALS</p>
-            <h3>Fresh Styles Just In!</h3>
-            <p>Be the first to grab the latest.</p>
-            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
-              View All <MdArrowForward />
-            </button>
-          </div>
+          <div
+            className="men-hero-card men-hero-side men-hero-arrivals"
+            style={{ ...heroBannerStyle(MEN_BANNERS[2]), cursor: "pointer" }}
+            onClick={() => navigate(menScopedShopUrl())}
+          />
         </section>
 
         <section className="men-cat-strip" aria-label="Shop by category">
