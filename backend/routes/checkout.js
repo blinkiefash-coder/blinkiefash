@@ -1080,7 +1080,7 @@ router.get("/orders/:orderId", async (req, res) => {
          COALESCE(ds.lat,  (SELECT lat  FROM dark_stores WHERE is_active=true AND lower(city)=lower(a.city) LIMIT 1)) AS dark_store_lat,
          COALESCE(ds.lng,  (SELECT lng  FROM dark_stores WHERE is_active=true AND lower(city)=lower(a.city) LIMIT 1)) AS dark_store_lng
        FROM orders o
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::TEXT = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
        LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
        WHERE o.id = $1::UUID`,
