@@ -922,19 +922,21 @@ router.post("/orders", async (req, res) => {
         const referrerId = userRows[0].referred_by;
         
         // Create a referral tracking record
-        await client.query(
-          `INSERT INTO referrals (referrer_id, referee_id, code, status)
-           VALUES ($1, $2, $3, 'completed')
-           ON CONFLICT (referee_id) DO NOTHING`,
-          [referrerId, userId, `REF-${referrerId.substring(0, 8)}`]
-        );
-        
-        // Credit ₹50 to the referrer
-        await client.query(
-          `INSERT INTO user_rewards (user_id, type, value, status, source_order_id)
-           VALUES ($1, 'referral_50', 50, 'available', $2::UUID)`,
-          [referrerId, order.id]
-        );
+        if (referrerId) {
+          await client.query(
+            `INSERT INTO referrals (referrer_id, referee_id, code, status)
+             VALUES ($1::TEXT, $2::TEXT, $3, 'completed')
+             ON CONFLICT (referee_id) DO NOTHING`,
+            [referrerId, userId, `REF-${referrerId.substring(0, 8)}`]
+          );
+          
+          // Credit ₹50 to the referrer
+          await client.query(
+            `INSERT INTO user_rewards (user_id, type, value, status, source_order_id)
+             VALUES ($1::TEXT, 'referral_50', 50, 'available', $2::UUID)`,
+            [referrerId, order.id]
+          );
+        }
       }
     }
 

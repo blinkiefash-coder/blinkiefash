@@ -174,6 +174,9 @@ async function runTests() {
       couponCode: null,
     });
     logResult('POST /api/checkout/orders (place order)', placeOrderRes.ok, `Status: ${placeOrderRes.status}${placeOrderRes.error ? ` - ${placeOrderRes.error}` : ''}, OrderID: ${placeOrderRes.data?.id || 'N/A'}`);
+    if (!placeOrderRes.ok) {
+      console.log('   📋 Full error response:', JSON.stringify(placeOrderRes.data, null, 2));
+    }
 
     // If order was created, test order retrieval
     if (placeOrderRes.ok && placeOrderRes.data?.id) {
