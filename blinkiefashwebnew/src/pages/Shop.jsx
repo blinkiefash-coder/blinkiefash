@@ -2,7 +2,7 @@ import "./Shop.css";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
-import CategoryDrawer from "../components/Categorydrawer";
+import Categorydrawer from "../components/Categorydrawer";
 
 import {
   MdClose,
@@ -1208,7 +1208,7 @@ export default function Shop() {
         </div>
       </main>
 
-      <CategoryDrawer
+      <Categorydrawer
         open={drawerOpen}
         parentCategory={drawerParent}
         subcategories={drawerSubcategories}
