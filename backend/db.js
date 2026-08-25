@@ -540,7 +540,27 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`
     ALTER TABLE orders
       ADD COLUMN IF NOT EXISTS pickup_route JSONB,
-      ADD COLUMN IF NOT EXISTS route_distance_km DECIMAL(6, 2)
+      ADD COLUMN IF NOT EXISTS route_distance_km DECIMAL(6, 2),
+      ADD COLUMN IF NOT EXISTS assigned_vendor_id UUID,
+      ADD COLUMN IF NOT EXISTS vendor_confirmation_deadline TIMESTAMPTZ
+  `).catch(() => {});
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_vendor_offers (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      distance_km DECIMAL(8, 2),
+      status VARCHAR(20) NOT NULL DEFAULT 'queued',
+      offered_at TIMESTAMPTZ,
+      responded_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      UNIQUE (order_id, vendor_id)
+    )
+  `).catch(() => {});
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS order_vendor_offers_order_status_idx
+    ON order_vendor_offers(order_id, status, distance_km)
   `).catch(() => {});
 
   // ── Deliveries table: Store pickup OTP for rider verification ──────────────

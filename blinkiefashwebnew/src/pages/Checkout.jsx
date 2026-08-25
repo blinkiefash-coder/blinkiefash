@@ -20,7 +20,7 @@ import {
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
-import { getAddresses, addAddress, placeOrder } from '../api';
+import { getAddresses, addAddress, getDeliveryFee, placeOrder } from '../api';
 import './Checkout.css';
 import PageSEO from '../components/PageSEO';
 
@@ -67,12 +67,7 @@ export default function Checkout() {
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoError, setGeoError] = useState('');
 
-  const [estimatedDeliveryTime] = useState(() =>
-    new Date(Date.now() + 70 * 60000).toLocaleTimeString('en-IN', {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  );
+  const [deliveryQuote, setDeliveryQuote] = useState(null);
 
   useEffect(() => {
     if (!isLoggedIn) return;
@@ -92,8 +87,16 @@ export default function Checkout() {
       });
   }, [isLoggedIn, user]);
 
+  useEffect(() => {
+    if (!selectedAddressId || !items.length) return;
+    getDeliveryFee({
+      addressId: selectedAddressId,
+      subtotal,
+      variantIds: items.map((item) => item.variantId),
+    }).then(setDeliveryQuote).catch(() => setDeliveryQuote(null));
+  }, [selectedAddressId, subtotal, items]);
+
   // Derive applied coupon during render (no setState-in-effect).
-  // Auto-applies INDEPENDENCE5 unless the user dismissed it or picked another code.
   const appliedCoupon = useMemo(() => {
     if (manualCoupon) {
       const coupon = AVAILABLE_COUPONS[manualCoupon.code];
@@ -133,7 +136,7 @@ export default function Checkout() {
 
   const totalQty = items.reduce((sum, i) => sum + Number(i.qty || 1), 0);
   const itemTotal = subtotal;
-  const deliveryCharge = itemTotal > FREE_DELIVERY_THRESHOLD ? 0 : 49;
+  const deliveryCharge = deliveryQuote?.fee ?? (itemTotal >= FREE_DELIVERY_THRESHOLD ? 0 : 49);
   const couponDiscount = appliedCoupon ? appliedCoupon.discountAmount : 0;
   const gstFee = HANDLING_FEE;
   const totalFees = PLATFORM_FEE + gstFee;
@@ -322,7 +325,7 @@ export default function Checkout() {
       const res = await placeOrder({
         userId: user.id,
         addressId: selectedAddressId,
-        totalAmount: totalPayable,
+        totalAmount: itemTotal,
         paymentMethod,
         items: items.map((i) => ({
           variantId: i.variantId,
@@ -553,8 +556,8 @@ export default function Checkout() {
             <label className="ckt-time-option active">
               <input type="radio" checked readOnly />
               <span>
-                <strong>Today - Delivered by {estimatedDeliveryTime}</strong>
-                <small>53-80 min for 20.1 km from your nearest delivery partner.</small>
+                <strong>{deliveryQuote?.deliveryPromise || 'Select an address for your delivery promise'}</strong>
+                <small>Up to 15 km: 60 minutes. Up to 45 km: 1 day. Beyond 45 km: 1-3 days.</small>
               </span>
             </label>
           </section>

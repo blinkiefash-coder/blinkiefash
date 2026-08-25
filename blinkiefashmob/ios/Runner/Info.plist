@@ -2,10 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>NSCameraUsageDescription</key>
+	<string>BlinkieFash uses the camera when you add product or vendor images.</string>
+	<key>NSContactsUsageDescription</key>
+	<string>BlinkieFash uses your contacts when you choose a contact for delivery.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>BlinkieFash needs your location to show nearby stores and deliver to your address.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>BlinkieFash needs your location to show nearby stores and deliver to your address.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>BlinkieFash needs access to your photos when you select product or vendor images.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>

@@ -18,7 +18,7 @@ export default function AppHeader({ showSearch = true }) {
           <p className="ah-location-label">Deliver in 60 mins to</p>
           <p className="ah-location-city">{city}</p>
         </div>
-        <span className="ah-pill">60 MIN DELIVERY</span>
+        <span className="ah-pill">DISTANCE-BASED DELIVERY</span>
       </div>
       {showSearch && (
         <form className="ah-search" onSubmit={handleSearch}>

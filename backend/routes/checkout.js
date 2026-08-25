@@ -11,15 +11,14 @@ const router = express.Router();
 
 const PLATFORM_FEE_FLAT = 9;
 const SPH_FEE_PER_PRODUCT = 9; // shipping + packaging + handling per unit
-const FREE_DELIVERY_THRESHOLD = 1299;
-const BASE_DELIVERY_FEE = 39;
-const FREE_DELIVERY_DISTANCE_KM = 18;
-const EXTRA_DELIVERY_PER_KM = 2;
+const FREE_DELIVERY_THRESHOLD = 999;
+const BASE_DELIVERY_FEE = 49;
+const FREE_DELIVERY_DISTANCE_KM = 15;
+const EXTRA_DELIVERY_PER_KM = 0;
 
 // ── Odisha Statewide Delivery Configuration ────────────────────────────────
-const LOCAL_DELIVERY_RADIUS_KM = 25;
-const EXTENDED_DELIVERY_RADIUS_KM = 500; // serviceable range for extended delivery
-const EXTENDED_DELIVERY_ETA_MINUTES = 120;
+const LOCAL_DELIVERY_RADIUS_KM = 15;
+const EXTENDED_DELIVERY_RADIUS_KM = 45;
 
 // Major Odisha cities for Same Day / Next Day delivery
 const MAJOR_ODISHA_CITIES = new Set([
@@ -170,43 +169,66 @@ async function calculateBundleDiscount(items, subtotal, client = pool) {
   }
 }
 
-// ── Delivery fee rules (threshold-based) ────────────────────────────────────────
-// New pricing model:
-// - ≤25km with subtotal ≥1499: Free
-// - ≤45km with subtotal ≥1899: Free
-// - >45km with any product_id ≥2000: Free
-// - >45km with all product_id <2000: ₹49
-// - Otherwise: ₹0
+// ── Delivery fee rules ──────────────────────────────────────────────────────
+// Free delivery is based on subtotal, while the promise is distance based.
 function calcDeliveryFee(subtotal, distanceKm, items = []) {
-  if (distanceKm == null) return 0;
-
-  // Rule 1: ≤25km with high subtotal
-  if (distanceKm <= 25 && subtotal >= 1499) {
-    return 0;
-  }
-
-  // Rule 2: ≤45km with very high subtotal
-  if (distanceKm <= 45 && subtotal >= 1899) {
-    return 0;
-  }
-
-  // Rule 3: >45km — check if any product has id ≥2000
-  if (distanceKm > 45) {
-    // items is array of {variantId, quantity, price}
-    // If we have items, we need product IDs to check
-    // For now, assume free if subtotal >= some threshold, else ₹49
-    // This will be enhanced with product ID check when needed
-    const hasHighValueProduct = items.length > 0;
-    // Default: charge ₹49 for >45km
-    return hasHighValueProduct ? 0 : 49;
-  }
-
-  return 0; // Within serviceable range
+  return subtotal >= FREE_DELIVERY_THRESHOLD ? 0 : BASE_DELIVERY_FEE;
 }
 
 // ── Helper: Check if order should go to riders (≤45km only) ─────────────────────
 function shouldNotifyRiders(distanceKm) {
   return distanceKm != null && distanceKm <= 45;
+}
+
+async function advanceExpiredVendorOffer(orderId) {
+  try {
+    const { rows: expired } = await pool.query(
+      `UPDATE order_vendor_offers ovo
+       SET status = 'expired', responded_at = NOW()
+       FROM orders o
+       WHERE ovo.order_id = o.id
+         AND ovo.order_id = $1
+         AND ovo.status = 'offered'
+         AND o.status = 'placed'
+         AND o.vendor_confirmation_deadline <= NOW()
+       RETURNING ovo.id`,
+      [orderId]
+    );
+    if (!expired.length) return;
+
+    const { rows: next } = await pool.query(
+      `UPDATE order_vendor_offers
+       SET status = 'offered', offered_at = NOW()
+       WHERE id = (
+         SELECT id FROM order_vendor_offers
+         WHERE order_id = $1 AND status = 'queued'
+         ORDER BY distance_km NULLS LAST, created_at ASC
+         LIMIT 1
+       )
+       RETURNING vendor_id`,
+      [orderId]
+    );
+    if (next.length) {
+      await pool.query(
+        `UPDATE orders
+         SET assigned_vendor_id = $1,
+             vendor_confirmation_deadline = NOW() + INTERVAL '5 minutes'
+         WHERE id = $2`,
+        [next[0].vendor_id, orderId]
+      );
+      notifyVendorOfNewOrder(pool, orderId).catch(() => {});
+      notifyCustomerOfStatus(pool, orderId, 'placed').catch(() => {});
+    } else {
+      await pool.query(
+        `UPDATE orders SET status = 'cancelled', cancel_reason = 'No store accepted the order'
+         WHERE id = $1 AND status = 'placed'`,
+        [orderId]
+      );
+      notifyCustomerOfStatus(pool, orderId, 'cancelled').catch(() => {});
+    }
+  } catch (err) {
+    console.error('Expired vendor offer advancement error:', err.message);
+  }
 }
 
 // ── Helper: Get IST time ────────────────────────────────────────────────────
@@ -252,20 +274,16 @@ function calculateDeliveryInfo(distanceKm, city) {
   const operatingEnd = 21 * 60;   // 21:00
   const isOperatingHours = currentTimeInMinutes >= operatingStart && currentTimeInMinutes < operatingEnd;
 
-  // RULE 1: LOCAL DELIVERY (within 25 km) — TODAY DELIVERY DURING HOURS
-  if (distanceKm != null && distanceKm <= 25) {
+  // RULE 1: LOCAL DELIVERY (within 15 km) — 60-minute promise
+  if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'local';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
     
     if (isOperatingHours) {
-      // Dynamic ETA: ~2.5 minutes per km + 10 min for accepting + 5 min for rider assignment
-      const distanceMinutes = Math.ceil(distanceKm * 2.5);
-      const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
-      const deliveryTime = formatDeliveryTime(estimatedMinutes);
-      result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
-      result.etaMinutes = estimatedMinutes;
-      result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8));
-      result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
+        result.deliveryPromise = 'Delivery in 60 minutes';
+        result.etaMinutes = 60;
+        result.etaMinMinutes = 60;
+        result.etaMaxMinutes = 60;
     } else {
       // After operating hours: show store opening time with time slot selection
       result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
@@ -277,20 +295,15 @@ function calculateDeliveryInfo(distanceKm, city) {
     return result;
   }
 
-  // RULE 2: EXTENDED DELIVERY (25km < distance ≤ 45km) — TODAY DELIVERY DURING HOURS
-  if (distanceKm != null && distanceKm <= 45) {
+  // RULE 2: EXTENDED DELIVERY (15km < distance ≤ 45km) — one-day promise
+  if (distanceKm != null && distanceKm <= EXTENDED_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'extended';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
     
     if (isOperatingHours) {
-      // Dynamic ETA: ~3 minutes per km + 10 min for accepting + 5 min for rider assignment
-      const distanceMinutes = Math.ceil(distanceKm * 3);
-      const estimatedMinutes = distanceMinutes + 10 + 5; // 10 min accepting + 5 min rider assignment
-      const deliveryTime = formatDeliveryTime(estimatedMinutes);
-      result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
-      result.etaMinutes = estimatedMinutes;
-      result.etaMinMinutes = Math.max(30, Math.ceil(estimatedMinutes * 0.8));
-      result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2);
+      result.deliveryPromise = 'Delivery within 1 day';
+      result.etaMinMinutes = 24 * 60;
+      result.etaMaxMinutes = 24 * 60;
     } else {
       // After operating hours: show store opening time with time slot selection
       result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
@@ -313,24 +326,24 @@ function calculateDeliveryInfo(distanceKm, city) {
       if (isBeforeNoon) {
         // Before 12:00 PM: Same day delivery for selected pincodes, 1-3 days for others
         if (isMajorOdishaCity(city)) {
-          result.deliveryPromise = "Same Day Delivery Available";
-          result.deliveryType = 'sameday';
+          result.deliveryPromise = "Delivery in 1-3 days";
+          result.deliveryType = '1-3days';
         } else {
-          result.deliveryPromise = "Delivery in 1-3 Days";
+          result.deliveryPromise = "Delivery in 1-3 days";
           result.deliveryType = '1-3days';
         }
       } else {
         // At or after 12:00 PM: 1-3 days delivery
-        result.deliveryPromise = "Delivery in 1-3 Days";
+        result.deliveryPromise = "Delivery in 1-3 days";
         result.deliveryType = '1-3days';
       }
     } else {
       // During CLOSED hours (21:01 to 09:59): Same day or 1-3 days
       if (isMajorOdishaCity(city)) {
-        result.deliveryPromise = "Same Day Delivery Available";
-        result.deliveryType = 'sameday';
+        result.deliveryPromise = "Delivery in 1-3 days";
+        result.deliveryType = '1-3days';
       } else {
-        result.deliveryPromise = "Delivery in 1-3 Days";
+        result.deliveryPromise = "Delivery in 1-3 days";
         result.deliveryType = '1-3days';
       }
     }
@@ -348,13 +361,10 @@ function calculateDeliveryInfo(distanceKm, city) {
     result.deliveryType = 'local'; // Assume local delivery when distance unknown but in major city
     result.willNotifyRiders = true; // Try to notify riders
     
-    // Estimate 45 minutes for delivery in major city (distance ~15km assumption)
-    const estimatedMinutes = 45;
-    const deliveryTime = formatDeliveryTime(estimatedMinutes);
-    result.deliveryPromise = `Today - Delivered by ${deliveryTime}`;
-    result.etaMinutes = estimatedMinutes;
-    result.etaMinMinutes = Math.max(10, Math.ceil(estimatedMinutes * 0.8)); // ~36 min
-    result.etaMaxMinutes = Math.ceil(estimatedMinutes * 1.2); // ~54 min
+      result.deliveryPromise = 'Delivery in 60 minutes';
+      result.etaMinutes = 60;
+      result.etaMinMinutes = 60;
+      result.etaMaxMinutes = 60;
     return result;
   }
 
@@ -747,6 +757,19 @@ router.post("/orders", async (req, res) => {
     // Calculate delivery information using new Odisha statewide rules
     const deliveryInfo = calculateDeliveryInfo(distanceKm, city);
 
+    const vendorCandidates = [...new Map(
+      storeRows
+        .filter((row) => row.vendor_id)
+        .map((row) => {
+          const candidateDistance =
+            addrLat != null && addrLng != null && row.lat != null && row.lng != null
+              ? haversineKm(Number(addrLat), Number(addrLng), Number(row.lat), Number(row.lng))
+              : null;
+          return [String(row.vendor_id), { vendorId: row.vendor_id, distanceKm: candidateDistance }];
+        })
+    ).values()].sort((a, b) => (a.distanceKm ?? Infinity) - (b.distanceKm ?? Infinity));
+    const firstVendorId = vendorCandidates[0]?.vendorId || null;
+
     // ── Allow only ONE offer per order ─────────────────────────────────────
     const hasManualOffer = !!manualOfferType;
     const selectedOfferCount = [
@@ -834,14 +857,26 @@ router.post("/orders", async (req, res) => {
          (user_id, address_id, status, total_amount, final_amount,
           payment_method, dark_store_id, is_try_order,
           referral_discount, clothing_discount, bundle_discount, first_order_discount,
-          pickup_route, route_distance_km)
-       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10, $11, $12)
+          pickup_route, route_distance_km, assigned_vendor_id,
+          vendor_confirmation_deadline)
+       VALUES ($1, $2, 'placed', $3, $4, 'cod', $5, $6, $7, $8, $9, $10, $11, $12, $13,
+               CASE WHEN $13 IS NULL THEN NULL ELSE NOW() + INTERVAL '5 minutes' END)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
        referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
-       pickupRoute ? JSON.stringify(pickupRoute) : null, multiStore ? distanceKm : null]
+       pickupRoute ? JSON.stringify(pickupRoute) : null, multiStore ? distanceKm : null,
+       firstVendorId]
     );
     const order = orderRows[0];
+
+    for (const [index, candidate] of vendorCandidates.entries()) {
+      await client.query(
+        `INSERT INTO order_vendor_offers
+           (order_id, vendor_id, distance_km, status, offered_at)
+         VALUES ($1, $2, $3, $4, CASE WHEN $4 = 'offered' THEN NOW() ELSE NULL END)`,
+        [order.id, candidate.vendorId, candidate.distanceKm, index === 0 ? 'offered' : 'queued']
+      );
+    }
 
     // Generate 4-digit OTP for delivery verification
     const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
@@ -967,6 +1002,8 @@ router.get("/orders", async (req, res) => {
          o.payment_method,
          o.is_try_order,
          o.created_at,
+         o.assigned_vendor_id,
+         o.vendor_confirmation_deadline,
          ${cancelReasonSelect}
          a.address_line,
          a.city,
@@ -1006,6 +1043,7 @@ router.get("/orders", async (req, res) => {
 router.get("/orders/:orderId", async (req, res) => {
   const { orderId } = req.params;
   try {
+    await advanceExpiredVendorOffer(orderId);
     const hasCancelReason = await hasOrdersColumn('cancel_reason');
     const cancelReasonSelect = hasCancelReason
       ? 'o.cancel_reason,'
@@ -1021,6 +1059,8 @@ router.get("/orders/:orderId", async (req, res) => {
          o.is_try_order,
          o.created_at,
          o.confirmed_at,
+         o.assigned_vendor_id,
+         o.vendor_confirmation_deadline,
          o.pickup_route,
          o.route_distance_km,
          ${cancelReasonSelect}
@@ -1101,6 +1141,10 @@ router.get("/orders/:orderId", async (req, res) => {
         deliveryEtaMinMinutes: deliveryInfo.etaMinMinutes,
         deliveryEtaMaxMinutes: deliveryInfo.etaMaxMinutes,
         distanceKm: distanceKm,
+        awaitingVendorConfirmation:
+          orderData.status === 'placed' &&
+          orderData.vendor_confirmation_deadline != null &&
+          new Date(orderData.vendor_confirmation_deadline).getTime() > Date.now(),
       } 
     });
   } catch (err) {

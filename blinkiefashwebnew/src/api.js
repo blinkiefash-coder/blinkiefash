@@ -101,6 +101,15 @@ export const registerUser = (payload) =>
 export const getAddresses = (userId) =>
   request(`/checkout/addresses?userId=${userId}`);
 
+export function getDeliveryFee({ addressId, subtotal, variantIds = [] }) {
+  const params = new URLSearchParams({
+    addressId: String(addressId),
+    subtotal: String(subtotal),
+  });
+  if (variantIds.length) params.set('variantIds', variantIds.join(','));
+  return request(`/checkout/delivery-fee?${params.toString()}`);
+}
+
 /* ========== Addresses ========== */
 export const fetchAddresses = async (userId) => {
   try {

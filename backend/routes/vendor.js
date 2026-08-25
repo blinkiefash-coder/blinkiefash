@@ -7,6 +7,7 @@ import { insertProductMediaRows, getProductMediaShape } from "./products.js";
 import {
   notifyAvailableRiders,
   notifyCustomerOfStatus,
+  notifyVendorOfNewOrder,
 } from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
@@ -560,6 +561,67 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
         success: false,
         error: "Order not found for this vendor store",
       });
+    }
+
+    const offerResult = await pool.query(
+      `SELECT id, status
+       FROM order_vendor_offers
+       WHERE order_id = $1 AND vendor_id = $2
+       LIMIT 1`,
+      [orderId, vendorId]
+    ).catch(() => ({ rows: [] }));
+    const activeOffer = offerResult.rows[0];
+    if (activeOffer && activeOffer.status !== "offered") {
+      return res.status(409).json({
+        success: false,
+        error: "This order is no longer awaiting a response from this vendor",
+      });
+    }
+
+    if (normalizedStatus === "cancelled" && activeOffer) {
+      await pool.query(
+        `UPDATE order_vendor_offers
+         SET status = 'rejected', responded_at = NOW()
+         WHERE id = $1 AND status = 'offered'`,
+        [activeOffer.id]
+      );
+      const nextOffer = await pool.query(
+        `UPDATE order_vendor_offers
+         SET status = 'offered', offered_at = NOW()
+         WHERE id = (
+           SELECT id FROM order_vendor_offers
+           WHERE order_id = $1 AND status = 'queued'
+           ORDER BY distance_km NULLS LAST, created_at ASC
+           LIMIT 1
+         )
+         RETURNING vendor_id`,
+        [orderId]
+      );
+      if (nextOffer.rows.length) {
+        await pool.query(
+          `UPDATE orders
+           SET status = 'placed', assigned_vendor_id = $1,
+               vendor_confirmation_deadline = NOW() + INTERVAL '5 minutes'
+           WHERE id = $2`,
+          [nextOffer.rows[0].vendor_id, orderId]
+        );
+        notifyVendorOfNewOrder(pool, orderId).catch(() => {});
+        notifyCustomerOfStatus(pool, orderId, 'placed').catch(() => {});
+        return res.json({
+          success: true,
+          order: { id: orderId, status: 'placed' },
+          nextVendorId: nextOffer.rows[0].vendor_id,
+        });
+      }
+    }
+
+    if (normalizedStatus === "confirmed" && activeOffer) {
+      await pool.query(
+        `UPDATE order_vendor_offers
+         SET status = 'accepted', responded_at = NOW()
+         WHERE id = $1 AND status = 'offered'`,
+        [activeOffer.id]
+      );
     }
 
     const [hasConfirmedAt, hasCancelReason] = await Promise.all([

@@ -129,6 +129,11 @@ class _HomeScreenState extends State<HomeScreen>
   final Map<String, bool> _drawerExpandedCats = {};
 
   static const Color _green = Color(0xFF16A34A);
+  static const LinearGradient _homeBgGradient = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFFF0FDF4), Color(0xFFDCFCE7), Color(0xFFF8FAFC)],
+  );
   // Every horizontal product-card row (Deals of the Day, New & Trendy, the
   // Men's/Women's/Kids/Electronics/Trendy Shoes carousels, price-range rows)
   // shows up to this many side-by-side scrollable slides.
@@ -1380,191 +1385,25 @@ class _HomeScreenState extends State<HomeScreen>
   // ── HOME BODY ───────────────────────────────────────────────────────────────
   Widget _homeBody() {
     if (_isLoading) {
-      return const BfPageLoader(message: 'Finding fashion near you...');
+      return Container(
+        decoration: const BoxDecoration(gradient: _homeBgGradient),
+        child: const BfPageLoader(message: 'Finding fashion near you...'),
+      );
     }
-    return RefreshIndicator(
-      color: const Color(0xFF22C55E),
-      backgroundColor: const Color(0xFF0D2015),
-      strokeWidth: 2.5,
-      onRefresh: _loadHomeDataForCurrentSelection,
-      child: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          if (_outOfServiceArea) ...[
-            _serviceAreaGate(),
-          ] else ...[
-            _heroBanner(),
-            _sectionHeader(
-              'TOP BRANDS',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
-              ),
-            ),
-            _topBrands(),
-            const SizedBox(height: 8),
-            _sectionHeader(
-              'SHOP BY CATEGORY',
-              actionLabel: 'View All',
-              onAction: () => setState(() => _tab = 1),
-            ),
-            _exploreCategories(),
-            const SizedBox(height: 8),
-            _spinGameReferContainer(),
-            _sectionHeader(
-              'DEALS OF THE DAY',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const AllProductsScreen()),
-              ),
-            ),
-            _products.isNotEmpty
-                ? _dealsOfTheDayCategories()
-                : _stockOutBanner(),
-            const SizedBox(height: 16),
-            _sectionHeader(
-              'NEW & TRENDY',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    initialNoDiscount: true,
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _products.isNotEmpty
-                ? _newAndTrendyCategories()
-                : _stockOutBanner(),
-            const SizedBox(height: 16),
-            if (_recentlyExploredProducts.isNotEmpty) ...[
-              _sectionHeader(
-                '👁️ Recently Viewed',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AllProductsScreen()),
-                ),
-              ),
-              _buildRecentlyExploredSection(),
-              const SizedBox(height: 16),
-            ],
-            _banner01Strip(),
-            _universeSection(),
-            _brandBannersGrid(),
-            _sectionHeader(
-              'MEN\'S COLLECTION',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Men',
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _mensProducts.isNotEmpty
-                ? _mensCreativeSection()
-                : _stockOutBanner(),
-            _sectionHeader(
-              'WOMEN\'S COLLECTION',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Women',
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _womensProducts.isNotEmpty
-                ? _collectionCreativeSection(
-                    audienceLabel: 'Women',
-                    products: _womensProducts,
-                    categoryChips: _womensCats,
-                  )
-                : _stockOutBanner(),
-            _sectionHeader(
-              'KIDS COLLECTION',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Kids',
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _kidsProducts.isNotEmpty
-                ? _collectionCreativeSection(
-                    audienceLabel: 'Kids',
-                    products: _kidsProducts,
-                    categoryChips: _kidsCats,
-                  )
-                : _stockOutBanner(),
-            _sectionHeader(
-              'ELECTRONICS COLLECTION',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    initialSearch: 'electronics',
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _electronicsProducts.isNotEmpty
-                ? _collectionCreativeSection(
-                    audienceLabel: 'Electronics',
-                    products: _electronicsProducts,
-                    categoryChips: _electronicsCats,
-                  )
-                : _stockOutBanner(),
-            _sectionHeader(
-              'TRENDY SHOES',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(
-                    categoryName: 'Footwear',
-                    initialSort: 'newest',
-                  ),
-                ),
-              ),
-            ),
-            _trendyShoesProducts.isNotEmpty
-                ? _collectionCreativeSection(
-                    audienceLabel: 'Trendy Shoes',
-                    products: _trendyShoesProducts,
-                    categoryChips: _trendyShoesCats,
-                  )
-                : _stockOutBanner(),
-            _sectionHeader(
-              'UNDER ₹999',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const AllProductsScreen(maxPrice: 999),
-                ),
-              ),
-            ),
-            _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
-            _sectionHeader(
-              '₹999 - ₹1999',
-              actionLabel: 'View All',
-              onAction: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const AllProductsScreen(minPrice: 999, maxPrice: 1999),
-                ),
-              ),
-            ),
-            _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
-            if (_brands.isNotEmpty) ...[
+    return Container(
+      decoration: const BoxDecoration(gradient: _homeBgGradient),
+      child: RefreshIndicator(
+        color: const Color(0xFF22C55E),
+        backgroundColor: const Color(0xFF0D2015),
+        strokeWidth: 2.5,
+        onRefresh: _loadHomeDataForCurrentSelection,
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            if (_outOfServiceArea) ...[
+              _serviceAreaGate(),
+            ] else ...[
+              _heroBanner(),
               _sectionHeader(
                 'TOP BRANDS',
                 actionLabel: 'View All',
@@ -1573,14 +1412,186 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               _topBrands(),
-            ],
-            _sectionHeader('MORE TO EXPLORE'),
-            _shopByCategorySection(),
-            _newsletterStrip(),
-            _downloadBanner(),
-            const SizedBox(height: 24),
-          ], // end else (in service area)
-        ],
+              const SizedBox(height: 8),
+              _sectionHeader(
+                'SHOP BY CATEGORY',
+                actionLabel: 'View All',
+                onAction: () => setState(() => _tab = 1),
+              ),
+              _exploreCategories(),
+              const SizedBox(height: 8),
+              _spinGameReferContainer(),
+              _sectionHeader(
+                'DEALS OF THE DAY',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+                ),
+              ),
+              _products.isNotEmpty
+                  ? _dealsOfTheDayCategories()
+                  : _stockOutBanner(),
+              const SizedBox(height: 16),
+              _sectionHeader(
+                'NEW & TRENDY',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      initialNoDiscount: true,
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _products.isNotEmpty
+                  ? _newAndTrendyCategories()
+                  : _stockOutBanner(),
+              const SizedBox(height: 16),
+              if (_recentlyExploredProducts.isNotEmpty) ...[
+                _sectionHeader(
+                  '👁️ Recently Viewed',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+                  ),
+                ),
+                _buildRecentlyExploredSection(),
+                const SizedBox(height: 16),
+              ],
+              _banner01Strip(),
+              _universeSection(),
+              _brandBannersGrid(),
+              _sectionHeader(
+                'MEN\'S COLLECTION',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      categoryName: 'Men',
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _mensProducts.isNotEmpty
+                  ? _mensCreativeSection()
+                  : _stockOutBanner(),
+              _sectionHeader(
+                'WOMEN\'S COLLECTION',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      categoryName: 'Women',
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _womensProducts.isNotEmpty
+                  ? _collectionCreativeSection(
+                      audienceLabel: 'Women',
+                      products: _womensProducts,
+                      categoryChips: _womensCats,
+                    )
+                  : _stockOutBanner(),
+              _sectionHeader(
+                'KIDS COLLECTION',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      categoryName: 'Kids',
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _kidsProducts.isNotEmpty
+                  ? _collectionCreativeSection(
+                      audienceLabel: 'Kids',
+                      products: _kidsProducts,
+                      categoryChips: _kidsCats,
+                    )
+                  : _stockOutBanner(),
+              _sectionHeader(
+                'ELECTRONICS COLLECTION',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      initialSearch: 'electronics',
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _electronicsProducts.isNotEmpty
+                  ? _collectionCreativeSection(
+                      audienceLabel: 'Electronics',
+                      products: _electronicsProducts,
+                      categoryChips: _electronicsCats,
+                    )
+                  : _stockOutBanner(),
+              _sectionHeader(
+                'TRENDY SHOES',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(
+                      categoryName: 'Footwear',
+                      initialSort: 'newest',
+                    ),
+                  ),
+                ),
+              ),
+              _trendyShoesProducts.isNotEmpty
+                  ? _collectionCreativeSection(
+                      audienceLabel: 'Trendy Shoes',
+                      products: _trendyShoesProducts,
+                      categoryChips: _trendyShoesCats,
+                    )
+                  : _stockOutBanner(),
+              _sectionHeader(
+                'UNDER ₹999',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const AllProductsScreen(maxPrice: 999),
+                  ),
+                ),
+              ),
+              _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
+              _sectionHeader(
+                '₹999 - ₹1999',
+                actionLabel: 'View All',
+                onAction: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const AllProductsScreen(minPrice: 999, maxPrice: 1999),
+                  ),
+                ),
+              ),
+              _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
+              if (_brands.isNotEmpty) ...[
+                _sectionHeader(
+                  'TOP BRANDS',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
+                  ),
+                ),
+                _topBrands(),
+              ],
+              _sectionHeader('MORE TO EXPLORE'),
+              _shopByCategorySection(),
+              _newsletterStrip(),
+              _downloadBanner(),
+              const SizedBox(height: 24),
+            ], // end else (in service area)
+          ],
+        ),
       ),
     );
   }

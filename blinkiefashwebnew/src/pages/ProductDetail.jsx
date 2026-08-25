@@ -43,7 +43,7 @@ const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 const DESC_COLLAPSED_H = 132;
 
 const UTILITY_ITEMS = [
-  { icon: MdLocalShipping, label: 'Delivered in 60 Minutes' },
+  { icon: MdLocalShipping, label: 'Delivery promise by distance' },
   { icon: MdVerifiedUser, label: '100% Authentic Products' },
   { icon: MdAutorenew, label: 'Easy Returns' },
   { icon: MdPayments, label: 'Cash on Delivery' },

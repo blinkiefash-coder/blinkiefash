@@ -44,6 +44,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   double? _distanceKm;
   bool _calculatingFee = false;
   bool _deliveryAvailable = true;
+  String? _deliveryPromise;
 
   // Reward state
   double _availableReferralAmount = 0;
@@ -128,6 +129,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final result = await _api.fetchDeliveryFee(
       addressId: addressId,
       subtotal: subtotal,
+      variantIds: _effectiveItems.map((item) => item.productId).toList(),
     );
     if (!mounted) return;
     setState(() {
@@ -137,6 +139,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final dist = result['distance'];
       _distanceKm = dist != null ? (dist as num).toDouble() : null;
       _deliveryAvailable = result['withinRange'] as bool? ?? true;
+      _deliveryPromise = result['deliveryPromise']?.toString();
     });
   }
 
@@ -235,6 +238,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (widget.overrideItems == null) CartManager.instance.clear();
       if (!mounted) return;
       final orderId = res['orderId'].toString();
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            title: const Text('Order is being confirmed'),
+            content: const Text(
+              'The nearest store has up to 5 minutes to accept your order. We will update you as soon as it is confirmed.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('View order'),
+              ),
+            ],
+          ),
+        );
+      }
+      if (!mounted) return;
       // Navigate to order detail, replacing checkout + cart in the stack
       Navigator.of(context).pushAndRemoveUntil(
         MaterialPageRoute(builder: (_) => OrderDetailScreen(orderId: orderId)),
@@ -690,6 +712,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     child: Text(
                       '✓ Free delivery on orders above ₹999',
                       style: TextStyle(fontSize: 11, color: Color(0xFF16A34A)),
+                    ),
+                  ),
+                if (!_calculatingFee && _deliveryPromise != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: _PriceRow(
+                      label: 'Delivery promise',
+                      value: _deliveryPromise!,
                     ),
                   ),
                 if (!_calculatingFee &&

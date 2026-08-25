@@ -176,6 +176,10 @@ export async function notifyVendorOfNewOrder(pool, orderId) {
        JOIN product_variants pv ON pv.id = oi.variant_id
        JOIN products p ON p.id = pv.product_id
        JOIN vendors v ON v.id = p.vendor_id
+       JOIN order_vendor_offers ovo
+         ON ovo.order_id = o.id
+        AND ovo.vendor_id = v.id
+        AND ovo.status = 'offered'
        JOIN users u ON u.id = v.user_id
        WHERE o.id = $1
          AND u.fcm_token IS NOT NULL
