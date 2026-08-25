@@ -430,7 +430,7 @@ router.get("/addresses", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type
-       FROM addresses WHERE user_id = $1::UUID ORDER BY is_default DESC, id DESC`,
+       FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, id DESC`,
       [userId]
     );
     res.json({ success: true, addresses: rows });
@@ -557,13 +557,13 @@ router.post("/addresses", async (req, res) => {
   try {
     // If this is the first address, make it default
     const { rows: existing } = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1::UUID`, [userId]
+      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1`, [userId]
     );
     const isDefault = parseInt(existing[0].cnt) === 0;
 
     const { rows } = await pool.query(
       `INSERT INTO addresses (user_id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type)
-       VALUES ($1::UUID, $2, $3, $4, $5, $6::DECIMAL, $7::DECIMAL, $8, $9, $10) RETURNING *`,
+       VALUES ($1, $2, $3, $4, $5, $6::DECIMAL, $7::DECIMAL, $8, $9, $10) RETURNING *`,
       [userId, address_line.trim(), city.trim(), pincode.trim(), isDefault,
        lat ?? null, lng ?? null, name?.trim() || null, phone?.trim() || null,
        address_type || 'home']
@@ -636,7 +636,7 @@ router.get("/rewards", async (req, res) => {
     const items = clothRows[0].items;
     // Check if user is a first-time buyer (no successful orders yet)
     const { rows: orderRows } = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1::UUID AND status NOT IN ('cancelled')`,
+      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
       [userId]
     );
     const isFirstOrder = orderRows[0].cnt === 0;
@@ -814,7 +814,7 @@ router.post("/orders", async (req, res) => {
     if (useReferralReward) {
       const { rows: refRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1::UUID AND type = 'referral_50' AND status = 'available'
+         WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'
          ORDER BY created_at ASC
          LIMIT 1
          FOR UPDATE`,
@@ -827,7 +827,7 @@ router.post("/orders", async (req, res) => {
     } else if (useClothingReward) {
       const { rows: clothRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1::UUID AND type = 'clothing_pct' AND status = 'available'
+         WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'
          ORDER BY created_at ASC
          FOR UPDATE`,
         [userId]
@@ -909,12 +909,12 @@ router.post("/orders", async (req, res) => {
 
     // ── Track referral: if this user was referred, credit the referrer ₹50 on first order ──
     const { rows: userRows } = await client.query(
-      `SELECT referred_by FROM users WHERE id = $1::UUID`, [userId]
+      `SELECT referred_by FROM users WHERE id = $1`, [userId]
     );
     if (userRows.length && userRows[0].referred_by) {
       // Check if this is the user's first order (excluding try orders)
       const { rows: orderCountRows } = await client.query(
-        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1::UUID AND is_try_order = false AND id != $2::UUID`,
+        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1 AND is_try_order = false AND id != $2::UUID`,
         [userId, order.id]
       );
       if (parseInt(orderCountRows[0].cnt) === 0) {
@@ -924,7 +924,7 @@ router.post("/orders", async (req, res) => {
         // Create a referral tracking record
         await client.query(
           `INSERT INTO referrals (referrer_id, referee_id, code, status)
-           VALUES ($1::UUID, $2::UUID, $3, 'completed')
+           VALUES ($1, $2, $3, 'completed')
            ON CONFLICT (referee_id) DO NOTHING`,
           [referrerId, userId, `REF-${referrerId.substring(0, 8)}`]
         );
@@ -932,7 +932,7 @@ router.post("/orders", async (req, res) => {
         // Credit ₹50 to the referrer
         await client.query(
           `INSERT INTO user_rewards (user_id, type, value, status, source_order_id)
-           VALUES ($1::UUID, 'referral_50', 50, 'available', $2::UUID)`,
+           VALUES ($1, 'referral_50', 50, 'available', $2::UUID)`,
           [referrerId, order.id]
         );
       }
@@ -1024,7 +1024,7 @@ router.get("/orders", async (req, res) => {
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
-       WHERE o.user_id = $1::UUID
+       WHERE o.user_id = $1
        GROUP BY o.id, a.address_line, a.city, a.pincode
        ORDER BY o.created_at DESC`,
       [userId]
