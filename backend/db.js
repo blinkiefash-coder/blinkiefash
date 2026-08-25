@@ -88,16 +88,20 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS address_type VARCHAR(20) DEFAULT 'home'`).catch(() => {});
 
   // Fix addresses.user_id column to support Firebase UIDs (TEXT instead of UUID)
-  // This allows Firebase UID strings like "oCdsgfAPZNZc7O5jHkUPYKDHlnI2" to be stored
+  // This must drop the foreign key first since it prevents type conversion
+  await pool.query(`
+    ALTER TABLE addresses 
+    DROP CONSTRAINT IF EXISTS "fk_addresses_user"
+  `).catch(() => {});
+
   await pool.query(`
     ALTER TABLE addresses 
     ALTER COLUMN user_id TYPE TEXT USING user_id::text
   `).catch((err) => {
-    // Silently catch error if column is already TEXT type or other reasons
     console.log("Note: addresses.user_id column migration skipped (may already be TEXT)");
   });
 
-  // Fix orders.user_id column to support Firebase UIDs
+  // Fix orders.user_id column to support Firebase UIDs (TEXT instead of UUID)
   await pool.query(`
     ALTER TABLE orders 
     ALTER COLUMN user_id TYPE TEXT USING user_id::text
