@@ -327,8 +327,8 @@ router.get("/:id/orders", async (req, res) => {
            'variant_id', oi.variant_id,
            'quantity', oi.quantity,
            'price', CASE 
-             WHEN LOWER(b.name) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
-             WHEN LOWER(b.name) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
+             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
+             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
              ELSE oi.price
            END,
            'item_status', oi.item_status,
@@ -419,10 +419,10 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     if (!items.length) return res.status(404).send("No items found for this vendor on this order");
 
     // Calculate vendor price based on brand discount
-    const calculateVendorPrice = (price, brandName) => {
-      const brand = (brandName || "").toLowerCase();
-      if (brand.includes("crimsoune")) return price * 0.9;
-      if (brand.includes("puma")) return price * 0.93;
+    const calculateVendorPrice = (price, brandName, productName) => {
+      const name = (brandName || productName || "").toLowerCase();
+      if (name.includes("crimsoune")) return price * 0.9;
+      if (name.includes("puma")) return price * 0.93;
       return price;
     };
 
@@ -433,7 +433,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     
     let subtotal = 0;
     const itemRows = items.map(it => {
-      const vendorPrice = calculateVendorPrice(parseFloat(it.price), it.brand_name);
+      const vendorPrice = calculateVendorPrice(parseFloat(it.price), it.brand_name, it.product_name);
       const lineTotal = vendorPrice * it.quantity;
       subtotal += lineTotal;
       return `
