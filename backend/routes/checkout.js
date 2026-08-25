@@ -430,7 +430,7 @@ router.get("/addresses", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `SELECT id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type
-       FROM addresses WHERE user_id = $1 ORDER BY is_default DESC, id DESC`,
+       FROM addresses WHERE user_id = $1::UUID ORDER BY is_default DESC, id DESC`,
       [userId]
     );
     res.json({ success: true, addresses: rows });
@@ -451,7 +451,7 @@ router.get("/delivery-fee", async (req, res) => {
   if (!addressId) return res.status(400).json({ success: false, message: "addressId required" });
   try {
     const { rows: addrRows } = await pool.query(
-      `SELECT city, lat, lng FROM addresses WHERE id = $1`, [addressId]
+      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID`, [addressId]
     );
     if (!addrRows.length) return res.status(404).json({ success: false, message: "Address not found" });
 
@@ -557,7 +557,7 @@ router.post("/addresses", async (req, res) => {
   try {
     // If this is the first address, make it default
     const { rows: existing } = await pool.query(
-      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1`, [userId]
+      `SELECT COUNT(*) AS cnt FROM addresses WHERE user_id = $1::UUID`, [userId]
     );
     const isDefault = parseInt(existing[0].cnt) === 0;
 
@@ -586,7 +586,7 @@ router.patch("/addresses/:id", async (req, res) => {
   try {
     const { rows } = await pool.query(
       `UPDATE addresses SET address_line = $1, city = $2, pincode = $3, name = $4, phone = $5, address_type = $6
-       WHERE id = $7 RETURNING *`,
+       WHERE id = $7::UUID RETURNING *`,
       [address_line.trim(), city.trim(), pincode.trim(), name?.trim() || null,
        phone?.trim() || null, address_type || 'home', id]
     );
@@ -603,7 +603,7 @@ router.delete("/addresses/:id", async (req, res) => {
   const { id } = req.params;
   if (!id) return res.status(400).json({ success: false, message: "Address ID required" });
   try {
-    await pool.query(`DELETE FROM addresses WHERE id = $1`, [id]);
+    await pool.query(`DELETE FROM addresses WHERE id = $1::UUID`, [id]);
     res.json({ success: true });
   } catch (err) {
     console.error("DELETE address error:", err);
@@ -623,20 +623,20 @@ router.get("/rewards", async (req, res) => {
       `SELECT COALESCE(SUM(value), 0)::float AS amount,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'`,
+       WHERE user_id = $1::UUID AND type = 'referral_50' AND status = 'available'`,
       [userId]
     );
     const { rows: clothRows } = await pool.query(
       `SELECT COALESCE(SUM(value), 0)::int AS items,
               COUNT(*)::int AS count
        FROM user_rewards
-       WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'`,
+       WHERE user_id = $1::UUID AND type = 'clothing_pct' AND status = 'available'`,
       [userId]
     );
     const items = clothRows[0].items;
     // Check if user is a first-time buyer (no successful orders yet)
     const { rows: orderRows } = await pool.query(
-      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1 AND status NOT IN ('cancelled')`,
+      `SELECT COUNT(*)::int AS cnt FROM orders WHERE user_id = $1::UUID AND status NOT IN ('cancelled')`,
       [userId]
     );
     const isFirstOrder = orderRows[0].cnt === 0;
@@ -678,7 +678,7 @@ router.post("/orders", async (req, res) => {
 
     // Find the address with city and coordinates
     const { rows: addrRows } = await client.query(
-      `SELECT city, lat, lng FROM addresses WHERE id = $1 AND user_id = $2`, [addressId, userId]
+      `SELECT city, lat, lng FROM addresses WHERE id = $1::UUID AND user_id = $2::UUID`, [addressId, userId]
     );
     if (!addrRows.length) {
       await client.query("ROLLBACK");
@@ -814,7 +814,7 @@ router.post("/orders", async (req, res) => {
     if (useReferralReward) {
       const { rows: refRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1 AND type = 'referral_50' AND status = 'available'
+         WHERE user_id = $1::UUID AND type = 'referral_50' AND status = 'available'
          ORDER BY created_at ASC
          LIMIT 1
          FOR UPDATE`,
@@ -827,7 +827,7 @@ router.post("/orders", async (req, res) => {
     } else if (useClothingReward) {
       const { rows: clothRewards } = await client.query(
         `SELECT id, value FROM user_rewards
-         WHERE user_id = $1 AND type = 'clothing_pct' AND status = 'available'
+         WHERE user_id = $1::UUID AND type = 'clothing_pct' AND status = 'available'
          ORDER BY created_at ASC
          FOR UPDATE`,
         [userId]
@@ -878,7 +878,7 @@ router.post("/orders", async (req, res) => {
     // Generate 4-digit OTP for delivery verification
     const deliveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
     await client.query(
-      `UPDATE orders SET delivery_otp = $1 WHERE id = $2`,
+      `UPDATE orders SET delivery_otp = $1 WHERE id = $2::UUID`,
       [deliveryOtp, order.id]
     );
 
@@ -909,12 +909,12 @@ router.post("/orders", async (req, res) => {
 
     // ── Track referral: if this user was referred, credit the referrer ₹50 on first order ──
     const { rows: userRows } = await client.query(
-      `SELECT referred_by FROM users WHERE id = $1`, [userId]
+      `SELECT referred_by FROM users WHERE id = $1::UUID`, [userId]
     );
     if (userRows.length && userRows[0].referred_by) {
       // Check if this is the user's first order (excluding try orders)
       const { rows: orderCountRows } = await client.query(
-        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1 AND is_try_order = false AND id != $2`,
+        `SELECT COUNT(*) AS cnt FROM orders WHERE user_id = $1::UUID AND is_try_order = false AND id != $2::UUID`,
         [userId, order.id]
       );
       if (parseInt(orderCountRows[0].cnt) === 0) {
@@ -1024,7 +1024,7 @@ router.get("/orders", async (req, res) => {
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
-       WHERE o.user_id = $1
+       WHERE o.user_id = $1::UUID
        GROUP BY o.id, a.address_line, a.city, a.pincode
        ORDER BY o.created_at DESC`,
       [userId]
