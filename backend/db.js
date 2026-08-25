@@ -113,6 +113,14 @@ export const ensureDatabaseTables = async () => {
     console.log("Note: user_rewards.user_id column migration skipped (may already be TEXT)");
   });
 
+  // Fix orders.user_id column to support Firebase UIDs (TEXT instead of UUID)
+  await pool.query(`
+    ALTER TABLE orders 
+    ALTER COLUMN user_id TYPE TEXT USING user_id::text
+  `).catch((err) => {
+    console.log("Note: orders.user_id column migration skipped (may already be TEXT)");
+  });
+
   // Fix orders table amount columns from TEXT/VARCHAR to DECIMAL
   await pool.query(`
     ALTER TABLE orders 
