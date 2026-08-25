@@ -50,6 +50,12 @@ Future<void> _firebaseBackgroundHandler(RemoteMessage message) async {
           enableVibration: true,
           vibrationPattern: Int64List.fromList([0, 800, 400, 800, 400, 800]),
         ),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+          interruptionLevel: InterruptionLevel.timeSensitive,
+        ),
       ),
     );
   }
