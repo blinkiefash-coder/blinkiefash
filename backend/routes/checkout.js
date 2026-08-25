@@ -563,7 +563,7 @@ router.post("/addresses", async (req, res) => {
 
     const { rows } = await pool.query(
       `INSERT INTO addresses (user_id, address_line, city, pincode, is_default, lat, lng, name, phone, address_type)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`,
+       VALUES ($1::UUID, $2, $3, $4, $5, $6::DECIMAL, $7::DECIMAL, $8, $9, $10) RETURNING *`,
       [userId, address_line.trim(), city.trim(), pincode.trim(), isDefault,
        lat ?? null, lng ?? null, name?.trim() || null, phone?.trim() || null,
        address_type || 'home']
@@ -858,7 +858,7 @@ router.post("/orders", async (req, res) => {
           payment_method, dark_store_id, is_try_order,
           referral_discount, clothing_discount, bundle_discount, first_order_discount,
           pickup_route, route_distance_km)
-       VALUES ($1::UUID, $2::UUID, 'placed', $3, $4, 'cod', $5::UUID, $6, $7, $8, $9, $10, $11::JSONB, $12)
+       VALUES ($1::UUID, $2::UUID, 'placed', $3::DECIMAL, $4::DECIMAL, 'cod', $5::UUID, $6, $7::DECIMAL, $8::DECIMAL, $9::DECIMAL, $10::DECIMAL, $11::JSONB, $12::DECIMAL)
        RETURNING id, status, total_amount, final_amount, created_at`,
       [userId, addressId, itemsSubtotal, finalAmount, darkStoreId, isTryOrder === true,
        referralDiscount, clothingDiscount, bundleDiscount, firstOrderDiscount,
@@ -870,7 +870,7 @@ router.post("/orders", async (req, res) => {
       await client.query(
         `INSERT INTO order_vendor_offers
            (order_id, vendor_id, distance_km, status, offered_at)
-         VALUES ($1, $2, $3, $4, CASE WHEN $4 = 'offered' THEN NOW() ELSE NULL END)`,
+         VALUES ($1::UUID, $2::UUID, $3::DECIMAL, $4, CASE WHEN $4 = 'offered' THEN NOW() ELSE NULL END)`,
         [order.id, candidate.vendorId, candidate.distanceKm, index === 0 ? 'offered' : 'queued']
       );
     }
@@ -886,7 +886,7 @@ router.post("/orders", async (req, res) => {
     for (const item of items) {
       await client.query(
         `INSERT INTO order_items (order_id, variant_id, quantity, price, item_status)
-         VALUES ($1, $2, $3, $4, 'pending')`,
+         VALUES ($1::UUID, $2::UUID, $3, $4::DECIMAL, 'pending')`,
         [order.id, item.variantId, item.quantity, item.price]
       );
     }
@@ -894,14 +894,14 @@ router.post("/orders", async (req, res) => {
     // Mark consumed reward credits as used.
     if (referralRewardId) {
       await client.query(
-        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1
-         WHERE id = $2`,
+        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1::UUID
+         WHERE id = $2::UUID`,
         [order.id, referralRewardId]
       );
     }
     if (clothingRewardIds.length) {
       await client.query(
-        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1
+        `UPDATE user_rewards SET status = 'used', used_at = NOW(), order_id = $1::UUID
          WHERE id = ANY($2::uuid[])`,
         [order.id, clothingRewardIds]
       );
@@ -924,7 +924,7 @@ router.post("/orders", async (req, res) => {
         // Create a referral tracking record
         await client.query(
           `INSERT INTO referrals (referrer_id, referee_id, code, status)
-           VALUES ($1, $2, $3, 'completed')
+           VALUES ($1::UUID, $2::UUID, $3, 'completed')
            ON CONFLICT (referee_id) DO NOTHING`,
           [referrerId, userId, `REF-${referrerId.substring(0, 8)}`]
         );
@@ -932,7 +932,7 @@ router.post("/orders", async (req, res) => {
         // Credit ₹50 to the referrer
         await client.query(
           `INSERT INTO user_rewards (user_id, type, value, status, source_order_id)
-           VALUES ($1, 'referral_50', 50, 'available', $2)`,
+           VALUES ($1::UUID, 'referral_50', 50, 'available', $2::UUID)`,
           [referrerId, order.id]
         );
       }
