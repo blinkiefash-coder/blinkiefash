@@ -117,10 +117,10 @@ class _SplashScreenState extends State<SplashScreen>
         }
       }
     } else {
-      await Future.delayed(const Duration(seconds: 3));
+      await Future.delayed(const Duration(milliseconds: 700));
       if (!mounted) return;
       setState(() => _isReadyToSwipe = true);
-      await Future.delayed(const Duration(seconds: 2));
+      await Future.delayed(const Duration(milliseconds: 700));
       if (mounted && !_isNavigating) _openHome();
     }
   }

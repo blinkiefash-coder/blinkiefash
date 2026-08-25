@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -23,6 +25,11 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
   _prewarmBackend();
+  runApp(const BlinkieFashApp());
+  unawaited(_initializeServices());
+}
+
+Future<void> _initializeServices() async {
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
@@ -32,7 +39,6 @@ Future<void> main() async {
   } catch (e) {
     debugPrint('Firebase init failed: $e');
   }
-  runApp(const BlinkieFashApp());
 }
 
 void _prewarmBackend() {
