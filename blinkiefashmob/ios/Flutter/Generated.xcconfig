@@ -1,15 +1,16 @@
 // This is a generated file; do not edit or check into version control.
 FLUTTER_ROOT=/opt/homebrew/share/flutter
-FLUTTER_APPLICATION_PATH=/Users/sa40091223/Documents/SatyXAlka/blinkiefashmob
-FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/sa40091223/Documents/SatyXAlka/blinkiefashmob/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework
+FLUTTER_APPLICATION_PATH=/Users/sa40091223/Documents/SatyXAlka/blinkiefash/blinkiefashmob
+FLUTTER_FRAMEWORK_SWIFT_PACKAGE_PATH=/Users/sa40091223/Documents/SatyXAlka/blinkiefash/blinkiefashmob/ios/Flutter/ephemeral/Packages/.packages/FlutterFramework
 COCOAPODS_PARALLEL_CODE_SIGN=true
-FLUTTER_TARGET=lib/main.dart
+FLUTTER_TARGET=/Users/sa40091223/Documents/SatyXAlka/blinkiefash/blinkiefashmob/lib/main.dart
 FLUTTER_BUILD_DIR=build
 FLUTTER_BUILD_NAME=2.0.1
 FLUTTER_BUILD_NUMBER=10
 EXCLUDED_ARCHS[sdk=iphonesimulator*]=i386
 EXCLUDED_ARCHS[sdk=iphoneos*]=armv7
+DART_DEFINES=RkxVVFRFUl9WRVJTSU9OPTMuNDQuMg==,RkxVVFRFUl9DSEFOTkVMPXN0YWJsZQ==,RkxVVFRFUl9HSVRfVVJMPWh0dHBzOi8vZ2l0aHViLmNvbS9mbHV0dGVyL2ZsdXR0ZXIuZ2l0,RkxVVFRFUl9GUkFNRVdPUktfUkVWSVNJT049YzlhNmM0ODQyMw==,RkxVVFRFUl9FTkdJTkVfUkVWSVNJT049NzdlMmU5NDc3Mg==,RkxVVFRFUl9EQVJUX1ZFUlNJT049My4xMi4y
 DART_OBFUSCATION=false
 TRACK_WIDGET_CREATION=true
 TREE_SHAKE_ICONS=false
-PACKAGE_CONFIG=.dart_tool/package_config.json
+PACKAGE_CONFIG=/Users/sa40091223/Documents/SatyXAlka/blinkiefash/blinkiefashmob/.dart_tool/package_config.json
