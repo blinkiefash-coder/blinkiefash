@@ -455,7 +455,7 @@
 .catalog-product-card {
   position: relative;
   border: 1px solid #eef1f5;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #fff;
   overflow: hidden;
   cursor: pointer;
@@ -608,7 +608,7 @@
   line-height: 1;
   letter-spacing: 0;
   font-weight: 900;
-  color: #0f172a;
+  color: #16a34a;
 }
 
 .catalog-card-price-row span {
@@ -618,10 +618,15 @@
 }
 
 .catalog-card-off {
-  margin: 5px 0 0;
-  font-size: 11px;
+  display: inline-flex;
+  width: fit-content;
+  margin: 6px 0 0;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-size: 10px;
   font-weight: 800;
-  color: #16a34a;
+  color: #166534;
+  background: #dcfce7;
 }
 
 .catalog-card-cart {
