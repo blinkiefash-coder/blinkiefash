@@ -180,17 +180,26 @@ class _HomeScreenState extends State<HomeScreen>
     _loadSelectedAvatar();
     _initializeHome();
     _startHeroAutoSlide();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _precacheHeroImages());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _prepareHeroCards());
   }
 
   // Warms the image cache for every hero slide up front so switching slides
   // (auto or manual) never has to wait on a fresh network fetch.
-  void _precacheHeroImages() {
-    for (final card in _heroCards) {
-      final image = card['image'] as String;
-      if (!image.startsWith('http')) continue;
-      precacheImage(CachedNetworkImageProvider(image), context);
+  Future<void> _prepareHeroCards() async {
+    try {
+      await Future.wait(
+        _heroCards.map((card) {
+          final image = card['image'] as String;
+          final ImageProvider<Object> provider = image.startsWith('http')
+              ? CachedNetworkImageProvider(image)
+              : AssetImage(image);
+          return precacheImage(provider, context);
+        }),
+      ).timeout(const Duration(seconds: 4));
+    } catch (_) {
+      // A slow image should never block the home screen.
     }
+    if (mounted && _isLoading) setState(() => _isLoading = false);
   }
 
   // Advances the hero banner one slide every 5 seconds, looping back to the
@@ -434,9 +443,6 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Future<void> _loadHomeData({double? lat, double? lng}) async {
-    setState(() {
-      _isLoading = true;
-    });
     try {
       // ── Run ALL network calls in parallel so the backend cold-start
       //    delay hits only once, not 5× sequentially. ─────────────────
