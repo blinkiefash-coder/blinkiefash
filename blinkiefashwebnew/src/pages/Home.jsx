@@ -123,7 +123,11 @@ const UNIVERSE_BRANDS = [
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
     to: "/shop?search=MK",
   },
-  
+  {
+    name: "Toys",
+    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png",
+    to: "/shop?search=Toys",
+  }
 ];
 
 const KNOWN_BRANDS = [

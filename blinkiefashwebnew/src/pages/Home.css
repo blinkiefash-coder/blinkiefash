@@ -876,9 +876,14 @@
   margin-top: 36px;
 }
 
+/* ================================================================
+   REWARDS GRID — desktop: Spin | Play | Refer all in one row.
+   (previously: 2 columns with Refer forced full-width via
+   grid-column: 1 / -1, which pushed it to its own row)
+   ================================================================ */
 .hp-rewards-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
 }
 
@@ -940,7 +945,8 @@
 }
 
 .hp-reward-refer {
-  grid-column: 1 / -1;
+  /* was: grid-column: 1 / -1 (forced full width on every screen size) */
+  grid-column: auto;
   order: 0;
   background: linear-gradient(135deg, #9a3412 0%, #ea580c 55%, #fb923c 100%);
 }
@@ -1862,8 +1868,9 @@
     grid-template-columns: repeat(4, 1fr);
   }
 
+  /* Tablet: keep 2-up before the 640px mobile rule takes over */
   .hp-rewards-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 
   .hp-reward-graphic {
@@ -2717,5 +2724,306 @@
   .hp-reward-spin .hp-reward-copy,
   .hp-reward-play .hp-reward-copy {
     padding-right: 40px !important;
+  }
+}
+
+/* =========================================================
+   SHRINK REWARD PANELS — make Spin/Play/Refer noticeably
+   smaller than the hero banner on mobile. Placed last so it
+   wins over every earlier reward-panel rule above.
+   ========================================================= */
+@media (max-width: 640px) {
+  .hp-reward-panel,
+  .hp-reward-spin,
+  .hp-reward-play,
+  .hp-reward-refer {
+    min-height: 92px !important;
+    padding: 10px !important;
+    border-radius: 12px !important;
+  }
+
+  .hp-reward-copy h3,
+  .hp-reward-spin .hp-reward-copy h3,
+  .hp-reward-play .hp-reward-copy h3,
+  .hp-reward-refer .hp-reward-copy h3 {
+    font-size: 12px !important;
+  }
+
+  .hp-reward-copy p,
+  .hp-reward-spin .hp-reward-copy p,
+  .hp-reward-play .hp-reward-copy p,
+  .hp-reward-refer .hp-reward-copy p {
+    font-size: 9.5px !important;
+    line-height: 1.25;
+  }
+
+  .hp-reward-amount {
+    font-size: 9.5px !important;
+    padding: 2px 8px !important;
+    margin-top: 2px !important;
+  }
+
+  .hp-reward-graphic,
+  .hp-reward-spin .hp-reward-graphic,
+  .hp-reward-play .hp-reward-graphic,
+  .hp-reward-refer .hp-reward-graphic {
+    position: absolute !important;
+    top: 8px !important;
+    right: 8px !important;
+    width: 30px !important;
+    height: 30px !important;
+    font-size: 15px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy,
+  .hp-reward-play .hp-reward-copy,
+  .hp-reward-refer .hp-reward-copy {
+    width: 100% !important;
+    padding-right: 38px !important;
+    gap: 3px !important;
+  }
+
+  .hp-reward-copy button,
+  .hp-reward-spin .hp-reward-copy button,
+  .hp-reward-play .hp-reward-copy button,
+  .hp-reward-refer .hp-reward-copy button {
+    margin-top: 4px !important;
+    font-size: 9.5px !important;
+    padding: 6px 8px !important;
+    min-height: 28px !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* Refer & Earn is full-width; keep its referral-code chip compact too */
+  .hp-reward-refer .hp-referral-code {
+    padding: 3px 7px !important;
+  }
+
+  .hp-reward-refer .hp-referral-code span {
+    font-size: 7px !important;
+  }
+
+  .hp-reward-refer .hp-referral-code strong {
+    font-size: 10px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-reward-panel,
+  .hp-reward-spin,
+  .hp-reward-play,
+  .hp-reward-refer {
+    min-height: 82px !important;
+    padding: 9px !important;
+  }
+
+  .hp-reward-graphic,
+  .hp-reward-spin .hp-reward-graphic,
+  .hp-reward-play .hp-reward-graphic,
+  .hp-reward-refer .hp-reward-graphic {
+    width: 26px !important;
+    height: 26px !important;
+    font-size: 13px !important;
+    top: 7px !important;
+    right: 7px !important;
+  }
+}
+
+/* =========================================================
+   REWARDS — polished two-row layout (Spin | Play on top,
+   Refer & Earn as a wide banner below using the extra width
+   for a clean horizontal layout instead of stacked text).
+   Placed last so it wins over every earlier layout rule.
+   ========================================================= */
+@media (max-width: 640px) {
+  .hp-rewards-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    grid-template-areas:
+      "spin play"
+      "refer refer" !important;
+    gap: 10px !important;
+  }
+
+  .hp-reward-spin {
+    grid-area: spin !important;
+  }
+
+  .hp-reward-play {
+    grid-area: play !important;
+  }
+
+  .hp-reward-refer {
+    grid-area: refer !important;
+  }
+
+  /* ---- Spin & Play: compact vertical cards ---- */
+  .hp-reward-spin,
+  .hp-reward-play {
+    min-height: 148px !important;
+    padding: 14px !important;
+    border-radius: 18px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy,
+  .hp-reward-play .hp-reward-copy {
+    width: 100% !important;
+    padding-right: 40px !important;
+    gap: 6px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy h3,
+  .hp-reward-play .hp-reward-copy h3 {
+    font-size: 14px !important;
+    line-height: 1.25 !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy p,
+  .hp-reward-play .hp-reward-copy p {
+    font-size: 10.5px !important;
+    line-height: 1.4 !important;
+    max-width: 100% !important;
+    opacity: 0.92;
+  }
+
+  .hp-reward-spin .hp-reward-amount,
+  .hp-reward-play .hp-reward-amount {
+    font-size: 10.5px !important;
+    padding: 4px 10px !important;
+    margin-top: 2px !important;
+    white-space: nowrap !important;
+  }
+
+  .hp-reward-spin .hp-reward-graphic,
+  .hp-reward-play .hp-reward-graphic {
+    position: absolute !important;
+    top: 12px !important;
+    right: 12px !important;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 17px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy button,
+  .hp-reward-play .hp-reward-copy button {
+    margin-top: 2px !important;
+    font-size: 11px !important;
+    padding: 8px 12px !important;
+    min-height: 34px !important;
+    width: 100% !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+
+  /* ---- Refer & Earn: wide horizontal banner ---- */
+  .hp-reward-refer {
+    min-height: 0 !important;
+    padding: 14px 16px !important;
+    border-radius: 18px !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 12px !important;
+  }
+
+  .hp-reward-refer .hp-reward-graphic {
+    position: static !important;
+    width: 38px !important;
+    height: 38px !important;
+    font-size: 19px !important;
+    flex: none !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    padding-right: 0 !important;
+    gap: 3px !important;
+    order: -1 !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy h3 {
+    font-size: 13px !important;
+    line-height: 1.2 !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy p {
+    display: none !important;
+  }
+
+  .hp-reward-refer .hp-referral-code {
+    display: none !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy button {
+    margin-top: 0 !important;
+    width: auto !important;
+    flex: none !important;
+    font-size: 11px !important;
+    padding: 9px 16px !important;
+    min-height: 36px !important;
+    white-space: nowrap !important;
+    justify-content: center !important;
+    gap: 4px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-reward-spin,
+  .hp-reward-play {
+    min-height: 132px !important;
+    padding: 12px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy h3,
+  .hp-reward-play .hp-reward-copy h3 {
+    font-size: 12.5px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy p,
+  .hp-reward-play .hp-reward-copy p {
+    font-size: 10px !important;
+  }
+
+  .hp-reward-spin .hp-reward-graphic,
+  .hp-reward-play .hp-reward-graphic {
+    width: 28px !important;
+    height: 28px !important;
+    font-size: 14px !important;
+    top: 10px !important;
+    right: 10px !important;
+  }
+
+  .hp-reward-spin .hp-reward-copy button,
+  .hp-reward-play .hp-reward-copy button {
+    font-size: 10px !important;
+    padding: 7px 10px !important;
+    min-height: 32px !important;
+  }
+
+  .hp-reward-refer {
+    padding: 12px 14px !important;
+    gap: 10px !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy h3 {
+    font-size: 12px !important;
+  }
+
+  .hp-reward-refer .hp-reward-graphic {
+    width: 32px !important;
+    height: 32px !important;
+    font-size: 16px !important;
+  }
+
+  .hp-reward-refer .hp-reward-copy button {
+    font-size: 10px !important;
+    padding: 8px 12px !important;
+    min-height: 32px !important;
   }
 }

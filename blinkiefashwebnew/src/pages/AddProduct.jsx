@@ -268,7 +268,29 @@ export default function AddProduct() {
         <main className="add-product-page">
           <div className="add-product-card">
             <div className="add-product-topbar">
-              <div><h2>Add New Product</h2><p>{adminMode ? "Admin: adding product for selected vendor" : "Fill the details to list your product"}</p></div>
+              <div>
+                <h2>Add New Product</h2>
+                <p>{adminMode ? "Admin: adding product for selected vendor" : "Fill the details to list your product"}</p>
+              </div>
+
+              <div className="try-buy-box">
+                <div className="try-buy-icon">🔒</div>
+                <div className="try-buy-copy">
+                  <div className="try-buy-title">
+                    Try &amp; Buy <span className="try-buy-subtext">(Try Before You Buy)</span>
+                    <span className="try-buy-help" title="Customers can try the product at home and pay only if they keep it.">?</span>
+                  </div>
+                  <div className="try-buy-desc">Let customers try the product and pay only if they like it.</div>
+                </div>
+                <label className="try-buy-switch">
+                  <input
+                    type="checkbox"
+                    checked={form.is_try_enabled}
+                    onChange={(e) => updateForm("is_try_enabled", e.target.checked)}
+                  />
+                  <span className="try-buy-slider" />
+                </label>
+              </div>
             </div>
 
             {adminMode && (
