@@ -128,6 +128,7 @@ class _HomeScreenState extends State<HomeScreen>
   final PageController _heroPageController = PageController();
   int _heroPageIndex = 0;
   Timer? _heroAutoTimer;
+  Timer? _startupLoaderTimer;
 
   // Categories tab: index of selected root category
   int _catSelectedIndex = 0;
@@ -184,6 +185,9 @@ class _HomeScreenState extends State<HomeScreen>
     _loadSelectedAvatar();
     _initializeHome();
     _startHeroAutoSlide();
+    _startupLoaderTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted && _isLoading) setState(() => _isLoading = false);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _prepareHeroCards());
   }
 
@@ -296,6 +300,7 @@ class _HomeScreenState extends State<HomeScreen>
   @override
   void dispose() {
     _heroAutoTimer?.cancel();
+    _startupLoaderTimer?.cancel();
     _heroPageController.dispose();
     _deliverLiveTimer?.cancel();
     _deliverPickupDebounce?.cancel();
