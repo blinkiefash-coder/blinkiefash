@@ -87,6 +87,32 @@ export const ensureDatabaseTables = async () => {
   await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS phone VARCHAR(20)`).catch(() => {});
   await pool.query(`ALTER TABLE addresses ADD COLUMN IF NOT EXISTS address_type VARCHAR(20) DEFAULT 'home'`).catch(() => {});
 
+  // Fix addresses.user_id column to support Firebase UIDs (TEXT instead of UUID)
+  // This allows Firebase UID strings like "oCdsgfAPZNZc7O5jHkUPYKDHlnI2" to be stored
+  await pool.query(`
+    ALTER TABLE addresses 
+    ALTER COLUMN user_id TYPE TEXT USING user_id::text
+  `).catch((err) => {
+    // Silently catch error if column is already TEXT type or other reasons
+    console.log("Note: addresses.user_id column migration skipped (may already be TEXT)");
+  });
+
+  // Fix orders.user_id column to support Firebase UIDs
+  await pool.query(`
+    ALTER TABLE orders 
+    ALTER COLUMN user_id TYPE TEXT USING user_id::text
+  `).catch((err) => {
+    console.log("Note: orders.user_id column migration skipped (may already be TEXT)");
+  });
+
+  // Fix user_rewards.user_id column to support Firebase UIDs
+  await pool.query(`
+    ALTER TABLE user_rewards 
+    ALTER COLUMN user_id TYPE TEXT USING user_id::text
+  `).catch((err) => {
+    console.log("Note: user_rewards.user_id column migration skipped (may already be TEXT)");
+  });
+
   await pool.query(`
     CREATE TABLE IF NOT EXISTS vendors (
       id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
