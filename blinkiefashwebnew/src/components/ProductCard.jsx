@@ -2,10 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { MdFavorite, MdFavoriteBorder, MdLocalShipping, MdAddShoppingCart, MdStar } from 'react-icons/md';
 import { FaFire } from 'react-icons/fa';
 import { useWishlist } from '../context/WishlistContext';
-<<<<<<< HEAD
 import { useCart } from '../context/CartContext';
-=======
->>>>>>> 89e8a35 (medha)
 import { productImageUrl, productImageSrcSet } from '../utils/cloudinaryImage';
 import './ProductCard.css';
 

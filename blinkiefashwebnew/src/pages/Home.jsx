@@ -44,7 +44,6 @@ function resolveImageUrl(raw) {
 
 const HERO_SLIDES = [
   // {
-<<<<<<< HEAD
   //   image:
   //     'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
   //   to: '/shop?search=Puma',
@@ -63,41 +62,18 @@ const HERO_SLIDES = [
   },
   {
     image:
-       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
-       to: '/shop?search=kids',  
+      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
+    to: '/shop?search=kids',
   },
   {
     image:
-        'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
-        to:'/shop?search=men',
+      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
+    to: '/shop?search=men',
   },
   {
     image:
-        "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png",
-        to:'/shop?search=women',
-=======
-  //   image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
-  //   to: '/shop?search=Puma',
-  //   pos: 'center 20%',
-  // },
-  {
-    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
-    to: '/shop?search=Puma',
-    pos: 'center 20%',
-  },
-  {
-    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099580/file_00000000357c821196db94748aec7bb3_hz9eko.png',
-    to: '/shop?search=Nike',
-  },
-  {
-    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099597/file_00000000b408820bb1ef180a5b19df30_scfowa.png',
-    to: '/shop?search=Adidas',
-    pos: 'center 20%',
-  },
-  {
-    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_000000009d9881fab007f8a4bd7a5b81_o7dash.png',
-    to: '/shop?search=US Polo',
->>>>>>> 89e8a35 (medha)
+      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png',
+    to: '/shop?search=women',
   },
 ];
 
@@ -128,28 +104,19 @@ const UNIVERSE_BRANDS = [
     to: "/shop?search=Puma",
   },
   {
-<<<<<<< HEAD
-=======
     name: "Dhanista Boutique",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/mkbanner_habbh6.jpg",
     to: "/vendor/dhanista-fashion-store",
   },
   {
->>>>>>> 89e8a35 (medha)
     name: "FCUK",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
     to: "/shop?search=FCUK",
   },
   {
     name: "Libas",
-<<<<<<< HEAD
-    image:
-      "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
-    to: "/shop?search=Libas",
-=======
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
     to: "/shop?search=Libas%20Kurti%20Kurta%20Set",
->>>>>>> 89e8a35 (medha)
   },
   {
     name: "MK",
@@ -1118,14 +1085,7 @@ export default function Home() {
                     <span>Vendor</span>
                   </button>
                 )}
-<<<<<<< HEAD
-                <button
-                  type="button"
-                  onClick={() => navigate(isLoggedIn ? '/Account' : '/login')}
-                >
-=======
                 <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
->>>>>>> 89e8a35 (medha)
                   <MdPersonOutline />
                   <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>
                 </button>
@@ -1156,8 +1116,6 @@ export default function Home() {
               aria-label="Open categories menu"
               onClick={() => setDrawerOpen(true)}
             >
-<<<<<<< HEAD
-=======
               <span className="hp-drawer-toggle-bars" aria-hidden="true">
                 <span />
                 <span />
@@ -1167,7 +1125,6 @@ export default function Home() {
             </button>
 
             <div className="hp-nav-links" onMouseLeave={() => setHoveredNav(null)}>
->>>>>>> 89e8a35 (medha)
               {categories.slice(0, 8).map((cat) => {
                 const nameKey = String(cat.name || '').toLowerCase().trim();
                 const goCategory = () => {
@@ -1177,18 +1134,6 @@ export default function Home() {
                   else navigate(`/shop?category_id=${cat.id}`);
                 };
                 return (
-<<<<<<< HEAD
-                <button
-                  key={cat.id}
-                  type="button"
-                  className="hp-nav-link"
-                  onClick={goCategory}
-                  onMouseEnter={() => setHoveredNav(cat.name)}
-                  onFocus={() => setHoveredNav(cat.name)}
-                >
-                  {cat.name}
-                </button>
-=======
                   <button
                     key={cat.id}
                     type="button"
@@ -1199,7 +1144,6 @@ export default function Home() {
                   >
                     {cat.name}
                   </button>
->>>>>>> 89e8a35 (medha)
                 );
               })}
 
@@ -1374,8 +1318,6 @@ export default function Home() {
           </div>
         </section>
 
-<<<<<<< HEAD
-=======
         {/* <section className="hp-independence-banner" aria-label="Independence Day launch message">
           <p className="hp-ind-kicker">15 August Launch Special</p>
           <h3>Happy Independence Day, India!</h3>
@@ -1384,7 +1326,6 @@ export default function Home() {
           </p>
         </section> */}
 
->>>>>>> 89e8a35 (medha)
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
 
@@ -1472,39 +1413,6 @@ export default function Home() {
                     price: p._price,
                   };
 
-<<<<<<< HEAD
-                return (
-                  <article
-                    key={`deal-${p.id}-${idx}`}
-                    className="hp-deal-card"
-                    role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`)}
-                  >
-                    <div className="hp-deal-media">
-                      {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                      <span className="hp-deal-ribbon">HOT DEAL</span>
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist(wishlistPayload);
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p._price}</span>
-                        {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
-=======
                   return (
                     <article
                       key={`deal-${p.id}-${idx}`}
@@ -1515,7 +1423,6 @@ export default function Home() {
                       <div className="hp-deal-media">
                         {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
                         <span className="hp-deal-ribbon">HOT DEAL</span>
->>>>>>> 89e8a35 (medha)
                         <button
                           type="button"
                           className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
@@ -1641,41 +1548,6 @@ export default function Home() {
                     price: p._price,
                   };
 
-<<<<<<< HEAD
-                return (
-                  <article
-                    key={`recent-${p.id}-${idx}`}
-                    className="hp-deal-card"
-                    role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`)}
-                  >
-                    <div className="hp-deal-media">
-                      {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                      <span className={`hp-deal-ribbon${p._discount === 0 ? ' new' : ''}`}>
-                        {p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}
-                      </span>
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist(wishlistPayload);
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p._price}</span>
-                        {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
-=======
                   return (
                     <article
                       key={`recent-${p.id}-${idx}`}
@@ -1688,7 +1560,6 @@ export default function Home() {
                         <span className={`hp-deal-ribbon${p._discount === 0 ? ' new' : ''}`}>
                           {p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}
                         </span>
->>>>>>> 89e8a35 (medha)
                         <button
                           type="button"
                           className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
