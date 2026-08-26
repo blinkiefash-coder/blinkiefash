@@ -460,17 +460,26 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
       ),
       child: Row(
         children: [
-          const Icon(Icons.notifications_active_rounded, color: Color(0xFFEA580C)),
+          const Icon(
+            Icons.notifications_active_rounded,
+            color: Color(0xFFEA580C),
+          ),
           const SizedBox(width: 12),
           const Expanded(
             child: Text(
               'Waiting for the store to confirm your order.',
-              style: TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF9A3412)),
+              style: TextStyle(
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF9A3412),
+              ),
             ),
           ),
           Text(
             '$minutes:${seconds.toString().padLeft(2, '0')}',
-            style: const TextStyle(fontWeight: FontWeight.w900, color: Color(0xFFC2410C)),
+            style: const TextStyle(
+              fontWeight: FontWeight.w900,
+              color: Color(0xFFC2410C),
+            ),
           ),
         ],
       ),
@@ -855,7 +864,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ].contains(status);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F5F9),  // Matches web checkout/order tracking
+      backgroundColor: const Color(
+        0xFFF3F5F9,
+      ), // Matches web checkout/order tracking
       appBar: AppBar(
         backgroundColor: Colors.white,
         foregroundColor: const Color(0xFF0F172A),

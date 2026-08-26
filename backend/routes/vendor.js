@@ -366,7 +366,7 @@ router.get("/:id/orders", async (req, res) => {
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN deliveries d ON d.order_id = o.id
        WHERE p.vendor_id::text = ANY($1::text[])
-       GROUP BY o.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
+       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
       [ownerIds]
     );

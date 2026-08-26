@@ -11,9 +11,13 @@ pluginManagement {
     includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
 
     repositories {
+        // Use HTTP mirrors first for better compatibility with SSL issues
+        maven(url = "http://repo1.maven.org/maven2")
+        maven(url = "http://maven.aliyun.com/nexus/content/groups/public/")
+        gradlePluginPortal()
         google()
         mavenCentral()
-        gradlePluginPortal()
+        maven(url = "https://repo1.maven.org/maven2")
     }
 }
 
