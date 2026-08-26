@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import crypto from "crypto";
+import * as XLSX from "xlsx";
 import { pool } from "../db.js";
 import cloudinary from "../utils/cloudinary.js";
 import { insertProductMediaRows, getProductMediaShape } from "./products.js";
@@ -1439,6 +1440,243 @@ router.delete("/:vendorId/variants/:variantId", async (req, res) => {
   } catch (err) {
     console.error("[delete variant]", err.message);
     res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DOWNLOAD inventory as Excel
+// GET /vendor/:id/inventory/download
+router.get("/:id/inventory/download", async (req, res) => {
+  try {
+    const { id: vendorId } = req.params;
+
+    // Get vendor and store info
+    const vendorResult = await pool.query(
+      `SELECT id, store_name, dark_store_id FROM vendors WHERE id::text = $1 LIMIT 1`,
+      [String(vendorId)]
+    );
+
+    if (vendorResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    const vendor = vendorResult.rows[0];
+    const storeId = vendor.dark_store_id;
+
+    if (!storeId) {
+      return res.status(400).json({ success: false, error: "Vendor not linked to a store" });
+    }
+
+    // Get all products and variants for this vendor
+    const productsResult = await pool.query(
+      `SELECT 
+        p.id as product_id,
+        p.name as product_name,
+        p.sku,
+        p.price,
+        b.name as brand_name,
+        c.name as category_name,
+        pv.id as variant_id,
+        pv.size,
+        pv.color,
+        pv.barcode,
+        COALESCE(i.stock, 0) as quantity
+      FROM products p
+      LEFT JOIN brands b ON p.brand_id = b.id
+      LEFT JOIN categories c ON p.category_id = c.id
+      LEFT JOIN product_variants pv ON p.id = pv.product_id AND pv.is_active = true
+      LEFT JOIN inventory i ON pv.id = i.variant_id AND i.store_id = $1
+      WHERE p.vendor_id::text = $2 AND p.is_active = true
+      ORDER BY p.id, pv.id`,
+      [storeId, String(vendorId)]
+    );
+
+    // Format data for Excel
+    const rows = [
+      ["Variant ID", "Product ID", "Product Name", "SKU", "Brand", "Category", "Price (₹)", "Size", "Color", "Barcode", "Current Quantity"],
+    ];
+
+    const seenProducts = new Set();
+    productsResult.rows.forEach((row) => {
+      rows.push([
+        row.variant_id || "", // Variant ID - PRIMARY IDENTIFIER
+        row.product_id || "", // Product ID - SECONDARY IDENTIFIER
+        row.product_name || "",
+        row.sku || "",
+        row.brand_name || "",
+        row.category_name || "",
+        row.price || "",
+        row.size || "",
+        row.color || "",
+        row.barcode || "",
+        row.quantity || 0,
+      ]);
+    });
+
+    // Create Excel workbook
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    
+    // Format header row
+    const range = XLSX.utils.decode_range(ws["!ref"]);
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = ws[XLSX.utils.encode_cell({ r: 0, c })];
+      if (cell) cell.s = { font: { bold: true, color: { rgb: "FFFFFF" } }, fill: { fgColor: { rgb: "366092" } } };
+    }
+
+    // Set column widths - Variant ID and Product ID prominent at start
+    ws["!cols"] = [
+      { wch: 14 }, // Variant ID (PRIMARY)
+      { wch: 12 }, // Product ID (SECONDARY)
+      { wch: 30 }, // Product Name
+      { wch: 15 }, // SKU
+      { wch: 15 }, // Brand
+      { wch: 15 }, // Category
+      { wch: 12 }, // Price
+      { wch: 10 }, // Size
+      { wch: 12 }, // Color
+      { wch: 16 }, // Barcode
+      { wch: 16 }, // Current Quantity
+    ];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventory");
+
+    // Generate Excel file
+    const buffer = XLSX.write(wb, { bookType: "xlsx", type: "buffer" });
+
+    res.setHeader("Content-Disposition", `attachment; filename=inventory_${vendor.store_name.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.send(buffer);
+  } catch (err) {
+    console.error("Inventory download error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  }
+});
+
+// UPLOAD inventory Excel and update stock
+// POST /vendor/:id/inventory/upload
+router.post("/:id/inventory/upload", upload.single("file"), async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { id: vendorId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: "No file uploaded" });
+    }
+
+    // Verify vendor exists
+    const vendorResult = await pool.query(
+      `SELECT id, store_name, dark_store_id FROM vendors WHERE id::text = $1 LIMIT 1`,
+      [String(vendorId)]
+    );
+
+    if (vendorResult.rows.length === 0) {
+      return res.status(404).json({ success: false, error: "Vendor not found" });
+    }
+
+    const vendor = vendorResult.rows[0];
+    const storeId = vendor.dark_store_id;
+
+    if (!storeId) {
+      return res.status(400).json({ success: false, error: "Vendor not linked to a store" });
+    }
+
+    // Parse Excel file
+    const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
+    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+    const data = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+
+    if (!data || data.length < 2) {
+      return res.status(400).json({ success: false, error: "Excel file is empty or invalid" });
+    }
+
+    // Parse header row (skip first row which is headers)
+    const updates = [];
+    let errors = [];
+
+    await client.query("BEGIN");
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      if (!row || row.length === 0) continue;
+
+      // Column order: Variant ID | Product ID | Product Name | SKU | Brand | Category | Price | Size | Color | Barcode | Current Quantity
+      const variantId = row[0] || "";
+      const productId = row[1] || "";
+      const productName = row[2] || "";
+      const sku = row[3] || "";
+      const barcode = row[9] || "";
+      const newQuantity = Number(row[10]) || 0;
+
+      // REQUIRE Variant ID as primary identifier (avoids duplicate barcode issues)
+      if (!variantId || variantId === "") {
+        errors.push(`Row ${i + 1}: Missing Variant ID (required for uniquely identifying product variant)`);
+        continue;
+      }
+
+      try {
+        // Use Variant ID as PRIMARY identifier (unique, no duplicates)
+        const variantQuery = `
+          SELECT pv.id FROM product_variants pv
+          JOIN products p ON p.id = pv.product_id
+          WHERE pv.id = $1 AND p.vendor_id::text = $2 AND p.is_active = true
+          LIMIT 1
+        `;
+        const variantParams = [variantId, String(vendorId)];
+
+        const variantResult = await client.query(variantQuery, variantParams);
+
+        if (variantResult.rows.length === 0) {
+          errors.push(`Row ${i + 1}: Variant ID ${variantId} not found for this vendor`);
+          continue;
+        }
+
+        const foundVariantId = variantResult.rows[0].id;
+
+        // Check if inventory record exists
+        const invQuery = await client.query(
+          `SELECT id FROM inventory WHERE variant_id = $1 AND store_id = $2 LIMIT 1`,
+          [foundVariantId, storeId]
+        );
+
+        if (invQuery.rows.length > 0) {
+          // Update existing
+          await client.query(
+            `UPDATE inventory SET stock = $1 WHERE variant_id = $2 AND store_id = $3`,
+            [Math.trunc(newQuantity), foundVariantId, storeId]
+          );
+        } else {
+          // Insert new
+          await client.query(
+            `INSERT INTO inventory (variant_id, stock, store_id) VALUES ($1, $2, $3)`,
+            [foundVariantId, Math.trunc(newQuantity), storeId]
+          );
+        }
+
+        updates.push({
+          product: productName,
+          barcode: barcode || sku,
+          quantity: Math.trunc(newQuantity),
+        });
+      } catch (err) {
+        errors.push(`Row ${i + 1}: Database error - ${err.message}`);
+        console.error(`Row ${i + 1} error:`, err);
+      }
+    }
+
+    await client.query("COMMIT");
+
+    res.json({
+      success: true,
+      message: `Updated ${updates.length} variants`,
+      updated: updates,
+      errors: errors.length > 0 ? errors : undefined,
+    });
+  } catch (err) {
+    await client.query("ROLLBACK");
+    console.error("Inventory upload error:", err);
+    res.status(500).json({ success: false, error: "Server error" });
+  } finally {
+    client.release();
   }
 });
 

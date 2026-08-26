@@ -17,6 +17,9 @@ export default function StockMonitoring() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const [uploadResult, setUploadResult] = useState(null);
+  const [uploadError, setUploadError] = useState(null);
 
   // Admin: load dark-store list once
   useEffect(() => {
@@ -227,13 +230,102 @@ export default function StockMonitoring() {
     XLSX.writeFile(wb, `stock_${storeName_.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
+  const handleUploadExcel = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setUploadLoading(true);
+    setUploadError(null);
+    setUploadResult(null);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/inventory/upload`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || "Upload failed");
+      }
+
+      setUploadResult(data);
+      
+      // Reload products after successful upload
+      setTimeout(() => {
+        window.location.reload();
+      }, 2000);
+    } catch (err) {
+      console.error("Upload error:", err);
+      setUploadError(err.message || "Failed to upload file");
+    } finally {
+      setUploadLoading(false);
+      event.target.value = ""; // Reset file input
+    }
+  };
+
+  const downloadInventoryExcel = async () => {
+    try {
+      const response = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/inventory/download`, {
+        method: "GET",
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to download inventory");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `inventory_${storeName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error("Download error:", err);
+      alert("Failed to download inventory Excel");
+    }
+  };
+
   return (
     <VendorLayout activeKey="stock" storeName={storeName} menuItems={menuItems} onMenuClick={handleMenuClick}>
       <div className="stock-container">
         <div className="stock-header">
           <h1>📦 Stock Monitoring</h1>
           <p>{adminMode ? "Admin view: monitor stock by dark store" : "View inventory for your vendor store only"}</p>
-          {!loading && filteredProducts.length > 0 && (
+          {!loading && filteredProducts.length > 0 && !adminMode && (
+            <div style={{ marginTop: 8, display: "flex", gap: 8 }}>
+              <button
+                onClick={downloadInventoryExcel}
+                style={{ padding: "6px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
+              >
+                ⬇ Download Inventory
+              </button>
+              <label style={{ margin: 0 }}>
+                <input
+                  type="file"
+                  accept=".xlsx,.xls"
+                  onChange={handleUploadExcel}
+                  disabled={uploadLoading}
+                  style={{ display: "none" }}
+                />
+                <button
+                  onClick={(e) => e.currentTarget.previousElementSibling.click()}
+                  disabled={uploadLoading}
+                  style={{ padding: "6px 14px", background: uploadLoading ? "#ccc" : "#2563eb", color: "#fff", border: "none", borderRadius: 6, cursor: uploadLoading ? "not-allowed" : "pointer", fontSize: 13, fontWeight: 600 }}
+                >
+                  {uploadLoading ? "⏳ Uploading..." : "⬆ Upload & Update"}
+                </button>
+              </label>
+            </div>
+          )}
+          {!loading && filteredProducts.length > 0 && adminMode && (
             <button
               onClick={downloadExcel}
               style={{ marginTop: 8, padding: "6px 14px", background: "#16a34a", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
@@ -242,6 +334,26 @@ export default function StockMonitoring() {
             </button>
           )}
         </div>
+
+        {uploadResult && (
+          <div style={{ marginBottom: 16, padding: 12, background: "#dcfce7", border: "1px solid #86efac", borderRadius: 6, color: "#166534" }}>
+            <strong>✓ Success!</strong> {uploadResult.message}
+            {uploadResult.updated?.length > 0 && (
+              <ul style={{ marginTop: 8, marginBottom: 0 }}>
+                {uploadResult.updated.slice(0, 5).map((u, i) => (
+                  <li key={i}>{u.product} - {u.quantity} units</li>
+                ))}
+                {uploadResult.updated.length > 5 && <li>... and {uploadResult.updated.length - 5} more</li>}
+              </ul>
+            )}
+          </div>
+        )}
+
+        {uploadError && (
+          <div style={{ marginBottom: 16, padding: 12, background: "#fee2e2", border: "1px solid #fca5a5", borderRadius: 6, color: "#991b1b" }}>
+            <strong>✗ Error:</strong> {uploadError}
+          </div>
+        )}
 
         <div className="stock-controls">
           <div className="store-selector">
