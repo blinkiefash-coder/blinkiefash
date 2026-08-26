@@ -20,6 +20,7 @@ import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
 import { productImageUrlContain, productImageSrcSetContain } from "../utils/cloudinaryImage";
 import { useAuth } from "../context/AuthContext";
+import { useCart } from "../context/CartContext";
 import { hasVendorPasswordAuth } from "../utils/vendorSession";
 import "./Home.css";
 
@@ -68,6 +69,7 @@ export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
+  const { addToCart: addToLocalCart, getCartQty } = useCart();
   const userId = localStorage.getItem("userUuid");
   const city =
     localStorage.getItem("bfw_city") ||
@@ -742,18 +744,26 @@ export default function Shop() {
   const handleAddToCart = async (event, product) => {
     event.stopPropagation();
 
-    if (!userId) {
-      alert("Please login to add items to cart");
-      navigate("/login");
-      return;
-    }
+    const price = Number(product.discount_price ?? product.price ?? 0);
+
+    // Always update local cart so UI works even without login / API
+    addToLocalCart({
+      productId: product.id,
+      variantId: product.variant_id || product.id,
+      name: product.name,
+      image: product.image,
+      price,
+      qty: 1,
+    });
+    setCartCount((count) => count + 1);
+    window.dispatchEvent(new Event("cart:updated"));
+
+    // Best-effort server sync when logged in
+    if (!userId) return;
 
     try {
       const variantId = await resolveAvailableVariantId(product);
-      if (!variantId) {
-        alert("No available variant for this product");
-        return;
-      }
+      if (!variantId) return;
 
       const response = await fetch(`${API_BASE}/cart/add`, {
         method: "POST",
@@ -761,16 +771,11 @@ export default function Shop() {
         body: JSON.stringify({ userId, variantId, quantity: 1 }),
       });
       const data = await response.json();
-
       if (!data.success) {
-        throw new Error(data.message || "Unable to add to cart");
+        console.warn("Server cart add failed:", data.message);
       }
-
-      window.dispatchEvent(new Event("cart:updated"));
-      setCartCount((count) => count + 1);
-      alert("Added to cart");
-    } catch {
-      alert("Unable to add to cart right now");
+    } catch (err) {
+      console.warn("Server cart add error:", err);
     }
   };
 
@@ -1181,11 +1186,13 @@ export default function Shop() {
 
                       <button
                         type="button"
-                        className="catalog-card-cart"
+                        className={`catalog-card-cart${getCartQty(product.variant_id || product.id) > 0 ? ' in-cart' : ''}`}
                         onClick={(event) => handleAddToCart(event, product)}
-                        aria-label="Add to cart"
+                        aria-label={getCartQty(product.variant_id || product.id) > 0 ? `In cart +${getCartQty(product.variant_id || product.id)}` : 'Add to cart'}
                       >
-                        <MdOutlineShoppingCart />
+                        {getCartQty(product.variant_id || product.id) > 0
+                          ? <span style={{ fontWeight: 800, fontSize: 13 }}>+{getCartQty(product.variant_id || product.id)}</span>
+                          : <MdOutlineShoppingCart />}
                       </button>
                     </div>
                   </article>

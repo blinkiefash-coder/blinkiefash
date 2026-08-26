@@ -262,6 +262,19 @@
   transform: scale(0.94);
 }
 
+.pc-cart-btn.in-cart {
+  background: var(--brand-green);
+  color: #fff;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.pc-cart-qty {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
 /* ── Delivery banner strip ────────────────────────────────── */
 .pc-delivery-banner {
   margin-top: 10px;

@@ -12,13 +12,24 @@ export function useSmartBack(fallback = "/") {
   const navigate = useNavigate();
 
   return () => {
-    // history.length > 1 usually means there is something to go back to.
-    // Still imperfect for deep links opened in a new tab, so fallback is important.
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate(fallback, { replace: true });
+    try {
+      // Prefer real history entry when user actually navigated within the app
+      const idx = window.history.state?.idx;
+      if (typeof idx === "number" && idx > 0) {
+        navigate(-1);
+        return;
+      }
+      // Fallback: if referrer is same origin, try back; else go to fallback
+      const ref = document.referrer || "";
+      const sameOrigin = ref.startsWith(window.location.origin);
+      if (sameOrigin && window.history.length > 1) {
+        navigate(-1);
+        return;
+      }
+    } catch {
+      /* ignore */
     }
+    navigate(fallback || "/", { replace: true });
   };
 }
 

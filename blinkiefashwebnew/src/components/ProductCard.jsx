@@ -35,9 +35,10 @@ function formatSoldCount(n) {
 export default function ProductCard({ product }) {
   const navigate = useNavigate();
   const { isWishlisted, toggleWishlist } = useWishlist();
-  const { addToCart } = useCart();
+  const { addToCart, getCartQty } = useCart();
 
   const wishlisted = isWishlisted(product.id);
+  const cartQty = getCartQty(product.variant_id || product.id);
   const price = Number(product.discount_price ?? product.price ?? 0);
   const mrp = Number(product.price ?? product.original_price ?? price);
   const hasDiscount = mrp > price;
@@ -136,11 +137,11 @@ export default function ProductCard({ product }) {
           </div>
           <button
             type="button"
-            className="pc-cart-btn"
+            className={`pc-cart-btn${cartQty > 0 ? ' in-cart' : ''}`}
             onClick={handleAddToCart}
-            aria-label="Add to cart"
+            aria-label={cartQty > 0 ? `In cart, quantity ${cartQty}` : 'Add to cart'}
           >
-            <MdAddShoppingCart />
+            {cartQty > 0 ? <span className="pc-cart-qty">+{cartQty}</span> : <MdAddShoppingCart />}
           </button>
         </div>
 

@@ -4,11 +4,13 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .catalog-page.kids-page {
   width: 100%;
   max-width: 100%;
+  overflow-x: hidden;
 }
 
 .kids-page .catalog-main,
@@ -18,6 +20,7 @@
   margin: 0;
   padding: 18px 24px 48px;
   box-sizing: border-box;
+  overflow-x: hidden;
 }
 
 .kids-page .hp-sticky-head,
@@ -62,7 +65,6 @@
   color: var(--brand-green-dark, #15803d);
 }
 
-/* Breadcrumb */
 .kids-breadcrumb {
   display: flex;
   align-items: center;
@@ -70,6 +72,7 @@
   font-size: 13px;
   color: #6b7280;
   margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .kids-breadcrumb button {
@@ -97,6 +100,8 @@
   gap: 16px;
   margin-bottom: 18px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
 }
 
 .kids-hero-main {
@@ -146,7 +151,6 @@
   line-height: 1.45;
 }
 
-/* Shop by age */
 .kids-age-card {
   border-radius: 20px;
   background: linear-gradient(160deg, #eef2ff 0%, #f5f3ff 100%);
@@ -211,6 +215,8 @@
   gap: 14px;
   margin-bottom: 16px;
   align-items: stretch;
+  width: 100%;
+  max-width: 100%;
 }
 
 .kids-gender-card {
@@ -243,6 +249,7 @@
   border: 1px solid #e5e7eb;
   border-radius: 16px;
   padding: 14px 12px;
+  min-width: 0;
 }
 
 .kids-shop-cat h3 {
@@ -256,9 +263,12 @@
   display: flex;
   gap: 10px;
   overflow-x: auto;
+  overflow-y: hidden;
   scrollbar-width: none;
   padding-bottom: 2px;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
 }
 
 .kids-cat-list::-webkit-scrollbar {
@@ -320,6 +330,8 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
   margin-bottom: 24px;
+  width: 100%;
+  max-width: 100%;
 }
 
 .kids-promo-card {
@@ -333,6 +345,8 @@
   flex-direction: column;
   justify-content: center;
   gap: 6px;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .kids-promo-card h4 {
@@ -374,9 +388,16 @@
   color: #1e40af;
 }
 
-/* Section head / empty */
 .kids-picks-section {
   margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.kids-picks-section .hp-deals-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 .kids-empty-state {
@@ -387,9 +408,16 @@
 
 .kids-brands-section {
   margin: 20px 0 28px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
-/* Trust */
+.kids-brands-section .hp-top-brands-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 .kids-trust-strip {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
@@ -398,6 +426,9 @@
   border-radius: 16px;
   padding: 20px 18px;
   margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .kids-trust-strip > div {
@@ -405,6 +436,7 @@
   align-items: center;
   gap: 10px;
   font-size: 12px;
+  min-width: 0;
 }
 
 .kids-trust-strip svg {
@@ -425,7 +457,7 @@
   font-size: 11.5px;
 }
 
-/* ---- Banner images (hero / boys / girls) ---- */
+/* Banner images */
 .kids-hero-main--banner {
   padding: 0;
   min-height: 0;
@@ -478,7 +510,7 @@
   transform: scale(1.015);
 }
 
-/* ---- Header: location pill, notifications, categories ---- */
+/* Header extras */
 .kids-location-pill {
   display: flex;
   align-items: center;
@@ -574,10 +606,9 @@
 }
 
 /* ============================================================
-   RESPONSIVE BREAKPOINTS
+   RESPONSIVE
    ============================================================ */
 
-/* Tablet / small desktop */
 @media (max-width: 1100px) {
   .kids-hero-row {
     grid-template-columns: 1fr;
@@ -614,20 +645,54 @@
   }
 }
 
-/* Mobile (phones) */
+@media (max-width: 768px) {
+  .kids-page .hp-sticky-head {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+  }
+
+  .kids-page .hp-nav-links {
+    overflow-x: auto;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .kids-page .hp-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .kids-nav-offers {
+    display: none;
+  }
+
+  .kids-categories-btn {
+    padding: 10px 12px 10px 0;
+    font-size: 12.5px;
+  }
+
+  .kids-icon-action span {
+    display: none;
+  }
+
+  .kids-location-label {
+    display: none;
+  }
+
+  .kids-header-actions {
+    gap: 10px;
+  }
+}
+
 @media (max-width: 640px) {
   .kids-main {
-    padding: 12px 12px 32px;
+    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
-  /* Header compactness */
   .kids-header-actions {
-    gap: 12px;
-  }
-
-  .kids-icon-action {
-    font-size: 10px;
-    gap: 1px;
+    gap: 10px;
   }
 
   .kids-icon-action svg {
@@ -639,10 +704,6 @@
     padding: 4px 8px;
   }
 
-  .kids-location-label {
-    font-size: 9.5px;
-  }
-
   .kids-location-city {
     font-size: 12.5px;
   }
@@ -651,13 +712,11 @@
     font-size: 18px;
   }
 
-  /* Breadcrumb */
   .kids-breadcrumb {
     font-size: 12px;
     margin-bottom: 12px;
   }
 
-  /* Hero */
   .kids-hero-row {
     gap: 12px;
     margin-bottom: 14px;
@@ -667,7 +726,6 @@
     border-radius: 14px;
   }
 
-  /* Age card */
   .kids-age-card {
     padding: 16px 12px;
     border-radius: 16px;
@@ -693,7 +751,6 @@
     font-size: 10px;
   }
 
-  /* Gender + categories */
   .kids-gender-row {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -701,7 +758,7 @@
 
   .kids-gender-card--banner,
   .kids-gender-banner-img {
-    min-height: 160px;
+    min-height: 150px;
     border-radius: 14px;
   }
 
@@ -732,7 +789,6 @@
     max-width: 68px;
   }
 
-  /* Promo cards */
   .kids-promo-row {
     gap: 10px;
     margin-bottom: 20px;
@@ -752,11 +808,6 @@
     font-size: 12px;
   }
 
-  /* Top Picks rail – make cards more mobile-friendly */
-  .kids-picks-section .hp-deals-wrap {
-    margin: 0 -4px;
-  }
-
   .kids-picks-section .hp-deals-prev,
   .kids-picks-section .hp-deals-next {
     width: 32px;
@@ -764,12 +815,10 @@
     font-size: 18px;
   }
 
-  /* Brands */
   .kids-brands-section {
     margin: 16px 0 20px;
   }
 
-  /* Trust strip */
   .kids-trust-strip {
     grid-template-columns: repeat(2, 1fr);
     gap: 12px;
@@ -778,7 +827,9 @@
   }
 
   .kids-trust-strip > div {
-    gap: 8px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
   }
 
   .kids-trust-strip svg {
@@ -794,10 +845,9 @@
   }
 }
 
-/* Very small phones */
 @media (max-width: 380px) {
   .kids-main {
-    padding: 10px 10px 28px;
+    padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .kids-age-grid {
@@ -830,9 +880,5 @@
 
   .kids-header-actions {
     gap: 8px;
-  }
-
-  .kids-icon-action span {
-    display: none; /* hide text labels on very small screens, keep icons */
   }
 }
