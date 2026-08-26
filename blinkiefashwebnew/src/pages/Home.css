@@ -138,7 +138,6 @@
   display: block;
 }
 
-
 @media (max-width: 640px) {
   .hp-store-badge img {
     height: 28px;
@@ -193,6 +192,7 @@
   box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.2);
   max-height: 78vh;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hp-location-sheet-handle {
@@ -486,6 +486,7 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .hp-category-drawer.open {
@@ -584,6 +585,9 @@
   gap: 22px;
   overflow-x: auto;
   flex: 1;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .hp-nav-links::-webkit-scrollbar {
@@ -688,10 +692,17 @@
   width: 100%;
   margin: 0 auto;
   padding: 20px 24px 40px;
+  overflow-x: clip;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .hp-hero-carousel {
   position: relative;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden; /* outer clips; track scrolls inside */
 }
 
 .hp-hero-arrow {
@@ -720,12 +731,24 @@
   right: 16px;
 }
 
+/* ===== HERO TRACK — FIXED for mobile swipe ===== */
 .hp-hero-track {
   display: flex;
+  gap: 12px;
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;
   scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
 }
 
 .hp-hero-track::-webkit-scrollbar {
@@ -742,6 +765,7 @@
   cursor: pointer;
   padding: 0;
   background: #f1f5f9;
+  min-width: 0;
 }
 
 .hp-slide-img {
@@ -1043,12 +1067,13 @@
   backdrop-filter: blur(2px);
 }
 
-
+/* ===== DEALS RAIL — mobile swipe ready ===== */
 .hp-deals-wrap {
   position: relative;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  min-width: 0;
 }
 
 .hp-deals-rail {
@@ -1067,6 +1092,11 @@
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+
+.hp-deals-rail::-webkit-scrollbar {
+  display: none;
 }
 
 .hp-deal-card {
@@ -1077,6 +1107,7 @@
   box-shadow: 0 8px 18px rgba(15, 23, 42, 0.1), 0 1px 4px rgba(15, 23, 42, 0.06);
   cursor: pointer;
   transition: transform 0.18s ease, box-shadow 0.18s ease;
+  min-width: 0;
 }
 
 .hp-deal-card:hover {
@@ -1116,17 +1147,22 @@
 .hp-collection-chips,
 .hp-nav-links,
 .hp-hero-track,
-.hp-category-grid {
+.hp-category-grid,
+.hp-subcat-rail,
+.hp-top-brands-rail,
+.hp-explore-chips {
   scrollbar-width: none;
 }
 .hp-deals-rail::-webkit-scrollbar,
 .hp-collection-chips::-webkit-scrollbar,
 .hp-nav-links::-webkit-scrollbar,
 .hp-hero-track::-webkit-scrollbar,
-.hp-category-grid::-webkit-scrollbar {
+.hp-category-grid::-webkit-scrollbar,
+.hp-subcat-rail::-webkit-scrollbar,
+.hp-top-brands-rail::-webkit-scrollbar,
+.hp-explore-chips::-webkit-scrollbar {
   display: none;
 }
-
 
 .hp-deals-prev,
 .hp-deals-next {
@@ -1202,9 +1238,13 @@
   gap: 14px;
   overflow-x: auto;
   padding: 4px 0 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .hp-collection-chip-group {
@@ -1228,6 +1268,7 @@
   gap: 10px;
   box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
   transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+  scroll-snap-align: start;
 }
 
 .hp-collection-chip:hover,
@@ -1289,9 +1330,13 @@
   gap: 12px;
   overflow-x: auto;
   padding: 4px 0 10px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .hp-subcat-chip {
@@ -1306,6 +1351,7 @@
   gap: 10px;
   box-shadow: 0 6px 16px rgba(15, 23, 42, 0.10);
   transition: box-shadow 0.18s ease, transform 0.18s ease;
+  flex: none;
 }
 
 .hp-subcat-chip:hover {
@@ -1593,9 +1639,13 @@
   gap: 14px;
   overflow-x: auto;
   padding: 4px 2px 8px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x;
   overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .hp-top-brand-card {
@@ -1671,6 +1721,13 @@
   gap: 10px;
   overflow-x: auto;
   padding: 4px 0 12px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
 }
 
 .hp-explore-chip {
@@ -1840,14 +1897,15 @@
   }
 
   .hp-header-actions span:not(.hp-icon-badge) {
-  display: none;
-}
+    display: none;
+  }
 
-.hp-header-actions .hp-icon-badge {
-  display: inline-flex !important;
-  visibility: visible !important;
+  .hp-header-actions .hp-icon-badge {
+    display: inline-flex !important;
+    visibility: visible !important;
     opacity: 1 !important;
-}
+  }
+
   .hp-category-nav,
   .hp-main {
     padding-left: 16px;
@@ -1891,6 +1949,11 @@
 
   .hp-explore-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-deals-rail {
+    grid-auto-columns: 160px;
+    gap: 12px;
   }
 }
 
@@ -1978,13 +2041,18 @@
     overflow: hidden;
   }
 
+  /* CRITICAL FIX: keep overflow-x auto so swipe works */
   .hp-hero-track {
     gap: 0;
     padding: 0;
     border-radius: 0;
     box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
-    overflow-x: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
   }
 
   .hp-slide {
@@ -2023,6 +2091,9 @@
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
     overscroll-behavior-x: contain;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
   }
 
   .hp-category-grid::-webkit-scrollbar {
@@ -2063,20 +2134,19 @@
     margin-top: 26px;
   }
 
-  /* Spin & Win + Refer & Earn: smaller boxes, side by side.
-     Play & Win drops to a full-width row below. */
+  /* Spin | Play on top, Refer full-width below */
   .hp-rewards-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
     grid-template-areas:
-      "spin refer"
-      "play play";
-    gap: 10px;
+      "spin play"
+      "refer refer" !important;
+    gap: 10px !important;
   }
 
-  .hp-reward-spin  { grid-area: spin; }
-  .hp-reward-refer { grid-area: refer; }
-  .hp-reward-play  { grid-area: play; }
+  .hp-reward-spin  { grid-area: spin !important; }
+  .hp-reward-play  { grid-area: play !important; }
+  .hp-reward-refer { grid-area: refer !important; }
 
   .hp-reward-panel {
     min-height: 122px;
@@ -2085,13 +2155,13 @@
   }
 
   .hp-reward-spin,
-  .hp-reward-refer {
-    min-height: 138px;
-    border-radius: 14px;
-    padding: 12px;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
+  .hp-reward-play {
+    min-height: 138px !important;
+    border-radius: 14px !important;
+    padding: 12px !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: space-between !important;
   }
 
   .hp-reward-copy h3 {
@@ -2099,8 +2169,8 @@
   }
 
   .hp-reward-spin .hp-reward-copy h3,
-  .hp-reward-refer .hp-reward-copy h3 {
-    font-size: 13px;
+  .hp-reward-play .hp-reward-copy h3 {
+    font-size: 13px !important;
   }
 
   .hp-reward-copy p {
@@ -2109,9 +2179,9 @@
   }
 
   .hp-reward-spin .hp-reward-copy p,
-  .hp-reward-refer .hp-reward-copy p {
-    font-size: 10px;
-    max-width: 100%;
+  .hp-reward-play .hp-reward-copy p {
+    font-size: 10px !important;
+    max-width: 100% !important;
   }
 
   .hp-reward-amount {
@@ -2126,19 +2196,19 @@
   }
 
   .hp-reward-spin .hp-reward-graphic,
-  .hp-reward-refer .hp-reward-graphic {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 40px;
-    height: 40px;
-    font-size: 20px;
+  .hp-reward-play .hp-reward-graphic {
+    position: absolute !important;
+    top: 10px !important;
+    right: 10px !important;
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 20px !important;
   }
 
   .hp-reward-spin .hp-reward-copy,
-  .hp-reward-refer .hp-reward-copy {
-    width: 100%;
-    padding-right: 46px;
+  .hp-reward-play .hp-reward-copy {
+    width: 100% !important;
+    padding-right: 46px !important;
   }
 
   .hp-reward-refer .hp-referral-code {
@@ -2158,16 +2228,24 @@
   }
 
   .hp-reward-spin .hp-reward-copy button,
-  .hp-reward-refer .hp-reward-copy button {
-    font-size: 10px;
-    padding: 8px 10px;
-    min-height: 34px;
-    width: 100%;
-    justify-content: center;
+  .hp-reward-play .hp-reward-copy button {
+    font-size: 10px !important;
+    padding: 8px 10px !important;
+    min-height: 34px !important;
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  /* No arrows on mobile — swipe only */
+  .hp-deals-prev,
+  .hp-deals-next {
+    display: none !important;
   }
 
   .hp-deals-rail {
-    grid-auto-columns: 164px;
+    grid-auto-columns: 148px;
+    gap: 10px;
+    padding-bottom: 12px;
   }
 
   .hp-deal-media {
@@ -2240,22 +2318,22 @@
 
   .hp-reward-spin,
   .hp-reward-play {
-    min-height: 128px;
-    padding: 10px;
+    min-height: 128px !important;
+    padding: 10px !important;
   }
 
   .hp-reward-spin .hp-reward-graphic,
   .hp-reward-play .hp-reward-graphic {
-    width: 34px;
-    height: 34px;
-    font-size: 17px;
-    top: 8px;
-    right: 8px;
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 17px !important;
+    top: 8px !important;
+    right: 8px !important;
   }
 
   .hp-reward-spin .hp-reward-copy,
   .hp-reward-play .hp-reward-copy {
-    padding-right: 40px;
+    padding-right: 40px !important;
   }
 
   .hp-category-grid {
@@ -2377,124 +2455,7 @@
 }
 
 /* =========================================================
-   HORIZONTAL RAIL FIX — mobile swipe works (no arrows on mobile)
-   Root cause: rail was growing to fit all cards, so overflow never scrolled.
-   Fix: force width:100% on rails + hide arrows under 640px.
-   ========================================================= */
-
-.hp-deals-wrap {
-  position: relative;
-  width: 100%;
-  max-width: 100%;
-  overflow: hidden; /* contain children; inner rail scrolls */
-}
-
-.hp-deals-rail {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 188px;
-  gap: 14px;
-  width: 100% !important;
-  max-width: 100% !important;
-  overflow-x: auto !important;
-  overflow-y: hidden;
-  padding: 4px 2px 10px;
-  scroll-snap-type: x mandatory;
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
-  overscroll-behavior-x: contain;
-  /* Critical: prevent grid from expanding parent */
-  min-width: 0;
-}
-
-.hp-deal-card {
-  scroll-snap-align: start;
-  min-width: 0;
-}
-
-.hp-collection-chips,
-.hp-subcat-rail,
-.hp-top-brands-rail {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-  overflow-x: auto !important;
-  -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
-  overscroll-behavior-x: contain;
-}
-
-.hp-collection-chip {
-  scroll-snap-align: start;
-  flex: none;
-}
-
-/* Parent must not block nested horizontal pan on some mobile browsers */
-.hp-main {
-  overflow-x: clip;
-  max-width: 100%;
-  min-width: 0;
-}
-
-.hp {
-  /* clip instead of hidden — less likely to break nested touch scroll */
-  overflow-x: clip;
-}
-
-@media (min-width: 1200px) {
-  .hp-deals-rail {
-    grid-auto-columns: calc((100% - 70px) / 6);
-  }
-}
-
-@media (min-width: 1600px) {
-  .hp-deals-rail {
-    grid-auto-columns: calc((100% - 84px) / 7);
-  }
-}
-
-@media (max-width: 900px) {
-  .hp-deals-rail {
-    grid-auto-columns: 160px;
-    gap: 12px;
-  }
-}
-
-@media (max-width: 640px) {
-  /* No arrows on mobile — swipe only */
-  .hp-deals-prev,
-  .hp-deals-next {
-    display: none !important;
-  }
-
-  .hp-deals-rail {
-    grid-auto-columns: 148px;
-    gap: 10px;
-    padding-bottom: 12px;
-  }
-
-  .hp-deal-media {
-    height: 150px;
-  }
-}
-
-@media (max-width: 420px) {
-  .hp-deals-rail {
-    grid-auto-columns: 152px;
-    gap: 10px;
-  }
-
-  .hp-deal-media {
-    height: 136px;
-  }
-}
-
-/* =========================================================
-   MOBILE CATEGORY NAV — hamburger drawer only, no inline tabs
-   Placed last so it always wins the cascade regardless of any
-   other rule elsewhere in this file that touches .hp-nav-links
-   or .hp-category-nav at a nearby breakpoint.
+   MOBILE CATEGORY NAV — hamburger drawer only
    ========================================================= */
 @media (max-width: 768px) {
   .hp-nav-links {
@@ -2629,6 +2590,7 @@
 .hp-drawer-subgroup-fallback {
   color: #cbd5e1;
   font-size: 12px;
+
 }
 
 /* =========================================================
@@ -3026,4 +2988,5 @@
     padding: 8px 12px !important;
     min-height: 32px !important;
   }
+
 }

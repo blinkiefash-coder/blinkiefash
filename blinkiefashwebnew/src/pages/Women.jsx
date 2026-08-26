@@ -24,7 +24,6 @@ import {
   MdVerifiedUser,
   MdSecurity,
   MdSupportAgent,
-  MdArrowForward,
   MdGridView,
   MdSpa,
 } from "react-icons/md";
@@ -148,6 +147,21 @@ function normalizeProduct(p) {
   };
 }
 
+
+// Banner images for the Women hero cards: [main, trending side, arrivals side]
+const WOMEN_BANNERS = [
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0015.jpg",
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0017.jpg",
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0016.jpg",
+];
+
+function heroBannerStyle(url) {
+  return {
+    backgroundImage: `url(${url})`,
+    backgroundSize: "cover",
+    backgroundPosition: "center",
+  };
+}
 
 function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, addToCart, onProductClick }) {
   const scrollRail = (dir) => {
@@ -561,64 +575,28 @@ export default function Women() {
 
         {/* Hero */}
         <section className="women-hero-grid" aria-label="Women's fashion highlights">
-          <div className="women-hero-main">
-            <div className="women-hero-copy">
-              <p className="women-hero-kicker">New Looks</p>
-              <h1>
-                Endless <em>You.</em>
-              </h1>
-              <p className="women-hero-sub">
-                Trendy styles, top brands &amp; everyday essentials — all in 60 minutes.
-              </p>
-              <ul className="women-hero-pills">
-                <li>
-                  <MdBolt /> 60 MINS Delivery
-                </li>
-                <li>
-                  <MdAutorenew /> Easy Returns
-                </li>
-                <li>
-                  <MdVerifiedUser /> Top Quality
-                </li>
-                <li>
-                  <MdSecurity /> Safe &amp; Trusted
-                </li>
-              </ul>
-              <button type="button" className="women-hero-btn" onClick={() => navigate(womenScopedShopUrl())}>
-                SHOP NOW <MdArrowForward />
-              </button>
-            </div>
-            <img
-              className="women-hero-art"
-              src="https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=900&q=80"
-              alt=""
-            />
-          </div>
+          <div
+            className="women-hero-main"
+            style={{ ...heroBannerStyle(WOMEN_BANNERS[0]), cursor: "pointer" }}
+            onClick={() => navigate(womenScopedShopUrl())}
+          />
 
           <div className="women-hero-side-col">
             <button
               type="button"
               className="women-hero-side trending"
+              style={heroBannerStyle(WOMEN_BANNERS[1])}
               onClick={() =>
                 navigate(womenScopedShopUrl())
               }
-            >
-              <p className="tag">Trending Now</p>
-              <h3>Hot Picks This Week!</h3>
-              <p>Bestsellers loved by everyone.</p>
-              <span className="side-cta">EXPLORE NOW</span>
-            </button>
+            />
 
             <button
               type="button"
               className="women-hero-side arrivals"
+              style={heroBannerStyle(WOMEN_BANNERS[2])}
               onClick={() => navigate(womenScopedShopUrl())}
-            >
-              <p className="tag">New Arrivals</p>
-              <h3>Fresh Styles Just In!</h3>
-              <p>Be the first to explore the latest.</p>
-              <span className="side-cta">VIEW ALL</span>
-            </button>
+            />
           </div>
         </section>
 
