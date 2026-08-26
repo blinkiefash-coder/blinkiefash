@@ -4,12 +4,13 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 .catalog-page.women-page {
   width: 100%;
   max-width: 100%;
+  overflow-x: hidden;
 }
 
 .women-page .catalog-main,
@@ -19,7 +20,7 @@
   margin: 0;
   padding: 18px 24px 48px;
   box-sizing: border-box;
-  overflow-x: clip;
+  overflow-x: hidden;
 }
 
 .women-page .hp-sticky-head,
@@ -93,7 +94,7 @@
 }
 
 /* =========================================================
-   HERO GRID — taller so full banner creatives fit
+   HERO GRID
    ========================================================= */
 
 .women-hero-grid {
@@ -106,7 +107,6 @@
   align-items: stretch;
 }
 
-/* Main banner — taller so model + text stay visible */
 .women-hero-main {
   border-radius: 20px;
   position: relative;
@@ -170,18 +170,13 @@
   background-color: #fef3c7;
 }
 
-/* Optional soft overlay on hover */
 .women-hero-main::after,
 .women-hero-side::after {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: linear-gradient(
-    to top,
-    rgba(15, 23, 42, 0.2) 0%,
-    transparent 45%
-  );
+  background: linear-gradient(to top, rgba(15, 23, 42, 0.2) 0%, transparent 45%);
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -205,7 +200,7 @@
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-x;
+  touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
   padding: 4px 0 8px;
@@ -350,6 +345,11 @@
   overflow: hidden;
 }
 
+.women-picks-section .hp-deals-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
 .women-empty-state {
   color: #6b7280;
   font-size: 13.5px;
@@ -361,6 +361,11 @@
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+.women-brands-section .hp-top-brands-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* Trust */
@@ -438,9 +443,44 @@
   }
 }
 
+@media (max-width: 768px) {
+  .women-page .hp-sticky-head {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+  }
+
+  .women-page .hp-nav-links {
+    overflow-x: auto;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .women-page .hp-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .women-nav-offers {
+    display: none;
+  }
+
+  .women-page .hp-header-actions span:not(.hp-icon-badge) {
+    display: none;
+  }
+
+  .women-page .catalog-location-pill span {
+    max-width: 72px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
 @media (max-width: 640px) {
   .women-main {
-    padding: 14px 14px 32px;
+    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
   .women-hero-grid {
@@ -450,8 +490,8 @@
   .women-hero-main {
     border-radius: 14px;
     aspect-ratio: 16 / 9;
-    min-height: 220px;
-    max-height: 320px;
+    min-height: 180px;
+    max-height: 280px;
   }
 
   .women-hero-side-col {
@@ -462,14 +502,22 @@
   .women-hero-side {
     border-radius: 12px;
     aspect-ratio: 2.2 / 1;
-    min-height: 140px;
-    max-height: 200px;
+    min-height: 120px;
+    max-height: 180px;
     flex: none;
   }
 
   .women-promo-card {
     padding: 14px 16px;
-    min-height: 80px;
+    min-height: 76px;
+  }
+
+  .women-promo-card .title {
+    font-size: 13px;
+  }
+
+  .women-promo-card .sub {
+    font-size: 11px;
   }
 
   .women-trust-strip {
@@ -485,34 +533,49 @@
   }
 
   .women-cat-item {
-    min-width: 70px;
+    min-width: 68px;
   }
 
   .women-cat-icon-wrap {
-    width: 58px;
-    height: 58px;
+    width: 56px;
+    height: 56px;
+  }
+
+  .women-picks-section .hp-deals-prev,
+  .women-picks-section .hp-deals-next {
+    width: 32px;
+    height: 32px;
   }
 }
 
 @media (max-width: 400px) {
   .women-main {
-    padding: 12px 12px 28px;
+    padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .women-hero-main {
     aspect-ratio: 16 / 10;
-    min-height: 200px;
-    max-height: 280px;
+    min-height: 160px;
+    max-height: 240px;
   }
 
   .women-hero-side {
     aspect-ratio: 2 / 1;
-    min-height: 120px;
-    max-height: 170px;
+    min-height: 100px;
+    max-height: 150px;
   }
 
   .women-trust-strip {
     grid-template-columns: 1fr 1fr;
     gap: 10px;
+  }
+
+  .women-cat-item {
+    min-width: 62px;
+  }
+
+  .women-cat-icon-wrap {
+    width: 50px;
+    height: 50px;
   }
 }

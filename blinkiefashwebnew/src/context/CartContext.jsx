@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 
 const CartContext = createContext(null);
 
@@ -10,10 +10,17 @@ function normalizeItems(raw) {
     .filter((i) => i && (i.productId || i.variantId))
     .map((i) => ({
       ...i,
+      productId: i.productId != null ? String(i.productId) : i.productId,
+      variantId: i.variantId != null ? String(i.variantId) : i.variantId,
       qty: Math.max(0, Number(i.qty) || 0),
       price: Number(i.price) || 0,
     }))
     .filter((i) => Number(i.qty) > 0);
+}
+
+function itemKey(item) {
+  const v = item?.variantId ?? item?.productId;
+  return v != null ? String(v) : null;
 }
 
 export function CartProvider({ children }) {
@@ -29,16 +36,16 @@ export function CartProvider({ children }) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (item) => {
-    const key = item.variantId || item.productId;
+  const addToCart = useCallback((item) => {
+    const key = itemKey(item);
     if (!key) return;
     const addQty = Math.max(1, Number(item.qty) || 1);
 
     setItems((prev) => {
-      const existing = prev.find((i) => (i.variantId || i.productId) === key);
+      const existing = prev.find((i) => itemKey(i) === key);
       if (existing) {
         return prev.map((i) =>
-          (i.variantId || i.productId) === key
+          itemKey(i) === key
             ? { ...i, qty: Number(i.qty || 0) + addQty }
             : i
         );
@@ -47,27 +54,52 @@ export function CartProvider({ children }) {
         ...prev,
         {
           ...item,
+          productId: item.productId != null ? String(item.productId) : item.productId,
+          variantId: item.variantId != null ? String(item.variantId) : item.variantId,
           qty: addQty,
           price: Number(item.price) || 0,
         },
       ];
     });
-  };
+  }, []);
 
-  const removeFromCart = (key) => {
-    setItems((prev) => prev.filter((i) => (i.variantId || i.productId) !== key));
-  };
+  const removeFromCart = useCallback((key) => {
+    const k = key != null ? String(key) : null;
+    if (!k) return;
+    setItems((prev) => prev.filter((i) => itemKey(i) !== k));
+  }, []);
 
-  const updateQty = (key, qty) => {
+  const updateQty = useCallback((key, qty) => {
+    const k = key != null ? String(key) : null;
+    if (!k) return;
     const nextQty = Math.max(0, Number(qty) || 0);
     setItems((prev) =>
       prev
-        .map((i) => ((i.variantId || i.productId) === key ? { ...i, qty: nextQty } : i))
+        .map((i) => (itemKey(i) === k ? { ...i, qty: nextQty } : i))
         .filter((i) => Number(i.qty) > 0)
     );
-  };
+  }, []);
 
-  const clearCart = () => setItems([]);
+  const clearCart = useCallback(() => setItems([]), []);
+
+  const isInCart = useCallback(
+    (productOrVariantId) => {
+      if (productOrVariantId == null) return false;
+      const k = String(productOrVariantId);
+      return items.some((i) => itemKey(i) === k || String(i.productId) === k);
+    },
+    [items]
+  );
+
+  const getCartQty = useCallback(
+    (productOrVariantId) => {
+      if (productOrVariantId == null) return 0;
+      const k = String(productOrVariantId);
+      const found = items.find((i) => itemKey(i) === k || String(i.productId) === k);
+      return found ? Number(found.qty) || 0 : 0;
+    },
+    [items]
+  );
 
   const totals = useMemo(() => {
     const subtotal = items.reduce(
@@ -79,8 +111,17 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const value = useMemo(
-    () => ({ items, addToCart, removeFromCart, updateQty, clearCart, ...totals }),
-    [items, totals]
+    () => ({
+      items,
+      addToCart,
+      removeFromCart,
+      updateQty,
+      clearCart,
+      isInCart,
+      getCartQty,
+      ...totals,
+    }),
+    [items, totals, addToCart, removeFromCart, updateQty, clearCart, isInCart, getCartQty]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
