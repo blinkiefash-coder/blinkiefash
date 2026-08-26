@@ -678,11 +678,17 @@ export default function Home() {
     document.addEventListener('keydown', onKeyDown);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
 
     return () => {
       clearTimeout(focusTimer);
       document.removeEventListener('keydown', onKeyDown);
-      document.body.style.overflow = prevOverflow;
+      // Always fully unlock scroll (don't restore a stuck 'hidden')
+      document.body.style.overflow = '';
+      document.documentElement.style.overflow = '';
+      if (prevOverflow && prevOverflow !== 'hidden') {
+        document.body.style.overflow = prevOverflow;
+      }
     };
   }, [drawerOpen]);
 

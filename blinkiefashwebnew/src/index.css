@@ -21,10 +21,17 @@
   box-sizing: border-box;
 }
 
+html {
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+}
+
 html,
 body,
 #root {
-  height: 100%;
+  height: auto;
+  min-height: 100%;
+  min-height: 100dvh;
 }
 
 body {
@@ -34,6 +41,10 @@ body {
   -webkit-font-smoothing: antialiased;
   position: relative;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: auto;
+  touch-action: manipulation;
 }
 
 .app-shell,
@@ -62,9 +73,12 @@ img {
   max-width: 1950px;
   margin: 0 auto;
   min-height: 100vh;
+  min-height: 100dvh;
   background: transparent;
   padding-bottom: 76px;
   position: relative;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 @media (min-width: 720px) {
@@ -85,6 +99,8 @@ img {
   box-shadow: none;
   padding-bottom: 0;
   background: transparent;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
 .app-shell.is-vendor {
@@ -143,45 +159,24 @@ img {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  padding: 20px;
-  text-align: center;
-  pointer-events: all;
-}
-
-.hp.hp-loading > :not(.loader-overlay),
-.pd-screen.pd-loading > :not(.loader-overlay) {
-  filter: blur(10px);
-  pointer-events: none;
-  user-select: none;
-  opacity: 0.95;
-}
-
-.loader-inline {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  padding: 24px 0;
+  background: rgba(248, 250, 252, 0.92);
+  backdrop-filter: blur(4px);
 }
 
 .loader-spinner {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  border: 5px solid rgba(22, 163, 74, 0.18);
+  width: 42px;
+  height: 42px;
+  border: 3px solid var(--brand-green-border);
   border-top-color: var(--brand-green);
-  animation: loader-spin 1s ease-in-out infinite;
-  margin-bottom: 16px;
+  border-radius: 50%;
+  animation: loader-spin 0.75s linear infinite;
 }
 
 .loader-label {
+  margin-top: 14px;
+  font-weight: 700;
   color: var(--brand-dark);
-  font-size: 15px;
-  line-height: 1.5;
-  font-weight: 600;
+  font-size: 14px;
 }
 
 .loader-subtitle {
@@ -254,13 +249,35 @@ img {
   font-size: 14px;
 }
 
-/* Mobile foundation */
-html {
-  overflow-x: hidden;
-  -webkit-text-size-adjust: 100%;
-}
+/* Mobile foundation — critical for scroll */
+@media (max-width: 767px) {
+  html, body, #root {
+    height: auto !important;
+    min-height: 100% !important;
+    min-height: 100dvh !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    overscroll-behavior-y: auto !important;
+    touch-action: manipulation;
+  }
 
-@media (max-width: 480px) {
+  .app-shell {
+    min-height: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    max-width: 100vw !important;
+  }
+
+  .app-shell.is-home {
+    padding-bottom: 0 !important;
+    overflow: visible !important;
+  }
+
+  .app-shell:not(.is-vendor):not(.is-home) {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  }
+
   .page {
     padding: 12px 12px 24px;
   }
@@ -273,42 +290,5 @@ html {
 
   .section-head h2 {
     font-size: 15px;
-  }
-}
-
-/* Mobile scroll reliability */
-@media (max-width: 767px) {
-  html, body {
-    height: auto !important;
-    min-height: 100%;
-    min-height: 100dvh;
-    overflow-x: hidden !important;
-    overflow-y: auto !important;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: auto;
-  }
-
-  #root {
-    height: auto !important;
-    min-height: 100%;
-    min-height: 100dvh;
-    overflow: visible !important;
-  }
-
-  .app-shell {
-    min-height: 100%;
-    height: auto !important;
-    overflow: visible !important;
-    max-width: 100vw;
-  }
-
-  .app-shell.is-home {
-    padding-bottom: 0;
-    overflow: visible !important;
-  }
-
-  /* Bottom nav space when it is shown */
-  .app-shell:not(.is-vendor):not(.is-home) {
-    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
