@@ -315,8 +315,8 @@ router.get("/:id/orders", async (req, res) => {
          o.final_amount,
          o.delivery_otp,
          o.otp_verified_at,
-         d.store_pickup_otp,
-         d.store_pickup_verified_at,
+         COALESCE(d.store_pickup_otp, '') AS store_pickup_otp,
+         COALESCE(d.store_pickup_verified_at, NULL::TIMESTAMP) AS store_pickup_verified_at,
          o.created_at,
          u.name AS customer_name,
          u.phone AS customer_phone,
@@ -361,9 +361,9 @@ router.get("/:id/orders", async (req, res) => {
        JOIN products p ON p.id = v.product_id
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN users u ON u.id = o.user_id
-       LEFT JOIN deliveries d ON d.order_id = o.id
+       LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries) d ON d.order_id = o.id
        WHERE p.vendor_id::text = ANY($1::text[])
-       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
+       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
       [ownerIds]
     );
