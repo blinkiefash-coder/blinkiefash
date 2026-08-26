@@ -306,9 +306,6 @@ router.get("/:id/orders", async (req, res) => {
       vendorUserId,
       ...siblingVendors.rows.map((r) => String(r.id)),
     ].filter(Boolean).map(String).filter((v, i, a) => a.indexOf(v) === i);
-    if (!linkedStoreId) {
-      return res.json([]);
-    }
     
     const result = await pool.query(
       `SELECT 
