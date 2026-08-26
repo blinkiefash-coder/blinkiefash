@@ -307,6 +307,8 @@ router.get("/:id/orders", async (req, res) => {
       ...siblingVendors.rows.map((r) => String(r.id)),
     ].filter(Boolean).map(String).filter((v, i, a) => a.indexOf(v) === i);
     
+    console.log(`[VendorOrders] Fetching for vendorId=${id}, ownerIds=${JSON.stringify(ownerIds)}`);
+    
     const result = await pool.query(
       `SELECT 
          o.id,
@@ -362,10 +364,10 @@ router.get("/:id/orders", async (req, res) => {
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN users u ON u.id = o.user_id
        LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
-       WHERE p.vendor_id = ANY($1::uuid[])
+       WHERE p.vendor_id IN (` + ownerIds.map((_, i) => `$${i + 1}`).join(',') + `)
        GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
-      [ownerIds]
+      ownerIds
     );
     
     res.json(result.rows);
