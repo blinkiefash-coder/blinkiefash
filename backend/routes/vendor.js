@@ -314,7 +314,7 @@ router.get("/:id/orders", async (req, res) => {
       return res.json([]);
     }
     
-    const placeholders = ownerIds.map((_, i) => `$${i + 1}`).join(',');
+    const placeholders = ownerIds.map((_, i) => `CAST($${i + 1} AS uuid)`).join(', ');
     const result = await pool.query(
       `SELECT 
          o.id,
