@@ -314,71 +314,69 @@ router.get("/:id/orders", async (req, res) => {
       return res.json([]);
     }
     
-    const placeholders = ownerIds.map((_, i) => `CAST($${i + 1} AS uuid)`).join(', ');
-    const result = await pool.query(
-      `SELECT 
-         o.id,
-         o.status,
-         o.total_amount,
-         o.final_amount,
-         o.delivery_otp,
-         o.otp_verified_at,
-         COALESCE(d.store_pickup_otp, '') AS store_pickup_otp,
-         COALESCE(d.store_pickup_verified_at, NULL::TIMESTAMP) AS store_pickup_verified_at,
-         o.created_at,
-         u.name AS customer_name,
-         u.phone AS customer_phone,
-         json_agg(json_build_object(
-           'product_id', p.id,
-           'variant_id', oi.variant_id,
-           'quantity', oi.quantity,
-           'price', CASE 
-             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
-             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
-             ELSE oi.price
-           END,
-           'item_status', oi.item_status,
-           'product_name', p.name,
-           'image_url', COALESCE(
-             (SELECT pm.url
-              FROM product_media pm
-              WHERE pm.variant_id = v.id AND pm.is_primary = true
-              LIMIT 1),
-             (SELECT pm.url
-              FROM product_media pm
-              WHERE pm.variant_id = v.id
-              LIMIT 1),
-             (SELECT pm.url
-              FROM product_media pm
-              JOIN product_variants pv2 ON pv2.id = pm.variant_id
-              WHERE pv2.product_id = p.id AND pm.is_primary = true
-              LIMIT 1),
-             (SELECT pm.url
-              FROM product_media pm
-              JOIN product_variants pv2 ON pv2.id = pm.variant_id
-              WHERE pv2.product_id = p.id
-              LIMIT 1)
-           ),
-           'size', v.size,
-           'color', v.color,
-           'barcode', v.barcode
-         )) AS items
-       FROM orders o
-       JOIN order_items oi ON oi.order_id = o.id
-       JOIN product_variants v ON v.id = oi.variant_id
-       JOIN products p ON p.id = v.product_id
-       LEFT JOIN brands b ON b.id = p.brand_id
-       LEFT JOIN users u ON u.id = o.user_id
-       LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
-       WHERE p.vendor_id IN (${placeholders})
-       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
-       ORDER BY o.created_at DESC`,
-      ownerIds
-    );
+    const query = `SELECT 
+       o.id,
+       o.status,
+       o.total_amount,
+       o.final_amount,
+       o.delivery_otp,
+       o.otp_verified_at,
+       COALESCE(d.store_pickup_otp, '') AS store_pickup_otp,
+       COALESCE(d.store_pickup_verified_at, NULL::TIMESTAMP) AS store_pickup_verified_at,
+       o.created_at,
+       u.name AS customer_name,
+       u.phone AS customer_phone,
+       json_agg(json_build_object(
+         'product_id', p.id,
+         'variant_id', oi.variant_id,
+         'quantity', oi.quantity,
+         'price', CASE 
+           WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
+           WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
+           ELSE oi.price
+         END,
+         'item_status', oi.item_status,
+         'product_name', p.name,
+         'image_url', COALESCE(
+           (SELECT pm.url
+            FROM product_media pm
+            WHERE pm.variant_id = v.id AND pm.is_primary = true
+            LIMIT 1),
+           (SELECT pm.url
+            FROM product_media pm
+            WHERE pm.variant_id = v.id
+            LIMIT 1),
+           (SELECT pm.url
+            FROM product_media pm
+            JOIN product_variants pv2 ON pv2.id = pm.variant_id
+            WHERE pv2.product_id = p.id AND pm.is_primary = true
+            LIMIT 1),
+           (SELECT pm.url
+            FROM product_media pm
+            JOIN product_variants pv2 ON pv2.id = pm.variant_id
+            WHERE pv2.product_id = p.id
+            LIMIT 1)
+         ),
+         'size', v.size,
+         'color', v.color,
+         'barcode', v.barcode
+       )) AS items
+     FROM orders o
+     JOIN order_items oi ON oi.order_id = o.id
+     JOIN product_variants v ON v.id = oi.variant_id
+     JOIN products p ON p.id = v.product_id
+     LEFT JOIN brands b ON b.id = p.brand_id
+     LEFT JOIN users u ON u.id::text = o.user_id
+     LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
+     WHERE p.vendor_id = ANY($1::uuid[])
+     GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
+     ORDER BY o.created_at DESC`;
+    
+    const result = await pool.query(query, [ownerIds]);
     
     res.json(result.rows);
   } catch (err) {
-    console.error("[VendorOrders] Error:", err.message, err.code, err.detail);
+    console.error("[VendorOrders] Error:", err.message, err.code, err.detail, "position:", err.position, "where:", err.where);
     res.status(500).json({ error: err.message || "Server error", code: err.code });
   }
 });
