@@ -3,8 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   MdLocationOn,
   MdVisibility,
-  MdFavoriteBorder,
-  MdFavorite,
   MdOutlineShoppingCart,
   MdSearch,
   MdChevronRight,
@@ -18,11 +16,13 @@ import {
   MdPersonOutline,
   MdKeyboardArrowDown,
   MdClose,
+  MdFavoriteBorder,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
+import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -30,7 +30,6 @@ import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, ge
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
-import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 import './Shop.css';
 import './Home.css';
 
@@ -43,12 +42,6 @@ function resolveImageUrl(raw) {
 }
 
 const HERO_SLIDES = [
-  // {
-  //   image:
-  //     'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786500420/file_00000000a2f48208ac6ff0d873fc6315_yzpvlq.png',
-  //   to: '/shop?search=Puma',
-  //   pos: 'center 20%',
-  // },
   {
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
@@ -208,7 +201,7 @@ let _homeCache = null;
 function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   if (!el) return;
   const dir = direction < 0 ? -1 : 1;
-  const card = el.querySelector('.hp-deal-card, .hp-collection-chip, .hp-subcat-chip');
+  const card = el.querySelector('.hp-deal-card, .hp-collection-chip, .hp-subcat-chip, .pc-card');
   let step = Math.round(el.clientWidth * 0.95);
   if (card) {
     const styles = window.getComputedStyle(el);
@@ -225,8 +218,8 @@ export default function Home() {
   const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
   const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
-  const { count, addToCart } = useCart();
-  const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
+  const { count } = useCart();
+  const { items: wishlistItems } = useWishlist();
 
   const [city, setCity] = useState(() => localStorage.getItem('bfw_city') || 'Cuttack');
   const [locating, setLocating] = useState(false);
@@ -752,29 +745,20 @@ export default function Home() {
     });
   };
 
-  const enrichedDeals = useMemo(() => {
-    return (Array.isArray(deals) ? deals : []).map((item) => {
+  const topDeals = useMemo(() => {
+    const enriched = (Array.isArray(deals) ? deals : []).map((item) => {
       const price = Number(item?.discount_price ?? item?.price ?? 0);
       const mrp = Number(item?.price ?? item?.original_price ?? price);
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      return { ...item, _price: price, _mrp: mrp, _discount: discount };
+      return { ...item, _discount: discount };
     });
-  }, [deals]);
-
-  const topDeals = useMemo(() => {
-    const ranked = [...enrichedDeals].sort((a, b) => b._discount - a._discount);
+    const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
     return ranked.slice(0, 10);
-  }, [enrichedDeals]);
+  }, [deals]);
 
   const recentlyViewedProducts = useMemo(() => {
     return recentlyViewedProductsData
-      .map((p) => ({
-        ...p,
-        id: p.id,
-        _price: Number(p._price ?? p.discount_price ?? p.price ?? 0) || 0,
-        _mrp: Number(p._mrp ?? p.original_price ?? p.mrp ?? p.price ?? p._price ?? 0) || 0,
-        _discount: Number(p._discount ?? p.discount ?? 0) || 0,
-      }))
+      .map((p) => ({ ...p, id: p.id }))
       .filter((p) => p.id)
       .slice(0, 8);
   }, [recentlyViewedProductsData]);
@@ -784,10 +768,9 @@ export default function Home() {
       .map((item) => {
         const price = Number(item?.discount_price ?? item?.price ?? 0);
         const mrp = Number(item?.price ?? item?.original_price ?? price);
-        const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
         const hasDiscount = mrp > 0 && price > 0 && price < mrp;
         const isPalermo = (item?.name || '').toString().toLowerCase().includes('palermo');
-        return { ...item, _price: price, _mrp: mrp, _discount: discount, _hasDiscount: hasDiscount, _isPalermo: isPalermo };
+        return { ...item, _hasDiscount: hasDiscount, _isPalermo: isPalermo };
       })
       .filter((item) => !item._hasDiscount && !item._isPalermo);
 
@@ -795,9 +778,8 @@ export default function Home() {
       ? (() => {
           const price = Number(pinnedNewProduct?.discount_price ?? pinnedNewProduct?.price ?? 0);
           const mrp = Number(pinnedNewProduct?.price ?? pinnedNewProduct?.original_price ?? price);
-          const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
           if (mrp > 0 && price > 0 && price < mrp) return null;
-          return { ...pinnedNewProduct, _price: price, _mrp: mrp, _discount: discount };
+          return { ...pinnedNewProduct };
         })()
       : null;
 
@@ -963,14 +945,6 @@ export default function Home() {
     navigate(`/shop?search=${encodeURIComponent(text)}`);
   };
 
-  const enrichItems = (items) =>
-    (Array.isArray(items) ? items : []).map((item) => {
-      const price = Number(item?.discount_price ?? item?.price ?? 0);
-      const mrp = Number(item?.price ?? item?.original_price ?? price);
-      const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      return { ...item, _price: price, _mrp: mrp, _discount: discount };
-    });
-
   const closeDrawer = () => {
     setDrawerOpen(false);
     drawerTriggerRef.current?.focus();
@@ -998,11 +972,7 @@ export default function Home() {
         path="/"
       />
       {loading ? (
-        <Loader
-          overlay
-          label="Preparing Blinkiefash..."
-          subtitle="Fetching style secrets and polishing the universe."
-        />
+        <Loader overlay />
       ) : null}
 
       <div className="hp-top-fixed">
@@ -1328,14 +1298,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* <section className="hp-independence-banner" aria-label="Independence Day launch message">
-          <p className="hp-ind-kicker">15 August Launch Special</p>
-          <h3>Happy Independence Day, India!</h3>
-          <p>
-            Celebrating freedom with fast fashion delivery, festive styles, and launch offers made just for you.
-          </p>
-        </section> */}
-
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
 
@@ -1399,98 +1361,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-wrap">
-              <button
-                type="button"
-                className="hp-deals-prev"
-                aria-label="Previous deals"
-                onClick={() => {
-                  const el = dealsRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, -1, 6);
-                }}
-              >
-                <MdChevronLeft />
-              </button>
-
-              <div className="hp-deals-rail" role="list" ref={dealsRef}>
-                {topDeals.map((p, idx) => {
-                  const image = resolveImageUrl(p.image);
-                  const wishlistPayload = {
-                    productId: p.id,
-                    name: p.name,
-                    image: image || p.image,
-                    price: p._price,
-                  };
-
-                  return (
-                    <article
-                      key={`deal-${p.id}-${idx}`}
-                      className="hp-deal-card"
-                      role="listitem"
-                      onClick={() => navigate(`/product/${p.id}`)}
-                    >
-                      <div className="hp-deal-media">
-                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                        <span className="hp-deal-ribbon">HOT DEAL</span>
-                        <button
-                          type="button"
-                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWishlist(wishlistPayload);
-                          }}
-                          aria-label="Toggle wishlist"
-                        >
-                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                        </button>
-                      </div>
-                      <div className="hp-deal-body">
-                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                        <p className="hp-deal-name">{p.name}</p>
-                        <div className="hp-deal-price-row">
-                          <span className="hp-deal-price">₹{p._price}</span>
-                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                        </div>
-                        <div className="hp-deal-footer-row">
-                          <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'BESTSELLER'}</span>
-                          <button
-                            type="button"
-                            className="hp-deal-cart"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                productId: p.id,
-                                variantId: p.id,
-                                name: p.name,
-                                image: image || p.image,
-                                price: p._price,
-                              });
-                            }}
-                            aria-label="Add to cart"
-                          >
-                            <MdOutlineShoppingCart />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                className="hp-deals-next"
-                aria-label="Next deals"
-                onClick={() => {
-                  const el = dealsRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, 1, 6);
-                }}
-              >
-                <MdChevronRight />
-              </button>
-            </div>
+            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} />
           </section>
         )}
 
@@ -1535,98 +1406,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-wrap">
-              <button
-                type="button"
-                className="hp-deals-prev"
-                aria-label="Previous recently viewed"
-                onClick={() => {
-                  const el = recentlyViewedRailRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, -1, 6);
-                }}
-              >
-                <MdChevronLeft />
-              </button>
-              <div className="hp-deals-rail" role="list" ref={recentlyViewedRailRef}>
-                {recentlyViewedProducts.map((p, idx) => {
-                  const image = resolveImageUrl(p.image);
-                  const wishlistPayload = {
-                    productId: p.id,
-                    name: p.name,
-                    image: image || p.image,
-                    price: p._price,
-                  };
-
-                  return (
-                    <article
-                      key={`recent-${p.id}-${idx}`}
-                      className="hp-deal-card"
-                      role="listitem"
-                      onClick={() => navigate(`/product/${p.id}`)}
-                    >
-                      <div className="hp-deal-media">
-                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                        <span className={`hp-deal-ribbon${p._discount === 0 ? ' new' : ''}`}>
-                          {p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}
-                        </span>
-                        <button
-                          type="button"
-                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWishlist(wishlistPayload);
-                          }}
-                          aria-label="Toggle wishlist"
-                        >
-                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                        </button>
-                      </div>
-                      <div className="hp-deal-body">
-                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                        <p className="hp-deal-name">{p.name}</p>
-                        <div className="hp-deal-price-row">
-                          <span className="hp-deal-price">₹{p._price}</span>
-                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                        </div>
-                        <div className="hp-deal-footer-row">
-                          <span className="hp-deal-off">{p._discount > 0 ? `${p._discount}% OFF` : 'JUST IN'}</span>
-                          <button
-                            type="button"
-                            className="hp-deal-cart"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                productId: p.id,
-                                variantId: p.id,
-                                name: p.name,
-                                image: image || p.image,
-                                price: p._price,
-                              });
-                            }}
-                            aria-label="Add to cart"
-                          >
-                            <MdOutlineShoppingCart />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                className="hp-deals-next"
-                aria-label="Next recently viewed"
-                onClick={() => {
-                  const el = recentlyViewedRailRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, 1, 6);
-                }}
-              >
-                <MdChevronRight />
-              </button>
-            </div>
+            <ProductRail items={recentlyViewedProducts} keyPrefix="recent" railRef={recentlyViewedRailRef} />
           </section>
         )}
 
@@ -1638,96 +1418,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            <div className="hp-deals-wrap">
-              <button
-                type="button"
-                className="hp-deals-prev"
-                aria-label="Previous New on Blinkiefash"
-                onClick={() => {
-                  const el = newOnBlinkiefashRailRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, -1, 6);
-                }}
-              >
-                <MdChevronLeft />
-              </button>
-              <div className="hp-deals-rail" role="list" ref={newOnBlinkiefashRailRef}>
-                {newOnBlinkiefash.map((p, idx) => {
-                  const image = resolveImageUrl(p.image);
-                  const wishlistPayload = {
-                    productId: p.id,
-                    name: p.name,
-                    image: image || p.image,
-                    price: p._price,
-                  };
-
-                  return (
-                    <article
-                      key={`new-${p.id}-${idx}`}
-                      className="hp-deal-card"
-                      role="listitem"
-                      onClick={() => navigate(`/product/${p.id}`)}
-                    >
-                      <div className="hp-deal-media">
-                        {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                        <span className="hp-deal-ribbon new">NEW</span>
-                        <button
-                          type="button"
-                          className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleWishlist(wishlistPayload);
-                          }}
-                          aria-label="Toggle wishlist"
-                        >
-                          {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                        </button>
-                      </div>
-                      <div className="hp-deal-body">
-                        {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                        <p className="hp-deal-name">{p.name}</p>
-                        <div className="hp-deal-price-row">
-                          <span className="hp-deal-price">₹{p._price}</span>
-                          {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                        </div>
-                        <div className="hp-deal-footer-row">
-                          <span className="hp-deal-off">NEW</span>
-                          <button
-                            type="button"
-                            className="hp-deal-cart"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              addToCart({
-                                productId: p.id,
-                                variantId: p.id,
-                                name: p.name,
-                                image: image || p.image,
-                                price: p._price,
-                              });
-                            }}
-                            aria-label="Add to cart"
-                          >
-                            <MdOutlineShoppingCart />
-                          </button>
-                        </div>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                className="hp-deals-next"
-                aria-label="Next New on Blinkiefash"
-                onClick={() => {
-                  const el = newOnBlinkiefashRailRef.current;
-                  if (!el) return;
-                  scrollRailByCards(el, 1, 6);
-                }}
-              >
-                <MdChevronRight />
-              </button>
-            </div>
+            <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
           </section>
         )}
 
@@ -1746,7 +1437,7 @@ export default function Home() {
               onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))}
               onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
             />
-            {mensProducts.length > 0 ? <RailCards items={mensProducts} keyPrefix="men" /> : null}
+            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" /> : null}
           </section>
         )}
 
@@ -1765,7 +1456,7 @@ export default function Home() {
               onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))}
               onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
             />
-            {womensProducts.length > 0 ? <RailCards items={womensProducts} keyPrefix="women" /> : null}
+            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" /> : null}
           </section>
         )}
 
@@ -1784,7 +1475,7 @@ export default function Home() {
               onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))}
               onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
             />
-            {kidsProducts.length > 0 ? <RailCards items={kidsProducts} keyPrefix="kids" /> : null}
+            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" /> : null}
           </section>
         )}
 
@@ -1803,7 +1494,7 @@ export default function Home() {
               onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))}
               onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
             />
-            {electronicsProducts.length > 0 ? <RailCards items={electronicsProducts} keyPrefix="electronics" /> : null}
+            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" /> : null}
           </section>
         )}
 
@@ -1822,7 +1513,7 @@ export default function Home() {
               onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))}
               onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
             />
-            {trendyShoesProducts.length > 0 ? <RailCards items={trendyShoesProducts} keyPrefix="shoes" /> : null}
+            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" /> : null}
           </section>
         )}
 
@@ -1834,7 +1525,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {under999Products.length > 0 ? <RailCards items={under999Products} keyPrefix="under999" /> : null}
+            {under999Products.length > 0 ? <ProductRail items={under999Products} keyPrefix="under999" /> : null}
           </section>
         )}
 
@@ -1846,7 +1537,7 @@ export default function Home() {
                 View All <MdChevronRight />
               </button>
             </div>
-            {under1999Products.length > 0 ? <RailCards items={under1999Products} keyPrefix="under1999" /> : null}
+            {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
           </section>
         )}
 
@@ -1929,56 +1620,29 @@ export default function Home() {
 
           {exploreProducts.length > 0 ? (
             <div className="hp-explore-grid" role="list">
-              {enrichItems(exploreProducts).map((p, idx) => {
-                const image = resolveImageUrl(p.image);
-                return (
-                  <article
-                    key={`explore-${p.id}-${idx}`}
-                    className="hp-explore-card"
-                    role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`)}
-                  >
-                    <div className="hp-explore-media">
-                      {image ? (
-                        <img
-                          src={productImageUrlContain(image, 320, 305)}
-                          srcSet={productImageSrcSetContain(image, [200, 280, 320, 480, 600], 1 / 1.05)}
-                          sizes="(max-width: 900px) 46vw, 15vw"
-                          alt={p.name}
-                          loading="lazy"
-                          width="320"
-                          height="305"
-                        />
-                      ) : (
-                        <div className="hp-deal-fallback">No image</div>
-                      )}
-                    </div>
-                    <div className="hp-explore-body">
-                      {p.brand ? <p className="hp-explore-brand">{p.brand.toUpperCase()}</p> : null}
-                      <p className="hp-explore-name">{p.name}</p>
-                      <div className="hp-explore-price-row">
-                        <span className="hp-explore-price">₹{p._price}</span>
-                        {p._mrp > p._price ? <span className="hp-explore-mrp">₹{p._mrp}</span> : null}
-                      </div>
-                    </div>
-                  </article>
-                );
-              })}
+              {exploreProducts.map((p) => (
+                <ProductCard key={`explore-${p.id}`} product={p} />
+              ))}
+              {exploreLoading
+                ? Array.from({ length: 3 }).map((_, idx) => (
+                    <ProductCardSkeleton key={`explore-skeleton-${idx}`} />
+                  ))
+                : null}
             </div>
           ) : !exploreLoading ? (
             <p className="hp-location-sheet-muted">No products in this category yet.</p>
-          ) : null}
+          ) : (
+            <div className="hp-explore-grid" role="list">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <ProductCardSkeleton key={`explore-skeleton-initial-${idx}`} />
+              ))}
+            </div>
+          )}
 
           {!exploreLoading && exploreHasMore ? (
             <button type="button" className="hp-explore-more" onClick={loadMoreExploreProducts}>
               Show More Products
             </button>
-          ) : null}
-
-          {exploreLoading ? (
-            <div className="hp-explore-loading">
-              <Loader label="Loading products..." />
-            </div>
           ) : null}
         </section>
 
@@ -2109,92 +1773,42 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   );
 }
 
-function RailCards({ items, keyPrefix, ribbonType = 'discount' }) {
-  const railRef = useRef(null);
-  const navigate = useNavigate();
-  const { isWishlisted, toggleWishlist } = useWishlist();
-  const { addToCart } = useCart();
+/**
+ * Horizontally scrollable rail of ProductCard tiles, reused across every
+ * "Deals of the day / Recently viewed / New on Blinkiefash / Men's / Women's
+ * / ..." row on the home page. Card rendering (image, badge, wishlist,
+ * cart, price) now all comes from the shared ProductCard component.
+ */
+function ProductRail({ items, keyPrefix, railRef: externalRef }) {
+  const internalRef = useRef(null);
+  const railRef = externalRef || internalRef;
 
-  const list = (Array.isArray(items) ? items : []).slice(0, 10).map((item) => {
-    const price = Number(item?.discount_price ?? item?.price ?? 0);
-    const mrp = Number(item?.price ?? item?.original_price ?? price);
-    const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-    return { ...item, _price: price, _mrp: mrp, _discount: discount };
-  });
+  const list = (Array.isArray(items) ? items : []).slice(0, 10);
+  if (list.length === 0) return null;
 
   return (
     <div className="hp-deals-wrap">
-      <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRailByCards(railRef.current, -1, 6)}>
+      <button
+        type="button"
+        className="hp-deals-prev"
+        aria-label="Previous"
+        onClick={() => scrollRailByCards(railRef.current, -1, 6)}
+      >
         <MdChevronLeft />
       </button>
 
       <div className="hp-deals-rail" role="list" ref={railRef}>
-        {list.map((p, idx) => {
-          const image = resolveImageUrl(p.image);
-          const wishlistPayload = {
-            productId: p.id,
-            name: p.name,
-            image: image || p.image,
-            price: p._price,
-          };
-          const ribbonText = ribbonType === 'new' ? 'NEW' : p._discount > 0 ? `${p._discount}% OFF` : 'TRENDING';
-
-          return (
-            <article
-              key={`${keyPrefix}-${p.id}-${idx}`}
-              className="hp-deal-card"
-              role="listitem"
-              onClick={() => navigate(`/product/${p.id}`)}
-            >
-              <div className="hp-deal-media">
-                {image ? <img src={image} alt={p.name} loading="lazy" /> : <div className="hp-deal-fallback">No image</div>}
-                <span className={`hp-deal-ribbon${ribbonType === 'new' ? ' new' : ''}`}>{ribbonText}</span>
-                <button
-                  type="button"
-                  className={`hp-deal-wish${isWishlisted(p.id) ? ' active' : ''}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleWishlist(wishlistPayload);
-                  }}
-                  aria-label="Toggle wishlist"
-                >
-                  {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                </button>
-              </div>
-              <div className="hp-deal-body">
-                {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                <p className="hp-deal-name">{p.name}</p>
-                <div className="hp-deal-price-row">
-                  <span className="hp-deal-price">₹{p._price}</span>
-                  {p._mrp > p._price && <span className="hp-deal-mrp">₹{p._mrp}</span>}
-                </div>
-                <div className="hp-deal-footer-row">
-                  <span className={`hp-deal-off${p._discount > 0 ? ' discount' : ''}`}>{p._discount > 0 ? `${p._discount}% OFF` : 'NEW'}</span>
-                  <button
-                    type="button"
-                    className="hp-deal-cart"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      addToCart({
-                        productId: p.id,
-                        variantId: p.id,
-                        name: p.name,
-                        image: image || p.image,
-                        price: p._price,
-                      });
-                    }}
-                    aria-label="Add to cart"
-                  >
-                    <MdOutlineShoppingCart />
-                  </button>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+        {list.map((p, idx) => (
+          <ProductCard key={`${keyPrefix}-${p.id}-${idx}`} product={p} />
+        ))}
       </div>
 
-      <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollRailByCards(railRef.current, 1, 6)}>
+      <button
+        type="button"
+        className="hp-deals-next"
+        aria-label="Next"
+        onClick={() => scrollRailByCards(railRef.current, 1, 6)}
+      >
         <MdChevronRight />
       </button>
     </div>

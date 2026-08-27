@@ -2695,109 +2695,6 @@
 }
 
 /* =========================================================
-   SHRINK REWARD PANELS — make Spin/Play/Refer noticeably
-   smaller than the hero banner on mobile. Placed last so it
-   wins over every earlier reward-panel rule above.
-   ========================================================= */
-@media (max-width: 640px) {
-  .hp-reward-panel,
-  .hp-reward-spin,
-  .hp-reward-play,
-  .hp-reward-refer {
-    min-height: 92px !important;
-    padding: 10px !important;
-    border-radius: 12px !important;
-  }
-
-  .hp-reward-copy h3,
-  .hp-reward-spin .hp-reward-copy h3,
-  .hp-reward-play .hp-reward-copy h3,
-  .hp-reward-refer .hp-reward-copy h3 {
-    font-size: 12px !important;
-  }
-
-  .hp-reward-copy p,
-  .hp-reward-spin .hp-reward-copy p,
-  .hp-reward-play .hp-reward-copy p,
-  .hp-reward-refer .hp-reward-copy p {
-    font-size: 9.5px !important;
-    line-height: 1.25;
-  }
-
-  .hp-reward-amount {
-    font-size: 9.5px !important;
-    padding: 2px 8px !important;
-    margin-top: 2px !important;
-  }
-
-  .hp-reward-graphic,
-  .hp-reward-spin .hp-reward-graphic,
-  .hp-reward-play .hp-reward-graphic,
-  .hp-reward-refer .hp-reward-graphic {
-    position: absolute !important;
-    top: 8px !important;
-    right: 8px !important;
-    width: 30px !important;
-    height: 30px !important;
-    font-size: 15px !important;
-  }
-
-  .hp-reward-spin .hp-reward-copy,
-  .hp-reward-play .hp-reward-copy,
-  .hp-reward-refer .hp-reward-copy {
-    width: 100% !important;
-    padding-right: 38px !important;
-    gap: 3px !important;
-  }
-
-  .hp-reward-copy button,
-  .hp-reward-spin .hp-reward-copy button,
-  .hp-reward-play .hp-reward-copy button,
-  .hp-reward-refer .hp-reward-copy button {
-    margin-top: 4px !important;
-    font-size: 9.5px !important;
-    padding: 6px 8px !important;
-    min-height: 28px !important;
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  /* Refer & Earn is full-width; keep its referral-code chip compact too */
-  .hp-reward-refer .hp-referral-code {
-    padding: 3px 7px !important;
-  }
-
-  .hp-reward-refer .hp-referral-code span {
-    font-size: 7px !important;
-  }
-
-  .hp-reward-refer .hp-referral-code strong {
-    font-size: 10px !important;
-  }
-}
-
-@media (max-width: 420px) {
-  .hp-reward-panel,
-  .hp-reward-spin,
-  .hp-reward-play,
-  .hp-reward-refer {
-    min-height: 82px !important;
-    padding: 9px !important;
-  }
-
-  .hp-reward-graphic,
-  .hp-reward-spin .hp-reward-graphic,
-  .hp-reward-play .hp-reward-graphic,
-  .hp-reward-refer .hp-reward-graphic {
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 13px !important;
-    top: 7px !important;
-    right: 7px !important;
-  }
-}
-
-/* =========================================================
    REWARDS — polished two-row layout (Spin | Play on top,
    Refer & Earn as a wide banner below using the extra width
    for a clean horizontal layout instead of stacked text).
@@ -2993,6 +2890,7 @@
     padding: 8px 12px !important;
     min-height: 32px !important;
   }
+
 
 }
 
@@ -3211,5 +3109,79 @@ html, body, #root {
   .hp-drawer-backdrop,
   .hp-location-sheet-backdrop {
     overscroll-behavior: contain;
+}
+
+/* =========================================================
+   NEW EDITS REQUESTED:
+   1. Remove prev/next arrows from the category chip rails
+      (Men's/Women's/Kids/Electronics/Trendy Shoes chip rows).
+   2. Make the Universe brand banner grid horizontally
+      scrollable on mobile instead of stacking as a grid.
+   Placed at the very end so these rules win the cascade.
+   ========================================================= */
+
+/* 1. Remove arrows from category chip rails */
+.hp-collection-chip-group .hp-deals-prev,
+.hp-collection-chip-group .hp-deals-next {
+  display: none !important;
+}
+
+.hp-collection-chip-group .hp-collection-chips {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+/* 2. Brand banners: horizontal scroll on mobile instead of a stacked grid */
+@media (max-width: 768px) {
+  .hp-brand-grid {
+    display: flex !important;
+    grid-template-columns: none !important;
+    overflow-x: auto;
+    gap: 10px;
+    padding: 4px 2px 10px;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+
+  .hp-brand-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hp-brand-banner {
+    flex: 0 0 auto;
+    width: 78%;
+    max-width: 320px;
+    scroll-snap-align: start;
+    min-height: 120px;
   }
 }
+
+@media (max-width: 420px) {
+  .hp-brand-banner {
+    width: 84%;
+  }
+}
+
+/* =========================================================
+   FIX: Hero carousel not swipeable on mobile.
+   The 640px breakpoint rule sets .hp-hero-track to
+   overflow-x: hidden (to hide the scrollbar look) which
+   also blocks touch/swipe scrolling entirely. Re-enable
+   scrolling while keeping it visually clean.
+   ========================================================= */
+@media (max-width: 900px) {
+  .hp-hero-track {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: pan-x !important;
+    overscroll-behavior-x: contain !important;
+    scrollbar-width: none;
+  }
+
+  .hp-hero-track::-webkit-scrollbar {
+    display: none;
+  }
+}}
