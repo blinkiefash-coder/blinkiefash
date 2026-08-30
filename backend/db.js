@@ -78,6 +78,7 @@ export const ensureDatabaseTables = async () => {
   // Add google_uid to users if not already present (safe ALTER IF NOT EXISTS)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_uid VARCHAR(255)`).catch(() => {});
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_google_uid_idx ON users(google_uid) WHERE google_uid IS NOT NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(32)`).catch(() => {});
 
   // Ensure orders has confirmed_at column (used for 60-min delivery SLA timer)
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
