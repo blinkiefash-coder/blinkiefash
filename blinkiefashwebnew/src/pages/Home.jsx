@@ -1371,7 +1371,6 @@ export default function Home() {
             <span className="hp-universe-explore-text">E X P L O R E</span>
             <span className="hp-universe-line" />
           </div>
-          <p className="hp-universe-jump">JUMP INTO</p>
           <h2 className="hp-universe-title" aria-label="Blinkiefash Universe">
             <span>BLINKIE</span>
             <span className="hp-universe-accent">FASH</span>
