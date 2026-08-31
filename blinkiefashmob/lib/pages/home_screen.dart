@@ -62,6 +62,7 @@ class _HomeScreenState extends State<HomeScreen>
   final ApiClient _api = ApiClient();
   int _tab = 0;
   bool _guestStartupLocationPromptShown = false;
+  bool _genderPromptShown = false;
   bool _isLocationSheetOpen = false;
 
   bool _isLoading = true;
@@ -228,7 +229,101 @@ class _HomeScreenState extends State<HomeScreen>
     await _restoreSavedLocation();
     if (!mounted) return;
     _loadHomeData();
+    await _promptForGenderIfNeeded();
+    if (!mounted) return;
     await _bootstrapLocationPromptFlow();
+  }
+
+  Future<void> _promptForGenderIfNeeded() async {
+    if (_genderPromptShown || !mounted) return;
+
+    final session = UserSession.instance;
+    final userId = session.userId;
+    if (!session.isLoggedIn ||
+        userId == null ||
+        userId.isEmpty ||
+        session.role == 'vendor' ||
+        session.role == 'rider') {
+      return;
+    }
+
+    try {
+      final profile = await _api.fetchUserProfile(userId);
+      final user = profile['user'] as Map<String, dynamic>?;
+      if (!mounted ||
+          profile['success'] != true ||
+          (user?['gender']?.toString().trim().isNotEmpty ?? false)) {
+        return;
+      }
+
+      _genderPromptShown = true;
+      String? selectedGender;
+      var isSaving = false;
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (context, setDialogState) => AlertDialog(
+            title: const Text('Tell us about yourself'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final option in const {
+                      'female': 'Female',
+                      'male': 'Male',
+                      'non_binary': 'Non-binary',
+                      'prefer_not_to_say': 'Prefer not to say',
+                    }.entries)
+                      ChoiceChip(
+                        label: Text(option.value),
+                        selected: selectedGender == option.key,
+                        onSelected: isSaving
+                            ? null
+                            : (_) => setDialogState(
+                                () => selectedGender = option.key,
+                              ),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+            actions: [
+              FilledButton(
+                onPressed: selectedGender == null || isSaving
+                    ? null
+                    : () async {
+                        setDialogState(() => isSaving = true);
+                        try {
+                          final result = await _api.updateUserProfile(
+                            userId: userId,
+                            gender: selectedGender,
+                          );
+                          if (result['success'] == true && dialogContext.mounted) {
+                            Navigator.of(dialogContext).pop();
+                          } else {
+                            setDialogState(() => isSaving = false);
+                          }
+                        } catch (_) {
+                          setDialogState(() => isSaving = false);
+                        }
+                      },
+                child: isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Continue'),
+              ),
+            ],
+          ),
+        ),
+      );
+    } catch (_) {}
   }
 
   Future<void> _bootstrapLocationPromptFlow() async {

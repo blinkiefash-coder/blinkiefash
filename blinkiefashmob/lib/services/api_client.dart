@@ -970,9 +970,14 @@ class ApiClient {
     required String userId,
     String? name,
     String? email,
+    String? gender,
   }) async {
     final uri = Uri.parse('$apiApiBaseUrl/users/$userId');
-    return _patchJson(uri, {'name': ?name, 'email': ?email});
+    return _patchJson(uri, {
+      'name': ?name,
+      'email': ?email,
+      'gender': ?gender,
+    });
   }
 
   Future<Map<String, dynamic>> _postJson(
