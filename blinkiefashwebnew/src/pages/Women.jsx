@@ -6,7 +6,6 @@ import {
   MdKeyboardArrowDown,
   MdPersonOutline,
   MdFavoriteBorder,
-  MdFavorite,
   MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
@@ -30,6 +29,7 @@ import {
 
 import Footer from "../components/Footer";
 import PageSEO from "../components/PageSEO";
+import ProductCard from "../components/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -135,24 +135,41 @@ const TOP_BRANDS_FALLBACK = [
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
 function normalizeProduct(p) {
-  const price = Number(p.discount_price ?? p.price ?? 0);
-  const mrp = Number(p.price ?? p.original_price ?? price);
-  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const salePrice = Number(p.discount_price ?? p.price ?? 0);
+  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
+  const discount =
+    originalPrice > salePrice
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
+  const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
+
   return {
+    ...p,
     id: p.id,
     name: p.name,
     brand: p.brand,
-    image: resolveImageUrl(p.image),
-    price,
-    mrp,
-    discount,
+    image,
+    image_url: image,
+    // ProductCard expects these field names
+    price: originalPrice,
+    discount_price: salePrice,
+    _mrp: originalPrice,
+    _price: salePrice,
+    color: p.color || p.colour || "Multi color",
+    is_bestseller: p.is_bestseller ?? false,
+    is_try_and_buy: p.is_try_and_buy ?? false,
+    in_stock: p.in_stock !== false,
+    available: p.available !== false,
+    rating: p.rating ?? p.avg_rating ?? 0,
+    review_count: p.review_count ?? p.reviews_count ?? 0,
+    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
+    discount,
   };
 }
 
-// Banner images for the Women hero cards: [main, trending side, arrivals side].
-// Each entry pairs the image with descriptive alt text for screen readers —
-// these banners carry marketing copy/CTAs, so they are content, not decoration.
+// Banner images for the Women hero cards
 const WOMEN_BANNERS = [
   {
     src: womenBanner1,
@@ -168,7 +185,7 @@ const WOMEN_BANNERS = [
   },
 ];
 
-function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, addToCart, onProductClick }) {
+function ProductRail({ list, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
     const el = railRef.current;
     if (!el) return;
@@ -188,69 +205,14 @@ function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, a
 
       <div className="hp-deals-rail" role="list" ref={railRef}>
         {list.map((p, idx) => (
-          <article
+          <div
             key={`${keyPrefix}-${p.id}-${idx}`}
-            className="hp-deal-card"
+            className="hp-deal-card-wrapper"
             role="listitem"
-            onClick={() => onProductClick(p.id)}
+            style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
           >
-            <div className="hp-deal-media">
-              {p.image ? (
-                <img src={p.image} alt={p.name} loading="lazy" />
-              ) : (
-                <div className="hp-deal-fallback">No image</div>
-              )}
-              <span className={`hp-deal-ribbon${p.discount === 0 ? " new" : ""}`}>
-                {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-              </span>
-              <button
-                type="button"
-                className={`hp-deal-wish${isWishlisted(p.id) ? " active" : ""}`}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleWishlist({
-                    productId: p.id,
-                    name: p.name,
-                    image: p.image,
-                    price: p.price,
-                  });
-                }}
-                aria-label="Toggle wishlist"
-              >
-                {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-              </button>
-            </div>
-            <div className="hp-deal-body">
-              {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-              <p className="hp-deal-name">{p.name}</p>
-              <div className="hp-deal-price-row">
-                <span className="hp-deal-price">₹{p.price}</span>
-                {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
-              </div>
-              <div className="hp-deal-footer-row">
-                <span className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}>
-                  {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-                </span>
-                <button
-                  type="button"
-                  className="hp-deal-cart"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    addToCart({
-                      productId: p.id,
-                      variantId: p.id,
-                      name: p.name,
-                      image: p.image,
-                      price: p.price,
-                    });
-                  }}
-                  aria-label="Add to cart"
-                >
-                  <MdOutlineShoppingCart />
-                </button>
-              </div>
-            </div>
-          </article>
+            <ProductCard product={p} />
+          </div>
         ))}
       </div>
 
@@ -269,8 +231,8 @@ function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, a
 export default function Women() {
   const navigate = useNavigate();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount, addToCart } = useCart();
-  const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
+  const { count: cartCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
 
   const city =
     localStorage.getItem("bfw_city") ||
@@ -404,44 +366,50 @@ export default function Women() {
     };
   }, [womenResolved, womenRootId, womenSubcats]);
 
-  const womenScopedShopUrl = useCallback((opts = {}) => {
-    const params = new URLSearchParams();
-    if (opts.categoryId) {
-      params.set("category_id", String(opts.categoryId));
-    } else if (womenRootId) {
-      params.set("category_id", String(womenRootId));
-    }
-    let search = opts.search ? String(opts.search).trim() : "";
-    if (!params.has("category_id")) {
-      const lower = search.toLowerCase();
-      if (!lower.includes("women") && !lower.includes("woman") && !lower.includes("ladies")) {
-        search = search ? `women ${search}` : "women";
-      } else if (!search) {
-        search = "women";
+  const womenScopedShopUrl = useCallback(
+    (opts = {}) => {
+      const params = new URLSearchParams();
+      if (opts.categoryId) {
+        params.set("category_id", String(opts.categoryId));
+      } else if (womenRootId) {
+        params.set("category_id", String(womenRootId));
       }
-    }
-    if (search) params.set("search", search);
-    const qs = params.toString();
-    return qs ? `/shop?${qs}` : "/shop?search=women";
-  }, [womenRootId]);
+      let search = opts.search ? String(opts.search).trim() : "";
+      if (!params.has("category_id")) {
+        const lower = search.toLowerCase();
+        if (!lower.includes("women") && !lower.includes("woman") && !lower.includes("ladies")) {
+          search = search ? `women ${search}` : "women";
+        } else if (!search) {
+          search = "women";
+        }
+      }
+      if (search) params.set("search", search);
+      const qs = params.toString();
+      return qs ? `/shop?${qs}` : "/shop?search=women";
+    },
+    [womenRootId]
+  );
 
-  const findWomenSubcatByLabel = useCallback((label) => {
-    const needle = String(label || "")
-      .toLowerCase()
-      .replace(/&/g, " ")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!needle || !womenSubcats.length) return null;
-    const exact = womenSubcats.find((c) => c.name.toLowerCase().trim() === needle);
-    if (exact) return exact;
-    return (
-      womenSubcats.find((c) => {
-        const name = c.name.toLowerCase();
-        return name.includes(needle) || needle.includes(name);
-      }) || null
-    );
-  }, [womenSubcats]);
+  const findWomenSubcatByLabel = useCallback(
+    (label) => {
+      const needle = String(label || "")
+        .toLowerCase()
+        .replace(/&/g, " ")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!needle || !womenSubcats.length) return null;
+      const exact = womenSubcats.find((c) => c.name.toLowerCase().trim() === needle);
+      if (exact) return exact;
+      return (
+        womenSubcats.find((c) => {
+          const name = c.name.toLowerCase();
+          return name.includes(needle) || needle.includes(name);
+        }) || null
+      );
+    },
+    [womenSubcats]
+  );
 
   const categoryStripItems = useMemo(() => {
     if (womenSubcats.length) {
@@ -468,12 +436,6 @@ export default function Women() {
       };
     });
   }, [womenSubcats, womenScopedShopUrl, findWomenSubcatByLabel]);
-
-  const goProduct = (id) => {
-    navigate(`/product/${id}`, {
-      state: { from: "women", fromLabel: "Women", fromPath: "/women" },
-    });
-  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -698,15 +660,7 @@ export default function Women() {
           {productsLoading ? (
             <p className="women-empty-state">Loading today&apos;s picks…</p>
           ) : products.length ? (
-            <ProductRail
-              list={products}
-              railRef={trendingRef}
-              keyPrefix="women-trend"
-              isWishlisted={isWishlisted}
-              toggleWishlist={toggleWishlist}
-              addToCart={addToCart}
-              onProductClick={goProduct}
-            />
+            <ProductRail list={products} railRef={trendingRef} keyPrefix="women-trend" />
           ) : (
             <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
           )}
@@ -723,15 +677,7 @@ export default function Women() {
           {productsLoading ? (
             <p className="women-empty-state">Loading new arrivals…</p>
           ) : newArrivals.length ? (
-            <ProductRail
-              list={newArrivals}
-              railRef={arrivalsRef}
-              keyPrefix="women-new"
-              isWishlisted={isWishlisted}
-              toggleWishlist={toggleWishlist}
-              addToCart={addToCart}
-              onProductClick={goProduct}
-            />
+            <ProductRail list={newArrivals} railRef={arrivalsRef} keyPrefix="women-new" />
           ) : (
             <p className="women-empty-state">Fresh styles coming soon.</p>
           )}

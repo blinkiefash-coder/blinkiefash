@@ -6,7 +6,6 @@ import {
   MdKeyboardArrowDown,
   MdPersonOutline,
   MdFavoriteBorder,
-  MdFavorite,
   MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
@@ -35,6 +34,7 @@ import {
 
 import Footer from "../components/Footer";
 import PageSEO from "../components/PageSEO";
+import ProductCard from "../components/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -73,7 +73,7 @@ function rootIdForAny(allCats, names) {
 
   const exact = allCats.find((c) => {
     if (c.parent_id) return false;
-    const name = (c?.name || "").toString().lowerCase().trim();
+    const name = (c?.name || "").toString().toLowerCase().trim();
     return needles.some((needle) => name === needle);
   });
   if (exact) return exact.id;
@@ -159,27 +159,42 @@ const TOP_BRANDS_FALLBACK = [
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
 function normalizeProduct(p) {
-  const price = Number(p.discount_price ?? p.price ?? 0);
-  const mrp = Number(p.price ?? p.original_price ?? price);
-  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const salePrice = Number(p.discount_price ?? p.price ?? 0);
+  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
+  const discount =
+    originalPrice > salePrice
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
+  const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
+
   return {
+    ...p,
     id: p.id,
     name: p.name,
     brand: p.brand,
-    image: resolveImageUrl(p.image),
-    price,
-    mrp,
-    discount,
+    image,
+    image_url: image,
+    // ProductCard expects these field names
+    price: originalPrice,
+    discount_price: salePrice,
+    _mrp: originalPrice,
+    _price: salePrice,
+    color: p.color || p.colour || "Multi color",
+    is_bestseller: p.is_bestseller ?? false,
+    is_try_and_buy: p.is_try_and_buy ?? false,
+    in_stock: p.in_stock !== false,
+    available: p.available !== false,
+    rating: p.rating ?? p.avg_rating ?? 0,
+    review_count: p.review_count ?? p.reviews_count ?? 0,
+    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
+    discount,
   };
 }
 
 // Banner images for the Men hero cards: [main, trending side, arrivals side]
-const MEN_BANNERS = [
-  menBanner1,
-  menBanner2,
-  menBanner3,
-];
+const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
 
 function heroBannerStyle(url) {
   return {
@@ -192,8 +207,8 @@ function heroBannerStyle(url) {
 export default function Men() {
   const navigate = useNavigate();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount, addToCart } = useCart();
-  const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
+  const { count: cartCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
 
   const city =
     localStorage.getItem("bfw_city") ||
@@ -203,7 +218,11 @@ export default function Men() {
     authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
   const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : "My Account") : "Login / Signup";
+  const accountLabel = isLoggedIn
+    ? headerFirstName
+      ? `Hi, ${headerFirstName}`
+      : "My Account"
+    : "Login / Signup";
 
   const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
@@ -214,9 +233,7 @@ export default function Men() {
   const [brands, setBrands] = useState([]);
   const picksRailRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first — every
-  // link and product fetch on this page is scoped to that subtree so this
-  // page only ever shows men's items, never women's/kids'/other sections'.
+  // Resolve the real "Men" category from the DB category tree first
   useEffect(() => {
     let cancelled = false;
 
@@ -245,7 +262,7 @@ export default function Men() {
     };
   }, []);
 
-  // Pull real brand logos from the backend for "Top Brands You Love".
+  // Pull real brand logos from the backend
   useEffect(() => {
     let cancelled = false;
 
@@ -271,10 +288,7 @@ export default function Men() {
     };
   }, []);
 
-  // Once we know which category *is* Men, fetch products scoped to it.
-  // No gender-text or bestseller fallback here on purpose — if the Men
-  // subtree has no products yet we show an empty state instead of mixing
-  // in items from other sections.
+  // Once we know which category *is* Men, fetch products scoped to it
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -285,7 +299,11 @@ export default function Men() {
 
       if (menRootId) {
         try {
-          const byCategory = await getProducts({ category_id: menRootId, sort: "newest", limit: 8 });
+          const byCategory = await getProducts({
+            category_id: menRootId,
+            sort: "newest",
+            limit: 8,
+          });
           found = extractProducts(byCategory);
         } catch {
           found = [];
@@ -293,8 +311,6 @@ export default function Men() {
       }
 
       if (!found.length && menRootId) {
-        // Some backends only tag leaf-level products, not the root — retry
-        // against each direct subcategory and merge until we have 8.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
@@ -318,44 +334,50 @@ export default function Men() {
     };
   }, [menResolved, menRootId, menSubcats]);
 
-  const menScopedShopUrl = useCallback((opts = {}) => {
-    const params = new URLSearchParams();
-    if (opts.categoryId) {
-      params.set("category_id", String(opts.categoryId));
-    } else if (menRootId) {
-      params.set("category_id", String(menRootId));
-    }
-    let search = opts.search ? String(opts.search).trim() : "";
-    if (!params.has("category_id")) {
-      const lower = search.toLowerCase();
-      if (!lower.includes("men") && !lower.includes("male")) {
-        search = search ? `men ${search}` : "men";
-      } else if (!search) {
-        search = "men";
+  const menScopedShopUrl = useCallback(
+    (opts = {}) => {
+      const params = new URLSearchParams();
+      if (opts.categoryId) {
+        params.set("category_id", String(opts.categoryId));
+      } else if (menRootId) {
+        params.set("category_id", String(menRootId));
       }
-    }
-    if (search) params.set("search", search);
-    const qs = params.toString();
-    return qs ? `/shop?${qs}` : "/shop?search=men";
-  }, [menRootId]);
+      let search = opts.search ? String(opts.search).trim() : "";
+      if (!params.has("category_id")) {
+        const lower = search.toLowerCase();
+        if (!lower.includes("men") && !lower.includes("male")) {
+          search = search ? `men ${search}` : "men";
+        } else if (!search) {
+          search = "men";
+        }
+      }
+      if (search) params.set("search", search);
+      const qs = params.toString();
+      return qs ? `/shop?${qs}` : "/shop?search=men";
+    },
+    [menRootId]
+  );
 
-  const findMenSubcatByLabel = useCallback((label) => {
-    const needle = String(label || "")
-      .toLowerCase()
-      .replace(/&/g, " ")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!needle || !menSubcats.length) return null;
-    const exact = menSubcats.find((c) => c.name.toLowerCase().trim() === needle);
-    if (exact) return exact;
-    return (
-      menSubcats.find((c) => {
-        const name = c.name.toLowerCase();
-        return name.includes(needle) || needle.includes(name);
-      }) || null
-    );
-  }, [menSubcats]);
+  const findMenSubcatByLabel = useCallback(
+    (label) => {
+      const needle = String(label || "")
+        .toLowerCase()
+        .replace(/&/g, " ")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!needle || !menSubcats.length) return null;
+      const exact = menSubcats.find((c) => c.name.toLowerCase().trim() === needle);
+      if (exact) return exact;
+      return (
+        menSubcats.find((c) => {
+          const name = c.name.toLowerCase();
+          return name.includes(needle) || needle.includes(name);
+        }) || null
+      );
+    },
+    [menSubcats]
+  );
 
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
@@ -439,21 +461,30 @@ export default function Men() {
           </form>
 
           <div className="catalog-header-actions-wrap">
-            <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
+            <button
+              type="button"
+              className="catalog-location-pill"
+              onClick={() => navigate("/account")}
+            >
               <MdLocationOn />
               <span>{city}</span>
               <MdKeyboardArrowDown />
             </button>
 
             <div className="hp-header-actions">
-              <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+              <button
+                type="button"
+                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
+              >
                 <MdPersonOutline />
                 <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate("/wishlist")}>
                 <MdFavoriteBorder />
                 <span>Wishlist</span>
-                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
+                {wishlistCount > 0 ? (
+                  <span className="hp-icon-badge">{wishlistCount}</span>
+                ) : null}
               </button>
               <button type="button" onClick={() => navigate("/cart")}>
                 <MdOutlineShoppingCart />
@@ -477,7 +508,11 @@ export default function Men() {
               </button>
             ))}
           </div>
-          <button type="button" className="men-nav-offers" onClick={() => navigate("/offers")}>
+          <button
+            type="button"
+            className="men-nav-offers"
+            onClick={() => navigate("/offers")}
+          >
             <MdSettings /> Offers
           </button>
         </nav>
@@ -485,7 +520,9 @@ export default function Men() {
 
       <main className="men-main">
         <div className="men-breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>Home</button>
+          <button type="button" onClick={() => navigate("/")}>
+            Home
+          </button>
           <span>›</span>
           <span className="current">Men</span>
         </div>
@@ -531,7 +568,10 @@ export default function Men() {
                       }}
                     />
                   ) : null}
-                  <span className="men-cat-fallback-icon" style={cat.image ? { display: "none" } : undefined}>
+                  <span
+                    className="men-cat-fallback-icon"
+                    style={cat.image ? { display: "none" } : undefined}
+                  >
                     {cat.icon ? <cat.icon /> : <MdGridView />}
                   </span>
                 </span>
@@ -542,7 +582,11 @@ export default function Men() {
         </section>
 
         <section className="men-promo-strip">
-          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-prepaid"
+            onClick={() => navigate("/offers")}
+          >
             <div>
               <p className="men-promo-title">Prepaid Order Offers</p>
               <p className="men-promo-sub">Extra savings when you pay online</p>
@@ -550,20 +594,32 @@ export default function Men() {
             <MdLocalOffer className="men-promo-icon" />
           </button>
 
-          <button type="button" className="men-promo-card men-promo-brands" onClick={() => navigate(menScopedShopUrl())}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-brands"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
             <div>
               <p className="men-promo-title">Top Brand Discounts</p>
               <p className="men-promo-sub">Nike · Adidas · Puma &amp; more</p>
             </div>
-            <span className="men-promo-cta">Shop Now <MdArrowForward /></span>
+            <span className="men-promo-cta">
+              Shop Now <MdArrowForward />
+            </span>
           </button>
 
-          <button type="button" className="men-promo-card men-promo-delivery" onClick={() => navigate(menScopedShopUrl())}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-delivery"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
             <div>
               <p className="men-promo-title">Fast &amp; Free Delivery</p>
               <p className="men-promo-sub">On eligible orders, in 60 minutes</p>
             </div>
-            <span className="men-promo-cta">Shop Now <MdArrowForward /></span>
+            <span className="men-promo-cta">
+              Shop Now <MdArrowForward />
+            </span>
           </button>
         </section>
 
@@ -579,73 +635,41 @@ export default function Men() {
             <p className="men-empty-state">Loading today&apos;s picks…</p>
           ) : products.length ? (
             <div className="hp-deals-wrap">
-              <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollPicks(-1)}>
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Previous"
+                onClick={() => scrollPicks(-1)}
+              >
                 <MdChevronLeft />
               </button>
 
               <div className="hp-deals-rail" role="list" ref={picksRailRef}>
                 {products.map((p, idx) => (
-                  <article
+                  <div
                     key={`men-pick-${p.id}-${idx}`}
-                    className="hp-deal-card"
+                    className="hp-deal-card-wrapper"
                     role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`, { state: { from: 'men', fromLabel: 'Men', fromPath: '/men' } })}
+                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
                   >
-                    <div className="hp-deal-media">
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} loading="lazy" />
-                      ) : (
-                        <div className="hp-deal-fallback">No image</div>
-                      )}
-                      <span className={`hp-deal-ribbon${p.discount === 0 ? " new" : ""}`}>
-                        {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-                      </span>
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? " active" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist({ productId: p.id, name: p.name, image: p.image, price: p.price });
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p.price}</span>
-                        {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}>
-                          {p.discount > 0 ? `${p.discount}% OFF` : "BESTSELLER"}
-                        </span>
-                        <button
-                          type="button"
-                          className="hp-deal-cart"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart({ productId: p.id, variantId: p.id, name: p.name, image: p.image, price: p.price });
-                          }}
-                          aria-label="Add to cart"
-                        >
-                          <MdOutlineShoppingCart />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
+                    <ProductCard product={p} />
+                  </div>
                 ))}
               </div>
 
-              <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollPicks(1)}>
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Next"
+                onClick={() => scrollPicks(1)}
+              >
                 <MdChevronRight />
               </button>
             </div>
           ) : (
-            <p className="men-empty-state">New men&apos;s styles are landing soon — check back shortly.</p>
+            <p className="men-empty-state">
+              New men&apos;s styles are landing soon — check back shortly.
+            </p>
           )}
         </section>
 
@@ -674,7 +698,11 @@ export default function Men() {
                   aria-label={`Shop ${brand.name}`}
                 >
                   <span className="hp-top-brand-logo">
-                    {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials || "BR"}</span>}
+                    {logo ? (
+                      <img src={logo} alt="" loading="lazy" />
+                    ) : (
+                      <span>{initials || "BR"}</span>
+                    )}
                   </span>
                   <span className="hp-top-brand-name">{brand.name}</span>
                 </button>
@@ -684,12 +712,48 @@ export default function Men() {
         </section>
 
         <section className="men-trust-strip" aria-label="Why shop with us">
-          <div><MdBolt /><div><strong>60 MINUTES</strong><span>Delivery</span></div></div>
-          <div><MdAutorenew /><div><strong>Easy 5-Day</strong><span>Returns</span></div></div>
-          <div><MdVerifiedUser /><div><strong>100% Original</strong><span>Products</span></div></div>
-          <div><MdLocalOffer /><div><strong>Best Prices</strong><span>Everyday</span></div></div>
-          <div><MdSecurity /><div><strong>Secure Payments</strong><span>100% Safe &amp; Secure</span></div></div>
-          <div><MdSupportAgent /><div><strong>24/7 Support</strong><span>We&apos;re here for you</span></div></div>
+          <div>
+            <MdBolt />
+            <div>
+              <strong>60 MINUTES</strong>
+              <span>Delivery</span>
+            </div>
+          </div>
+          <div>
+            <MdAutorenew />
+            <div>
+              <strong>Easy 5-Day</strong>
+              <span>Returns</span>
+            </div>
+          </div>
+          <div>
+            <MdVerifiedUser />
+            <div>
+              <strong>100% Original</strong>
+              <span>Products</span>
+            </div>
+          </div>
+          <div>
+            <MdLocalOffer />
+            <div>
+              <strong>Best Prices</strong>
+              <span>Everyday</span>
+            </div>
+          </div>
+          <div>
+            <MdSecurity />
+            <div>
+              <strong>Secure Payments</strong>
+              <span>100% Safe &amp; Secure</span>
+            </div>
+          </div>
+          <div>
+            <MdSupportAgent />
+            <div>
+              <strong>24/7 Support</strong>
+              <span>We&apos;re here for you</span>
+            </div>
+          </div>
         </section>
       </main>
 
