@@ -9,7 +9,6 @@
 
 /* =========================================================
    APP SHELL — utility bar, header, share popover, mobile bar
-   (kept from the new project; untouched logic, untouched markup)
    ========================================================= */
 
 .hp-utility-bar { background: #0b6b34; color: #fff; }
@@ -241,7 +240,7 @@
 .pd-share-device { background: #334155; }
 
 /* =========================================================
-   PRODUCT PAGE — layout & design ported from the old project
+   PRODUCT PAGE — layout & design
    ========================================================= */
 
 .pp-page {
@@ -394,8 +393,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  justify-content: space-between; /* spreads leftover height evenly across sections */
-  gap: 16px; /* guaranteed minimum spacing even when content is tall */
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .pp-badge-row { display: flex; gap: 10px; margin-bottom: 14px; width: 100%; }
@@ -496,9 +495,6 @@
 .pp-stock-warning svg { color: var(--pp-muted); flex-shrink: 0; }
 .pp-stock-warning strong { color: #dc2626; font-weight: 700; }
 
-/* quick facts block — new-project only, styled to match.
-   Anchored to the bottom of the info column so it fills the
-   column's full height instead of leaving a gap underneath it. */
 .pp-quick-facts {
   border: 1px solid var(--pp-line);
   background: #f8fafc;
@@ -617,7 +613,6 @@
 .pp-reviews-tab-content { display: flex; flex-direction: column; gap: 14px; }
 .pp-review-empty { font-size: 13px; color: var(--pp-muted); margin: 0; }
 
-/* footer-style score line — new-project only, styled to match old detail card */
 .pp-reviews-score-inline {
   display: flex;
   align-items: center;
@@ -765,7 +760,7 @@
 
 .pp-related-media {
   width: 100%;
-  aspect-ratio: 3 / 4; /* keeps outfit shots in full frame, no chopped garments */
+  aspect-ratio: 3 / 4;
   background: #f7f7f7;
   overflow: hidden;
 }
@@ -823,20 +818,100 @@
 .pp-trust-item h4 { margin: 0; font-size: 13.5px; font-weight: 700; }
 .pp-trust-item p { margin: 3px 0 0; font-size: 12px; color: var(--pp-muted); line-height: 1.5; }
 
-/* ---------- Location sheet trigger colour tie-in ---------- */
+/* ---------- Location sheet ---------- */
 .hp-location-current-btn,
 .hp-location-address-item.active { border-color: var(--pp-green, #159a4c); }
+
+/* =========================================================
+   MOBILE STICKY ACTION BAR (with Try & Buy)
+   ========================================================= */
+
+.pd-mobile-actionbar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 120;
+  display: none; /* shown only on mobile */
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.98);
+  border-top: 1px solid #e2e8f0;
+  box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.pd-mobile-price {
+  display: grid;
+  gap: 2px;
+  min-width: 70px;
+}
+
+.pd-mobile-price strong {
+  font-size: 18px;
+  line-height: 1;
+  color: #0f172a;
+}
+
+.pd-mobile-price span {
+  font-size: 11px;
+  color: #94a3b8;
+  text-decoration: line-through;
+}
+
+.pd-mobile-actions {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.pd-mobile-cart,
+.pd-mobile-try,
+.pd-mobile-buy {
+  flex: 1;
+  height: 44px;
+  border-radius: 10px;
+  border: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 0 8px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.pd-mobile-cart {
+  background: #ecfdf3;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.pd-mobile-try {
+  background: #fff;
+  color: #ff5a36;
+  border: 1.5px solid #ff5a36;
+}
+
+.pd-mobile-buy {
+  background: #16a34a;
+  color: #fff;
+}
+
+.pd-mobile-cart:disabled,
+.pd-mobile-try:disabled,
+.pd-mobile-buy:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 /* =========================================================
    RESPONSIVE
    ========================================================= */
 
-.pd-mobile-actionbar { display: none; }
-
-/* ---------- Extra-large desktops / wide monitors ----------
-   Full-bleed page (no max-width cap), so widen the sidebar and gallery
-   columns as the viewport grows instead of leaving them fixed and
-   letting the centre column stretch awkwardly. */
 @media (min-width: 1600px) {
   .pp-main-grid { grid-template-columns: 96px minmax(0,1fr) 460px 400px; column-gap: 32px; }
   .pp-main-image-wrap { min-height: 620px; }
@@ -891,6 +966,7 @@
   .pp-quick-facts { flex: 1; margin-bottom: 0; }
 }
 
+/* ---------- Mobile (main breakpoint) ---------- */
 @media (max-width: 760px) {
   .hp-utility-bar { display: none; }
   .pd-header {
@@ -918,8 +994,6 @@
   .pd-share-menu { width: 190px; max-width: calc(100vw - 24px); }
   .pd-share-trigger { width: 38px; height: 38px; }
 
-  /* touch targets: keep tap areas comfortable at this size regardless
-     of the smaller visual footprint */
   .pp-arrow { width: 38px; height: 38px; }
   .pp-thumb-more { width: 34px; height: 34px; }
   .pp-tab { padding-top: 16px; padding-bottom: 14px; }
@@ -956,8 +1030,12 @@
   .pp-desc-clip { max-height: 220px; }
   .pp-description { font-size: 13px; line-height: 1.65; }
   .pp-details-table div { grid-template-columns: 84px minmax(0,1fr); }
-  .pp-buy-card { padding: 14px; border-radius: 14px; gap: 8px; display: none; } /* replaced by pd-mobile-actionbar */
-  .pp-buy-now, .pp-add-cart, .pp-try-buy, .pp-wishlist-btn { height: 48px; font-size: 14px; }
+  
+  /* Hide desktop buy card on mobile */
+  .pp-buy-card {
+    display: none !important;
+  }
+
   .pp-related-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .pp-recent-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
   .pp-related-card { border-radius: 12px; }
@@ -968,50 +1046,45 @@
   .pp-trust-strip { grid-template-columns: 1fr; padding: 16px; gap: 16px; margin-top: 24px; }
   .pp-trust-item svg { width: 24px; height: 24px; }
 
+  /* Show mobile sticky action bar */
   .pd-mobile-actionbar {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    z-index: 120;
     display: grid;
-    grid-template-columns: 1fr auto;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
-    background: rgba(255, 255, 255, 0.98);
-    border-top: 1px solid #e2e8f0;
-    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.12);
   }
-  .pd-mobile-price { display: grid; gap: 2px; }
-  .pd-mobile-price strong { font-size: 20px; line-height: 1; color: #0f172a; }
-  .pd-mobile-price span { font-size: 12px; color: #94a3b8; text-decoration: line-through; }
-  .pd-mobile-actions { display: flex; gap: 8px; }
-  .pd-mobile-cart, .pd-mobile-buy {
-    height: 42px;
-    border-radius: 10px;
-    border: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 5px;
-    font-size: 13px;
-    font-weight: 700;
-    padding: 0 12px;
-    cursor: pointer;
-  }
-  .pd-mobile-cart { background: #ecfdf3; color: #15803d; border: 1px solid #86efac; }
-  .pd-mobile-buy { background: #16a34a; color: #fff; }
-  .pd-mobile-cart:disabled, .pd-mobile-buy:disabled { opacity: 0.6; }
 }
 
-/* ---------- Small phones (iPhone SE / mini and similar) ---------- */
+/* ---------- Very small phones ---------- */
+@media (max-width: 420px) {
+  .pd-mobile-actionbar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .pd-mobile-price {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+
+  .pd-mobile-actions {
+    width: 100%;
+  }
+
+  .pd-mobile-cart,
+  .pd-mobile-try,
+  .pd-mobile-buy {
+    flex: 1;
+    font-size: 12px;
+    padding: 0 6px;
+  }
+}
+
+/* ---------- Small phones ---------- */
 @media (max-width: 480px) {
   .pd-header { padding: 8px 10px; }
   .pd-brand-logo .hp-brand-name { max-width: 110px; }
   .hp-logo { height: 28px; }
   .pp-page { padding: 12px 12px 84px; font-size: 13px; }
-  .pp-back-row, .pp-breadcrumb { font-size: 11.5px; }
+  .pp-breadcrumb { font-size: 11.5px; }
   .pp-title { font-size: 17.5px; }
   .pp-price { font-size: 25px; }
   .pp-chip { padding: 7px 8px; font-size: 10px; }
@@ -1021,35 +1094,7 @@
   .pp-detail-card { padding: 0 12px 16px; }
   .pp-tabs { margin: 0 -12px 14px; padding: 0 12px; gap: 14px; }
   .pd-mobile-price strong { font-size: 18px; }
-  .pd-mobile-cart span, .pd-mobile-buy span { font-size: 12.5px; }
-}
-
-@media (max-width: 420px) {
-  .pd-mobile-actionbar { grid-template-columns: 1fr; gap: 8px; }
-  .pd-mobile-actions { width: 100%; }
-  .pd-mobile-cart, .pd-mobile-buy { flex: 1; }
-}
-
-/* ---------- Short / landscape mobile viewports ---------- */
-@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
-  .pd-header { position: static; }
-  .pp-main-image-wrap { min-height: 0; }
-  .pp-main-image { aspect-ratio: 16 / 9; }
-  .pd-mobile-actionbar { padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
-  .pd-mobile-cart, .pd-mobile-buy { height: 38px; }
-}
-
-/* ---------- Respect reduced-motion preference ---------- */
-@media (prefers-reduced-motion: reduce) {
-  .pp-related-card,
-  .pp-related-media img,
-  .pp-arrow,
-  .pp-desc-clip,
-  .pd-share-trigger,
-  .pd-share-menu {
-    transition: none !important;
-    animation: none !important;
-  }
+  .pd-mobile-cart span, .pd-mobile-try span, .pd-mobile-buy span { font-size: 12.5px; }
 }
 
 @media (max-width: 380px) {
@@ -1079,4 +1124,26 @@
   display: inline-flex !important;
   visibility: visible !important;
   opacity: 1 !important;
+}
+
+/* ---------- Short / landscape mobile viewports ---------- */
+@media (max-width: 900px) and (orientation: landscape) and (max-height: 480px) {
+  .pd-header { position: static; }
+  .pp-main-image-wrap { min-height: 0; }
+  .pp-main-image { aspect-ratio: 16 / 9; }
+  .pd-mobile-actionbar { padding-top: 6px; padding-bottom: calc(6px + env(safe-area-inset-bottom)); }
+  .pd-mobile-cart, .pd-mobile-try, .pd-mobile-buy { height: 38px; }
+}
+
+/* ---------- Respect reduced-motion preference ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .pp-related-card,
+  .pp-related-media img,
+  .pp-arrow,
+  .pp-desc-clip,
+  .pd-share-trigger,
+  .pd-share-menu {
+    transition: none !important;
+    animation: none !important;
+  }
 }

@@ -41,6 +41,9 @@ import { useWishlist } from "../context/WishlistContext";
 import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
+import menBanner1 from "../assets/men-banner-1.png";
+import menBanner2 from "../assets/men-banner-2.png";
+import menBanner3 from "../assets/men-banner-3.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Men.css";
@@ -70,7 +73,7 @@ function rootIdForAny(allCats, names) {
 
   const exact = allCats.find((c) => {
     if (c.parent_id) return false;
-    const name = (c?.name || "").toString().toLowerCase().trim();
+    const name = (c?.name || "").toString().lowerCase().trim();
     return needles.some((needle) => name === needle);
   });
   if (exact) return exact.id;
@@ -173,9 +176,9 @@ function normalizeProduct(p) {
 
 // Banner images for the Men hero cards: [main, trending side, arrivals side]
 const MEN_BANNERS = [
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0014.jpg",
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657706/IMG-20260825-WA0012.jpg",
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657885/IMG-20260825-WA0013.jpg",
+  menBanner1,
+  menBanner2,
+  menBanner3,
 ];
 
 function heroBannerStyle(url) {

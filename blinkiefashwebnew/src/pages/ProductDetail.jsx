@@ -143,18 +143,14 @@ export default function ProductDetail() {
   const reviewsRef = useRef(null);
   const descClipRef = useRef(null);
 
-  /* Reset image index whenever the selected color changes (render-time
-     adjustment, not an effect, per https://react.dev/learn/you-might-not-need-an-effect) */
+  /* Reset image index whenever the selected color changes */
   const [prevSelectedColor, setPrevSelectedColor] = useState(selectedColor);
   if (selectedColor !== prevSelectedColor) {
     setPrevSelectedColor(selectedColor);
     setActiveImage(0);
   }
 
-  /* Reset all transient/product-scoped UI state whenever the product id
-     changes. This replaces the old "setLoading(true) in the fetch effect"
-     and the separate "reset transient UI state" effect — both were calling
-     setState synchronously in an effect body. */
+  /* Reset all transient/product-scoped UI state whenever the product id changes */
   const [prevId, setPrevId] = useState(id);
   if (id !== prevId) {
     setPrevId(id);
@@ -256,10 +252,7 @@ export default function ProductDetail() {
     };
   }, [relatedProducts]);
 
-  /* Save this product to the recently-viewed list in localStorage.
-     This only writes to an external system (no setState here), so it's
-     not subject to the set-state-in-effect rule. The list itself is read
-     fresh from localStorage during render below, once `product` is known. */
+  /* Save this product to the recently-viewed list in localStorage */
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
@@ -277,7 +270,6 @@ export default function ProductDetail() {
       name: data.product.name,
       brand: data.product.brand || '',
       image: imageUrl,
-      // include both underscored and plain fields for compatibility
       _price: price,
       price,
       _mrp: mrp,
@@ -295,7 +287,7 @@ export default function ProductDetail() {
     }
   }, [data, selectedVariant]);
 
-  /* Description "read more" clipping, ported from the old page */
+  /* Description "read more" clipping */
   useEffect(() => {
     const measure = () => {
       const el = descClipRef.current;
@@ -339,10 +331,6 @@ export default function ProductDetail() {
   const reviewCount = Number(product.review_count || 0);
   const discountPct = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
 
-  /* Recently viewed list, derived fresh from localStorage on each render
-     rather than mirrored into React state via an effect. This is a pure
-     read of an external, synchronous store (localStorage) scoped to the
-     current product, so it doesn't need its own state or effect. */
   let recentlyViewed;
   try {
     const stored = JSON.parse(localStorage.getItem(RECENTLY_VIEWED_KEY) || '[]');
@@ -390,18 +378,15 @@ export default function ProductDetail() {
 
   const colorThumbnails = {};
   colorOptions.forEach((color) => {
-    // Get ALL variant ids for this color (not just the first size found)
     const idsForColor = new Set(
       (variants || [])
         .filter((v) => (v.color || '').toLowerCase() === color.toLowerCase())
         .map((v) => v.id)
     );
-
-    // Find any image tagged to ANY of this color's variant ids
     const img = (images || []).find((i) => idsForColor.has(i.variant_id));
-
     colorThumbnails[color] = img?.url || null;
   });
+
   const sizeOptions = selectedColor
     ? (variants || []).filter((v) => (v.color || '').toLowerCase() === selectedColor.toLowerCase())
     : variants || [];
@@ -425,7 +410,6 @@ export default function ProductDetail() {
       return false;
     }
 
-    // Prefer variant price; fall back to product-level prices
     const unitPrice = Number(
       pickPrice(
         selectedVariant?.discount_price,
@@ -563,7 +547,7 @@ export default function ProductDetail() {
     try {
       await navigator.share({ title: product.name, text: shareText, url: shareUrl });
     } catch {
-      // user dismissed the native share sheet, nothing to do
+      // user dismissed
     }
     setShareOpen(false);
   };
@@ -574,7 +558,7 @@ export default function ProductDetail() {
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
     } catch {
-      // clipboard blocked, silently ignore
+      // clipboard blocked
     }
   };
 
@@ -712,7 +696,6 @@ export default function ProductDetail() {
         </nav>
 
         <div className="pp-main-grid">
-
           {/* Gallery */}
           <div className="pp-gallery-col">
             <div className="pp-thumb-col">
@@ -848,11 +831,11 @@ export default function ProductDetail() {
                       aria-label={`Select color ${color}`}
                       aria-pressed={selectedColor.toLowerCase() === color.toLowerCase()}
                     >
-                     {colorThumbnails[color] ? (
-                       <img src={colorThumbnails[color]} alt={color} />
-                             ) : (
-                               <div className="pd-thumb-fallback" />
-)}
+                      {colorThumbnails[color] ? (
+                        <img src={colorThumbnails[color]} alt={color} />
+                      ) : (
+                        <div className="pd-thumb-fallback" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -867,7 +850,6 @@ export default function ProductDetail() {
                 <div className="pp-size-row">
                   {sortSizes([...new Set(sizeOptions.map((v) => v.size || 'Default'))]).map((size) => {
                     const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
-                    // Visual hint only — still allow selection (inventory rows are often missing)
                     const lowStock = Number(scoped?.available_stock || 0) <= 0;
                     const active = (selectedVariant?.size || 'Default') === size;
                     return (
@@ -1075,7 +1057,6 @@ export default function ProductDetail() {
             </div>
 
             <div className="pp-detail-body">
-
               {activeTab === 'description' && (
                 <div className="pp-description">
                   <div
@@ -1185,16 +1166,33 @@ export default function ProductDetail() {
         )}
       </div>
 
+      {/* ===== MOBILE STICKY ACTION BAR (with Try & Buy) ===== */}
       <div className="pd-mobile-actionbar">
         <div className="pd-mobile-price">
           <strong>₹{toCurrency(price)}</strong>
           {mrp > price ? <span>₹{toCurrency(mrp)}</span> : null}
         </div>
         <div className="pd-mobile-actions">
-          <button type="button" className="pd-mobile-cart" disabled={canPurchase === false} onClick={handleAddToCart}>
+          <button
+            type="button"
+            className="pd-mobile-cart"
+            disabled={canPurchase === false}
+            onClick={() => handleAddToCart()}
+          >
             <MdOutlineShoppingCart />
-            <span>{cartAdded ? 'Added ✓' : 'Add to Cart'}</span>
+            <span>{cartAdded ? 'Added ✓' : 'Cart'}</span>
           </button>
+
+          <button
+            type="button"
+            className="pd-mobile-try"
+            disabled={canPurchase === false}
+            onClick={handleTryAndBuyClick}
+          >
+            <MdVerified />
+            <span>Try & Buy</span>
+          </button>
+
           <button
             type="button"
             className="pd-mobile-buy"

@@ -36,6 +36,9 @@ import { useWishlist } from "../context/WishlistContext";
 import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
+import womenBanner1 from "../assets/women-banner-1.png";
+import womenBanner2 from "../assets/women-banner-2.png";
+import womenBanner3 from "../assets/women-banner-3.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Women.css";
@@ -147,21 +150,23 @@ function normalizeProduct(p) {
   };
 }
 
-
-// Banner images for the Women hero cards: [main, trending side, arrivals side]
+// Banner images for the Women hero cards: [main, trending side, arrivals side].
+// Each entry pairs the image with descriptive alt text for screen readers —
+// these banners carry marketing copy/CTAs, so they are content, not decoration.
 const WOMEN_BANNERS = [
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0015.jpg",
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0017.jpg",
-  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787660973/IMG-20260825-WA0016.jpg",
+  {
+    src: womenBanner1,
+    alt: "Women's Collection — unmatched styles, unstoppable you. Explore the Women's Collection.",
+  },
+  {
+    src: womenBanner2,
+    alt: "Trending styles for women — shop what's popular right now.",
+  },
+  {
+    src: womenBanner3,
+    alt: "New arrivals for women — discover the latest drops.",
+  },
 ];
-
-function heroBannerStyle(url) {
-  return {
-    backgroundImage: `url(${url})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-  };
-}
 
 function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, addToCart, onProductClick }) {
   const scrollRail = (dir) => {
@@ -223,7 +228,7 @@ function ProductRail({ list, railRef, keyPrefix, isWishlisted, toggleWishlist, a
                 {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
               </div>
               <div className="hp-deal-footer-row">
-                <span className={`hp-deal-off${p.discount > 0 ? ' discount' : ''}`}>
+                <span className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}>
                   {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
                 </span>
                 <button
@@ -575,28 +580,30 @@ export default function Women() {
 
         {/* Hero */}
         <section className="women-hero-grid" aria-label="Women's fashion highlights">
-          <div
+          <button
+            type="button"
             className="women-hero-main"
-            style={{ ...heroBannerStyle(WOMEN_BANNERS[0]), cursor: "pointer" }}
             onClick={() => navigate(womenScopedShopUrl())}
-          />
+          >
+            <img src={WOMEN_BANNERS[0].src} alt={WOMEN_BANNERS[0].alt} />
+          </button>
 
           <div className="women-hero-side-col">
             <button
               type="button"
               className="women-hero-side trending"
-              style={heroBannerStyle(WOMEN_BANNERS[1])}
-              onClick={() =>
-                navigate(womenScopedShopUrl())
-              }
-            />
+              onClick={() => navigate(womenScopedShopUrl())}
+            >
+              <img src={WOMEN_BANNERS[1].src} alt={WOMEN_BANNERS[1].alt} />
+            </button>
 
             <button
               type="button"
               className="women-hero-side arrivals"
-              style={heroBannerStyle(WOMEN_BANNERS[2])}
               onClick={() => navigate(womenScopedShopUrl())}
-            />
+            >
+              <img src={WOMEN_BANNERS[2].src} alt={WOMEN_BANNERS[2].alt} />
+            </button>
           </div>
         </section>
 
