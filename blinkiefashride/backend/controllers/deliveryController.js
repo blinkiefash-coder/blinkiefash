@@ -123,7 +123,7 @@ exports.getAvailableOrders = async (req, res) => {
         FROM "Riders"
         WHERE id = :riderId
       ) rider_loc
-      WHERE o.status = 'confirmed'
+      WHERE o.status IN ('confirmed', 'packed')
         AND NOT EXISTS (
           SELECT 1 FROM deliveries d
           WHERE d.order_id = o.id AND d.is_active = TRUE

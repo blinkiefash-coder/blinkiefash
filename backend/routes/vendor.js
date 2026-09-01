@@ -596,7 +596,11 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
       [orderId, vendorId]
     ).catch(() => ({ rows: [] }));
     const activeOffer = offerResult.rows[0];
-    if (activeOffer && activeOffer.status !== "offered") {
+    // Only the initial accept/reject action needs the offer to still be "offered".
+    // Later stage updates (packed/picked/out_for_delivery/delivered) happen after the
+    // offer was already accepted, so they must not be blocked by this check.
+    const isOfferResponse = normalizedStatus === "confirmed" || normalizedStatus === "cancelled";
+    if (isOfferResponse && activeOffer && activeOffer.status !== "offered") {
       return res.status(409).json({
         success: false,
         error: "This order is no longer awaiting a response from this vendor",
@@ -689,7 +693,7 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
       [normalizedStatus, orderId, ownerIds]
     ).catch(() => {});
 
-    if (normalizedStatus === "confirmed") {
+    if (normalizedStatus === "confirmed" || normalizedStatus === "packed") {
       notifyAvailableRiders(pool, orderId).catch(() => {});
     }
     notifyCustomerOfStatus(pool, orderId, normalizedStatus).catch(() => {});
