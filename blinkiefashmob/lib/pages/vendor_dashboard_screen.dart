@@ -4093,7 +4093,8 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
           ..showSnackBar(
             SnackBar(
               content: Text(
-                (response['error'] ?? 'Unable to save invoice number').toString(),
+                (response['error'] ?? 'Unable to save invoice number')
+                    .toString(),
               ),
             ),
           );
@@ -4102,7 +4103,9 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..removeCurrentSnackBar()
-        ..showSnackBar(SnackBar(content: Text('Failed to save invoice number: $e')));
+        ..showSnackBar(
+          SnackBar(content: Text('Failed to save invoice number: $e')),
+        );
     }
   }
 
@@ -4354,7 +4357,9 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               final storePickupOtp = (o['store_pickup_otp'] ?? '')
                   .toString()
                   .trim();
-              final invoiceNumber = (o['invoice_number'] ?? '').toString().trim();
+              final invoiceNumber = (o['invoice_number'] ?? '')
+                  .toString()
+                  .trim();
               final displayInvoiceNumber = invoiceNumber.isNotEmpty
                   ? invoiceNumber
                   : (id.length > 8 ? id.substring(0, 8) : id);
@@ -4413,7 +4418,11 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                           onTap: () => _editInvoiceNumber(id, invoiceNumber),
                           child: const Padding(
                             padding: EdgeInsets.symmetric(horizontal: 6),
-                            child: Icon(Icons.edit, size: 16, color: Color(0xFF64748B)),
+                            child: Icon(
+                              Icons.edit,
+                              size: 16,
+                              color: Color(0xFF64748B),
+                            ),
                           ),
                         ),
                         Container(
