@@ -28,9 +28,9 @@
 }
 
 .auth-method-btn.active {
-  border-color: var(--brand-green);
-  color: var(--brand-green-dark);
-  background: rgba(34, 197, 94, 0.08);
+  border-color: var(--theme-primary, var(--brand-green));
+  color: var(--theme-dark, var(--brand-green-dark));
+  background: var(--theme-light, rgba(34, 197, 94, 0.08));
 }
 
 .auth-form {
@@ -54,7 +54,7 @@
 }
 
 .auth-form input:focus {
-  border-color: var(--brand-green);
+  border-color: var(--theme-primary, var(--brand-green));
 }
 
 .auth-form .primary-btn {
@@ -67,7 +67,7 @@
 }
 
 .auth-hint {
-  color: var(--brand-green-dark);
+  color: var(--theme-dark, var(--brand-green-dark));
   font-size: 12px;
 }
 
@@ -79,14 +79,31 @@
 }
 
 .auth-switch a {
-  color: var(--brand-green-dark);
+  color: var(--theme-dark, var(--brand-green-dark));
   font-weight: 700;
+}
+
+.auth-forgot-link {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+
+.auth-forgot-link a {
+  color: var(--theme-dark, var(--brand-green-dark));
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-forgot-link a:hover {
+  text-decoration: underline;
 }
 
 /* Append to Auth.css — pill inputs with leading icons, password toggle, checkbox, divider */
 
 .brand-accent {
-  color: var(--brand-green-dark);
+  color: var(--theme-dark, var(--brand-green-dark));
 }
 
 .auth-input-wrap {
@@ -101,8 +118,8 @@
 }
 
 .auth-input-wrap:focus-within {
-  border-color: var(--brand-green);
-}
+  border-color: var(--theme-primary, var(--brand-green));
+}}
 
 .auth-input-wrap input {
   border: none;
@@ -111,6 +128,23 @@
   padding: 12px 8px;
   font-size: 13px;
   background: transparent;
+}
+
+.auth-input-wrap select {
+  border: none;
+  outline: none;
+  flex: 1;
+  padding: 12px 8px;
+  font-size: 13px;
+  background: transparent;
+  color: #333;
+  cursor: pointer;
+}
+
+.auth-input-wrap select option {
+  background: #fff;
+  color: #333;
+  padding: 8px;
 }
 
 .auth-input-icon {
@@ -161,15 +195,15 @@
   height: 16px;
   margin-top: 2px;
   flex-shrink: 0;
-  accent-color: var(--brand-green);
+  accent-color: var(--theme-primary, var(--brand-green));
   cursor: pointer;
-}
+}}
 
 .auth-checkbox-label a {
-  color: var(--brand-green-dark);
+  color: var(--theme-dark, var(--brand-green-dark));
   font-weight: 700;
   text-decoration: none;
-}
+}}
 
 .auth-checkbox-label a:hover {
   text-decoration: underline;

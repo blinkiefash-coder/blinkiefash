@@ -187,6 +187,25 @@ function normalizeProduct(p) {
   };
 }
 
+
+
+// Banner images for the Women hero cards
+const WOMEN_BANNERS = [
+  {
+    src: womenBanner1,
+    alt: "Women's Collection — unmatched styles, unstoppable you. Explore the Women's Collection.",
+  },
+  {
+    src: womenBanner2,
+    alt: "Trending styles for women — shop what's popular right now.",
+  },
+  {
+    src: womenBanner3,
+    alt: "New arrivals for women — discover the latest drops.",
+  },
+];
+
+
 function ProductRail({ list, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
     const el = railRef.current;
@@ -365,6 +384,7 @@ export default function Women() {
     };
   }, [womenResolved, womenRootId, womenSubcats]);
 
+
   // Auto-advance the hero carousel every 5s, pausing is unnecessary since
   // arrows/dots simply reset the timer via index change.
   useEffect(() => {
@@ -373,6 +393,7 @@ export default function Women() {
     }, 5000);
     return () => clearInterval(id);
   }, []);
+
 
   const womenScopedShopUrl = useCallback(
     (opts = {}) => {
@@ -750,6 +771,70 @@ export default function Women() {
             ))}
           </div>
         </section>
+
+
+        {/* Promos */}
+        <section className="women-promo-strip" aria-label="Offers">
+          <button
+            type="button"
+            className="women-promo-card women-promo-prepaid"
+            onClick={() => navigate("/offers")}
+          >
+            <div>
+              <p className="title">EXTRA 10% OFF</p>
+              <p className="sub">On Prepaid Orders · Code BLINK10</p>
+            </div>
+            <MdLocalOffer style={{ fontSize: 28 }} />
+          </button>
+
+          <button
+            type="button"
+            className="women-promo-card women-promo-brands"
+            onClick={() => navigate(womenScopedShopUrl())}
+          >
+            <div>
+              <p className="title">UP TO 60% OFF</p>
+              <p className="sub">On Top Brands</p>
+              <div className="women-promo-brands-row">
+                <span className="women-promo-brand-chip">ZUDIO</span>
+                <span className="women-promo-brand-chip">BIBA</span>
+                <span className="women-promo-brand-chip">MANGO</span>
+              </div>
+            </div>
+            <span className="cta">SHOP NOW →</span>
+          </button>
+
+          <button
+            type="button"
+            className="women-promo-card women-promo-delivery"
+            onClick={() => navigate(womenScopedShopUrl())}
+          >
+            <div>
+              <p className="title">FREE DELIVERY</p>
+              <p className="sub">On Orders Above ₹1499</p>
+              <span className="cta">SHOP NOW →</span>
+            </div>
+            <span style={{ fontSize: 28 }}>🛵</span>
+          </button>
+        </section>
+
+        {/* Trending */}
+        <section className="section women-picks-section">
+          <div className="hp-section-head">
+            <h2>Trending Now 🔥</h2>
+            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
+              View All <MdChevronRight />
+            </button>
+          </div>
+          {productsLoading ? (
+            <p className="women-empty-state">Loading today&apos;s picks…</p>
+          ) : products.length ? (
+            <ProductRail list={products} railRef={trendingRef} keyPrefix="women-trend" />
+          ) : (
+            <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
+          )}
+        </section>
+
 
         {/* New arrivals */}
         <section className="section women-picks-section">

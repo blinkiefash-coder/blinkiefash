@@ -875,6 +875,20 @@
   }
 }
 
+} 
+
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* ===== Product rails → better mobile layout ===== */
+
 .hp-deals-rail .hp-deal-card-wrapper {
   min-width: 180px;
   max-width: 220px;
@@ -891,6 +905,7 @@
     position: relative;
   }
 
+  /* Hide the side arrows on mobile – users scroll the grid instead */
   .women-picks-section .hp-deals-prev,
   .women-picks-section .hp-deals-next {
     display: none;
@@ -917,6 +932,7 @@
   }
 }
 
+/* Very small phones */
 @media (max-width: 380px) {
   .women-picks-section .hp-deals-rail {
     gap: 8px;

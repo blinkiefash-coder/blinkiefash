@@ -932,3 +932,52 @@
     height: 50px;
   }
 }
+
+/* Product rail wrappers */
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* Mobile: 2-column grid instead of horizontal scroll */
+@media (max-width: 640px) {
+  .men-picks-section .hp-deals-wrap {
+    position: relative;
+  }
+
+  .men-picks-section .hp-deals-prev,
+  .men-picks-section .hp-deals-next {
+    display: none;
+  }
+
+  .men-picks-section .hp-deals-rail {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding: 0;
+  }
+
+  .men-picks-section .hp-deal-card-wrapper {
+    min-width: 0;
+    max-width: none;
+    flex: none;
+    width: 100%;
+  }
+
+  .men-picks-section .pc-card {
+    height: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .men-picks-section .hp-deals-rail {
+    gap: 8px;
+  }
+}

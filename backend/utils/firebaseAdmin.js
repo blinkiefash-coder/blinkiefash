@@ -40,7 +40,12 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
   }
   try {
     initializeFirebaseAdmin();
-    const isVendorNewOrder = String(data?.type || '') === 'vendor_new_order';
+    const notifType = String(data?.type || '');
+    const isVendorNewOrder = notifType === 'vendor_new_order';
+    // Rider app (blinkiefashride) only registers the 'blinkiefash_orders' channel
+    // (no _v2 suffix) — using the customer app's channel id here silently drops
+    // the notification on Android when the rider app is backgrounded/killed.
+    const isRiderMessage = ['order_available', 'parcel_available', 'order_assigned'].includes(notifType);
     const stringData = Object.fromEntries(
       Object.entries({ ...data, title, body }).map(([k, v]) => [k, String(v)])
     );
@@ -61,7 +66,7 @@ export async function sendPush(fcmToken, { title, body, data = {} }) {
                 tag: `vendor-order-${String(data?.orderId || '')}`,
               }
             : {
-                channelId: 'blinkiefash_orders_v2',
+                channelId: isRiderMessage ? 'blinkiefash_orders' : 'blinkiefash_orders_v2',
                 priority: 'max',
                 sound: 'default',
               },
@@ -180,7 +185,7 @@ export async function notifyVendorOfNewOrder(pool, orderId) {
          ON ovo.order_id = o.id
         AND ovo.vendor_id = v.id
         AND ovo.status = 'offered'
-       JOIN users u ON u.id = v.user_id
+       JOIN users u ON u.id::text = v.user_id
        WHERE o.id = $1
          AND u.fcm_token IS NOT NULL
          AND u.fcm_token != ''`,
@@ -225,7 +230,7 @@ export async function notifyCustomerOfStatus(pool, orderId, status) {
   try {
     const { rows } = await pool.query(
       `SELECT u.fcm_token
-       FROM orders o JOIN users u ON u.id = o.user_id
+       FROM orders o JOIN users u ON u.id::text = o.user_id
        WHERE o.id = $1`,
       [orderId]
     );

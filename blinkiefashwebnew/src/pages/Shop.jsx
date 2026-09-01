@@ -3,6 +3,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
 import Categorydrawer from "../components/Categorydrawer";
+import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 
 import {
   MdClose,
@@ -18,9 +19,9 @@ import {
 } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
-import { productImageUrlContain, productImageSrcSetContain } from "../utils/cloudinaryImage";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import { hasVendorPasswordAuth } from "../utils/vendorSession";
 import "./Home.css";
 
@@ -53,7 +54,10 @@ const buildChildrenMap = (data) => {
   const map = {};
 
   data.forEach((category) => {
-    const parentKey = category.parent_id != null && category.parent_id !== "" ? String(category.parent_id) : "ROOT";
+    const parentKey =
+      category.parent_id != null && category.parent_id !== ""
+        ? String(category.parent_id)
+        : "ROOT";
     if (!map[parentKey]) map[parentKey] = [];
     map[parentKey].push(category);
   });
@@ -69,17 +73,30 @@ export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { addToCart: addToLocalCart, getCartQty } = useCart();
-  const userId = localStorage.getItem("userUuid");
+  const { count: cartCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
+
   const city =
     localStorage.getItem("bfw_city") ||
     localStorage.getItem("selectedCity") ||
     "Cuttack";
-  const isLoggedIn = authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const canSwitchToVendor = user?.role === "vendor" && hasVendorPasswordAuth();
-  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : "My Account") : "Login / Signup";
+  const isLoggedIn =
+    authLoggedIn ||
+    Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
+  const canSwitchToVendor =
+    user?.role === "vendor" && hasVendorPasswordAuth();
+  const headerUserName = String(
+    user?.name || localStorage.getItem("userName") || ""
+  ).trim();
+  const headerFirstName = headerUserName
+    ? headerUserName.split(/\s+/)[0]
+    : "";
+  const accountLabel = isLoggedIn
+    ? headerFirstName
+      ? `Hi, ${headerFirstName}`
+      : "My Account"
+    : "Login / Signup";
+
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [brands, setBrands] = useState([]);
@@ -109,10 +126,7 @@ export default function Shop() {
   const [showFilters, setShowFilters] = useState(false);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [loading, setLoading] = useState(true);
-  const [wishlistCount, setWishlistCount] = useState(0);
-  const [cartCount, setCartCount] = useState(0);
 
-  // --- Category drawer state ---
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerParent, setDrawerParent] = useState(null);
   const activeCategoryTriggerRef = useRef(null);
@@ -120,13 +134,17 @@ export default function Shop() {
   const searchBlurTimerRef = useRef(null);
   const searchSuggestTimerRef = useRef(null);
 
-  const getChildren = useCallback((parentId) => {
-    if (parentId === null || parentId === undefined) return [];
-    const key = parentId === "ROOT" ? "ROOT" : String(parentId);
-    return childrenByParent[key] || childrenByParent[parentId] || [];
-  }, [childrenByParent]);
+  const getChildren = useCallback(
+    (parentId) => {
+      if (parentId === null || parentId === undefined) return [];
+      const key = parentId === "ROOT" ? "ROOT" : String(parentId);
+      return childrenByParent[key] || childrenByParent[parentId] || [];
+    },
+    [childrenByParent]
+  );
 
-  const toCategoryKey = (value) => (value === null || value === undefined ? null : String(value));
+  const toCategoryKey = (value) =>
+    value === null || value === undefined ? null : String(value);
 
   const getDescendantCategoryIds = (categoryId) => {
     const collectedIds = [];
@@ -147,13 +165,56 @@ export default function Shop() {
     return collectedIds;
   };
 
-  
+  const categoryById = useMemo(() => {
+    const map = {};
+    categories.forEach((c) => {
+      map[String(c.id)] = c;
+    });
+    return map;
+  }, [categories]);
 
-  const normalizeText = (value) =>
-    String(value || "").trim().toLowerCase();
+  const getRootCategoryName = useCallback(
+    (categoryId) => {
+      let current = categoryById[String(categoryId)];
+      const seen = new Set();
+      while (current && current.parent_id) {
+        const key = String(current.id);
+        if (seen.has(key)) break;
+        seen.add(key);
+        current = categoryById[String(current.parent_id)];
+      }
+      return current?.name || null;
+    },
+    [categoryById]
+  );
+
+  const resolveProductGender = useCallback(
+    (product) => {
+      const explicit = String(
+        productMetaById[product.id]?.gender || product.gender || ""
+      ).trim();
+      if (explicit) return explicit;
+
+      const categoryId =
+        productMetaById[product.id]?.categoryId || product.category_id;
+      if (!categoryId) return null;
+
+      const rootName = String(getRootCategoryName(categoryId) || "")
+        .trim()
+        .toLowerCase();
+      if (!rootName) return null;
+      if (rootName === "men") return "Men";
+      if (rootName === "women") return "Women";
+      if (rootName === "kids") return "Kids";
+      return null;
+    },
+    [productMetaById, getRootCategoryName]
+  );
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
   const normalizeSearchText = (value) =>
-    normalizeText(value).replace(/[^a-z0-9]/g, "");
+    normalizeText(value).replace(/[^a-z0-9]+/g, "");
 
   const rankedMatches = (items, query, limit, getter) => {
     const prefix = [];
@@ -180,13 +241,11 @@ export default function Shop() {
     return [];
   };
 
-
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const nextSearch = (params.get("search") || "").trim();
     const nextCategoryId = params.get("category_id");
 
-    // Defer state updates to avoid synchronous setState within effect
     const id = setTimeout(() => {
       setSearchTerm(nextSearch);
       setSearchInput(nextSearch);
@@ -206,7 +265,9 @@ export default function Shop() {
       const all = [];
 
       while (true) {
-        const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
+        const response = await fetch(
+          `${API_BASE}/products?limit=${pageSize}&offset=${offset}`
+        );
         const data = await response.json();
         const pageItems = extractProducts(data);
         all.push(...pageItems);
@@ -218,7 +279,6 @@ export default function Shop() {
       return all;
     };
 
-    // Defer to avoid synchronous setState inside effect
     const startId = setTimeout(() => setLoading(true), 0);
     fetchAllProducts()
       .then((data) => {
@@ -236,44 +296,6 @@ export default function Shop() {
       clearTimeout(startId);
     };
   }, []);
-
-  
-
-  useEffect(() => {
-    if (!userId) {
-      // defer to avoid synchronous setState inside effect
-      const id = setTimeout(() => {
-        setWishlistCount(0);
-        setCartCount(0);
-      }, 0);
-      return () => clearTimeout(id);
-    }
-
-    const loadCounts = async () => {
-      try {
-        const [wishlistRes, cartRes] = await Promise.all([
-          fetch(`${API_BASE}/wishlist/${userId}`),
-          fetch(`${API_BASE}/cart/${userId}`),
-        ]);
-        const [wishlistData, cartData] = await Promise.all([
-          wishlistRes.json(),
-          cartRes.json(),
-        ]);
-
-        setWishlistCount(Array.isArray(wishlistData.items) ? wishlistData.items.length : 0);
-        setCartCount(
-          Array.isArray(cartData.items)
-            ? cartData.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0)
-            : 0
-        );
-      } catch {
-        setWishlistCount(0);
-        setCartCount(0);
-      }
-    };
-
-    loadCounts();
-  }, [userId]);
 
   useEffect(() => {
     fetch(`${API_BASE}/categories`)
@@ -312,14 +334,15 @@ export default function Shop() {
           const detailData = await response.json();
           const categoryId = detailData?.product?.category_id || null;
           const gender = detailData?.product?.gender || null;
-          const variants = Array.isArray(detailData?.variants) ? detailData.variants : [];
-          // Mirrors the same "available" rule used by add-to-cart/wishlist:
-          // a variant with no stock field at all is treated as available.
+          const variants = Array.isArray(detailData?.variants)
+            ? detailData.variants
+            : [];
           const inStock =
             variants.length === 0 ||
             variants.some(
               (variant) =>
-                Number(variant.available_stock || 0) > 0 || variant.available_stock === undefined
+                Number(variant.available_stock || 0) > 0 ||
+                variant.available_stock === undefined
             );
 
           return {
@@ -367,28 +390,43 @@ export default function Shop() {
       const productCategoryId =
         productMetaById[product.id]?.categoryId || product.category_id || null;
 
-      if (!productCategoryId || !selectedCategoryIds.has(toCategoryKey(productCategoryId))) {
+      if (
+        !productCategoryId ||
+        !selectedCategoryIds.has(toCategoryKey(productCategoryId))
+      ) {
         return false;
       }
     }
 
     if (activeColor.length > 0) {
-      const productColor = typeof product.color === "string" ? product.color : "";
-      if (productColor && !activeColor.map(normalizeText).includes(productColor.trim().toLowerCase())) {
+      const productColor =
+        typeof product.color === "string" ? product.color : "";
+      if (
+        productColor &&
+        !activeColor
+          .map(normalizeText)
+          .includes(productColor.trim().toLowerCase())
+      ) {
         return false;
       }
     }
 
     if (activeGender.length > 0) {
-      const productGender = normalizeText(productMetaById[product.id]?.gender || product.gender);
-      if (!productGender || !activeGender.map(normalizeText).includes(productGender)) {
+      const productGender = normalizeText(resolveProductGender(product));
+      if (
+        !productGender ||
+        !activeGender.map(normalizeText).includes(productGender)
+      ) {
         return false;
       }
     }
 
     if (minDiscount > 0) {
       const basePrice = Number(product.price || 0);
-      const discountedPrice = Number(product.discount_price) > 0 ? Number(product.discount_price) : basePrice;
+      const discountedPrice =
+        Number(product.discount_price) > 0
+          ? Number(product.discount_price)
+          : basePrice;
       const offPercent =
         basePrice > 0 && discountedPrice < basePrice
           ? Math.round(((basePrice - discountedPrice) / basePrice) * 100)
@@ -400,8 +438,6 @@ export default function Shop() {
 
     if (inStockOnly) {
       const meta = productMetaById[product.id];
-      // Treat products whose meta hasn't loaded yet as available, so the
-      // grid doesn't flash empty while the per-product detail calls resolve.
       if (meta && meta.inStock === false) {
         return false;
       }
@@ -428,7 +464,10 @@ export default function Shop() {
       }
     }
 
-    const finalPrice = Number(product.discount_price) > 0 ? Number(product.discount_price) : Number(product.price || 0);
+    const finalPrice =
+      Number(product.discount_price) > 0
+        ? Number(product.discount_price)
+        : Number(product.price || 0);
     if (finalPrice > maxPrice) {
       return false;
     }
@@ -437,8 +476,14 @@ export default function Shop() {
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    const priceA = Number(a.discount_price) > 0 ? Number(a.discount_price) : Number(a.price);
-    const priceB = Number(b.discount_price) > 0 ? Number(b.discount_price) : Number(b.price);
+    const priceA =
+      Number(a.discount_price) > 0
+        ? Number(a.discount_price)
+        : Number(a.price);
+    const priceB =
+      Number(b.discount_price) > 0
+        ? Number(b.discount_price)
+        : Number(b.price);
 
     if (sortBy === "price_low") return priceA - priceB;
     if (sortBy === "price_high") return priceB - priceA;
@@ -448,12 +493,18 @@ export default function Shop() {
       return createdB - createdA;
     }
     if (sortBy === "discount") {
-      const offA = Number(a.discount_price) > 0 && Number(a.price) > Number(a.discount_price)
-        ? ((Number(a.price) - Number(a.discount_price)) / Number(a.price)) * 100
-        : 0;
-      const offB = Number(b.discount_price) > 0 && Number(b.price) > Number(b.discount_price)
-        ? ((Number(b.price) - Number(b.discount_price)) / Number(b.price)) * 100
-        : 0;
+      const offA =
+        Number(a.discount_price) > 0 &&
+        Number(a.price) > Number(a.discount_price)
+          ? ((Number(a.price) - Number(a.discount_price)) / Number(a.price)) *
+            100
+          : 0;
+      const offB =
+        Number(b.discount_price) > 0 &&
+        Number(b.price) > Number(b.discount_price)
+          ? ((Number(b.price) - Number(b.discount_price)) / Number(b.price)) *
+            100
+          : 0;
       return offB - offA;
     }
     return 0;
@@ -467,27 +518,27 @@ export default function Shop() {
   const availableGenders = useMemo(() => {
     const seen = new Map();
     products.forEach((product) => {
-      const raw = productMetaById[product.id]?.gender || product.gender;
-      const clean = String(raw || "").trim();
+      const clean = String(resolveProductGender(product) || "").trim();
       if (!clean) return;
       const key = clean.toLowerCase();
       if (!seen.has(key)) seen.set(key, clean);
     });
 
-    // Fall back to a sensible default set before per-product gender detail
-    // has finished loading, so the filter column isn't empty on first paint.
     if (seen.size === 0) {
-      return ["Men", "Women", "Kids", "Unisex"];
+      return ["Men", "Women", "Kids"];
     }
     return Array.from(seen.values()).sort();
-  }, [products, productMetaById]);
+  }, [products, resolveProductGender]);
 
   const topCategoryStrip = useMemo(() => {
     const roots = getChildren("ROOT");
     return [{ id: null, name: "All" }, ...roots];
   }, [getChildren]);
 
-  const navigateWithFilters = ({ nextSearch = searchTerm, nextCategoryId = activeCategoryId } = {}) => {
+  const navigateWithFilters = ({
+    nextSearch = searchTerm,
+    nextCategoryId = activeCategoryId,
+  } = {}) => {
     const params = new URLSearchParams();
     const cleanSearch = String(nextSearch || "").trim();
     const cleanCategoryId = nextCategoryId ? String(nextCategoryId) : "";
@@ -502,7 +553,12 @@ export default function Shop() {
     const value = String(rawValue || "").trim();
     if (!value) return;
 
-    const deduped = [value, ...recentSearches.filter((item) => normalizeText(item) !== normalizeText(value))].slice(0, 8);
+    const deduped = [
+      value,
+      ...recentSearches.filter(
+        (item) => normalizeText(item) !== normalizeText(value)
+      ),
+    ].slice(0, 8);
     setRecentSearches(deduped);
     localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(deduped));
   };
@@ -516,7 +572,11 @@ export default function Shop() {
     const query = String(value || "").trim();
     if (!query) {
       searchSuggestTimerRef.current = setTimeout(async () => {
-        const recentsFallback = recentSearches.map((item) => ({ text: item, type: "search", subtitle: "Recent search" }));
+        const recentsFallback = recentSearches.map((item) => ({
+          text: item,
+          type: "search",
+          subtitle: "Recent search",
+        }));
         try {
           const userIdParam = localStorage.getItem("userUuid") || "";
           const response = await fetch(
@@ -535,8 +595,13 @@ export default function Shop() {
             results.push({ text: clean, type: "search", subtitle });
           };
 
-          (Array.isArray(data?.recentSearches) ? data.recentSearches : []).forEach((text) => pushResult(text, "Recent search"));
-          (Array.isArray(data?.trendingSearches) ? data.trendingSearches : []).forEach((text) => pushResult(text, "Trending"));
+          (Array.isArray(data?.recentSearches) ? data.recentSearches : []).forEach(
+            (text) => pushResult(text, "Recent search")
+          );
+          (Array.isArray(data?.trendingSearches)
+            ? data.trendingSearches
+            : []
+          ).forEach((text) => pushResult(text, "Trending"));
 
           if (results.length === 0) {
             setSearchSuggestions(recentsFallback.slice(0, 8));
@@ -564,17 +629,19 @@ export default function Shop() {
         ranked.push(entry);
       };
 
-      // 0) Same as mobile: explicit search query first.
       pushCandidate({ text: query, type: "search" });
 
-      // 1) Categories max 2, prefix first.
       rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
-        pushCandidate({ text: item.name, type: "category", id: item.id ? String(item.id) : "" });
+        pushCandidate({
+          text: item.name,
+          type: "category",
+          id: item.id ? String(item.id) : "",
+        });
       });
 
-      // 2) Brands max 2, fallback top 2 when no matches.
       const matchingBrands = rankedMatches(brands, q, 2, (item) => item.name);
-      const brandsToShow = matchingBrands.length > 0 ? matchingBrands : brands.slice(0, 2);
+      const brandsToShow =
+        matchingBrands.length > 0 ? matchingBrands : brands.slice(0, 2);
       brandsToShow.forEach((item) => {
         pushCandidate({
           text: item.name,
@@ -584,7 +651,6 @@ export default function Shop() {
         });
       });
 
-      // 3) Product names max 4, prefix first.
       rankedMatches(products, q, 4, (item) => item.name).forEach((item) => {
         pushCandidate({ text: item.name, type: "product" });
       });
@@ -650,24 +716,29 @@ export default function Shop() {
 
   const toggleBrandFilter = (name) => {
     setActiveBrand((prev) =>
-      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+      prev.includes(name)
+        ? prev.filter((item) => item !== name)
+        : [...prev, name]
     );
   };
 
   const toggleColorFilter = (name) => {
     setActiveColor((prev) =>
-      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+      prev.includes(name)
+        ? prev.filter((item) => item !== name)
+        : [...prev, name]
     );
   };
 
   const toggleGenderFilter = (name) => {
     setActiveGender((prev) =>
-      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+      prev.includes(name)
+        ? prev.filter((item) => item !== name)
+        : [...prev, name]
     );
   };
 
   const selectMinDiscount = (value) => {
-    // Clicking the already-active bucket clears the discount filter.
     setMinDiscount((prev) => (prev === value ? 0 : value));
   };
 
@@ -687,96 +758,6 @@ export default function Shop() {
     setInStockOnly(false);
     setMaxPrice(10000);
     setBrandSearch("");
-  };
-
-  const formatPrice = (value) => `₹${Number(value || 0).toLocaleString("en-IN")}`;
-
-  const resolveAvailableVariantId = async (product) => {
-    if (product?.variant_id) return product.variant_id;
-
-    const response = await fetch(`${API_BASE}/products/${product.id}`);
-    if (!response.ok) return "";
-
-    const detail = await response.json();
-    const availableVariant = (detail?.variants || []).find(
-      (variant) =>
-        Number(variant.available_stock || 0) > 0 || variant.available_stock === undefined
-    );
-
-    return availableVariant?.id || availableVariant?.variant_id || "";
-  };
-
-  const handleAddToWishlist = async (event, product) => {
-    event.stopPropagation();
-
-    if (!userId) {
-      alert("Please login to add items to wishlist");
-      navigate("/login");
-      return;
-    }
-
-    try {
-      const variantId = await resolveAvailableVariantId(product);
-      if (!variantId) {
-        alert("No available variant for this product");
-        return;
-      }
-
-      const response = await fetch(`${API_BASE}/wishlist/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, variantId }),
-      });
-      const data = await response.json();
-
-      if (!data.success) {
-        throw new Error(data.message || "Unable to add to wishlist");
-      }
-
-      window.dispatchEvent(new Event("wishlist:updated"));
-      setWishlistCount((count) => count + 1);
-      alert("Added to wishlist");
-    } catch {
-      alert("Unable to add to wishlist right now");
-    }
-  };
-
-  const handleAddToCart = async (event, product) => {
-    event.stopPropagation();
-
-    const price = Number(product.discount_price ?? product.price ?? 0);
-
-    // Always update local cart so UI works even without login / API
-    addToLocalCart({
-      productId: product.id,
-      variantId: product.variant_id || product.id,
-      name: product.name,
-      image: product.image,
-      price,
-      qty: 1,
-    });
-    setCartCount((count) => count + 1);
-    window.dispatchEvent(new Event("cart:updated"));
-
-    // Best-effort server sync when logged in
-    if (!userId) return;
-
-    try {
-      const variantId = await resolveAvailableVariantId(product);
-      if (!variantId) return;
-
-      const response = await fetch(`${API_BASE}/cart/add`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, variantId, quantity: 1 }),
-      });
-      const data = await response.json();
-      if (!data.success) {
-        console.warn("Server cart add failed:", data.message);
-      }
-    } catch (err) {
-      console.warn("Server cart add error:", err);
-    }
   };
 
   // --- Category drawer handlers ---
@@ -803,7 +784,9 @@ export default function Shop() {
     navigateWithFilters({ nextCategoryId: category?.id || null });
   };
 
-  const drawerSubcategories = drawerParent?.id ? getChildren(drawerParent.id) : [];
+  const drawerSubcategories = drawerParent?.id
+    ? getChildren(drawerParent.id)
+    : [];
 
   return (
     <div className="catalog-page">
@@ -814,8 +797,16 @@ export default function Shop() {
       />
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
-          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
+          <button
+            type="button"
+            className="hp-brand"
+            onClick={() => navigate("/")}
+          >
+            <img
+              src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
+              alt="Blinkiefash"
+              className="hp-logo"
+            />
             <span className="hp-brand-text">
               <span className="hp-brand-name">
                 BLINKIE<span className="hp-brand-accent">FASH</span>
@@ -824,7 +815,10 @@ export default function Shop() {
             </span>
           </button>
 
-          <form className="hp-header-search catalog-mobile-search" onSubmit={handleTopSearch}>
+          <form
+            className="hp-header-search catalog-mobile-search"
+            onSubmit={handleTopSearch}
+          >
             <MdSearch className="hp-search-icon" />
             <input
               name="q"
@@ -855,11 +849,19 @@ export default function Shop() {
                 <MdClose />
               </button>
             ) : null}
-            <button type="submit" className="hp-search-btn" aria-label="Search products">
+            <button
+              type="submit"
+              className="hp-search-btn"
+              aria-label="Search products"
+            >
               <MdSearch />
             </button>
             {showSearchSuggestions && searchSuggestions.length > 0 ? (
-              <div className="catalog-search-suggestions" role="listbox" aria-label="Search suggestions">
+              <div
+                className="catalog-search-suggestions"
+                role="listbox"
+                aria-label="Search suggestions"
+              >
                 {searchSuggestions.map((item, idx) => (
                   <button
                     key={`${item.type}-${item.text}-${idx}`}
@@ -870,7 +872,9 @@ export default function Shop() {
                   >
                     <MdSearch />
                     <span className="catalog-suggestion-text">{item.text}</span>
-                    <span className="catalog-suggestion-type">{item.subtitle || item.type}</span>
+                    <span className="catalog-suggestion-type">
+                      {item.subtitle || item.type}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -878,7 +882,11 @@ export default function Shop() {
           </form>
 
           <div className="catalog-header-actions-wrap">
-            <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
+            <button
+              type="button"
+              className="catalog-location-pill"
+              onClick={() => navigate("/account")}
+            >
               <MdLocationOn />
               <span>{city}</span>
               <MdKeyboardArrowDown />
@@ -891,19 +899,26 @@ export default function Shop() {
                   <span>Switch to Vendor</span>
                 </button>
               ) : null}
-              <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+              <button
+                type="button"
+                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
+              >
                 <MdPersonOutline />
                 <span>{accountLabel}</span>
               </button>
               <button type="button" onClick={() => navigate("/wishlist")}>
                 <MdFavoriteBorder />
                 <span>Wishlist</span>
-                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
+                {wishlistCount > 0 ? (
+                  <span className="hp-icon-badge">{wishlistCount}</span>
+                ) : null}
               </button>
               <button type="button" onClick={() => navigate("/cart")}>
                 <MdOutlineShoppingCart />
                 <span>Cart</span>
-                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
+                {cartCount > 0 ? (
+                  <span className="hp-icon-badge">{cartCount}</span>
+                ) : null}
               </button>
             </div>
           </div>
@@ -914,11 +929,17 @@ export default function Shop() {
         <div className="catalog-headline-row">
           <div>
             <h2>All Products</h2>
-            <p>Showing 1 - {Math.min(visibleCount, sortedProducts.length)} of {sortedProducts.length} products</p>
+            <p>
+              Showing 1 - {Math.min(visibleCount, sortedProducts.length)} of{" "}
+              {sortedProducts.length} products
+            </p>
           </div>
           <div className="catalog-controls">
             <div className="catalog-select-wrap">
-              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+              >
                 <option value="newest">Sort by: Newest First</option>
                 <option value="price_low">Sort by: Price Low to High</option>
                 <option value="price_high">Sort by: Price High to Low</option>
@@ -942,11 +963,16 @@ export default function Shop() {
         <div className="catalog-category-strip">
           <div className="catalog-round-list">
             {topCategoryStrip.map((category) => {
-              const dbImage = resolveImageUrl(category.category_url ?? category.image);
+              const dbImage = resolveImageUrl(
+                category.category_url ?? category.image
+              );
               const image = dbImage || getCategoryImage(category.name) || "";
               const hasImage = Boolean(image);
-              const isActive = toCategoryKey(category.id) === toCategoryKey(activeCategoryId);
-              const hasChildren = category.id ? getChildren(category.id).length > 0 : false;
+              const isActive =
+                toCategoryKey(category.id) === toCategoryKey(activeCategoryId);
+              const hasChildren = category.id
+                ? getChildren(category.id).length > 0
+                : false;
 
               return (
                 <button
@@ -954,7 +980,13 @@ export default function Shop() {
                   type="button"
                   className={`catalog-round-item ${isActive ? "active" : ""}`}
                   aria-haspopup={hasChildren ? "dialog" : undefined}
-                  aria-expanded={hasChildren ? (drawerOpen && toCategoryKey(drawerParent?.id) === toCategoryKey(category.id)) : undefined}
+                  aria-expanded={
+                    hasChildren
+                      ? drawerOpen &&
+                        toCategoryKey(drawerParent?.id) ===
+                          toCategoryKey(category.id)
+                      : undefined
+                  }
                   onClick={(event) => handleCategoryTap(event, category)}
                 >
                   <span className="catalog-round-image-wrap">
@@ -964,9 +996,10 @@ export default function Shop() {
                         alt={category.name}
                         onError={(event) => {
                           event.currentTarget.style.display = "none";
-                          const fallback = event.currentTarget.parentElement?.querySelector(
-                            ".catalog-round-fallback-icon"
-                          );
+                          const fallback =
+                            event.currentTarget.parentElement?.querySelector(
+                              ".catalog-round-fallback-icon"
+                            );
                           if (fallback) fallback.style.display = "inline-flex";
                         }}
                       />
@@ -991,7 +1024,11 @@ export default function Shop() {
             <div className="catalog-filters-panel-header">
               <h3>Filters</h3>
               {activeFilterCount > 0 ? (
-                <button type="button" className="catalog-filters-clear" onClick={clearAllFilters}>
+                <button
+                  type="button"
+                  className="catalog-filters-clear"
+                  onClick={clearAllFilters}
+                >
                   Clear All
                 </button>
               ) : null}
@@ -1023,15 +1060,23 @@ export default function Shop() {
               <h4>Color</h4>
               <div className="catalog-filter-list catalog-filter-swatches">
                 {COLORS.map(([name, hex]) => {
-                  const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                  const checked =
+                    activeColor.includes(name.toLowerCase()) ||
+                    activeColor.includes(name);
                   return (
-                    <label key={name} className={`catalog-swatch-label ${checked ? "checked" : ""}`}>
+                    <label
+                      key={name}
+                      className={`catalog-swatch-label ${checked ? "checked" : ""}`}
+                    >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleColorFilter(name)}
                       />
-                      <span className="catalog-swatch-dot" style={{ background: hex }} />
+                      <span
+                        className="catalog-swatch-dot"
+                        style={{ background: hex }}
+                      />
                       <span>{name}</span>
                     </label>
                   );
@@ -1104,100 +1149,14 @@ export default function Shop() {
           <section className="catalog-products-grid">
             {loading
               ? Array.from({ length: 12 }).map((_, index) => (
-                  <div key={`skeleton-${index}`} className="catalog-product-skeleton" />
+                  <ProductCardSkeleton key={`skeleton-${index}`} />
                 ))
-              : visibleProducts.map((product) => {
-                const originalPrice = Number(product.price || 0);
-                const salePrice = Number(product.discount_price || 0) > 0
-                  ? Number(product.discount_price)
-                  : originalPrice;
-                const hasDiscount = salePrice < originalPrice;
-                const offPercent = hasDiscount
-                  ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
-                  : 0;
-                const isBestseller = product.is_bestseller === true;
-                const isTryAndBuy = product.is_try_and_buy === true;
-                const badgeType = isBestseller
-                  ? "BESTSELLER"
-                  : isTryAndBuy
-                    ? "Try & Buy"
-                    : hasDiscount
-                      ? `${offPercent}% OFF`
-                      : "+ 60 MIN";
-
-                return (
-                  <article
+              : visibleProducts.map((product) => (
+                  <ProductCard
                     key={`${product.id}-${product.variant_id || ""}-${product.image || ""}`}
-                    className="catalog-product-card"
-                    onClick={() => navigate(`/product/${product.id}`)}
-                  >
-                    <div className="catalog-card-top">
-                      <span
-                        className={`catalog-card-badge ${
-                          isBestseller
-                            ? "bestseller"
-                            : isTryAndBuy
-                              ? "try-buy"
-                              : hasDiscount
-                                ? "discount"
-                                : "fresh"
-                        }`}
-                      >
-                        {badgeType}
-                      </span>
-                      <button
-                        type="button"
-                        className="catalog-wishlist"
-                        onClick={(event) => handleAddToWishlist(event, product)}
-                        aria-label="Add to wishlist"
-                      >
-                        <MdFavoriteBorder />
-                      </button>
-                    </div>
-
-                    <div className="catalog-card-image-wrap">
-                      {product.image ? (
-                        <img
-                          src={productImageUrlContain(product.image, 400, 533)}
-                          srcSet={productImageSrcSetContain(product.image)}
-                          sizes="(max-width: 420px) 45vw, (max-width: 760px) 46vw, (max-width: 900px) 31vw, (max-width: 1200px) 23vw, (max-width: 1400px) 18vw, 15vw"
-                          alt={product.name}
-                          loading="lazy"
-                          width="400"
-                          height="533"
-                        />
-                      ) : (
-                        <div className="catalog-no-image"><MdCheckroom /></div>
-                      )}
-                    </div>
-
-                    <div className="catalog-card-body">
-                      <small>{product.brand || "Brand"}</small>
-                      <h3>{product.name}</h3>
-                      <p className="catalog-card-sub">
-                        {product.color || "Multi color"}
-                      </p>
-
-                      <div className="catalog-card-price-row">
-                        <strong>{formatPrice(salePrice)}</strong>
-                        {hasDiscount ? <span>{formatPrice(originalPrice)}</span> : null}
-                      </div>
-                      {hasDiscount ? <p className="catalog-card-off">{offPercent}% OFF</p> : null}
-
-                      <button
-                        type="button"
-                        className={`catalog-card-cart${getCartQty(product.variant_id || product.id) > 0 ? ' in-cart' : ''}`}
-                        onClick={(event) => handleAddToCart(event, product)}
-                        aria-label={getCartQty(product.variant_id || product.id) > 0 ? `In cart +${getCartQty(product.variant_id || product.id)}` : 'Add to cart'}
-                      >
-                        {getCartQty(product.variant_id || product.id) > 0
-                          ? <span style={{ fontWeight: 800, fontSize: 13 }}>+{getCartQty(product.variant_id || product.id)}</span>
-                          : <MdOutlineShoppingCart />}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
+                    product={product}
+                  />
+                ))}
 
             {!loading && visibleProducts.length === 0 ? (
               <div className="catalog-empty-state">
@@ -1208,7 +1167,11 @@ export default function Shop() {
           </section>
 
           {!loading && visibleCount < sortedProducts.length ? (
-            <button type="button" className="catalog-load-more" onClick={() => setVisibleCount((prev) => prev + 24)}>
+            <button
+              type="button"
+              className="catalog-load-more"
+              onClick={() => setVisibleCount((prev) => prev + 24)}
+            >
               Load more products
             </button>
           ) : null}

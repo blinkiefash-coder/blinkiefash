@@ -8,7 +8,7 @@ router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
   try {
     const { rows } = await pool.query(
-      `SELECT id, name, phone, email, referred_by FROM users WHERE id = $1`,
+      `SELECT id, name, phone, email, gender, referred_by FROM users WHERE id = $1`,
       [userId]
     );
     if (!rows.length) return res.status(404).json({ success: false, message: "User not found" });
@@ -22,9 +22,13 @@ router.get("/:userId", async (req, res) => {
 // ── PATCH /api/users/:userId ───────────────────────────────────────────────
 router.patch("/:userId", async (req, res) => {
   const { userId } = req.params;
-  const { name, email } = req.body;
-  if (!name && !email) {
+  const { name, email, gender } = req.body;
+  const validGenders = new Set(["female", "male", "non_binary", "prefer_not_to_say"]);
+  if (!name && !email && !gender) {
     return res.status(400).json({ success: false, message: "Nothing to update" });
+  }
+  if (gender && !validGenders.has(gender)) {
+    return res.status(400).json({ success: false, message: "Invalid gender" });
   }
   try {
     const sets = [];
@@ -32,6 +36,7 @@ router.patch("/:userId", async (req, res) => {
     let idx = 1;
     if (name) { sets.push(`name = $${idx++}`); vals.push(name.trim()); }
     if (email) { sets.push(`email = $${idx++}`); vals.push(email.trim().toLowerCase()); }
+    if (gender) { sets.push(`gender = $${idx++}`); vals.push(gender); }
     vals.push(userId);
     await pool.query(
       `UPDATE users SET ${sets.join(", ")} WHERE id = $${idx}`,

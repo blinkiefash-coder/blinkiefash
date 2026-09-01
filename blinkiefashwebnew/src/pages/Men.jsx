@@ -6,7 +6,6 @@ import {
   MdKeyboardArrowDown,
   MdPersonOutline,
   MdFavoriteBorder,
-  MdFavorite,
   MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
@@ -40,6 +39,7 @@ import {
 
 import Footer from "../components/Footer";
 import PageSEO from "../components/PageSEO";
+import ProductCard from "../components/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -223,22 +223,45 @@ const miniPromoCards = [
 ];
 
 function normalizeProduct(p) {
-  const price = Number(p.discount_price ?? p.price ?? 0);
-  const mrp = Number(p.price ?? p.original_price ?? price);
-  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const salePrice = Number(p.discount_price ?? p.price ?? 0);
+  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
+  const discount =
+    originalPrice > salePrice
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
+  const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
+
   return {
+    ...p,
     id: p.id,
     name: p.name,
     brand: p.brand,
-    image: resolveImageUrl(p.image),
-    price,
-    mrp,
-    discount,
+    image,
+    image_url: image,
+    // ProductCard expects these field names
+    price: originalPrice,
+    discount_price: salePrice,
+    _mrp: originalPrice,
+    _price: salePrice,
+    color: p.color || p.colour || "Multi color",
+    is_bestseller: p.is_bestseller ?? false,
+    is_try_and_buy: p.is_try_and_buy ?? false,
+    in_stock: p.in_stock !== false,
+    available: p.available !== false,
+    rating: p.rating ?? p.avg_rating ?? 0,
+    review_count: p.review_count ?? p.reviews_count ?? 0,
+    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
+    discount,
   };
 }
 
+
 // Banner images for the hero slideshow.
+
+// Banner images for the Men hero cards: [main, trending side, arrivals side]
+
 const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
 
 function heroBannerStyle(url) {
@@ -252,8 +275,8 @@ function heroBannerStyle(url) {
 export default function Men() {
   const navigate = useNavigate();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount, addToCart } = useCart();
-  const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
+  const { count: cartCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
 
   const city =
     localStorage.getItem("bfw_city") ||
@@ -279,9 +302,7 @@ export default function Men() {
   const [heroSlide, setHeroSlide] = useState(0);
   const picksRailRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first — every
-  // link and product fetch on this page is scoped to that subtree so this
-  // page only ever shows men's items, never women's/kids'/other sections'.
+  // Resolve the real "Men" category from the DB category tree first
   useEffect(() => {
     let cancelled = false;
 
@@ -310,7 +331,7 @@ export default function Men() {
     };
   }, []);
 
-  // Pull real brand logos from the backend for "Top Brands You Love".
+  // Pull real brand logos from the backend
   useEffect(() => {
     let cancelled = false;
 
@@ -336,10 +357,7 @@ export default function Men() {
     };
   }, []);
 
-  // Once we know which category *is* Men, fetch products scoped to it.
-  // No gender-text or bestseller fallback here on purpose — if the Men
-  // subtree has no products yet we show an empty state instead of mixing
-  // in items from other sections.
+  // Once we know which category *is* Men, fetch products scoped to it
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -362,8 +380,6 @@ export default function Men() {
       }
 
       if (!found.length && menRootId) {
-        // Some backends only tag leaf-level products, not the root — retry
-        // against each direct subcategory and merge until we have 8.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
@@ -546,7 +562,10 @@ export default function Men() {
             </button>
 
             <div className="hp-header-actions">
-              <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+              <button
+                type="button"
+                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
+              >
                 <MdPersonOutline />
                 <span>{accountLabel}</span>
               </button>
@@ -844,10 +863,11 @@ export default function Men() {
 
               <div className="hp-deals-rail" role="list" ref={picksRailRef}>
                 {products.map((p, idx) => (
-                  <article
+                  <div
                     key={`men-pick-${p.id}-${idx}`}
-                    className="hp-deal-card"
+                    className="hp-deal-card-wrapper"
                     role="listitem"
+
                     onClick={() =>
                       navigate(`/product/${p.id}`, {
                         state: { from: "men", fromLabel: "Men", fromPath: "/men" },
@@ -913,6 +933,12 @@ export default function Men() {
                       </div>
                     </div>
                   </article>
+
+                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
+                  >
+                    <ProductCard product={p} />
+                  </div>
+
                 ))}
               </div>
 

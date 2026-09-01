@@ -18,7 +18,7 @@ async function notifyCustomerOfOrderStatus(orderId, status) {
   try {
     const rows = await sequelize.query(
       `SELECT u.fcm_token
-       FROM orders o JOIN users u ON u.id = o.user_id
+       FROM orders o JOIN users u ON u.id::text = o.user_id
        WHERE o.id = :orderId`,
       { replacements: { orderId }, type: QueryTypes.SELECT }
     );
@@ -61,7 +61,7 @@ exports.getDeliveries = async (req, res) => {
       JOIN orders o      ON o.id  = d.order_id
       JOIN addresses a   ON a.id  = o.address_id
       LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
-      JOIN users u       ON u.id  = o.user_id
+      JOIN users u       ON u.id::text  = o.user_id
       WHERE d.rider_id = :riderId
       ORDER BY d.started_at DESC
     `, { replacements: { riderId: req.user.id }, type: QueryTypes.SELECT });
@@ -100,7 +100,7 @@ exports.getAvailableOrders = async (req, res) => {
       FROM orders o
       JOIN addresses a    ON a.id  = o.address_id
       LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
-      JOIN users u         ON u.id  = o.user_id
+      JOIN users u         ON u.id::text  = o.user_id
       JOIN order_items oi  ON oi.order_id = o.id
       JOIN product_variants v ON v.id = oi.variant_id
       JOIN products p      ON p.id = v.product_id
@@ -123,7 +123,7 @@ exports.getAvailableOrders = async (req, res) => {
         FROM "Riders"
         WHERE id = :riderId
       ) rider_loc
-      WHERE o.status = 'confirmed'
+      WHERE o.status IN ('confirmed', 'packed')
         AND NOT EXISTS (
           SELECT 1 FROM deliveries d
           WHERE d.order_id = o.id AND d.is_active = TRUE
@@ -582,7 +582,7 @@ exports.getDeliveryDetail = async (req, res) => {
        FROM deliveries d
        JOIN orders o ON o.id = d.order_id
        LEFT JOIN addresses a ON a.id = o.address_id
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::text = o.user_id
        WHERE d.id = :id`,
       { replacements: { id }, type: QueryTypes.SELECT }
     );

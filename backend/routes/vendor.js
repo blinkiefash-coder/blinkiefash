@@ -37,6 +37,41 @@ const createPasswordHash = (password = "") => {
   return `${salt}:${derived}`;
 };
 
+// Returns this vendor's own sequential invoice number for an order (e.g.
+// INV-0001), assigning one lazily on first call and reusing it afterwards.
+const getOrCreateInvoiceNumber = async (vendorId, orderId) => {
+  const existing = await pool.query(
+    `SELECT invoice_number FROM vendor_order_invoices WHERE vendor_id = $1 AND order_id = $2`,
+    [vendorId, orderId]
+  );
+  if (existing.rows.length) return existing.rows[0].invoice_number;
+
+  const counter = await pool.query(
+    `INSERT INTO vendor_invoice_counters (vendor_id, last_number)
+     VALUES ($1, 1)
+     ON CONFLICT (vendor_id) DO UPDATE SET last_number = vendor_invoice_counters.last_number + 1
+     RETURNING last_number`,
+    [vendorId]
+  );
+  const invoiceNumber = `INV-${String(counter.rows[0].last_number).padStart(4, "0")}`;
+
+  const inserted = await pool.query(
+    `INSERT INTO vendor_order_invoices (vendor_id, order_id, invoice_number)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (vendor_id, order_id) DO NOTHING
+     RETURNING invoice_number`,
+    [vendorId, orderId, invoiceNumber]
+  );
+  if (inserted.rows.length) return inserted.rows[0].invoice_number;
+
+  // Lost a race to a concurrent request — use the number it already assigned.
+  const race = await pool.query(
+    `SELECT invoice_number FROM vendor_order_invoices WHERE vendor_id = $1 AND order_id = $2`,
+    [vendorId, orderId]
+  );
+  return race.rows[0].invoice_number;
+};
+
 const verifyPasswordHash = (password = "", storedHash = "") => {
   const [salt, expectedHash] = String(storedHash).split(":");
 
@@ -306,10 +341,15 @@ router.get("/:id/orders", async (req, res) => {
       vendorUserId,
       ...siblingVendors.rows.map((r) => String(r.id)),
     ].filter(Boolean).map(String).filter((v, i, a) => a.indexOf(v) === i);
-    if (!linkedStoreId) {
+    
+    console.log(`[VendorOrders] Fetching for vendorId=${id}, ownerIds=${JSON.stringify(ownerIds)}`);
+    
+    // Return empty array if no vendor IDs to search
+    if (ownerIds.length === 0) {
       return res.json([]);
     }
     
+    const placeholders = ownerIds.map((_, i) => `CAST($${i + 1} AS uuid)`).join(', ');
     const result = await pool.query(
       `SELECT 
          o.id,
@@ -318,11 +358,14 @@ router.get("/:id/orders", async (req, res) => {
          o.final_amount,
          o.delivery_otp,
          o.otp_verified_at,
-         d.store_pickup_otp,
-         d.store_pickup_verified_at,
+         COALESCE(d.store_pickup_otp, '') AS store_pickup_otp,
+         COALESCE(d.store_pickup_verified_at, NULL::TIMESTAMP) AS store_pickup_verified_at,
          o.created_at,
          u.name AS customer_name,
          u.phone AS customer_phone,
+         a.address_line,
+         a.city,
+         a.pincode,
          json_agg(json_build_object(
            'product_id', p.id,
            'variant_id', oi.variant_id,
@@ -363,18 +406,75 @@ router.get("/:id/orders", async (req, res) => {
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
        LEFT JOIN brands b ON b.id = p.brand_id
-       LEFT JOIN users u ON u.id = o.user_id
-       LEFT JOIN deliveries d ON d.order_id = o.id
-       WHERE p.vendor_id::text = ANY($1::text[])
-       GROUP BY o.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
+       LEFT JOIN users u ON u.id::text = o.user_id
+       LEFT JOIN addresses a ON a.id = o.address_id
+       LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
+       WHERE p.vendor_id IN (${placeholders})
+       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, a.address_line, a.city, a.pincode, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
-      [ownerIds]
+      ownerIds
     );
-    
-    res.json(result.rows);
+
+    // Each order card should show only this vendor's own revenue and their
+    // own invoice number (assigned lazily when they first generate the
+    // invoice/packing-slip) — not the full multi-vendor order total.
+    const invoiceRows = await pool.query(
+      `SELECT order_id, invoice_number FROM vendor_order_invoices WHERE vendor_id = $1`,
+      [id]
+    );
+    const invoiceNumberByOrderId = Object.fromEntries(
+      invoiceRows.rows.map((r) => [String(r.order_id), r.invoice_number])
+    );
+
+    const ordersWithVendorTotals = result.rows.map((order) => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      const vendorSubtotal = items.reduce(
+        (sum, it) => sum + parseFloat(it.price || 0) * Number(it.quantity || 0),
+        0
+      );
+      return {
+        ...order,
+        invoice_number: invoiceNumberByOrderId[String(order.id)] || null,
+        vendor_subtotal: Math.round(vendorSubtotal * 100) / 100,
+      };
+    });
+
+    res.json(ordersWithVendorTotals);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Server error" });
+    console.error("[VendorOrders] Error:", err.message, err.code, err.detail);
+    res.status(500).json({ error: err.message || "Server error", code: err.code });
+  }
+});
+
+// PATCH — vendor overrides/sets their own invoice number for an order
+// (defaults to an auto-generated INV-0001 series, but vendors may already
+// have their own accounting/GST numbering they need to use instead).
+router.patch("/:id/orders/:orderId/invoice-number", async (req, res) => {
+  try {
+    const { id: vendorId, orderId } = req.params;
+    const invoiceNumber = String(req.body?.invoice_number || "").trim();
+    if (!invoiceNumber) {
+      return res.status(400).json({ error: "invoice_number is required" });
+    }
+    if (invoiceNumber.length > 40) {
+      return res.status(400).json({ error: "invoice_number must be 40 characters or fewer" });
+    }
+
+    const order = await pool.query(`SELECT id FROM orders WHERE id = $1 LIMIT 1`, [orderId]);
+    if (!order.rows.length) return res.status(404).json({ error: "Order not found" });
+
+    await pool.query(
+      `INSERT INTO vendor_order_invoices (vendor_id, order_id, invoice_number)
+       VALUES ($1, $2, $3)
+       ON CONFLICT (vendor_id, order_id)
+       DO UPDATE SET invoice_number = EXCLUDED.invoice_number`,
+      [vendorId, orderId, invoiceNumber]
+    );
+
+    res.json({ success: true, invoice_number: invoiceNumber });
+  } catch (err) {
+    console.error("[VendorOrders] Set invoice number error:", err.message);
+    res.status(500).json({ error: err.message || "Server error" });
   }
 });
 
@@ -399,7 +499,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
               u.name AS customer_name, u.phone AS customer_phone,
               a.address_line, a.city, a.pincode
        FROM orders o
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::text = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
        WHERE o.id = $1
        LIMIT 1`,
@@ -427,7 +527,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
       return price;
     };
 
-    const shortId = orderId.toString().slice(-8).toUpperCase();
+    const invoiceNumber = await getOrCreateInvoiceNumber(vendorId, orderId);
     const date = new Date(order.created_at).toLocaleDateString("en-IN", {
       day: "2-digit", month: "short", year: "numeric"
     });
@@ -452,7 +552,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
 
     const html = `<!DOCTYPE html>
 <html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Invoice #${shortId}</title>
+<title>Invoice #${invoiceNumber}</title>
 <style>
   body{font-family:'Segoe UI',sans-serif;margin:0;padding:20px;background:#f8fafc;color:#0f172a}
   .invoice{max-width:680px;margin:0 auto;background:#fff;border-radius:16px;padding:32px;box-shadow:0 4px 24px rgba(0,0,0,.08)}
@@ -483,7 +583,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     </div>
     <div class="invoice-meta">
       <strong>PACKING SLIP / INVOICE</strong>
-      Order #${shortId}<br/>${date}<br/>
+      Invoice #${invoiceNumber}<br/>${date}<br/>
       <span class="badge">${(order.status || "").toUpperCase()}</span>
     </div>
   </div>
@@ -591,7 +691,11 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
       [orderId, vendorId]
     ).catch(() => ({ rows: [] }));
     const activeOffer = offerResult.rows[0];
-    if (activeOffer && activeOffer.status !== "offered") {
+    // Only the initial accept/reject action needs the offer to still be "offered".
+    // Later stage updates (packed/picked/out_for_delivery/delivered) happen after the
+    // offer was already accepted, so they must not be blocked by this check.
+    const isOfferResponse = normalizedStatus === "confirmed" || normalizedStatus === "cancelled";
+    if (isOfferResponse && activeOffer && activeOffer.status !== "offered") {
       return res.status(409).json({
         success: false,
         error: "This order is no longer awaiting a response from this vendor",
@@ -684,7 +788,7 @@ router.patch("/:id/orders/:orderId/status", async (req, res) => {
       [normalizedStatus, orderId, ownerIds]
     ).catch(() => {});
 
-    if (normalizedStatus === "confirmed") {
+    if (normalizedStatus === "confirmed" || normalizedStatus === "packed") {
       notifyAvailableRiders(pool, orderId).catch(() => {});
     }
     notifyCustomerOfStatus(pool, orderId, normalizedStatus).catch(() => {});

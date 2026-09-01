@@ -60,6 +60,7 @@ export default function Signup() {
     referralCode: '',
     password: '',
     confirmPassword: '',
+    gender: '',
   });
 
   // Full international phone number (E.164), e.g. +919876543210
@@ -81,6 +82,10 @@ export default function Signup() {
 
     if (!phone || !isValidPhoneNumber(phone)) {
       setError('Please enter a valid phone number');
+      return;
+    }
+    if (!form.gender) {
+      setError('Please select your gender');
       return;
     }
     if (form.password.length < 6 || form.password.length > 16) {
@@ -148,6 +153,23 @@ export default function Signup() {
             onChange={handleChange}
             required
           />
+        </div>
+
+        <div className="auth-input-wrap">
+          <span className="auth-input-icon"><IconUser /></span>
+          <select
+            id="gender"
+            name="gender"
+            value={form.gender}
+            onChange={handleChange}
+            required
+            style={{ cursor: 'pointer' }}
+          >
+            <option value="">Select Gender</option>
+            <option value="women">Women</option>
+            <option value="men">Men</option>
+            <option value="other">Other</option>
+          </select>
         </div>
 
         <div className="auth-input-wrap">

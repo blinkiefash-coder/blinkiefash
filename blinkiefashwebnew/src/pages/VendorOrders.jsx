@@ -105,6 +105,9 @@ export default function VendorOrders() {
   const [dateTo, setDateTo] = useState("");
   const [incomingOrders, setIncomingOrders] = useState([]);
   const [ringSecondsLeft, setRingSecondsLeft] = useState(300);
+  const [editingInvoiceId, setEditingInvoiceId] = useState(null);
+  const [invoiceDraft, setInvoiceDraft] = useState("");
+  const [invoiceSaving, setInvoiceSaving] = useState(false);
   const knownOrderIds = useRef(new Set());
   const isFirstPoll = useRef(true);
   const ringSoundRef = useRef(null);
@@ -328,6 +331,47 @@ export default function VendorOrders() {
       alert(`Failed: ${err.message}`);
     } finally {
       setActionLoading(null);
+    }
+  };
+
+  const startEditInvoiceNumber = (order) => {
+    setEditingInvoiceId(order.id);
+    setInvoiceDraft(order.invoice_number || "");
+  };
+
+  const cancelEditInvoiceNumber = () => {
+    setEditingInvoiceId(null);
+    setInvoiceDraft("");
+  };
+
+  const saveInvoiceNumber = async (orderId) => {
+    const value = invoiceDraft.trim();
+    if (!value) return;
+    setInvoiceSaving(true);
+    try {
+      const res = await fetch(
+        `${API_API_BASE_URL}/vendor/${vendorId}/orders/${orderId}/invoice-number`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoice_number: value }),
+        }
+      );
+      const data = await res.json().catch(() => null);
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === orderId ? { ...o, invoice_number: data.invoice_number } : o
+        )
+      );
+      setEditingInvoiceId(null);
+      setInvoiceDraft("");
+    } catch (err) {
+      console.error("[saveInvoiceNumber] failed:", err);
+      alert(`Failed to save invoice number: ${err.message}`);
+    } finally {
+      setInvoiceSaving(false);
     }
   };
 
@@ -632,9 +676,47 @@ export default function VendorOrders() {
                   <div className={`vo-card ${isNew ? "vo-card-new" : ""}`}>
                     <div className="vo-card-head">
                       <div>
-                        <span className="vo-order-id">
-                          #{order.id.slice(-8).toUpperCase()}
-                        </span>
+                        {editingInvoiceId === order.id ? (
+                          <span className="vo-invoice-edit">
+                            <input
+                              className="vo-invoice-input"
+                              type="text"
+                              value={invoiceDraft}
+                              autoFocus
+                              disabled={invoiceSaving}
+                              onChange={(e) => setInvoiceDraft(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") saveInvoiceNumber(order.id);
+                                if (e.key === "Escape") cancelEditInvoiceNumber();
+                              }}
+                            />
+                            <button
+                              className="vo-invoice-save"
+                              disabled={invoiceSaving}
+                              onClick={() => saveInvoiceNumber(order.id)}
+                            >
+                              {invoiceSaving ? "…" : "✔"}
+                            </button>
+                            <button
+                              className="vo-invoice-cancel"
+                              disabled={invoiceSaving}
+                              onClick={cancelEditInvoiceNumber}
+                            >
+                              ✕
+                            </button>
+                          </span>
+                        ) : (
+                          <span className="vo-order-id">
+                            Invoice #{order.invoice_number || order.id.slice(-8).toUpperCase()}
+                            <button
+                              className="vo-invoice-edit-btn"
+                              title="Set your own invoice number"
+                              onClick={() => startEditInvoiceNumber(order)}
+                            >
+                              ✏️
+                            </button>
+                          </span>
+                        )}
                         <span
                           className="vo-status-badge"
                           style={{ color: sl.color, background: sl.bg }}
@@ -654,8 +736,11 @@ export default function VendorOrders() {
                         <span className="vo-amount">
                           ₹
                           {Number(
-                            order.final_amount || order.total_amount
+                            order.vendor_subtotal ??
+                              order.final_amount ??
+                              order.total_amount
                           ).toFixed(0)}
+                          <span className="vo-amount-note"> (your share)</span>
                         </span>
                       </div>
                     </div>
@@ -678,6 +763,15 @@ export default function VendorOrders() {
                         </a>
                       )}
                     </div>
+
+                    {(order.address_line || order.city) && (
+                      <div className="vo-address">
+                        📍 {order.address_line}
+                        {order.address_line && order.city ? ", " : ""}
+                        {order.city}
+                        {order.pincode ? ` - ${order.pincode}` : ""}
+                      </div>
+                    )}
 
                     {order.store_pickup_otp &&
                       order.status !== "delivered" &&

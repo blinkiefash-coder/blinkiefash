@@ -17,8 +17,8 @@ const FREE_DELIVERY_DISTANCE_KM = 15;
 const EXTRA_DELIVERY_PER_KM = 0;
 
 // ── Odisha Statewide Delivery Configuration ────────────────────────────────
-const LOCAL_DELIVERY_RADIUS_KM = 15;
-const EXTENDED_DELIVERY_RADIUS_KM = 45;
+const LOCAL_DELIVERY_RADIUS_KM = 20;
+const EXTENDED_DELIVERY_RADIUS_KM = 55;
 
 // Major Odisha cities for Same Day / Next Day delivery
 const MAJOR_ODISHA_CITIES = new Set([
@@ -249,10 +249,7 @@ function formatDeliveryTime(etaMinutes) {
   return `${displayHours}:${mins} ${ampm}`;
 }
 
-// ── Calculate delivery information based on Odisha statewide rules ──────────
-// NEW LOGIC:
-// - If 10:00-21:00: Show "Today Delivery" with ETA time
-// - If after 21:00: Show "Next Day Delivery" with time slots
+// ── Calculate delivery information from the store route distance ────────────
 function calculateDeliveryInfo(distanceKm, city) {
   const result = {
     deliveryPromise: null,
@@ -264,120 +261,29 @@ function calculateDeliveryInfo(distanceKm, city) {
     willNotifyRiders: false, // NEW: flag for rider notification
   };
 
-  const now = getISTTime();
-  const currentHours = now.getHours();
-  const currentMinutes = now.getMinutes();
-  const currentTimeInMinutes = currentHours * 60 + currentMinutes;
-  
-  // Operating hours: 10:00 (600 min) to 21:00 (1260 min)
-  const operatingStart = 10 * 60; // 10:00
-  const operatingEnd = 21 * 60;   // 21:00
-  const isOperatingHours = currentTimeInMinutes >= operatingStart && currentTimeInMinutes < operatingEnd;
-
-  // RULE 1: LOCAL DELIVERY (within 15 km) — 60-minute promise
+  // Up to 20 km, including the complete multi-store route, is local delivery.
   if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'local';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
-    
-    if (isOperatingHours) {
-        result.deliveryPromise = 'Delivery in 60 minutes';
-        result.etaMinutes = 60;
-        result.etaMinMinutes = 60;
-        result.etaMaxMinutes = 60;
-    } else {
-      // After operating hours: show store opening time with time slot selection
-      result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
-      result.deliveryType = 'nextday_scheduled_local'; // NEW: allows time slot selection
-      result.etaMinutes = null;
-      result.timeSlotStart = '11:00'; // 11:00 AM
-      result.timeSlotEnd = '21:00';   // 9:00 PM
-    }
+    result.deliveryPromise = 'Delivery within 60 minutes';
+    result.etaMinutes = 60;
+    result.etaMinMinutes = 60;
+    result.etaMaxMinutes = 60;
     return result;
   }
 
-  // RULE 2: EXTENDED DELIVERY (15km < distance ≤ 45km) — one-day promise
+  // Over 20 km and up to 55 km is delivered the same day.
   if (distanceKm != null && distanceKm <= EXTENDED_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'extended';
-    result.willNotifyRiders = shouldNotifyRiders(distanceKm);
-    
-    if (isOperatingHours) {
-      result.deliveryPromise = 'Delivery within 1 day';
-      result.etaMinMinutes = 24 * 60;
-      result.etaMaxMinutes = 24 * 60;
-    } else {
-      // After operating hours: show store opening time with time slot selection
-      result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
-      result.deliveryType = 'nextday_scheduled_extended'; // NEW: allows time slot selection
-      result.etaMinutes = null;
-      result.timeSlotStart = '11:30'; // 11:30 AM
-      result.timeSlotEnd = '21:00';   // 9:00 PM
-    }
+    result.deliveryPromise = 'Delivery same day';
+    result.etaMinMinutes = 24 * 60;
+    result.etaMaxMinutes = 24 * 60;
     return result;
   }
 
-  // RULE 3: LONG-DISTANCE DELIVERY (>45km) — LOGISTICS ONLY, NO RIDERS
-  if (distanceKm != null && distanceKm > 45) {
-    result.willNotifyRiders = false; // DO NOT notify riders for >45km
-    
-    if (isOperatingHours) {
-      // During 10:00-21:00: Check if before or after 12:00 noon
-      const isBeforeNoon = currentHours < 12 || (currentHours === 12 && currentMinutes === 0);
-      
-      if (isBeforeNoon) {
-        // Before 12:00 PM: Same day delivery for selected pincodes, 1-3 days for others
-        if (isMajorOdishaCity(city)) {
-          result.deliveryPromise = "Delivery in 1-3 days";
-          result.deliveryType = '1-3days';
-        } else {
-          result.deliveryPromise = "Delivery in 1-3 days";
-          result.deliveryType = '1-3days';
-        }
-      } else {
-        // At or after 12:00 PM: 1-3 days delivery
-        result.deliveryPromise = "Delivery in 1-3 days";
-        result.deliveryType = '1-3days';
-      }
-    } else {
-      // During CLOSED hours (21:01 to 09:59): Same day or 1-3 days
-      if (isMajorOdishaCity(city)) {
-        result.deliveryPromise = "Delivery in 1-3 days";
-        result.deliveryType = '1-3days';
-      } else {
-        result.deliveryPromise = "Delivery in 1-3 days";
-        result.deliveryType = '1-3days';
-      }
-    }
-    result.etaMinutes = null;
-    return result;
-  }
-
-  // RULE 4: City-based fallback (when coordinates not available)
-  // During operating hours: show dynamic ETA
-  // During closed hours: show "Store opens at 10:00 AM" with time slots
-  const isMajor = isMajorOdishaCity(city);
-
-  if (isOperatingHours) {
-    // During 10:00-21:00: show Today Delivery with ETA even if distance unknown
-    result.deliveryType = 'local'; // Assume local delivery when distance unknown but in major city
-    result.willNotifyRiders = true; // Try to notify riders
-    
-      result.deliveryPromise = 'Delivery in 60 minutes';
-      result.etaMinutes = 60;
-      result.etaMinMinutes = 60;
-      result.etaMaxMinutes = 60;
-    return result;
-  }
-
-  // After operating hours (21:01 to 09:59): "Store opens at 10:00 AM"
-  if (isMajor) {
-    result.deliveryPromise = "Store opens at 10:00 AM. Select your delivery time slot for today";
-    result.deliveryType = 'nextday_scheduled_local'; // Allow time slot selection
-    result.timeSlotStart = '11:00';
-    result.timeSlotEnd = '21:00';
-  } else {
-    result.deliveryPromise = "Delivery within 2 Days";
-    result.deliveryType = '2days';
-  }
+  // Missing coordinates cannot qualify for the faster distance tiers.
+  result.deliveryPromise = 'Delivery within 3 days';
+  result.deliveryType = '3days';
   result.etaMinutes = null;
   result.willNotifyRiders = false;
   return result;
@@ -1191,7 +1097,7 @@ router.get("/orders/darkstore/:storeId", async (req, res) => {
           'color',      v.color
         ) ORDER BY oi.id) AS items
       FROM orders o
-      JOIN users u ON u.id = o.user_id
+      JOIN users u ON u.id::text = o.user_id
       JOIN addresses a ON a.id = o.address_id
       JOIN order_items oi ON oi.order_id = o.id
       JOIN product_variants v ON v.id = oi.variant_id
@@ -1227,7 +1133,7 @@ router.get("/orders/:orderId/invoice", async (req, res) => {
               u.name AS customer_name, u.phone AS customer_phone,
               a.address_line, a.city, a.pincode
        FROM orders o
-       JOIN users u ON u.id = o.user_id
+       JOIN users u ON u.id::text = o.user_id
        JOIN addresses a ON a.id = o.address_id
        WHERE o.id = $1::UUID`,
       [orderId]

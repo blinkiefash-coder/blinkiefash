@@ -78,6 +78,7 @@ export const ensureDatabaseTables = async () => {
   // Add google_uid to users if not already present (safe ALTER IF NOT EXISTS)
   await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_uid VARCHAR(255)`).catch(() => {});
   await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS users_google_uid_idx ON users(google_uid) WHERE google_uid IS NOT NULL`).catch(() => {});
+  await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS gender VARCHAR(32)`).catch(() => {});
 
   // Ensure orders has confirmed_at column (used for 60-min delivery SLA timer)
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ`).catch(() => {});
@@ -875,6 +876,25 @@ export const ensureDatabaseTables = async () => {
       message TEXT,
       status VARCHAR(20) DEFAULT 'pending',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+  `).catch(() => {});
+
+  // ── Per-vendor sequential invoice numbering ─────────────────────────────────
+  // Each vendor gets their own INV-0001, INV-0002... series; a number is
+  // assigned once (lazily, on first invoice generation) and then reused.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vendor_invoice_counters (
+      vendor_id UUID PRIMARY KEY REFERENCES vendors(id) ON DELETE CASCADE,
+      last_number INT NOT NULL DEFAULT 0
+    );
+  `).catch(() => {});
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vendor_order_invoices (
+      vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      invoice_number VARCHAR(40) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (vendor_id, order_id)
     );
   `).catch(() => {});
   } catch (error) {
