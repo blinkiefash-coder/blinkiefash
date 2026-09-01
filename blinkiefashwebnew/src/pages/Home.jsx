@@ -31,6 +31,7 @@ import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
+
 import './Shop.css';
 import './Home.css';
 
@@ -1302,6 +1303,34 @@ export default function Home() {
       </div>
 
       <main className="hp-main">
+          <section className="hp-mode-row" aria-label="Shop mode">
+          <button
+            type="button"
+            className="hp-mode-banner hp-mode-india"
+            onClick={() => navigate('/blinkiefash-india')}
+          >
+            <span className="hp-mode-icon">🌐</span>
+            <span className="hp-mode-copy">
+              <strong>BLINKIEFASH INDIA</strong>
+              <span>Products from stores across India</span>
+            </span>
+          </button>
+
+          <button
+            type="button"
+            className="hp-mode-banner hp-mode-local"
+            onClick={() => navigate('/blinkiefash-local')}
+          >
+            <span className="hp-mode-icon">⚡</span>
+            <span className="hp-mode-copy">
+              <strong>BLINKIEFASH LOCAL</strong>
+              <span>Fast delivery from nearby stores</span>
+            </span>
+          </button>
+        </section>
+
+        
+
         <section className="hp-hero-carousel">
           <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
             <MdChevronLeft />

@@ -1,10 +1,22 @@
-/* ---------- Men landing page ---------- */
+/* ---------- Men landing page (blue storefront theme) ---------- */
 
 .men-page {
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  background: #fff;
+  color: #1a1a1a;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+
+  /* Local palette — only affects men-* classes below and a handful of
+     scoped .men-page .hp-* overrides. Doesn't touch Home.css. */
+  --men-blue: #1a56db;
+  --men-blue-dark: #123f9e;
+  --men-blue-soft: #eaf1ff;
+  --men-blue-border: #c9dcfb;
+  --men-ink: #101828;
+  --men-muted: #6b7280;
 }
 
 .men-page .catalog-main,
@@ -36,12 +48,13 @@
 }
 
 .men-page .hp-nav-link.active {
-  color: var(--brand-green-dark);
+  color: var(--men-blue);
   font-weight: 800;
 }
 
 .men-page .hp-nav-link.active::after {
   transform: scaleX(1);
+  background: var(--men-blue);
 }
 
 .men-nav-offers {
@@ -53,14 +66,42 @@
   background: none;
   font-size: 12.5px;
   font-weight: 700;
-  color: var(--brand-dark);
+  color: var(--men-ink);
   cursor: pointer;
   padding: 12px 0 12px 16px;
   white-space: nowrap;
 }
 
 .men-nav-offers:hover {
-  color: var(--brand-green-dark);
+  color: var(--men-blue);
+}
+
+.men-page .catalog-location-pill {
+  border-color: var(--men-blue-border);
+  color: var(--men-ink);
+}
+
+.men-page .catalog-location-pill svg:first-child {
+  color: var(--men-blue);
+}
+
+.men-location-copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+}
+
+.men-location-copy small {
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--men-muted);
+}
+
+.men-location-copy strong {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--men-ink);
 }
 
 .men-breadcrumb {
@@ -68,7 +109,7 @@
   align-items: center;
   gap: 8px;
   font-size: 13px;
-  color: var(--muted);
+  color: var(--men-muted);
   margin-bottom: 16px;
   flex-wrap: wrap;
 }
@@ -76,69 +117,199 @@
 .men-breadcrumb button {
   border: none;
   background: none;
-  color: var(--muted);
+  color: var(--men-muted);
   font-size: 13px;
   cursor: pointer;
   padding: 0;
 }
 
 .men-breadcrumb button:hover {
-  color: var(--brand-green-dark);
+  color: var(--men-blue);
 }
 
 .men-breadcrumb .current {
-  color: var(--brand-dark);
+  color: var(--men-ink);
   font-weight: 700;
 }
 
-/* Hero grid */
-.men-hero-grid {
+/* ---------- Utility strip (top bar, above the header) ---------- */
+.men-utility-strip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: var(--men-blue-soft);
+  border-bottom: 1px solid var(--men-blue-border);
+  padding: 9px 16px;
+  font-size: 0.78rem;
+  color: #1c2a4a;
+}
+
+.men-utility-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.men-utility-item:not(:last-child) {
+  border-right: 1px solid var(--men-blue-border);
+}
+
+.men-utility-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  color: var(--men-blue);
+  font-size: 16px;
+}
+
+/* ---------- Mode row (India / Local switcher) ---------- */
+.men-mode-row {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr;
-  gap: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.men-mode-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 62px;
+  border: 1px solid #e8ebf2;
+  border-radius: 14px;
+  background: #fff;
+  padding: 16px 18px;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(20, 20, 20, 0.03);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.men-mode-card:hover {
+  border-color: #d0d5e0;
+}
+
+.men-mode-selected {
+  background: #eaf7ee;
+  border-color: #cdeed7;
+}
+
+.men-mode-local {
+  border-color: var(--men-blue-border);
+}
+
+.men-mode-local .men-mode-icon {
+  background: var(--men-blue-soft);
+}
+
+.men-mode-local strong {
+  color: var(--men-blue-dark);
+}
+
+.men-mode-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.04);
+  font-size: 1.1rem;
+}
+
+.men-mode-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.men-mode-copy strong {
+  font-size: 1.05rem;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #111;
+}
+
+.men-mode-copy small {
+  color: #4b4b4b;
+  font-size: 0.75rem;
+}
+
+/* ---------- Hero banner ---------- */
+.men-hero-banner {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
   margin-bottom: 22px;
   width: 100%;
   max-width: 100%;
 }
 
-.men-hero-card {
-  border-radius: var(--radius-lg, 20px);
-  padding: 0;
-  min-height: 280px;
+.men-hero-slide {
   position: relative;
+  flex: 1;
+  height: 320px;
+  border-radius: 22px;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  color: #fff;
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
   cursor: pointer;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.12);
+  background-color: #e7ecf5;
 }
 
-.men-hero-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+.men-hero-arrow {
+  flex: none;
+  align-self: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  color: var(--men-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+  z-index: 2;
 }
 
-.men-hero-main {
-  background-color: #0f172a;
-  min-height: 300px;
+.men-hero-arrow:hover {
+  color: var(--men-blue);
+  border-color: var(--men-blue-border);
 }
 
-.men-hero-side {
-  min-height: 300px;
+.men-hero-dots {
+  position: absolute;
+  left: 40px;
+  bottom: 18px;
+  z-index: 2;
+  display: flex;
+  gap: 6px;
 }
 
-.men-hero-trending {
-  background-color: #1f2937;
+.men-hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(16, 24, 40, 0.25);
+  cursor: pointer;
+  padding: 0;
 }
 
-.men-hero-arrivals {
-  background-color: #f3e6c8;
+.men-hero-dot.active {
+  width: 20px;
+  border-radius: 4px;
+  background: var(--men-blue);
 }
 
 /* Category strip */
@@ -177,7 +348,7 @@
   cursor: pointer;
   font-size: 11.5px;
   font-weight: 600;
-  color: var(--brand-dark);
+  color: var(--men-ink);
   text-align: center;
 }
 
@@ -185,13 +356,13 @@
   width: 64px;
   height: 64px;
   border-radius: 50%;
-  background: var(--brand-green-soft);
-  color: var(--brand-green-dark);
+  background: var(--men-blue-soft);
+  color: var(--men-blue);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 26px;
-  border: 1px solid var(--brand-green-border);
+  border: 1px solid var(--men-blue-border);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   overflow: hidden;
 }
@@ -210,10 +381,234 @@
 
 .men-cat-item:hover .men-cat-icon-wrap {
   transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.2);
+  box-shadow: 0 6px 16px rgba(26, 86, 219, 0.2);
 }
 
-/* Promo strip */
+/* ---------- Promo grid: 3 reward cards + 1 stacked-pair column ---------- */
+.men-promo-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.men-promo-card-bfi {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 150px;
+  padding: 18px 14px;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid #f2e7ea;
+  box-shadow: 0 4px 12px rgba(26, 26, 26, 0.02);
+  cursor: pointer;
+}
+
+.men-promo-green {
+  background: linear-gradient(135deg, #e7f8ec 0%, #d5f0de 100%);
+}
+
+.men-promo-purple {
+  background: linear-gradient(135deg, #efe5fd 0%, #e6dbff 100%);
+}
+
+.men-promo-pink {
+  background: linear-gradient(135deg, #f9e6ee 0%, #f5dfe8 100%);
+}
+
+.men-promo-cream {
+  background: linear-gradient(135deg, #fff7df 0%, #f7ebc7 100%);
+}
+
+.men-promo-blue {
+  background: linear-gradient(135deg, #e6f0ff 0%, #d6e6fe 100%);
+}
+
+.men-home-reward-card {
+  position: relative;
+  width: 100%;
+  border-radius: 18px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 180px;
+  overflow: hidden;
+  isolation: isolate;
+  box-shadow: none;
+  border: none;
+  transition: transform 0.25s ease;
+}
+
+.men-home-reward-card::before,
+.men-home-reward-card::after {
+  content: '';
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.16);
+  z-index: 0;
+  filter: blur(2px);
+}
+
+.men-home-reward-card::before {
+  width: 140px;
+  height: 140px;
+  top: -60px;
+  right: -40px;
+}
+
+.men-home-reward-card::after {
+  width: 90px;
+  height: 90px;
+  bottom: -40px;
+  left: -20px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.men-promo-content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  width: 100%;
+  padding-right: 38px;
+}
+
+.men-promo-title-bfi {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.1;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #111;
+}
+
+.men-promo-subtitle-bfi {
+  margin: 0;
+  color: rgba(17, 17, 17, 0.8);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.men-promo-highlight-bfi {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: flex-start;
+  border-radius: 10px;
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #111;
+}
+
+.men-promo-button-bfi {
+  align-self: flex-start;
+  margin-top: 2px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--men-blue) 0%, var(--men-blue-dark) 100%);
+  color: #fff;
+  padding: 9px 16px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(26, 86, 219, 0.22);
+}
+
+.men-home-reward-spin .men-promo-button-bfi {
+  background: linear-gradient(135deg, #2aa84b 0%, #1f8d40 100%);
+  box-shadow: 0 8px 18px rgba(26, 131, 62, 0.18);
+}
+
+.men-promo-icon-bfi {
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.35);
+  font-size: 1.7rem;
+  z-index: 1;
+}
+
+/* Fourth grid slot: two half-height offers stacked */
+.men-promo-mini-col {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.men-promo-mini {
+  position: relative;
+  flex: 1;
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  min-height: 69px;
+  border: 1px solid rgba(17, 17, 17, 0.04);
+}
+
+.men-promo-mini-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.men-promo-mini-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  color: #111;
+}
+
+.men-promo-mini-sub {
+  margin: 0;
+  font-size: 0.62rem;
+  color: rgba(17, 17, 17, 0.7);
+}
+
+.men-promo-mini-highlight {
+  margin: 2px 0 0;
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #111;
+}
+
+.men-promo-code-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  border-radius: 999px;
+  padding: 5px 10px;
+  background: var(--men-blue);
+  color: #fff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+/* Original 3-card promo strip (kept as secondary) */
 .men-promo-strip {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -250,8 +645,8 @@
 }
 
 .men-promo-prepaid {
-  background: var(--brand-green-soft);
-  color: var(--brand-green-dark);
+  background: var(--men-blue-soft);
+  color: var(--men-blue-dark);
 }
 
 .men-promo-brands {
@@ -277,6 +672,7 @@
   font-weight: 700;
   white-space: nowrap;
   flex: none;
+  color: var(--men-blue-dark);
 }
 
 .men-picks-section {
@@ -286,13 +682,50 @@
   overflow: hidden;
 }
 
+.men-page .hp-section-head h2 {
+  color: var(--men-ink);
+}
+
+.men-page .hp-section-head button {
+  color: var(--men-blue);
+  font-weight: 700;
+}
+
 .men-picks-section .hp-deals-rail {
   touch-action: pan-x pan-y;
   -webkit-overflow-scrolling: touch;
 }
 
+/* "Try & Buy" badge on product cards */
+.men-deal-trybuy {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 2;
+  background: var(--men-blue);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: 4px 9px;
+  border-radius: 6px;
+}
+
+.men-page .hp-deal-card {
+  position: relative;
+}
+
+.men-page .hp-deal-media {
+  position: relative;
+}
+
+.men-page .hp-deal-price {
+  color: var(--men-ink);
+  font-weight: 800;
+}
+
 .men-empty-state {
-  color: var(--muted);
+  color: var(--men-muted);
   font-size: 13.5px;
   padding: 24px 0;
 }
@@ -314,7 +747,7 @@
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 14px;
-  background: #f4f8f5;
+  background: #f4f7fd;
   border-radius: var(--radius-md, 16px);
   padding: 20px 18px;
   margin-bottom: 10px;
@@ -333,7 +766,7 @@
 
 .men-trust-strip svg {
   font-size: 22px;
-  color: var(--brand-green-dark);
+  color: var(--men-blue);
   flex: none;
 }
 
@@ -341,25 +774,28 @@
   display: block;
   font-size: 12.5px;
   font-weight: 800;
-  color: var(--brand-dark);
+  color: var(--men-ink);
 }
 
 .men-trust-strip span {
-  color: var(--muted);
+  color: var(--men-muted);
   font-size: 11.5px;
 }
 
-/* Responsive */
+/* ---------- Responsive ---------- */
+@media (max-width: 1100px) {
+  .men-promo-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 1024px) {
-  .men-hero-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
+  .men-hero-banner {
+    flex-wrap: wrap;
   }
 
-  .men-hero-main,
-  .men-hero-side {
-    min-height: 200px;
-    aspect-ratio: 2.2 / 1;
+  .men-hero-slide {
+    height: 260px;
   }
 
   .men-promo-strip {
@@ -397,6 +833,10 @@
   .men-page .hp-header-actions span:not(.hp-icon-badge) {
     display: none;
   }
+
+  .men-hero-arrow {
+    display: none;
+  }
 }
 
 @media (max-width: 640px) {
@@ -404,11 +844,23 @@
     padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
-  .men-hero-main,
-  .men-hero-side {
-    min-height: 160px;
-    border-radius: 14px;
-    aspect-ratio: 16 / 9;
+  .men-utility-strip {
+    gap: 0;
+    padding: 8px 6px;
+    font-size: 0.68rem;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    scrollbar-width: none;
+  }
+
+  .men-utility-strip::-webkit-scrollbar {
+    display: none;
+  }
+
+  .men-hero-slide {
+    height: 220px;
+    border-radius: 16px;
   }
 
   .men-trust-strip {
@@ -446,6 +898,20 @@
     width: 32px;
     height: 32px;
   }
+
+  .men-mode-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 520px) {
+  .men-promo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .men-promo-mini-col {
+    flex-direction: row;
+  }
 }
 
 @media (max-width: 400px) {
@@ -453,9 +919,8 @@
     padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
-  .men-hero-main,
-  .men-hero-side {
-    min-height: 140px;
+  .men-hero-slide {
+    height: 190px;
   }
 
   .men-cat-item {

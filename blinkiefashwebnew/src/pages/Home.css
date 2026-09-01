@@ -912,13 +912,15 @@
    ================================================================ */
 .hp-rewards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 18px;
+  width: 100%;
 }
 
 .hp-reward-panel {
   position: relative;
-  border-radius: 20px;
+  width: 100%;
+  border-radius: 0;
   padding: 24px;
   display: flex;
   align-items: center;
@@ -927,13 +929,14 @@
   min-height: 180px;
   overflow: hidden;
   isolation: isolate;
-  box-shadow: 0 14px 30px -12px rgba(15, 23, 42, 0.35);
+  box-shadow: none;
+  border: none;
   transition: transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .hp-reward-panel:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 20px 36px -14px rgba(15, 23, 42, 0.45);
+  transform: translateY(-2px);
+  box-shadow: none;
 }
 
 .hp-reward-panel::before,
@@ -2139,14 +2142,16 @@
     margin-top: 26px;
   }
 
-  /* Spin | Play on top, Refer full-width below */
+  /* Full-width reward banners: no boxed cards, just wide horizontal panels */
   .hp-rewards-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     grid-template-areas:
-      "spin play"
-      "refer refer" !important;
+      "spin"
+      "play"
+      "refer" !important;
     gap: 10px !important;
+    width: 100% !important;
   }
 
   .hp-reward-spin  { grid-area: spin !important; }
@@ -2155,18 +2160,22 @@
 
   .hp-reward-panel {
     min-height: 122px;
-    border-radius: 14px;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     padding: 12px;
+    width: 100% !important;
   }
 
   .hp-reward-spin,
   .hp-reward-play {
     min-height: 138px !important;
-    border-radius: 14px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     padding: 12px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     justify-content: space-between !important;
+    width: 100% !important;
   }
 
   .hp-reward-copy h3 {
@@ -2605,11 +2614,13 @@
 @media (max-width: 640px) {
   .hp-rewards-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     grid-template-areas:
-      "spin play"
-      "refer refer" !important;
+      "spin"
+      "play"
+      "refer" !important;
     gap: 10px !important;
+    width: 100% !important;
   }
 
   .hp-reward-spin {
@@ -2624,15 +2635,17 @@
     grid-area: refer !important;
   }
 
-  /* Small side-by-side cards = Spin + Play */
+  /* Full-width banner cards without a bordered box */
   .hp-reward-spin,
   .hp-reward-play {
     min-height: 138px !important;
-    border-radius: 14px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     padding: 12px !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     justify-content: space-between !important;
+    width: 100% !important;
   }
 
   .hp-reward-spin .hp-reward-copy h3,
@@ -2806,11 +2819,13 @@
 @media (max-width: 640px) {
   .hp-rewards-grid {
     display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
+    grid-template-columns: 1fr !important;
     grid-template-areas:
-      "spin play"
-      "refer refer" !important;
+      "spin"
+      "play"
+      "refer" !important;
     gap: 10px !important;
+    width: 100% !important;
   }
 
   .hp-reward-spin {
@@ -2825,16 +2840,18 @@
     grid-area: refer !important;
   }
 
-  /* ---- Spin & Play: compact vertical cards ---- */
+  /* ---- Full-width banners with no boxed card look ---- */
   .hp-reward-spin,
   .hp-reward-play {
     min-height: 148px !important;
     padding: 14px !important;
-    border-radius: 18px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     flex-direction: column !important;
     align-items: flex-start !important;
     justify-content: space-between !important;
     gap: 10px !important;
+    width: 100% !important;
   }
 
   .hp-reward-spin .hp-reward-copy,
@@ -2891,11 +2908,13 @@
   .hp-reward-refer {
     min-height: 0 !important;
     padding: 14px 16px !important;
-    border-radius: 18px !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
     flex-direction: row !important;
     align-items: center !important;
     justify-content: space-between !important;
     gap: 12px !important;
+    width: 100% !important;
   }
 
   .hp-reward-refer .hp-reward-graphic {
@@ -3211,5 +3230,36 @@ html, body, #root {
   .hp-drawer-backdrop,
   .hp-location-sheet-backdrop {
     overscroll-behavior: contain;
+  }
+}
+
+.hp-mode-row {
+  display: flex;
+  gap: 14px;
+  margin: 18px 0;
+}
+.hp-mode-banner {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d1fae5;
+  background: #f0fdf4;
+  border-radius: 12px;
+  padding: 14px 18px;
+  text-align: left;
+}
+.hp-mode-local {
+  border-color: #fbcfe8;
+  background: #fdf2f8;
+}
+.hp-mode-icon { font-size: 20px; }
+.hp-mode-copy { display: flex; flex-direction: column; }
+.hp-mode-copy strong { font-weight: 900; font-size: 14px; }
+.hp-mode-copy span:last-child { font-size: 12px; color: #64748b; }
+
+@media (max-width: 640px) {
+  .hp-mode-row {
+    flex-direction: column;
   }
 }

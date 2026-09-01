@@ -5,6 +5,16 @@
   max-width: 100%;
   box-sizing: border-box;
   overflow-x: hidden;
+  --w-pink: #e91e63;
+  --w-pink-dark: #c2185b;
+  --w-pink-bg: #fdf2f6;
+  --w-pink-page: #fdeef4;
+  --w-pink-page-soft: #fff6f9;
+  --w-green: #16a34a;
+  --w-green-dark: #15803d;
+  --w-ink: #111827;
+  --w-sub: #6b7280;
+  background: linear-gradient(180deg, var(--w-pink-page) 0%, var(--w-pink-page-soft) 420px, #ffffff 900px);
 }
 
 .catalog-page.women-page {
@@ -16,12 +26,53 @@
 .women-page .catalog-main,
 .women-main {
   width: 100%;
-  max-width: 100%;
-  margin: 0;
+  max-width: 1440px;
+  margin: 0 auto;
   padding: 18px 24px 48px;
   box-sizing: border-box;
   overflow-x: hidden;
+  background: transparent;
 }
+
+/* =========================================================
+   TOP UTILITY STRIP
+   ========================================================= */
+
+.women-top-strip {
+  width: 100%;
+  background: linear-gradient(90deg, #fdeef3, #fde4ec);
+  border-bottom: 1px solid #fbd7e4;
+}
+
+.women-top-strip-inner {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 9px 24px;
+  flex-wrap: wrap;
+}
+
+.women-top-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #4b1f2e;
+  white-space: nowrap;
+}
+
+.women-top-strip-item svg {
+  font-size: 15px;
+  color: var(--w-pink-dark);
+}
+
+/* =========================================================
+   HEADER
+   ========================================================= */
 
 .women-page .hp-sticky-head,
 .women-page .hp-main-header,
@@ -33,17 +84,215 @@
   box-sizing: border-box;
 }
 
+.women-page .catalog-home-topbar {
+  background: var(--w-pink-page);
+}
+
+.women-page .hp-main-header {
+  max-width: 1440px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 14px 24px;
+  background: transparent;
+}
+
+.women-page .hp-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  flex: none;
+}
+
+.women-brand-bolt {
+  font-size: 22px;
+  color: var(--w-pink);
+  transform: rotate(-8deg);
+}
+
+.women-page .hp-brand-name {
+  font-size: 21px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: var(--w-ink);
+}
+
+.women-page .hp-brand-accent {
+  color: var(--w-green-dark);
+}
+
+.women-page .hp-header-search.catalog-mobile-search {
+  flex: 1 1 auto;
+  max-width: 640px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1.5px solid #fbd7e4;
+  border-radius: 999px;
+  padding: 4px 6px 4px 16px;
+  background: #fff;
+}
+
+.women-page .hp-header-search.catalog-mobile-search:focus-within {
+  border-color: var(--w-pink);
+}
+
+.women-page .hp-search-icon {
+  color: #9ca3af;
+  font-size: 18px;
+  flex: none;
+}
+
+.women-page .hp-header-search input {
+  border: none;
+  outline: none;
+  flex: 1 1 auto;
+  font-size: 13.5px;
+  background: transparent;
+  color: var(--w-ink);
+}
+
+.women-page .hp-search-btn {
+  border: none;
+  background: var(--w-pink);
+  color: #fff;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  flex: none;
+}
+
+.catalog-header-actions-wrap {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: none;
+}
+
+.women-page .catalog-location-pill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid #fbd7e4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 6px 12px;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.2;
+}
+
+.women-page .catalog-location-pill svg:first-child {
+  color: var(--w-pink);
+  font-size: 16px;
+}
+
+.women-location-copy {
+  display: flex;
+  flex-direction: column;
+}
+
+.women-location-label {
+  font-size: 10px;
+  color: var(--w-sub);
+}
+
+.women-location-value {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--w-ink);
+}
+
+.women-change-location-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #fbd7e4;
+  border-radius: 10px;
+  background: #fff;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--w-ink);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.women-change-location-btn svg {
+  color: var(--w-pink);
+}
+
+.women-page .hp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.women-page .hp-header-actions button {
+  border: none;
+  background: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  color: var(--w-ink);
+  position: relative;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.women-page .hp-header-actions button svg {
+  font-size: 20px;
+  color: #374151;
+}
+
+.women-page .hp-icon-badge {
+  position: absolute;
+  top: -4px;
+  right: -8px;
+  background: var(--w-pink);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0 3px;
+}
+
 .women-topnav {
-  justify-content: space-between;
+  max-width: 1440px;
+  margin: 0 auto;
+  justify-content: flex-start;
+  gap: 30px;
+  padding: 0 24px 14px;
+}
+
+.women-page .hp-nav-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  padding: 4px 0;
 }
 
 .women-page .hp-nav-link.active {
-  color: var(--brand-green-dark, #15803d);
+  color: var(--w-pink);
   font-weight: 800;
 }
 
 .women-page .hp-nav-link.active::after {
   transform: scaleX(1);
+  background: var(--w-pink);
 }
 
 .women-nav-offers {
@@ -66,124 +315,94 @@
 }
 
 .women-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
+  display: none;
 }
 
-.women-breadcrumb button {
-  border: none;
-  background: none;
-  color: #6b7280;
-  font-size: 13px;
-  cursor: pointer;
-  padding: 0;
-}
-
-.women-breadcrumb button:hover {
-  color: #15803d;
-}
-
-.women-breadcrumb .current {
-  color: #111827;
-  font-weight: 700;
-}
+/* India / Local shop-mode row now reuses Home.css's .hp-mode-row /
+   .hp-mode-banner classes directly (Home.css is imported above), so no
+   women-specific CSS is needed for it here — it will always stay in sync
+   with however that banner is styled on the Home page. */
 
 /* =========================================================
-   HERO GRID
+   HERO CAROUSEL
    ========================================================= */
 
-.women-hero-grid {
-  display: grid;
-  grid-template-columns: 2.1fr 1fr;
-  gap: 14px;
-  margin-bottom: 18px;
-  width: 100%;
-  max-width: 100%;
-  align-items: stretch;
-}
-
-.women-hero-main {
-  border-radius: 20px;
+.women-hero-carousel {
   position: relative;
+  border-radius: 22px;
   overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: var(--w-pink-bg);
+}
+
+.women-hero-media-btn {
+  display: block;
   width: 100%;
-  aspect-ratio: 2.15 / 1;
-  min-height: 360px;
-  max-height: 520px;
-  padding: 0;
-  cursor: pointer;
-  background-color: #fce7f3;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.women-hero-main:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.14);
-}
-
-.women-hero-side-col {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  min-height: 0;
-  height: 100%;
-}
-
-.women-hero-side {
   border: none;
-  border-radius: 16px;
   padding: 0;
-  flex: 1 1 0;
-  min-height: 0;
-  text-align: left;
+  margin: 0;
+  background: none;
   cursor: pointer;
-  position: relative;
-  overflow: hidden;
+  line-height: 0;
+}
+
+.women-hero-img {
+  display: block;
   width: 100%;
-  background-color: #f3e8ff;
-  background-size: cover;
-  background-position: center center;
-  background-repeat: no-repeat;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  height: auto;
+  object-fit: cover;
 }
 
-.women-hero-side:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.12);
-}
-
-.women-hero-side.trending {
-  background-color: #ede9fe;
-}
-
-.women-hero-side.arrivals {
-  background-color: #fef3c7;
-}
-
-.women-hero-main::after,
-.women-hero-side::after {
-  content: "";
+.women-hero-arrow {
   position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(to top, rgba(15, 23, 42, 0.2) 0%, transparent 45%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+  z-index: 4;
+  color: var(--w-ink);
 }
 
-.women-hero-main:hover::after,
-.women-hero-side:hover::after {
-  opacity: 1;
+.women-hero-arrow.prev {
+  left: 16px;
+}
+
+.women-hero-arrow.next {
+  right: 16px;
+}
+
+.women-hero-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+
+.women-hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(131, 24, 67, 0.28);
+  cursor: pointer;
+  padding: 0;
+}
+
+.women-hero-dot.active {
+  background: var(--w-pink-dark);
+  width: 18px;
+  border-radius: 4px;
 }
 
 /* Category circles */
@@ -261,88 +480,253 @@
   border-color: #16a34a;
 }
 
-/* Promo strip */
-.women-promo-strip {
+/* =========================================================
+   REWARDS / PROMO GRID (Spin & Win / Play & Win / Refer & Earn / Flat off)
+   ========================================================= */
+
+.women-rewards-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  margin-bottom: 24px;
-  width: 100%;
-  max-width: 100%;
+  grid-template-columns: 1.05fr 1.05fr 1.3fr 1fr;
+  gap: 16px;
+  margin-bottom: 26px;
 }
 
-.women-promo-card {
+.women-reward-card {
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 168px;
+  box-sizing: border-box;
+}
+
+.women-reward-card h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.women-reward-card p {
+  margin: 0;
+  font-size: 12px;
+  color: #4b5563;
+  line-height: 1.4;
+}
+
+.women-reward-card .women-reward-figure {
+  align-self: center;
+}
+
+.women-reward-card .women-reward-amount {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.women-reward-btn {
+  align-self: flex-start;
   border: none;
-  border-radius: 14px;
-  padding: 16px 18px;
-  min-height: 88px;
-  text-align: left;
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 12px;
+  font-weight: 800;
+  color: #fff;
   cursor: pointer;
+}
+
+.women-reward-spin {
+  background: #f0fdf4;
+}
+.women-reward-spin .women-reward-btn {
+  background: var(--w-green-dark);
+}
+
+.women-reward-play {
+  background: #f5f3ff;
+}
+.women-reward-play .women-reward-btn {
+  background: #7c3aed;
+}
+
+.women-reward-refer {
+  background: #fdf2f6;
+}
+.women-reward-refer .women-reward-btn {
+  background: var(--w-pink-dark);
+}
+
+.women-reward-code {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  width: 100%;
-  box-sizing: border-box;
-  min-width: 0;
+  gap: 8px;
+  background: #fff;
+  border: 1px dashed #f3b7cf;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 8px 0;
 }
 
-.women-promo-card .title {
-  margin: 0 0 4px;
+.women-reward-code span {
+  font-size: 10px;
+  color: var(--w-sub);
+  display: block;
+}
+
+.women-reward-code strong {
   font-size: 14px;
-  font-weight: 800;
+  letter-spacing: 0.5px;
+  color: var(--w-ink);
 }
 
-.women-promo-card .sub {
-  margin: 0;
-  font-size: 12px;
+.women-reward-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.women-reward-mini {
+  flex: 1;
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: linear-gradient(135deg, #fff7ed, #ffedd5);
+  color: #9a3412;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.women-reward-mini strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 900;
+}
+
+.women-reward-mini span {
+  font-size: 11px;
+  font-weight: 700;
   opacity: 0.85;
 }
 
-.women-promo-card .cta {
-  font-size: 12px;
-  font-weight: 700;
-  margin-top: 6px;
-  display: inline-block;
-}
-
-.women-promo-prepaid {
-  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
-  color: #9d174d;
-}
-
-.women-promo-brands {
-  background: linear-gradient(135deg, #fdf2f8, #fff1f2);
-  color: #9f1239;
-}
-
-.women-promo-delivery {
-  background: linear-gradient(135deg, #fff7ed, #ffedd5);
-  color: #9a3412;
-}
-
-.women-promo-brands-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 8px;
-  flex-wrap: wrap;
-}
-
-.women-promo-brand-chip {
+.women-reward-mini .chip {
   background: #fff;
-  border: 1px solid #fecdd3;
-  border-radius: 8px;
-  padding: 4px 8px;
+  border-radius: 6px;
+  padding: 2px 6px;
   font-size: 10px;
   font-weight: 800;
+  display: inline-block;
+  margin-top: 3px;
 }
 
-/* Rails */
+.women-reward-mini .women-reward-emoji {
+  font-size: 26px;
+}
+
+/* wheel */
+.women-wheel {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  position: relative;
+  background: conic-gradient(
+    #16a34a 0deg 60deg,
+    #ffffff 60deg 120deg,
+    #16a34a 120deg 180deg,
+    #ffffff 180deg 240deg,
+    #16a34a 240deg 300deg,
+    #ffffff 300deg 360deg
+  );
+  border: 3px solid #16a34a;
+  display: grid;
+  place-items: center;
+}
+
+.women-wheel::after {
+  content: "SPIN";
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: #fbbf24;
+  color: #7c2d12;
+  font-size: 8px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+}
+
+/* controller */
+.women-controller {
+  font-size: 44px;
+  color: #7c3aed;
+  text-align: center;
+}
+
+/* Trust */
+.women-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  background: var(--w-pink-bg);
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.women-trust-strip > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.women-trust-strip svg {
+  font-size: 22px;
+  color: var(--w-pink-dark);
+  flex: none;
+}
+
+.women-trust-strip strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.women-trust-strip span {
+  color: #6b7280;
+  font-size: 11.5px;
+}
+
+/* Rails / section headings */
 .women-picks-section {
   margin-bottom: 8px;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+}
+
+.women-picks-section .hp-section-head h2 {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--w-ink);
+  margin: 0;
+}
+
+.women-picks-section .hp-section-head button {
+  color: var(--w-pink-dark);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
 }
 
 .women-picks-section .hp-deals-rail {
@@ -368,74 +752,11 @@
   -webkit-overflow-scrolling: touch;
 }
 
-/* Trust */
-.women-trust-strip {
-  display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 14px;
-  background: #f4f8f5;
-  border-radius: 16px;
-  padding: 20px 18px;
-  margin-bottom: 10px;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.women-trust-strip > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-  min-width: 0;
-}
-
-.women-trust-strip svg {
-  font-size: 22px;
-  color: #15803d;
-  flex: none;
-}
-
-.women-trust-strip strong {
-  display: block;
-  font-size: 12.5px;
-  font-weight: 800;
-  color: #111827;
-}
-
-.women-trust-strip span {
-  color: #6b7280;
-  font-size: 11.5px;
-}
-
 /* ===== Responsive ===== */
 
 @media (max-width: 1100px) {
-  .women-hero-grid {
-    grid-template-columns: 1fr;
-    gap: 12px;
-  }
-
-  .women-hero-main {
-    aspect-ratio: 2.2 / 1;
-    min-height: 280px;
-    max-height: 400px;
-  }
-
-  .women-hero-side-col {
-    flex-direction: row;
-    height: auto;
-  }
-
-  .women-hero-side {
-    flex: 1 1 0;
-    aspect-ratio: 2 / 1;
-    min-height: 160px;
-    max-height: 220px;
-  }
-
-  .women-promo-strip {
-    grid-template-columns: 1fr;
+  .women-rewards-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .women-trust-strip {
@@ -466,15 +787,16 @@
     display: none;
   }
 
+  .women-top-strip-item span {
+    display: none;
+  }
+
   .women-page .hp-header-actions span:not(.hp-icon-badge) {
     display: none;
   }
 
-  .women-page .catalog-location-pill span {
-    max-width: 72px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+  .women-change-location-btn span {
+    display: none;
   }
 }
 
@@ -483,41 +805,18 @@
     padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
-  .women-hero-grid {
-    gap: 10px;
+  .women-rewards-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .women-hero-main {
-    border-radius: 14px;
-    aspect-ratio: 16 / 9;
-    min-height: 180px;
-    max-height: 280px;
+  .women-reward-stack {
+    grid-column: span 2;
+    flex-direction: row;
   }
 
-  .women-hero-side-col {
-    flex-direction: column;
-    gap: 10px;
-  }
-
-  .women-hero-side {
-    border-radius: 12px;
-    aspect-ratio: 2.2 / 1;
-    min-height: 120px;
-    max-height: 180px;
-    flex: none;
-  }
-
-  .women-promo-card {
-    padding: 14px 16px;
-    min-height: 76px;
-  }
-
-  .women-promo-card .title {
-    font-size: 13px;
-  }
-
-  .women-promo-card .sub {
-    font-size: 11px;
+  .women-hero-arrow {
+    width: 32px;
+    height: 32px;
   }
 
   .women-trust-strip {
@@ -553,16 +852,12 @@
     padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
-  .women-hero-main {
-    aspect-ratio: 16 / 10;
-    min-height: 160px;
-    max-height: 240px;
+  .women-rewards-grid {
+    grid-template-columns: 1fr;
   }
 
-  .women-hero-side {
-    aspect-ratio: 2 / 1;
-    min-height: 100px;
-    max-height: 150px;
+  .women-reward-stack {
+    grid-column: span 1;
   }
 
   .women-trust-strip {
@@ -578,4 +873,52 @@
     width: 50px;
     height: 50px;
   }
-} 
+}
+
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* Mobile: turn the rail into a 2-column grid */
+@media (max-width: 640px) {
+  .women-picks-section .hp-deals-wrap {
+    position: relative;
+  }
+
+  .women-picks-section .hp-deals-prev,
+  .women-picks-section .hp-deals-next {
+    display: none;
+  }
+
+  .women-picks-section .hp-deals-rail {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding: 0;
+  }
+
+  .women-picks-section .hp-deal-card-wrapper {
+    min-width: 0;
+    max-width: none;
+    flex: none;
+    width: 100%;
+  }
+
+  .women-picks-section .pc-card {
+    height: auto;
+  }
+}
+
+@media (max-width: 380px) {
+  .women-picks-section .hp-deals-rail {
+    gap: 8px;
+  }
+}

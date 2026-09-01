@@ -31,6 +31,11 @@ import {
   MdSupportAgent,
   MdArrowForward,
   MdGridView,
+  MdLocalShipping,
+  MdVerified,
+  MdCached,
+  MdPayments,
+  MdMyLocation,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
@@ -73,7 +78,7 @@ function rootIdForAny(allCats, names) {
 
   const exact = allCats.find((c) => {
     if (c.parent_id) return false;
-    const name = (c?.name || "").toString().lowerCase().trim();
+    const name = (c?.name || "").toString().toLowerCase().trim();
     return needles.some((needle) => name === needle);
   });
   if (exact) return exact.id;
@@ -158,6 +163,65 @@ const TOP_BRANDS_FALLBACK = [
   "Wildcraft",
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
+/** Utility strip items — rendered as the top bar above the header */
+const utilityItems = [
+  { icon: MdLocalShipping, label: "Delivered in 60 Minutes" },
+  { icon: MdVerified, label: "100% Authentic Products" },
+  { icon: MdCached, label: "Easy Returns" },
+  { icon: MdPayments, label: "Cash on Delivery" },
+  { icon: MdMyLocation, label: "Track Your Order" },
+];
+
+/** The three large reward promo cards (Spin / Play / Refer) */
+const heroPromoCards = [
+  {
+    title: "SPIN & WIN",
+    subtitle: "Spin the wheel & win exciting rewards!",
+    highlight: "Up To ₹500 OFF",
+    accent: "green",
+    action: "SPIN NOW",
+    icon: "🎡",
+    to: "/spin-wheel",
+  },
+  {
+    title: "PLAY & WIN",
+    subtitle: "Play fun games & win big discounts!",
+    highlight: "Up To ₹250 OFF",
+    accent: "purple",
+    action: "PLAY NOW",
+    icon: "🎮",
+    to: "/play-and-win",
+  },
+  {
+    title: "REFER & EARN",
+    subtitle: "Refer your friend & you both get ₹100 off!",
+    highlight: "Use code: BLINK100",
+    accent: "pink",
+    action: "REFER NOW",
+    icon: "🎁",
+    to: "/refer-earn",
+  },
+];
+
+/** The two small stacked offer cards that share the fourth grid column */
+const miniPromoCards = [
+  {
+    title: "FLAT 5% OFF",
+    subtitle: "ON FIRST ORDER",
+    highlight: "Use Code: WELCOME5",
+    accent: "cream",
+    to: "/shop",
+    badge: true,
+  },
+  {
+    title: "FREE DELIVERY",
+    subtitle: "ON ORDERS ABOVE",
+    highlight: "₹1499",
+    accent: "blue",
+    to: "/shop",
+  },
+];
+
 function normalizeProduct(p) {
   const price = Number(p.discount_price ?? p.price ?? 0);
   const mrp = Number(p.price ?? p.original_price ?? price);
@@ -174,12 +238,8 @@ function normalizeProduct(p) {
   };
 }
 
-// Banner images for the Men hero cards: [main, trending side, arrivals side]
-const MEN_BANNERS = [
-  menBanner1,
-  menBanner2,
-  menBanner3,
-];
+// Banner images for the hero slideshow.
+const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
 
 function heroBannerStyle(url) {
   return {
@@ -203,7 +263,11 @@ export default function Men() {
     authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
   const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : "My Account") : "Login / Signup";
+  const accountLabel = isLoggedIn
+    ? headerFirstName
+      ? `Hi, ${headerFirstName}`
+      : "My Account"
+    : "Login / Signup";
 
   const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
@@ -212,6 +276,7 @@ export default function Men() {
   const [menSubcats, setMenSubcats] = useState([]);
   const [menResolved, setMenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
+  const [heroSlide, setHeroSlide] = useState(0);
   const picksRailRef = useRef(null);
 
   // Resolve the real "Men" category from the DB category tree first — every
@@ -285,7 +350,11 @@ export default function Men() {
 
       if (menRootId) {
         try {
-          const byCategory = await getProducts({ category_id: menRootId, sort: "newest", limit: 8 });
+          const byCategory = await getProducts({
+            category_id: menRootId,
+            sort: "newest",
+            limit: 8,
+          });
           found = extractProducts(byCategory);
         } catch {
           found = [];
@@ -318,44 +387,50 @@ export default function Men() {
     };
   }, [menResolved, menRootId, menSubcats]);
 
-  const menScopedShopUrl = useCallback((opts = {}) => {
-    const params = new URLSearchParams();
-    if (opts.categoryId) {
-      params.set("category_id", String(opts.categoryId));
-    } else if (menRootId) {
-      params.set("category_id", String(menRootId));
-    }
-    let search = opts.search ? String(opts.search).trim() : "";
-    if (!params.has("category_id")) {
-      const lower = search.toLowerCase();
-      if (!lower.includes("men") && !lower.includes("male")) {
-        search = search ? `men ${search}` : "men";
-      } else if (!search) {
-        search = "men";
+  const menScopedShopUrl = useCallback(
+    (opts = {}) => {
+      const params = new URLSearchParams();
+      if (opts.categoryId) {
+        params.set("category_id", String(opts.categoryId));
+      } else if (menRootId) {
+        params.set("category_id", String(menRootId));
       }
-    }
-    if (search) params.set("search", search);
-    const qs = params.toString();
-    return qs ? `/shop?${qs}` : "/shop?search=men";
-  }, [menRootId]);
+      let search = opts.search ? String(opts.search).trim() : "";
+      if (!params.has("category_id")) {
+        const lower = search.toLowerCase();
+        if (!lower.includes("men") && !lower.includes("male")) {
+          search = search ? `men ${search}` : "men";
+        } else if (!search) {
+          search = "men";
+        }
+      }
+      if (search) params.set("search", search);
+      const qs = params.toString();
+      return qs ? `/shop?${qs}` : "/shop?search=men";
+    },
+    [menRootId]
+  );
 
-  const findMenSubcatByLabel = useCallback((label) => {
-    const needle = String(label || "")
-      .toLowerCase()
-      .replace(/&/g, " ")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!needle || !menSubcats.length) return null;
-    const exact = menSubcats.find((c) => c.name.toLowerCase().trim() === needle);
-    if (exact) return exact;
-    return (
-      menSubcats.find((c) => {
-        const name = c.name.toLowerCase();
-        return name.includes(needle) || needle.includes(name);
-      }) || null
-    );
-  }, [menSubcats]);
+  const findMenSubcatByLabel = useCallback(
+    (label) => {
+      const needle = String(label || "")
+        .toLowerCase()
+        .replace(/&/g, " ")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!needle || !menSubcats.length) return null;
+      const exact = menSubcats.find((c) => c.name.toLowerCase().trim() === needle);
+      if (exact) return exact;
+      return (
+        menSubcats.find((c) => {
+          const name = c.name.toLowerCase();
+          return name.includes(needle) || needle.includes(name);
+        }) || null
+      );
+    },
+    [menSubcats]
+  );
 
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
@@ -375,7 +450,9 @@ export default function Men() {
         id: match?.id || `fallback-${label}`,
         label,
         icon: CATEGORY_ICONS[idx] || MdGridView,
-        image: match ? resolveImageUrl(match.image) || getCategoryImage(match.name) || "" : "",
+        image: match
+          ? resolveImageUrl(match.image) || getCategoryImage(match.name) || ""
+          : "",
         to: match
           ? menScopedShopUrl({ categoryId: match.id })
           : menScopedShopUrl({ search: label }),
@@ -399,15 +476,31 @@ export default function Men() {
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
 
+  const goHeroSlide = (dir) => {
+    setHeroSlide((cur) => (cur + dir + MEN_BANNERS.length) % MEN_BANNERS.length);
+  };
+
   const wishlistCount = wishlistItems?.length || 0;
 
   return (
     <div className="catalog-page men-page">
       <PageSEO
-        title="Men's Fashion — Shirts, T-Shirts, Jeans & More"
-        description="Shop the latest men's fashion at Blinkiefash — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across Odisha."
+        title="Men's Fashion — Shirts, T-Shirts, Jeans & More | Blinkiefash India"
+        description="Shop the latest men's fashion at Blinkiefash India — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across India."
         path="/men"
       />
+
+      {/* Utility strip */}
+      <div className="men-utility-strip" aria-label="Store benefits">
+        {utilityItems.map((item) => (
+          <div key={item.label} className="men-utility-item">
+            <span className="men-utility-icon" aria-hidden="true">
+              <item.icon />
+            </span>
+            <span>{item.label}</span>
+          </div>
+        ))}
+      </div>
 
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
@@ -439,9 +532,16 @@ export default function Men() {
           </form>
 
           <div className="catalog-header-actions-wrap">
-            <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
+            <button
+              type="button"
+              className="catalog-location-pill"
+              onClick={() => navigate("/account")}
+            >
               <MdLocationOn />
-              <span>{city}</span>
+              <span className="men-location-copy">
+                <small>Delivering to</small>
+                <strong>{city}</strong>
+              </span>
               <MdKeyboardArrowDown />
             </button>
 
@@ -453,7 +553,9 @@ export default function Men() {
               <button type="button" onClick={() => navigate("/wishlist")}>
                 <MdFavoriteBorder />
                 <span>Wishlist</span>
-                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
+                {wishlistCount > 0 ? (
+                  <span className="hp-icon-badge">{wishlistCount}</span>
+                ) : null}
               </button>
               <button type="button" onClick={() => navigate("/cart")}>
                 <MdOutlineShoppingCart />
@@ -477,7 +579,11 @@ export default function Men() {
               </button>
             ))}
           </div>
-          <button type="button" className="men-nav-offers" onClick={() => navigate("/offers")}>
+          <button
+            type="button"
+            className="men-nav-offers"
+            onClick={() => navigate("/offers")}
+          >
             <MdSettings /> Offers
           </button>
         </nav>
@@ -485,31 +591,83 @@ export default function Men() {
 
       <main className="men-main">
         <div className="men-breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>Home</button>
+          <button type="button" onClick={() => navigate("/")}>
+            Home
+          </button>
           <span>›</span>
           <span className="current">Men</span>
         </div>
 
-        <section className="men-hero-grid" aria-label="Men's fashion highlights">
-          <div
-            className="men-hero-card men-hero-main"
-            style={{ ...heroBannerStyle(MEN_BANNERS[0]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
+        {/* Mode switcher: India (this page) vs Local */}
+        <section className="men-mode-row" aria-label="Store modes">
+          <button
+            type="button"
+            className="men-mode-card men-mode-selected"
+            onClick={() => navigate("/men")}
+          >
+            <span className="men-mode-icon">🌐</span>
+            <span className="men-mode-copy">
+              <strong>BLINKIEFASH INDIA</strong>
+              <small>Products from stores across India</small>
+            </span>
+          </button>
 
-          <div
-            className="men-hero-card men-hero-side men-hero-trending"
-            style={{ ...heroBannerStyle(MEN_BANNERS[1]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
-
-          <div
-            className="men-hero-card men-hero-side men-hero-arrivals"
-            style={{ ...heroBannerStyle(MEN_BANNERS[2]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
+          <button
+            type="button"
+            className="men-mode-card men-mode-local"
+            onClick={() => navigate("/blinkiefash-local")}
+          >
+            <span className="men-mode-icon">⚡</span>
+            <span className="men-mode-copy">
+              <strong>BLINKIEFASH LOCAL</strong>
+              <small>Fast delivery from nearby stores</small>
+            </span>
+          </button>
         </section>
 
+        {/* Hero — single banner with copy + floating category card, like a storefront takeover */}
+        <section className="men-hero-banner" aria-label="Men's fashion highlights">
+          <button
+            type="button"
+            className="men-hero-arrow men-hero-arrow-prev"
+            aria-label="Previous banner"
+            onClick={() => goHeroSlide(-1)}
+          >
+            <MdChevronLeft />
+          </button>
+
+          <div
+            className="men-hero-slide"
+            style={heroBannerStyle(MEN_BANNERS[heroSlide])}
+            onClick={() => navigate(menScopedShopUrl())}
+            role="button"
+            tabIndex={0}
+            aria-label="Shop men's fashion"
+          />
+
+          <button
+            type="button"
+            className="men-hero-arrow men-hero-arrow-next"
+            aria-label="Next banner"
+            onClick={() => goHeroSlide(1)}
+          >
+            <MdChevronRight />
+          </button>
+
+          <div className="men-hero-dots">
+            {MEN_BANNERS.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`men-hero-dot${idx === heroSlide ? " active" : ""}`}
+                aria-label={`Show banner ${idx + 1}`}
+                onClick={() => setHeroSlide(idx)}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Category strip */}
         <section className="men-cat-strip" aria-label="Shop by category">
           <div className="men-cat-list">
             {categoryStripItems.map((cat) => (
@@ -531,7 +689,10 @@ export default function Men() {
                       }}
                     />
                   ) : null}
-                  <span className="men-cat-fallback-icon" style={cat.image ? { display: "none" } : undefined}>
+                  <span
+                    className="men-cat-fallback-icon"
+                    style={cat.image ? { display: "none" } : undefined}
+                  >
                     {cat.icon ? <cat.icon /> : <MdGridView />}
                   </span>
                 </span>
@@ -541,8 +702,88 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Promo grid — 3 reward cards + a stacked pair of smaller offers */}
+        <section className="men-promo-grid" aria-label="Promotional offers">
+          {heroPromoCards.map((card, index) => {
+            const homeStyleClass = `men-home-reward-card ${
+              index === 0
+                ? "men-home-reward-spin"
+                : index === 1
+                  ? "men-home-reward-play"
+                  : "men-home-reward-refer"
+            }`;
+            return (
+              <article
+                key={card.title}
+                className={`men-promo-card-bfi men-promo-${card.accent} ${homeStyleClass}`}
+                onClick={() => navigate(card.to)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(card.to);
+                  }
+                }}
+              >
+                <div className="men-promo-content">
+                  <p className="men-promo-title-bfi">{card.title}</p>
+                  <p className="men-promo-subtitle-bfi">{card.subtitle}</p>
+                  <div className="men-promo-highlight-bfi">{card.highlight}</div>
+                  <button
+                    type="button"
+                    className="men-promo-button-bfi"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(card.to);
+                    }}
+                  >
+                    {card.action}
+                  </button>
+                </div>
+                <div className="men-promo-icon-bfi" aria-hidden="true">
+                  {card.icon}
+                </div>
+              </article>
+            );
+          })}
+
+          <div className="men-promo-mini-col">
+            {miniPromoCards.map((card) => (
+              <article
+                key={card.title}
+                className={`men-promo-mini men-promo-${card.accent}`}
+                onClick={() => navigate(card.to)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(card.to);
+                  }
+                }}
+              >
+                <div className="men-promo-mini-copy">
+                  <p className="men-promo-mini-title">{card.title}</p>
+                  <p className="men-promo-mini-sub">{card.subtitle}</p>
+                  {card.badge ? (
+                    <span className="men-promo-code-badge">{card.highlight}</span>
+                  ) : (
+                    <p className="men-promo-mini-highlight">{card.highlight}</p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* Secondary promo strip (Prepaid / Brands / Delivery) */}
         <section className="men-promo-strip">
-          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-prepaid"
+            onClick={() => navigate("/offers")}
+          >
             <div>
               <p className="men-promo-title">Prepaid Order Offers</p>
               <p className="men-promo-sub">Extra savings when you pay online</p>
@@ -550,26 +791,39 @@ export default function Men() {
             <MdLocalOffer className="men-promo-icon" />
           </button>
 
-          <button type="button" className="men-promo-card men-promo-brands" onClick={() => navigate(menScopedShopUrl())}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-brands"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
             <div>
               <p className="men-promo-title">Top Brand Discounts</p>
               <p className="men-promo-sub">Nike · Adidas · Puma &amp; more</p>
             </div>
-            <span className="men-promo-cta">Shop Now <MdArrowForward /></span>
+            <span className="men-promo-cta">
+              Shop Now <MdArrowForward />
+            </span>
           </button>
 
-          <button type="button" className="men-promo-card men-promo-delivery" onClick={() => navigate(menScopedShopUrl())}>
+          <button
+            type="button"
+            className="men-promo-card men-promo-delivery"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
             <div>
               <p className="men-promo-title">Fast &amp; Free Delivery</p>
               <p className="men-promo-sub">On eligible orders, in 60 minutes</p>
             </div>
-            <span className="men-promo-cta">Shop Now <MdArrowForward /></span>
+            <span className="men-promo-cta">
+              Shop Now <MdArrowForward />
+            </span>
           </button>
         </section>
 
+        {/* Trending Now */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
-            <h2>Top Picks for You</h2>
+            <h2>Trending Now</h2>
             <button type="button" onClick={() => navigate(menScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
@@ -579,7 +833,12 @@ export default function Men() {
             <p className="men-empty-state">Loading today&apos;s picks…</p>
           ) : products.length ? (
             <div className="hp-deals-wrap">
-              <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollPicks(-1)}>
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Previous"
+                onClick={() => scrollPicks(-1)}
+              >
                 <MdChevronLeft />
               </button>
 
@@ -589,23 +848,30 @@ export default function Men() {
                     key={`men-pick-${p.id}-${idx}`}
                     className="hp-deal-card"
                     role="listitem"
-                    onClick={() => navigate(`/product/${p.id}`, { state: { from: 'men', fromLabel: 'Men', fromPath: '/men' } })}
+                    onClick={() =>
+                      navigate(`/product/${p.id}`, {
+                        state: { from: "men", fromLabel: "Men", fromPath: "/men" },
+                      })
+                    }
                   >
                     <div className="hp-deal-media">
+                      <span className="men-deal-trybuy">Try &amp; Buy</span>
                       {p.image ? (
                         <img src={p.image} alt={p.name} loading="lazy" />
                       ) : (
                         <div className="hp-deal-fallback">No image</div>
                       )}
-                      <span className={`hp-deal-ribbon${p.discount === 0 ? " new" : ""}`}>
-                        {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-                      </span>
                       <button
                         type="button"
                         className={`hp-deal-wish${isWishlisted(p.id) ? " active" : ""}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          toggleWishlist({ productId: p.id, name: p.name, image: p.image, price: p.price });
+                          toggleWishlist({
+                            productId: p.id,
+                            name: p.name,
+                            image: p.image,
+                            price: p.price,
+                          });
                         }}
                         aria-label="Toggle wishlist"
                       >
@@ -617,10 +883,14 @@ export default function Men() {
                       <p className="hp-deal-name">{p.name}</p>
                       <div className="hp-deal-price-row">
                         <span className="hp-deal-price">₹{p.price}</span>
-                        {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
+                        {p.mrp > p.price && (
+                          <span className="hp-deal-mrp">₹{p.mrp}</span>
+                        )}
                       </div>
                       <div className="hp-deal-footer-row">
-                        <span className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}>
+                        <span
+                          className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}
+                        >
                           {p.discount > 0 ? `${p.discount}% OFF` : "BESTSELLER"}
                         </span>
                         <button
@@ -628,7 +898,13 @@ export default function Men() {
                           className="hp-deal-cart"
                           onClick={(e) => {
                             e.stopPropagation();
-                            addToCart({ productId: p.id, variantId: p.id, name: p.name, image: p.image, price: p.price });
+                            addToCart({
+                              productId: p.id,
+                              variantId: p.id,
+                              name: p.name,
+                              image: p.image,
+                              price: p.price,
+                            });
                           }}
                           aria-label="Add to cart"
                         >
@@ -640,15 +916,23 @@ export default function Men() {
                 ))}
               </div>
 
-              <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollPicks(1)}>
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Next"
+                onClick={() => scrollPicks(1)}
+              >
                 <MdChevronRight />
               </button>
             </div>
           ) : (
-            <p className="men-empty-state">New men&apos;s styles are landing soon — check back shortly.</p>
+            <p className="men-empty-state">
+              New men&apos;s styles are landing soon — check back shortly.
+            </p>
           )}
         </section>
 
+        {/* Top Brands */}
         <section className="men-brands-section" aria-label="Top brands">
           <div className="hp-section-head">
             <h2>Top Brands You Love</h2>
@@ -674,7 +958,11 @@ export default function Men() {
                   aria-label={`Shop ${brand.name}`}
                 >
                   <span className="hp-top-brand-logo">
-                    {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials || "BR"}</span>}
+                    {logo ? (
+                      <img src={logo} alt="" loading="lazy" />
+                    ) : (
+                      <span>{initials || "BR"}</span>
+                    )}
                   </span>
                   <span className="hp-top-brand-name">{brand.name}</span>
                 </button>
@@ -683,13 +971,50 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Trust strip */}
         <section className="men-trust-strip" aria-label="Why shop with us">
-          <div><MdBolt /><div><strong>60 MINUTES</strong><span>Delivery</span></div></div>
-          <div><MdAutorenew /><div><strong>Easy 5-Day</strong><span>Returns</span></div></div>
-          <div><MdVerifiedUser /><div><strong>100% Original</strong><span>Products</span></div></div>
-          <div><MdLocalOffer /><div><strong>Best Prices</strong><span>Everyday</span></div></div>
-          <div><MdSecurity /><div><strong>Secure Payments</strong><span>100% Safe &amp; Secure</span></div></div>
-          <div><MdSupportAgent /><div><strong>24/7 Support</strong><span>We&apos;re here for you</span></div></div>
+          <div>
+            <MdBolt />
+            <div>
+              <strong>60 MINUTES</strong>
+              <span>Delivery</span>
+            </div>
+          </div>
+          <div>
+            <MdAutorenew />
+            <div>
+              <strong>Easy 5-Day</strong>
+              <span>Returns</span>
+            </div>
+          </div>
+          <div>
+            <MdVerifiedUser />
+            <div>
+              <strong>100% Original</strong>
+              <span>Products</span>
+            </div>
+          </div>
+          <div>
+            <MdLocalOffer />
+            <div>
+              <strong>Best Prices</strong>
+              <span>Everyday</span>
+            </div>
+          </div>
+          <div>
+            <MdSecurity />
+            <div>
+              <strong>Secure Payments</strong>
+              <span>100% Safe &amp; Secure</span>
+            </div>
+          </div>
+          <div>
+            <MdSupportAgent />
+            <div>
+              <strong>24/7 Support</strong>
+              <span>We&apos;re here for you</span>
+            </div>
+          </div>
         </section>
       </main>
 
