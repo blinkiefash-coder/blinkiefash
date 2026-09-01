@@ -328,6 +328,9 @@ router.get("/:id/orders", async (req, res) => {
          o.created_at,
          u.name AS customer_name,
          u.phone AS customer_phone,
+         a.address_line,
+         a.city,
+         a.pincode,
          json_agg(json_build_object(
            'product_id', p.id,
            'variant_id', oi.variant_id,
@@ -369,14 +372,30 @@ router.get("/:id/orders", async (req, res) => {
        JOIN products p ON p.id = v.product_id
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN users u ON u.id::text = o.user_id
+       LEFT JOIN addresses a ON a.id = o.address_id
        LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
        WHERE p.vendor_id IN (${placeholders})
-       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
+       GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, a.address_line, a.city, a.pincode, d.store_pickup_otp, d.store_pickup_verified_at
        ORDER BY o.created_at DESC`,
       ownerIds
     );
-    
-    res.json(result.rows);
+
+    // Each order card should show only this vendor's own revenue and a
+    // stable invoice number — not the full multi-vendor order total.
+    const ordersWithVendorTotals = result.rows.map((order) => {
+      const items = Array.isArray(order.items) ? order.items : [];
+      const vendorSubtotal = items.reduce(
+        (sum, it) => sum + parseFloat(it.price || 0) * Number(it.quantity || 0),
+        0
+      );
+      return {
+        ...order,
+        invoice_number: String(order.id).slice(-8).toUpperCase(),
+        vendor_subtotal: Math.round(vendorSubtotal * 100) / 100,
+      };
+    });
+
+    res.json(ordersWithVendorTotals);
   } catch (err) {
     console.error("[VendorOrders] Error:", err.message, err.code, err.detail);
     res.status(500).json({ error: err.message || "Server error", code: err.code });

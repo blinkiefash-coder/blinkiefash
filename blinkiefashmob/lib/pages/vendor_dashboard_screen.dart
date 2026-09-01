@@ -4278,6 +4278,16 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               final customerPhone = (o['customer_phone'] ?? '')
                   .toString()
                   .trim();
+              final addressLine = (o['address_line'] ?? '').toString().trim();
+              final addressCity = (o['city'] ?? '').toString().trim();
+              final addressPincode = (o['pincode'] ?? '').toString().trim();
+              final shippingAddress = [
+                addressLine,
+                [
+                  addressCity,
+                  addressPincode,
+                ].where((e) => e.isNotEmpty).join(' - '),
+              ].where((e) => e.isNotEmpty).join(', ');
               final storePickupOtp = (o['store_pickup_otp'] ?? '')
                   .toString()
                   .trim();
@@ -4367,6 +4377,17 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                       'Your Subtotal: ₹$total',
                       style: const TextStyle(color: Color(0xFF475569)),
                     ),
+                    if (shippingAddress.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text(
+                          '📍 $shippingAddress',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
                     if (createdAt.isNotEmpty)
                       Text(
                         createdAt,

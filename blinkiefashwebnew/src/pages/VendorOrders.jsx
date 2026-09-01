@@ -633,7 +633,7 @@ export default function VendorOrders() {
                     <div className="vo-card-head">
                       <div>
                         <span className="vo-order-id">
-                          #{order.id.slice(-8).toUpperCase()}
+                          Invoice #{order.invoice_number || order.id.slice(-8).toUpperCase()}
                         </span>
                         <span
                           className="vo-status-badge"
@@ -654,8 +654,11 @@ export default function VendorOrders() {
                         <span className="vo-amount">
                           ₹
                           {Number(
-                            order.final_amount || order.total_amount
+                            order.vendor_subtotal ??
+                              order.final_amount ??
+                              order.total_amount
                           ).toFixed(0)}
+                          <span className="vo-amount-note"> (your share)</span>
                         </span>
                       </div>
                     </div>
@@ -678,6 +681,15 @@ export default function VendorOrders() {
                         </a>
                       )}
                     </div>
+
+                    {(order.address_line || order.city) && (
+                      <div className="vo-address">
+                        📍 {order.address_line}
+                        {order.address_line && order.city ? ", " : ""}
+                        {order.city}
+                        {order.pincode ? ` - ${order.pincode}` : ""}
+                      </div>
+                    )}
 
                     {order.store_pickup_otp &&
                       order.status !== "delivered" &&
