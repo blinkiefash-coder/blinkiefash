@@ -261,7 +261,7 @@ img {
 .primary-btn {
   border: none;
   border-radius: 999px;
-  background: var(--brand-green);
+  background: var(--theme-primary, var(--brand-green));
   color: #fff;
   font-weight: 700;
   padding: 12px 18px;
@@ -273,10 +273,10 @@ img {
 }
 
 .secondary-btn {
-  border: 1px solid var(--border);
+  border: 2px solid var(--theme-primary, var(--brand-green));
   border-radius: 999px;
-  background: #fff;
-  color: var(--brand-dark);
+  background: var(--theme-light, #fff);
+  color: var(--theme-dark, var(--brand-dark));
   font-weight: 700;
   padding: 12px 18px;
   font-size: 14px;

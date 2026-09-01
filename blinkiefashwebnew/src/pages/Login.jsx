@@ -74,7 +74,15 @@ export default function Login() {
           localStorage.removeItem('vendor_store_id');
           localStorage.removeItem('store_name');
           localStorage.removeItem('vendor_name');
-          login(customerRes.user, customerRes.token);
+          
+          // Preserve gender if it exists in localStorage, or get from response
+          const storedGender = localStorage.getItem('bfw_gender');
+          const userWithGender = {
+            ...customerRes.user,
+            gender: customerRes.user?.gender || storedGender || 'other'
+          };
+          
+          login(userWithGender, customerRes.token);
           navigate('/');
           return;
         }
@@ -196,7 +204,14 @@ export default function Login() {
         return;
       }
 
-      login(res.user, res.token);
+      // Preserve gender if it exists in localStorage, or get from response
+      const storedGender = localStorage.getItem('bfw_gender');
+      const userWithGender = {
+        ...res.user,
+        gender: res.user?.gender || storedGender || 'other'
+      };
+
+      login(userWithGender, res.token);
       navigate('/');
     } catch (err) {
       setError(err.message || 'OTP verification failed. Please try again.');
@@ -256,6 +271,10 @@ export default function Login() {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
+          
+          <p className="auth-forgot-link">
+            No password set? <Link to="/set-password">Forgot Password</Link>
+          </p>
 
           {error && <p className="auth-error">{error}</p>}
 

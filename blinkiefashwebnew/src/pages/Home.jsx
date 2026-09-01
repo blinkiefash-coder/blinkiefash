@@ -30,6 +30,7 @@ import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, ge
 import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
+import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 import './Shop.css';
 import './Home.css';
 
@@ -214,7 +215,7 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user, isLoggedIn } = useAuth();
+  const { user, isLoggedIn, userGender } = useAuth();
   const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
   const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
@@ -299,6 +300,21 @@ export default function Home() {
     window.addEventListener('focus', loadRecent);
     return () => window.removeEventListener('focus', loadRecent);
   }, []);
+
+  // Apply gender-based theme
+  useEffect(() => {
+    if (isLoggedIn && userGender) {
+      applyThemeVariables(userGender);
+    } else {
+      removeThemeVariables();
+    }
+
+    return () => {
+      if (!isLoggedIn) {
+        removeThemeVariables();
+      }
+    };
+  }, [isLoggedIn, userGender]);
 
   useEffect(() => {
     if (!recentlyViewedProductsData || recentlyViewedProductsData.length === 0) return;
@@ -802,6 +818,20 @@ export default function Home() {
     );
     return pool;
   }, [newProducts, mensProducts, womensProducts, kidsProducts, electronicsProducts, trendyShoesProducts]);
+
+  // Gender-based recommended products
+  const recommendedProducts = useMemo(() => {
+    if (!isLoggedIn || !userGender) return [];
+    
+    const normalizedGender = (userGender || '').toLowerCase().trim();
+    if (normalizedGender === 'women') {
+      return womensProducts.slice(0, 10);
+    }
+    if (normalizedGender === 'men') {
+      return mensProducts.slice(0, 10);
+    }
+    return [];
+  }, [isLoggedIn, userGender, womensProducts, mensProducts]);
 
   const handleDetectLocation = async () => {
     setLocating(true);
@@ -1395,6 +1425,20 @@ export default function Home() {
           </div>
         </section>
 
+        {recommendedProducts.length > 0 && (
+          <section className="section hp-feed-rail-section">
+            <div className="hp-section-head hp-feed-head">
+              <h2>
+                {userGender?.toLowerCase() === 'women' ? "🎀 Picks for Her" : "👔 Picks for Him"}
+              </h2>
+              <button type="button" onClick={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+            <ProductRail items={recommendedProducts} keyPrefix="recommended" />
+          </section>
+        )}
+
         {recentlyViewedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
@@ -1619,12 +1663,12 @@ export default function Home() {
 
           {exploreProducts.length > 0 ? (
             <div className="hp-explore-grid" role="list">
-              {exploreProducts.map((p) => (
-                <ProductCard key={`explore-${p.id}`} product={p} />
+              {exploreProducts.map((p, idx) => (
+                <ProductCard key={`explore-${p.id}-${idx}`} product={p} />
               ))}
               {exploreLoading
                 ? Array.from({ length: 3 }).map((_, idx) => (
-                    <ProductCardSkeleton key={`explore-skeleton-${idx}`} />
+                    <ProductCardSkeleton key={`explore-skeleton-loading-${idx}`} />
                   ))
                 : null}
             </div>

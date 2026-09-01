@@ -104,6 +104,12 @@ export const registerUser = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const setPassword = (payload) =>
+  request('/auth/set-password', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+
 export const getAddresses = (userId) =>
   request(`/checkout/addresses?userId=${userId}`);
 

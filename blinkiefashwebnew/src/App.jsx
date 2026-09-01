@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { useEffect } from 'react';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -18,6 +19,7 @@ import SpinWheel from './pages/SpinWheel';
 import FashionQuest from './pages/FashionQuest';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
+import SetPassword from './pages/SetPassword';
 import ComingSoon from './pages/ComingSoon';
 import VendorAuth from './pages/VendorAuth';
 import SellerRegistration from './pages/SellerRegistration';
@@ -43,6 +45,8 @@ import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
 import HelpSupport from './pages/helpsupport'; 
 import SavedAddresses from './pages/SavedAddresses';
+import { useAuth } from './context/AuthContext';
+import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
@@ -60,6 +64,17 @@ function RequireAdmin({ children }) {
 
 export default function App() {
   const { pathname } = useLocation();
+  const { isLoggedIn, userGender } = useAuth();
+
+  // Initialize theme based on user's gender
+  useEffect(() => {
+    if (isLoggedIn && userGender) {
+      applyThemeVariables(userGender);
+    } else {
+      removeThemeVariables();
+    }
+  }, [isLoggedIn, userGender]);
+
   const isHome = pathname === '/';
   const isVendorArea = pathname.startsWith('/vendor');
   const isCatalogPage =
@@ -119,6 +134,7 @@ export default function App() {
         <Route path="/play-and-win" element={<FashionQuest />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/set-password" element={<SetPassword />} />
         <Route
           path="/notifications"
           element={

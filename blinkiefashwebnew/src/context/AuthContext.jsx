@@ -14,16 +14,25 @@ export function AuthProvider({ children }) {
     }
   });
   const [token, setToken] = useState(() => localStorage.getItem('bfw_token') || null);
+  const [userGender, setUserGender] = useState(() => {
+    try {
+      return localStorage.getItem('bfw_gender') || null;
+    } catch {
+      return null;
+    }
+  });
 
   useEffect(() => {
     if (user) {
       localStorage.setItem('bfw_user', JSON.stringify(user));
       if (user.name) localStorage.setItem('userName', user.name);
       if (user.id !== undefined && user.id !== null) localStorage.setItem('userUuid', String(user.id));
+      if (user.gender) localStorage.setItem('bfw_gender', user.gender);
     } else {
       localStorage.removeItem('bfw_user');
       localStorage.removeItem('userName');
       localStorage.removeItem('userUuid');
+      localStorage.removeItem('bfw_gender');
     }
   }, [user]);
 
@@ -40,6 +49,10 @@ export function AuthProvider({ children }) {
   const login = (nextUser, nextToken) => {
     setUser(nextUser);
     setToken(nextToken);
+    if (nextUser?.gender) {
+      setUserGender(nextUser.gender);
+      localStorage.setItem('bfw_gender', nextUser.gender);
+    }
   };
 
   const updateUser = (updates) => {
@@ -57,16 +70,18 @@ export function AuthProvider({ children }) {
 
     setUser(null);
     setToken(null);
+    setUserGender(null);
     clearVendorPasswordAuth();
     localStorage.removeItem('vendor_id');
     localStorage.removeItem('vendor_store_id');
     localStorage.removeItem('store_name');
     localStorage.removeItem('vendor_name');
+    localStorage.removeItem('bfw_gender');
   };
 
   const value = useMemo(
-    () => ({ user, token, isLoggedIn: !!user, login, logout, updateUser }),
-    [user, token]
+    () => ({ user, token, isLoggedIn: !!user, login, logout, updateUser, userGender, setUserGender }),
+    [user, token, userGender]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

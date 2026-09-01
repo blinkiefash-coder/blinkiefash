@@ -50,7 +50,7 @@
 }
 
 .pc-badge.try-buy {
-  background: linear-gradient(90deg, #f59e0b, #ef4444);
+  background: var(--theme-primary, #ec4899);
 }
 
 .pc-badge.bestseller {
@@ -80,12 +80,12 @@
 }
 
 .pc-wishlist:hover {
-  color: #ec4899;
+  color: var(--theme-primary, #ec4899);
   transform: scale(1.08);
 }
 
 .pc-wishlist.active {
-  color: #ec4899;
+  color: var(--theme-primary, #ec4899);
 }
 
 .pc-wishlist {
