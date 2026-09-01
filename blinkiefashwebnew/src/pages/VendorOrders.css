@@ -337,6 +337,57 @@
   margin-right: 8px;
 }
 
+.vo-invoice-edit-btn {
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 12px;
+  margin-left: 6px;
+  padding: 0;
+  opacity: 0.6;
+}
+
+.vo-invoice-edit-btn:hover {
+  opacity: 1;
+}
+
+.vo-invoice-edit {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 8px;
+}
+
+.vo-invoice-input {
+  font-size: 13px;
+  font-family: monospace;
+  font-weight: 700;
+  padding: 3px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  width: 130px;
+}
+
+.vo-invoice-save,
+.vo-invoice-cancel {
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 7px;
+}
+
+.vo-invoice-save {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.vo-invoice-cancel {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .vo-status-badge {
   font-size: 11px;
   font-weight: 700;

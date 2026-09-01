@@ -727,6 +727,17 @@ class ApiClient {
     });
   }
 
+  Future<Map<String, dynamic>> setVendorOrderInvoiceNumber({
+    required String vendorId,
+    required String orderId,
+    required String invoiceNumber,
+  }) async {
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/vendor/$vendorId/orders/$orderId/invoice-number',
+    );
+    return _patchJson(uri, {'invoice_number': invoiceNumber});
+  }
+
   Future<Map<String, dynamic>> fetchVendorOrderDeliveryStatus(
     String orderId,
   ) async {

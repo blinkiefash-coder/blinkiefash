@@ -878,6 +878,25 @@ export const ensureDatabaseTables = async () => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
   `).catch(() => {});
+
+  // ── Per-vendor sequential invoice numbering ─────────────────────────────────
+  // Each vendor gets their own INV-0001, INV-0002... series; a number is
+  // assigned once (lazily, on first invoice generation) and then reused.
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vendor_invoice_counters (
+      vendor_id UUID PRIMARY KEY REFERENCES vendors(id) ON DELETE CASCADE,
+      last_number INT NOT NULL DEFAULT 0
+    );
+  `).catch(() => {});
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS vendor_order_invoices (
+      vendor_id UUID NOT NULL REFERENCES vendors(id) ON DELETE CASCADE,
+      order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      invoice_number VARCHAR(40) NOT NULL,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      PRIMARY KEY (vendor_id, order_id)
+    );
+  `).catch(() => {});
   } catch (error) {
     console.warn("[db] Database initialization skipped; continuing without DB-backed features.", error.message);
   }

@@ -4043,6 +4043,69 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
     }
   }
 
+  Future<void> _editInvoiceNumber(String orderId, String currentValue) async {
+    String draft = currentValue;
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          title: const Text('Set Invoice Number'),
+          content: TextField(
+            controller: TextEditingController(text: currentValue),
+            autofocus: true,
+            onChanged: (value) => draft = value,
+            onSubmitted: (value) => Navigator.of(ctx).pop(value.trim()),
+            decoration: const InputDecoration(
+              labelText: 'Invoice number',
+              hintText: 'e.g. INV-1024',
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(draft.trim()),
+              child: const Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+    if (result == null || result.isEmpty || !mounted) return;
+
+    try {
+      final response = await _api.setVendorOrderInvoiceNumber(
+        vendorId: widget.vendorId,
+        orderId: orderId,
+        invoiceNumber: result,
+      );
+      if (!mounted) return;
+      if (response['success'] == true) {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(const SnackBar(content: Text('Invoice number saved')));
+        await _load(silent: true);
+      } else {
+        ScaffoldMessenger.of(context)
+          ..removeCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(
+                (response['error'] ?? 'Unable to save invoice number').toString(),
+              ),
+            ),
+          );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context)
+        ..removeCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Failed to save invoice number: $e')));
+    }
+  }
+
   Future<void> _rejectOrder(String orderId) async {
     String reasonText = '';
     final reason = await showDialog<String>(
@@ -4291,6 +4354,10 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
               final storePickupOtp = (o['store_pickup_otp'] ?? '')
                   .toString()
                   .trim();
+              final invoiceNumber = (o['invoice_number'] ?? '').toString().trim();
+              final displayInvoiceNumber = invoiceNumber.isNotEmpty
+                  ? invoiceNumber
+                  : (id.length > 8 ? id.substring(0, 8) : id);
               final storePickupVerifiedAt =
                   (o['store_pickup_verified_at'] ?? '').toString().trim();
               final otpVerifiedAt = (o['otp_verified_at'] ?? '')
@@ -4335,11 +4402,18 @@ class _VendorOrdersTabState extends State<_VendorOrdersTab> {
                       children: [
                         Expanded(
                           child: Text(
-                            'Order #${id.length > 8 ? id.substring(0, 8) : id}',
+                            'Invoice #$displayInvoiceNumber',
                             style: const TextStyle(
                               fontWeight: FontWeight.w700,
                               fontSize: 14,
                             ),
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () => _editInvoiceNumber(id, invoiceNumber),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 6),
+                            child: Icon(Icons.edit, size: 16, color: Color(0xFF64748B)),
                           ),
                         ),
                         Container(
