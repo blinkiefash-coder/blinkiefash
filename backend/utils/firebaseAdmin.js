@@ -225,7 +225,7 @@ export async function notifyCustomerOfStatus(pool, orderId, status) {
   try {
     const { rows } = await pool.query(
       `SELECT u.fcm_token
-       FROM orders o JOIN users u ON u.id = o.user_id
+       FROM orders o JOIN users u ON u.id::text = o.user_id
        WHERE o.id = $1`,
       [orderId]
     );

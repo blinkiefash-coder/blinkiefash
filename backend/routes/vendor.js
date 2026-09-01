@@ -368,7 +368,7 @@ router.get("/:id/orders", async (req, res) => {
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
        LEFT JOIN brands b ON b.id = p.brand_id
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::text = o.user_id
        LEFT JOIN (SELECT DISTINCT ON (order_id) order_id, store_pickup_otp, store_pickup_verified_at FROM deliveries ORDER BY order_id DESC) d ON d.order_id = o.id
        WHERE p.vendor_id IN (${placeholders})
        GROUP BY o.id, o.status, o.total_amount, o.final_amount, o.delivery_otp, o.otp_verified_at, o.created_at, u.id, u.name, u.phone, d.store_pickup_otp, d.store_pickup_verified_at
@@ -404,7 +404,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
               u.name AS customer_name, u.phone AS customer_phone,
               a.address_line, a.city, a.pincode
        FROM orders o
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::text = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
        WHERE o.id = $1
        LIMIT 1`,

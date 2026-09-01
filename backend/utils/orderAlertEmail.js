@@ -97,7 +97,7 @@ export async function sendOrderAlertEmail(pool, orderId) {
             ds.name AS dark_store_name,
             ds.city AS dark_store_city
      FROM orders o
-     LEFT JOIN users u ON u.id = o.user_id
+     LEFT JOIN users u ON u.id::text = o.user_id
      LEFT JOIN addresses a ON a.id = o.address_id
      LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
      WHERE o.id = $1
