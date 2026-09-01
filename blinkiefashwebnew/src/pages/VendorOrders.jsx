@@ -17,7 +17,6 @@ const STATUS_LABELS = {
 
 const POLL_INTERVAL_MS = 15_000;
 
-// Start a repeating laptop ring and return a function that stops it.
 function startAlertSound() {
   let ctx;
   let ringTimer;
@@ -26,17 +25,17 @@ function startAlertSound() {
     const playRing = () => {
       if (ctx.state === "suspended") ctx.resume().catch(() => {});
       [0, 0.22].forEach((offset) => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.frequency.value = offset === 0 ? 880 : 660;
-      osc.type = "triangle";
-      gain.gain.setValueAtTime(0, ctx.currentTime + offset);
-      gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + offset + 0.04);
-      gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
-      osc.start(ctx.currentTime + offset);
-      osc.stop(ctx.currentTime + offset + 0.2);
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = offset === 0 ? 880 : 660;
+        osc.type = "triangle";
+        gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+        gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + offset + 0.04);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.2);
       });
     };
     playRing();
@@ -46,7 +45,6 @@ function startAlertSound() {
       ctx.close().catch(() => {});
     };
   } catch {
-    // Web Audio API unavailable or blocked; the visual alert remains active.
     return () => {};
   }
 }
@@ -80,7 +78,6 @@ function getItemImageUrl(item) {
     item?.images?.[0],
     item?.image_urls?.[0],
   ];
-
   return candidates.find((value) => typeof value === "string" && value.trim());
 }
 
@@ -133,10 +130,10 @@ export default function VendorOrders() {
     try {
       let list = [];
       if (isAdmin()) {
-        // Admin sees all orders across all vendors
-        const url = statusFilter !== "all"
-          ? `${API_API_BASE_URL}/admin/orders?status=${statusFilter}&limit=300`
-          : `${API_API_BASE_URL}/admin/orders?limit=300`;
+        const url =
+          statusFilter !== "all"
+            ? `${API_API_BASE_URL}/admin/orders?status=${statusFilter}&limit=300`
+            : `${API_API_BASE_URL}/admin/orders?limit=300`;
         const res = await fetch(url, { headers: adminHeaders() });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
@@ -148,22 +145,19 @@ export default function VendorOrders() {
         list = Array.isArray(data) ? data : [];
       }
 
-      // Debug: Log first order to check OTP field
       if (list.length > 0) {
         console.log("📦 First order data:", {
           id: list[0].id,
           delivery_otp: list[0].delivery_otp,
           otp_verified_at: list[0].otp_verified_at,
           status: list[0].status,
-          all_keys: Object.keys(list[0])
+          all_keys: Object.keys(list[0]),
         });
       }
 
-      // Detect genuinely new orders (not on first load)
       if (!isFirstPoll.current) {
         const newOnes = list.filter(
-          (o) =>
-            o.status === "placed" && !knownOrderIds.current.has(o.id)
+          (o) => o.status === "placed" && !knownOrderIds.current.has(o.id)
         );
         if (newOnes.length > 0) {
           ringSoundRef.current?.();
@@ -183,7 +177,6 @@ export default function VendorOrders() {
         }
       }
 
-      // Track all current order ids
       list.forEach((o) => knownOrderIds.current.add(o.id));
       isFirstPoll.current = false;
 
@@ -209,14 +202,15 @@ export default function VendorOrders() {
 
   useEffect(() => () => ringSoundRef.current?.(), []);
 
+  // ✅ Fixed: no sync setState inside effect (avoids eslint set-state-in-effect)
   useEffect(() => {
     if (!vendorId && !isAdmin()) {
-      navigate('/vendor', { replace: true });
+      navigate("/vendor", { replace: true });
       return;
     }
+
     requestNotificationPermission();
 
-    // Load vendor profile
     fetchVendorProfile(vendorId).then((v) => {
       if (v?.store_name) {
         setStoreName(v.store_name);
@@ -224,33 +218,113 @@ export default function VendorOrders() {
       }
     });
 
-    // Initial fetch + start polling
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional fetch-on-mount
-    fetchOrders();
+    const immediate = setTimeout(() => {
+      fetchOrders();
+    }, 0);
+
     const timer = setInterval(fetchOrders, POLL_INTERVAL_MS);
-    return () => clearInterval(timer);
+
+    return () => {
+      clearTimeout(immediate);
+      clearInterval(timer);
+    };
   }, [vendorId, statusFilter, fetchOrders, navigate]);
 
+  // ✅ Fixed Accept / Reject with admin + checkout fallback + HTML-safe parsing
   const updateStatus = async (orderId, newStatus, cancelReason = "") => {
     setActionLoading(orderId + newStatus);
     try {
       const body = { status: newStatus };
       if (cancelReason) body.cancelReason = cancelReason;
-      const res = await fetch(
-        `${API_API_BASE_URL}/vendor/${vendorId}/orders/${orderId}/status`,
-        {
+
+      const actingAsAdmin = isAdmin();
+
+      const attempts = actingAsAdmin
+        ? [
+            {
+              url: `${API_API_BASE_URL}/admin/orders/${orderId}/status`,
+              headers: {
+                "Content-Type": "application/json",
+                ...adminHeaders(),
+              },
+            },
+            {
+              url: `${API_API_BASE_URL}/checkout/orders/${orderId}/status`,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          ]
+        : [
+            {
+              url: `${API_API_BASE_URL}/vendor/${vendorId}/orders/${orderId}/status`,
+              headers: {
+                "Content-Type": "application/json",
+              },
+            },
+          ];
+
+      console.log("API_API_BASE_URL =", API_API_BASE_URL);
+      console.log("isAdmin =", actingAsAdmin);
+      console.log("orderId =", orderId);
+      console.log("vendorId =", vendorId);
+
+      let lastError = null;
+
+      for (const attempt of attempts) {
+        console.log("[updateStatus] trying", attempt.url, body);
+
+        const res = await fetch(attempt.url, {
           method: "PATCH",
-          headers: { "Content-Type": "application/json" },
+          headers: attempt.headers,
           body: JSON.stringify(body),
+        });
+
+        const contentType = res.headers.get("content-type") || "";
+        const text = await res.text();
+
+        if (
+          contentType.includes("text/html") ||
+          text.trim().startsWith("<!DOCTYPE") ||
+          text.trim().startsWith("<html")
+        ) {
+          console.warn("[updateStatus] got HTML instead of JSON from", attempt.url);
+          lastError = new Error(`Route not found (HTML response): ${attempt.url}`);
+          continue;
         }
-      );
-      const data = await res.json();
-      if (!data.success) throw new Error(data.error || "Update failed");
-      ringSoundRef.current?.();
-      ringSoundRef.current = null;
-      setIncomingOrders([]);
-      await fetchOrders();
+
+        let data = null;
+        try {
+          data = text ? JSON.parse(text) : null;
+        } catch {
+          lastError = new Error(`Invalid JSON from ${attempt.url}`);
+          continue;
+        }
+
+        console.log("[updateStatus] response", res.status, data);
+
+        if (!res.ok) {
+          lastError = new Error(
+            data?.error || data?.message || `HTTP ${res.status}`
+          );
+          if (res.status === 404) continue;
+          throw lastError;
+        }
+
+        if (data && data.success === false) {
+          throw new Error(data.error || data.message || "Update failed");
+        }
+
+        ringSoundRef.current?.();
+        ringSoundRef.current = null;
+        setIncomingOrders([]);
+        await fetchOrders();
+        return;
+      }
+
+      throw lastError || new Error("All status update attempts failed");
     } catch (err) {
+      console.error("[updateStatus] failed:", err);
       alert(`Failed: ${err.message}`);
     } finally {
       setActionLoading(null);
@@ -261,11 +335,10 @@ export default function VendorOrders() {
     const reason = window.prompt(
       "Reason for rejection (leave blank for default):"
     );
-    if (reason === null) return; // cancelled
+    if (reason === null) return;
     updateStatus(orderId, "cancelled", reason || "Rejected by store");
   };
 
-  // Export currently-filtered orders as an Excel-compatible file.
   const generateExcel = () => {
     const fmtPhone = (p) => {
       const digits = String(p || "").replace(/\D/g, "");
@@ -274,7 +347,19 @@ export default function VendorOrders() {
         : p || "";
     };
     const rows = [
-      ["Order ID", "Date", "Status", "Customer", "Phone", "Product", "Size", "Color", "Barcode", "Qty", "Price (\u20b9)"],
+      [
+        "Order ID",
+        "Date",
+        "Status",
+        "Customer",
+        "Phone",
+        "Product",
+        "Size",
+        "Color",
+        "Barcode",
+        "Qty",
+        "Price (\u20b9)",
+      ],
     ];
     filteredForExport.forEach((order) => {
       (order.items || []).forEach((item) => {
@@ -293,8 +378,17 @@ export default function VendorOrders() {
         ]);
       });
     });
-    const table = `<table>${rows.map((r) => `<tr>${r.map((c) => `<td>${String(c).replace(/</g, "&lt;")}</td>`).join("")}</tr>`).join("")}</table>`;
-    const blob = new Blob([table], { type: "application/vnd.ms-excel;charset=utf-8;" });
+    const table = `<table>${rows
+      .map(
+        (r) =>
+          `<tr>${r
+            .map((c) => `<td>${String(c).replace(/</g, "&lt;")}</td>`)
+            .join("")}</tr>`
+      )
+      .join("")}</table>`;
+    const blob = new Blob([table], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -305,43 +399,54 @@ export default function VendorOrders() {
 
   const ACTIVE_TABS = ["placed", "confirmed", "packed", "out_for_delivery"];
   const filtered = orders.filter((o) => {
-    // Once delivered or the delivery OTP is verified, drop it out of the active-tracking tabs
-    if (ACTIVE_TABS.includes(statusFilter) && (o.status === "delivered" || o.otp_verified_at)) {
+    if (
+      ACTIVE_TABS.includes(statusFilter) &&
+      (o.status === "delivered" || o.otp_verified_at)
+    ) {
       return false;
     }
     if (statusFilter !== "all" && o.status !== statusFilter) return false;
     if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
-    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59"))
+      return false;
     return true;
   });
-  // For Excel export: same date filter but no status restriction.
+
   const filteredForExport = orders.filter((o) => {
     if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
-    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59")) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59"))
+      return false;
     return statusFilter === "all" ? true : o.status === statusFilter;
   });
 
   const newCount = orders.filter((o) => o.status === "placed").length;
   const inProgressCount = orders.filter(
-    (o) => ["confirmed", "packed", "out_for_delivery"].includes(o.status) && !o.otp_verified_at
+    (o) =>
+      ["confirmed", "packed", "out_for_delivery"].includes(o.status) &&
+      !o.otp_verified_at
   ).length;
   const deliveredCount = orders.filter((o) => o.status === "delivered").length;
   const totalRevenue = orders
     .filter((o) => ["delivered", "completed"].includes(o.status))
     .reduce((sum, order) => {
-      // Vendor revenue = only their own item prices, excluding delivery/platform/handling fees
       const itemsTotal = (order.items || []).reduce(
         (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
         0
       );
       return sum + itemsTotal;
     }, 0);
+
   const metrics = [
     { label: "New orders", value: newCount, tone: "accent" },
     { label: "In progress", value: inProgressCount, tone: "blue" },
     { label: "Delivered", value: deliveredCount, tone: "green" },
-    { label: "Revenue", value: `₹${totalRevenue.toLocaleString("en-IN")}`, tone: "neutral" },
+    {
+      label: "Revenue",
+      value: `₹${totalRevenue.toLocaleString("en-IN")}`,
+      tone: "neutral",
+    },
   ];
+
   const ringMinutes = Math.floor(ringSecondsLeft / 60);
   const ringSeconds = String(ringSecondsLeft % 60).padStart(2, "0");
 
@@ -354,18 +459,38 @@ export default function VendorOrders() {
     >
       <div className="vo-page">
         {incomingOrders.length > 0 && (
-          <div className="vo-incoming-alert" role="alertdialog" aria-live="assertive">
-            <div className="vo-incoming-icon" aria-hidden="true">🔔</div>
+          <div
+            className="vo-incoming-alert"
+            role="alertdialog"
+            aria-live="assertive"
+          >
+            <div className="vo-incoming-icon" aria-hidden="true">
+              🔔
+            </div>
             <div className="vo-incoming-copy">
-              <strong>{incomingOrders.length === 1 ? "New order received" : `${incomingOrders.length} new orders received`}</strong>
-              <span>Accept or reject before the store confirmation window closes.</span>
-              <b>{ringMinutes}:{ringSeconds} remaining</b>
+              <strong>
+                {incomingOrders.length === 1
+                  ? "New order received"
+                  : `${incomingOrders.length} new orders received`}
+              </strong>
+              <span>
+                Accept or reject before the store confirmation window closes.
+              </span>
+              <b>
+                {ringMinutes}:{ringSeconds} remaining
+              </b>
             </div>
             <div className="vo-incoming-actions">
               <button
                 className="vo-btn vo-btn-accept"
-                onClick={() => document.querySelector(".vo-card-new")?.scrollIntoView({ behavior: "smooth", block: "center" })}
-              >View order</button>
+                onClick={() =>
+                  document
+                    .querySelector(".vo-card-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+              >
+                View order
+              </button>
               <button
                 className="vo-alert-dismiss"
                 onClick={() => {
@@ -374,21 +499,23 @@ export default function VendorOrders() {
                   setIncomingOrders([]);
                 }}
                 aria-label="Dismiss incoming order alert"
-              >✕</button>
+              >
+                ✕
+              </button>
             </div>
           </div>
         )}
+
         <div className="vo-hero">
           <div className="vo-hero-copy">
             <p className="vo-eyebrow">Vendor dashboard</p>
             <h2 className="vo-title">
               Orders
-              {newCount > 0 && (
-                <span className="vo-badge">{newCount} new</span>
-              )}
+              {newCount > 0 && <span className="vo-badge">{newCount} new</span>}
             </h2>
             <p className="vo-subtitle">
-              Incoming orders stay synced live, so you can move through requests without leaving the page.
+              Incoming orders stay synced live, so you can move through requests
+              without leaving the page.
             </p>
           </div>
           <div className="vo-hero-actions">
@@ -418,14 +545,32 @@ export default function VendorOrders() {
         <div className="vo-report-bar">
           <span className="vo-report-bar-title">📅 Filter &amp; Export</span>
           <div className="vo-date-filter">
-            <label>From
-              <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            <label>
+              From
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
             </label>
-            <label>To
-              <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
+            <label>
+              To
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
             </label>
             {(dateFrom || dateTo) && (
-              <button className="vo-date-clear" onClick={() => { setDateFrom(""); setDateTo(""); }}>✕ Clear</button>
+              <button
+                className="vo-date-clear"
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+              >
+                ✕ Clear
+              </button>
             )}
           </div>
           <button
@@ -438,24 +583,28 @@ export default function VendorOrders() {
         </div>
 
         <div className="vo-tabs">
-          {["all", "placed", "confirmed", "packed", "out_for_delivery", "delivered", "cancelled"].map(
-            (s) => (
-              <button
-                key={s}
-                className={`vo-tab ${statusFilter === s ? "active" : ""}`}
-                onClick={() => setStatusFilter(s)}
-              >
-                {s === "all"
-                  ? "All"
-                  : s === "out_for_delivery"
-                  ? "Delivery"
-                  : s.charAt(0).toUpperCase() + s.slice(1)}
-                {s === "placed" && newCount > 0 && (
-                  <span className="vo-tab-dot" />
-                )}
-              </button>
-            )
-          )}
+          {[
+            "all",
+            "placed",
+            "confirmed",
+            "packed",
+            "out_for_delivery",
+            "delivered",
+            "cancelled",
+          ].map((s) => (
+            <button
+              key={s}
+              className={`vo-tab ${statusFilter === s ? "active" : ""}`}
+              onClick={() => setStatusFilter(s)}
+            >
+              {s === "all"
+                ? "All"
+                : s === "out_for_delivery"
+                ? "Delivery"
+                : s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "placed" && newCount > 0 && <span className="vo-tab-dot" />}
+            </button>
+          ))}
         </div>
 
         {loading ? (
@@ -477,11 +626,10 @@ export default function VendorOrders() {
               };
               const isNew = order.status === "placed";
               const busy = actionLoading?.startsWith(order.id);
+
               return (
                 <div key={order.id} className="vo-order-group">
-                  {/* ── Order card: header + customer + OTP + actions ── */}
                   <div className={`vo-card ${isNew ? "vo-card-new" : ""}`}>
-                    {/* Card header */}
                     <div className="vo-card-head">
                       <div>
                         <span className="vo-order-id">
@@ -503,11 +651,15 @@ export default function VendorOrders() {
                             minute: "2-digit",
                           })}
                         </span>
-                        <span className="vo-amount">₹{Number(order.final_amount || order.total_amount).toFixed(0)}</span>
+                        <span className="vo-amount">
+                          ₹
+                          {Number(
+                            order.final_amount || order.total_amount
+                          ).toFixed(0)}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Customer */}
                     <div className="vo-customer">
                       👤 {order.customer_name || "Customer"}
                       {order.customer_phone && (
@@ -515,44 +667,59 @@ export default function VendorOrders() {
                           href={`tel:${order.customer_phone}`}
                           className="vo-phone"
                         >
-                          📞 {/^\d{10}$/.test(String(order.customer_phone).replace(/\D/g, ""))
-                            ? `+91 ${String(order.customer_phone).replace(/\D/g, "").replace(/(\d{5})(\d{5})/, "$1 $2")}`
+                          📞{" "}
+                          {/^\d{10}$/.test(
+                            String(order.customer_phone).replace(/\D/g, "")
+                          )
+                            ? `+91 ${String(order.customer_phone)
+                                .replace(/\D/g, "")
+                                .replace(/(\d{5})(\d{5})/, "$1 $2")}`
                             : order.customer_phone}
                         </a>
                       )}
                     </div>
 
-                    {/* Store Pickup OTP Section - for rider to pick up from store; hide once order is done */}
-                    {order.store_pickup_otp && order.status !== "delivered" && !order.otp_verified_at && (
-                      <div className="vo-otp-section" style={{ background: '#E0E7FF', borderLeft: '4px solid #4F46E5' }}>
-                        <div className="vo-otp-label">
-                          🏪 Store Pickup OTP
+                    {order.store_pickup_otp &&
+                      order.status !== "delivered" &&
+                      !order.otp_verified_at && (
+                        <div
+                          className="vo-otp-section"
+                          style={{
+                            background: "#E0E7FF",
+                            borderLeft: "4px solid #4F46E5",
+                          }}
+                        >
+                          <div className="vo-otp-label">
+                            🏪 Store Pickup OTP
+                            {order.store_pickup_verified_at && (
+                              <span className="vo-otp-verified">✓ Verified</span>
+                            )}
+                          </div>
+                          <div className="vo-otp-code">
+                            {order.store_pickup_otp}
+                          </div>
                           {order.store_pickup_verified_at && (
-                            <span className="vo-otp-verified">✓ Verified</span>
+                            <div className="vo-otp-time">
+                              Verified at{" "}
+                              {new Date(
+                                order.store_pickup_verified_at
+                              ).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
                           )}
                         </div>
-                        <div className="vo-otp-code">{order.store_pickup_otp}</div>
-                        {order.store_pickup_verified_at && (
-                          <div className="vo-otp-time">
-                            Verified at {new Date(order.store_pickup_verified_at).toLocaleString("en-IN", {
-                              day: "2-digit",
-                              month: "short",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    )}
+                      )}
 
-                    {/* Vendor tag for admin view */}
                     {isAdmin() && order.items?.[0]?.vendor_name && (
                       <div className="vo-vendor-tag">
                         🏪 {order.items[0].vendor_name}
                       </div>
                     )}
 
-                    {/* Actions */}
                     {isNew && (
                       <div className="vo-actions">
                         <button
@@ -571,6 +738,7 @@ export default function VendorOrders() {
                         </button>
                       </div>
                     )}
+
                     {order.status === "confirmed" && (
                       <div className="vo-actions">
                         <button
@@ -582,37 +750,40 @@ export default function VendorOrders() {
                         </button>
                       </div>
                     )}
+
                     {order.status === "packed" && (
                       <div className="vo-actions">
                         <button
                           className="vo-btn vo-btn-accept"
                           disabled={busy}
-                          onClick={() => updateStatus(order.id, "out_for_delivery")}
+                          onClick={() =>
+                            updateStatus(order.id, "out_for_delivery")
+                          }
                         >
                           {busy ? "…" : "🛵 Out for Delivery"}
                         </button>
                       </div>
                     )}
 
-                    {/* Invoice / packing slip — vendor's own items only, no fees */}
-                    {!isAdmin() && vendorId && order.status === "delivered" && (
-                      <div className="vo-actions">
-                        <button
-                          className="vo-btn vo-btn-invoice"
-                          onClick={() =>
-                            window.open(
-                              `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
-                              "_blank"
-                            )
-                          }
-                        >
-                          🧾 Download Invoice
-                        </button>
-                      </div>
-                    )}
+                    {!isAdmin() &&
+                      vendorId &&
+                      order.status === "delivered" && (
+                        <div className="vo-actions">
+                          <button
+                            className="vo-btn vo-btn-invoice"
+                            onClick={() =>
+                              window.open(
+                                `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            🧾 Download Invoice
+                          </button>
+                        </div>
+                      )}
                   </div>
 
-                  {/* ── Items panel: separate card below the order card ── */}
                   {(order.items || []).length > 0 && (
                     <div className="vo-items-panel">
                       <div className="vo-items-panel-title">📦 Items</div>
@@ -623,20 +794,32 @@ export default function VendorOrders() {
                             <div className="vo-item-main">
                               <div className="vo-item-media">
                                 {imageUrl ? (
-                                  <img src={imageUrl} alt={item.product_name || "Product"} />
+                                  <img
+                                    src={imageUrl}
+                                    alt={item.product_name || "Product"}
+                                  />
                                 ) : (
                                   <span>🛍️</span>
                                 )}
                               </div>
                               <div className="vo-item-copy">
-                                <span className="vo-item-name">{item.product_name}</span>
+                                <span className="vo-item-name">
+                                  {item.product_name}
+                                </span>
                                 <span className="vo-item-detail">
-                                  {[item.size, item.color].filter(Boolean).join(" · ")} × {item.quantity}
+                                  {[item.size, item.color]
+                                    .filter(Boolean)
+                                    .join(" · ")}{" "}
+                                  × {item.quantity}
                                 </span>
                                 {item.barcode && (
-                                  <span className="vo-item-barcode">🏷️ {item.barcode}</span>
+                                  <span className="vo-item-barcode">
+                                    🏷️ {item.barcode}
+                                  </span>
                                 )}
-                                <span className="vo-item-price">₹{Number(item.price || 0).toFixed(0)}</span>
+                                <span className="vo-item-price">
+                                  ₹{Number(item.price || 0).toFixed(0)}
+                                </span>
                               </div>
                             </div>
                           </div>

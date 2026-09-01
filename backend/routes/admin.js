@@ -1,7 +1,28 @@
 import express from "express";
 import { pool } from "../db.js";
+import {
+  notifyAvailableRiders,
+  notifyCustomerOfStatus,
+} from "../utils/firebaseAdmin.js";
 
 const router = express.Router();
+
+const hasOrdersColumn = async (columnName) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT 1
+       FROM information_schema.columns
+       WHERE table_schema = 'public'
+         AND table_name = 'orders'
+         AND column_name = $1
+       LIMIT 1`,
+      [columnName]
+    );
+    return rows.length > 0;
+  } catch {
+    return false;
+  }
+};
 
 // ── Super-admin credentials (override via env vars) ───────────────────────
 const ADMIN_EMAIL   = process.env.ADMIN_EMAIL    || "superadminsatyam@blinkiefash.in";
@@ -118,13 +139,13 @@ router.get("/orders", adminGuard, async (req, res) => {
            'barcode',      pv.barcode
          )) AS items
        FROM orders o
-       LEFT JOIN users u ON u.id = o.user_id
+       LEFT JOIN users u ON u.id::text = o.user_id
        LEFT JOIN addresses a ON a.id = o.address_id
        LEFT JOIN dark_stores ds ON ds.id = o.dark_store_id
        JOIN order_items oi ON oi.order_id = o.id
        JOIN product_variants pv ON pv.id = oi.variant_id
        JOIN products p ON p.id = pv.product_id
-       JOIN vendors v ON v.id = p.vendor_id
+       JOIN vendors v ON v.id::text = p.vendor_id::text
        ${whereClause}
        GROUP BY o.id, u.name, u.phone, a.city, a.address_line, ds.name
        ORDER BY o.created_at DESC
@@ -136,6 +157,80 @@ router.get("/orders", adminGuard, async (req, res) => {
   } catch (err) {
     console.error("[admin/orders] error:", err.message);
     res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ── PATCH /api/admin/orders/:orderId/status ───────────────────────────────────
+// Superadmin override — updates any order's status regardless of vendor ownership.
+router.patch("/orders/:orderId/status", adminGuard, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, cancelReason } = req.body || {};
+
+    const validStatuses = new Set([
+      "confirmed",
+      "packed",
+      "picked",
+      "out_for_delivery",
+      "delivered",
+      "cancelled",
+    ]);
+    const normalizedStatus = String(status || "").trim();
+    if (!validStatuses.has(normalizedStatus)) {
+      return res.status(400).json({ success: false, error: "Invalid status" });
+    }
+
+    const orderCheck = await pool.query(
+      `SELECT id FROM orders WHERE id = $1 LIMIT 1`,
+      [orderId]
+    );
+    if (!orderCheck.rows.length) {
+      return res.status(404).json({ success: false, error: "Order not found" });
+    }
+
+    const [hasConfirmedAt, hasCancelReason] = await Promise.all([
+      hasOrdersColumn("confirmed_at"),
+      hasOrdersColumn("cancel_reason"),
+    ]);
+
+    const canSetConfirmedAt = normalizedStatus === "confirmed" && hasConfirmedAt;
+    const canSetCancelReason = normalizedStatus === "cancelled" && hasCancelReason;
+
+    const confirmClause = canSetConfirmedAt
+      ? ", confirmed_at = COALESCE(confirmed_at, NOW())"
+      : "";
+    const cancelClause = canSetCancelReason ? ", cancel_reason = $3" : "";
+    const params = canSetCancelReason
+      ? [
+          normalizedStatus,
+          orderId,
+          String(cancelReason || "Rejected by admin").slice(0, 500),
+        ]
+      : [normalizedStatus, orderId];
+
+    const updated = await pool.query(
+      `UPDATE orders
+       SET status = $1${confirmClause}${cancelClause}
+       WHERE id = $2
+       RETURNING id, status`,
+      params
+    );
+
+    // Keep per-item status in sync with the order (all items, no vendor filter).
+    await pool.query(
+      `UPDATE order_items SET item_status = $1 WHERE order_id = $2`,
+      [normalizedStatus, orderId]
+    ).catch(() => {});
+
+    if (normalizedStatus === "confirmed") {
+      notifyAvailableRiders(pool, orderId).catch(() => {});
+    }
+    notifyCustomerOfStatus(pool, orderId, normalizedStatus).catch(() => {});
+
+    return res.json({ success: true, order: updated.rows[0] });
+  } catch (err) {
+    console.error("[admin/orders/status] error:", err.message);
+    return res.status(500).json({ success: false, error: "Server error" });
   }
 });
 
@@ -173,7 +268,7 @@ router.get("/insights", adminGuard, async (req, res) => {
           COUNT(DISTINCT p.id)::int   AS product_count,
           v.is_operational
         FROM vendors v
-        LEFT JOIN products p ON p.vendor_id = v.id
+        LEFT JOIN products p ON p.vendor_id::text = v.id::text
         LEFT JOIN order_items oi ON oi.variant_id IN (
           SELECT id FROM product_variants WHERE product_id = p.id
         )
@@ -192,7 +287,7 @@ router.get("/insights", adminGuard, async (req, res) => {
         FROM order_items oi
         JOIN product_variants pv ON pv.id = oi.variant_id
         JOIN products p ON p.id = pv.product_id
-        JOIN vendors v ON v.id = p.vendor_id
+        JOIN vendors v ON v.id::text = p.vendor_id::text
         JOIN orders o ON o.id = oi.order_id AND o.status NOT IN ('cancelled')
         GROUP BY p.id, p.name, v.store_name
         ORDER BY units_sold DESC
@@ -235,7 +330,7 @@ router.get("/vendors", adminGuard, async (req, res) => {
         v.created_at,
         COUNT(DISTINCT p.id)::int AS product_count
       FROM vendors v
-      LEFT JOIN products p ON p.vendor_id = v.id AND p.is_active = true
+      LEFT JOIN products p ON p.vendor_id::text = v.id::text AND p.is_active = true
       GROUP BY v.id
       ORDER BY v.created_at DESC
     `);

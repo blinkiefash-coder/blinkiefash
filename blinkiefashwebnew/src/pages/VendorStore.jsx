@@ -1,229 +1,782 @@
-import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import AppHeader from '../components/AppHeader';
-import { API_API_BASE_URL } from '../apiBase';
-import './VendorStore.css';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
+import VendorLayout from "../components/VendorLayout";
+import { API_API_BASE_URL } from "../apiBase";
+import { fetchVendorProfile } from "../utils/vendorSession";
+import { isAdmin, adminHeaders } from "../utils/adminSession";
+import "./VendorOrders.css";
 
-const normalizeText = (value) => (value || '').toString().toLowerCase().trim();
+const STATUS_LABELS = {
+  placed:           { text: "New Order",        color: "#F97316", bg: "#FFF7ED" },
+  confirmed:        { text: "Confirmed",         color: "#16A34A", bg: "#F0FDF4" },
+  packed:           { text: "Packed",            color: "#2563EB", bg: "#EFF6FF" },
+  out_for_delivery: { text: "Out for Delivery",  color: "#7C3AED", bg: "#F5F3FF" },
+  delivered:        { text: "Delivered",         color: "#16A34A", bg: "#F0FDF4" },
+  cancelled:        { text: "Cancelled",         color: "#DC2626", bg: "#FEF2F2" },
+};
 
-export default function VendorStore() {
+const POLL_INTERVAL_MS = 15_000;
+
+// Start a repeating laptop ring and return a function that stops it.
+function startAlertSound() {
+  let ctx;
+  let ringTimer;
+  try {
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const playRing = () => {
+      if (ctx.state === "suspended") ctx.resume().catch(() => {});
+      [0, 0.22].forEach((offset) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.frequency.value = offset === 0 ? 880 : 660;
+        osc.type = "triangle";
+        gain.gain.setValueAtTime(0, ctx.currentTime + offset);
+        gain.gain.linearRampToValueAtTime(0.32, ctx.currentTime + offset + 0.04);
+        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + offset + 0.18);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.2);
+      });
+    };
+    playRing();
+    ringTimer = window.setInterval(playRing, 1400);
+    return () => {
+      window.clearInterval(ringTimer);
+      ctx.close().catch(() => {});
+    };
+  } catch {
+    return () => {};
+  }
+}
+
+function requestNotificationPermission() {
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission();
+  }
+}
+
+function showBrowserNotification(title, body) {
+  if ("Notification" in window && Notification.permission === "granted") {
+    new Notification(title, {
+      body,
+      icon: "/favicon.ico",
+      tag: "vendor-new-order",
+    });
+  }
+}
+
+function getItemImageUrl(item) {
+  const candidates = [
+    item?.product_image,
+    item?.image_url,
+    item?.imageUrl,
+    item?.image,
+    item?.product_image_url,
+    item?.product?.image_url,
+    item?.product?.imageUrl,
+    item?.product?.image,
+    item?.images?.[0],
+    item?.image_urls?.[0],
+  ];
+  return candidates.find((value) => typeof value === "string" && value.trim());
+}
+
+function formatLastUpdated(date = new Date()) {
+  return new Intl.DateTimeFormat("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(date);
+}
+
+export default function VendorOrders() {
   const navigate = useNavigate();
-  const { identifier } = useParams();
-
-  const [vendor, setVendor] = useState(null);
-  const [vendors, setVendors] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
+  const [storeName, setStoreName] = useState(
+    () => localStorage.getItem("store_name") || "My Store"
+  );
+  const [vendorId] = useState(() => localStorage.getItem("vendor_id") || "");
+  const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
-  const [brandSearchTerm, setBrandSearchTerm] = useState('');
-  const [activeCategoryId, setActiveCategoryId] = useState(null);
-  const [activeBrand, setActiveBrand] = useState(null);
-  const [sortBy, setSortBy] = useState('newest');
+  const [error, setError] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [actionLoading, setActionLoading] = useState(null);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [incomingOrders, setIncomingOrders] = useState([]);
+  const [ringSecondsLeft, setRingSecondsLeft] = useState(300);
+  const knownOrderIds = useRef(new Set());
+  const isFirstPoll = useRef(true);
+  const ringSoundRef = useRef(null);
+
+  const menuItems = [
+    { key: "orders",    label: "Orders",            icon: "\u25cd" },
+    { key: "products",  label: "Add Product",       icon: "\u25a1" },
+    { key: "edit",      label: "Edit Products",      icon: "\u270f" },
+    { key: "stock",     label: "Stock Monitoring",  icon: "\ud83d\udce6" },
+    { key: "analytics", label: "Product Analytics", icon: "\ud83d\udcca" },
+  ];
+
+  const handleMenuClick = (item) => {
+    if (item.key === "products")  navigate("/vendor/add-product");
+    if (item.key === "edit")      navigate("/vendor/edit-product");
+    if (item.key === "analytics") navigate("/vendor/product-analytics");
+    if (item.key === "stock")     navigate("/vendor/stock-monitoring");
+  };
+
+  const fetchOrders = useCallback(async () => {
+    if (!vendorId && !isAdmin()) return;
+    setRefreshing(true);
+    try {
+      let list = [];
+      if (isAdmin()) {
+        const url =
+          statusFilter !== "all"
+            ? `${API_API_BASE_URL}/admin/orders?status=${statusFilter}&limit=300`
+            : `${API_API_BASE_URL}/admin/orders?limit=300`;
+        const res = await fetch(url, { headers: adminHeaders() });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        list = data.orders || [];
+      } else {
+        const res = await fetch(`${API_API_BASE_URL}/vendor/${vendorId}/orders`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        list = Array.isArray(data) ? data : [];
+      }
+
+      if (list.length > 0) {
+        console.log("📦 First order data:", {
+          id: list[0].id,
+          delivery_otp: list[0].delivery_otp,
+          otp_verified_at: list[0].otp_verified_at,
+          status: list[0].status,
+          all_keys: Object.keys(list[0]),
+        });
+      }
+
+      // Detect genuinely new orders (not on first load)
+      if (!isFirstPoll.current) {
+        const newOnes = list.filter(
+          (o) => o.status === "placed" && !knownOrderIds.current.has(o.id)
+        );
+        if (newOnes.length > 0) {
+          ringSoundRef.current?.();
+          ringSoundRef.current = startAlertSound();
+          setIncomingOrders(newOnes);
+          const deadline = newOnes
+            .map((order) => new Date(order.vendor_confirmation_deadline).getTime())
+            .filter(Number.isFinite)
+            .sort((a, b) => a - b)[0];
+          setRingSecondsLeft(
+            deadline ? Math.max(0, Math.ceil((deadline - Date.now()) / 1000)) : 300
+          );
+          showBrowserNotification(
+            `🛒 ${newOnes.length} New Order${newOnes.length > 1 ? "s" : ""}!`,
+            `You have ${newOnes.length} new order${newOnes.length > 1 ? "s" : ""} waiting for confirmation.`
+          );
+        }
+      }
+
+      list.forEach((o) => knownOrderIds.current.add(o.id));
+      isFirstPoll.current = false;
+
+      setOrders(list);
+      setError("");
+      setLastUpdatedAt(formatLastUpdated());
+    } catch (err) {
+      setError("Could not load orders. Retrying...");
+      console.error("[VendorOrders] poll error:", err.message);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [vendorId, statusFilter]);
 
   useEffect(() => {
-    const loadData = async () => {
-      try {
-        setLoading(true);
-        setError('');
+    if (incomingOrders.length === 0) return undefined;
+    const timer = setInterval(() => {
+      setRingSecondsLeft((seconds) => Math.max(0, seconds - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [incomingOrders.length]);
 
-        if (identifier === 'all') {
-          const vendorsRes = await fetch(`${API_API_BASE_URL}/vendor`);
-          const categoriesRes = await fetch(`${API_API_BASE_URL}/categories`);
-          const brandsRes = await fetch(`${API_API_BASE_URL}/brands`);
-          const vendorsData = await vendorsRes.json();
-          const categoriesData = await categoriesRes.json();
-          const brandsData = await brandsRes.json();
-          const vendorList = Array.isArray(vendorsData) ? vendorsData : [];
-          setVendors(vendorList);
-          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-          setBrands(Array.isArray(brandsData) ? brandsData : []);
-          setProducts([]);
-          setVendor({ store_name: 'Admin — All Vendors', description: 'Browse products from every vendor.', is_verified: true });
-        } else {
-          const [vendorResponse, categoriesResponse, brandsResponse] = await Promise.all([
-            fetch(`${API_API_BASE_URL}/vendor/${identifier}`),
-            fetch(`${API_API_BASE_URL}/categories`),
-            fetch(`${API_API_BASE_URL}/brands`),
-          ]);
+ useEffect(() => {
+  if (!vendorId && !isAdmin()) {
+    navigate("/vendor", { replace: true });
+    return;
+  }
 
-          if (!vendorResponse.ok) throw new Error('Vendor not found');
+  requestNotificationPermission();
 
-          const vendorData = await vendorResponse.json();
-          setVendor(vendorData);
+  fetchVendorProfile(vendorId).then((v) => {
+    if (v?.store_name) {
+      setStoreName(v.store_name);
+      localStorage.setItem("store_name", v.store_name);
+    }
+  });
 
-          const [productsResponse, categoriesData, brandsData] = await Promise.all([
-            fetch(`${API_API_BASE_URL}/vendor/${vendorData.id}/products`),
-            categoriesResponse.json(),
-            brandsResponse.json(),
-          ]);
+  // defer so setState is not called synchronously inside the effect
+  const immediate = setTimeout(() => {
+    fetchOrders();
+  }, 0);
 
-          const productsData = await productsResponse.json();
-          setProducts(Array.isArray(productsData) ? productsData : []);
-          setCategories(Array.isArray(categoriesData) ? categoriesData : []);
-          setBrands(Array.isArray(brandsData) ? brandsData : []);
-        }
-      } catch (err) {
-        console.error('Failed to load vendor store:', err);
-        setError('Unable to load vendor panel right now.');
-      } finally {
-        setLoading(false);
-      }
-    };
+  const timer = setInterval(fetchOrders, POLL_INTERVAL_MS);
 
-    loadData();
-  }, [identifier]);
+  return () => {
+    clearTimeout(immediate);
+    clearInterval(timer);
+  };
+}, [vendorId, statusFilter, fetchOrders, navigate]);
 
-  const filteredProducts = useMemo(() => {
-    const search = normalizeText(searchTerm);
-    return products
-      .filter((product) => {
-        const matchesSearch =
-          search.length === 0 ||
-          normalizeText(product.name).includes(search) ||
-          normalizeText(product.brand).includes(search) ||
-          normalizeText(product.category_name).includes(search) ||
-          normalizeText(product.store_name).includes(search);
+  // ✅ FIXED Accept / Reject / status update
+  const updateStatus = async (orderId, newStatus, cancelReason = "") => {
+    setActionLoading(orderId + newStatus);
+    try {
+      const body = { status: newStatus };
+      if (cancelReason) body.cancelReason = cancelReason;
 
-        const matchesBrand = !activeBrand || normalizeText(product.brand) === normalizeText(activeBrand);
-        const matchesCategory = !activeCategoryId || String(product.category_id) === String(activeCategoryId);
+      const actingAsAdmin = isAdmin();
 
-        return matchesSearch && matchesBrand && matchesCategory;
-      })
-      .sort((a, b) => {
-        const aPrice = Number(a.discount_price ?? a.price ?? 0);
-        const bPrice = Number(b.discount_price ?? b.price ?? 0);
-        if (sortBy === 'price-low') return aPrice - bPrice;
-        if (sortBy === 'price-high') return bPrice - aPrice;
-        return String(b.id).localeCompare(String(a.id));
+      const url = actingAsAdmin
+        ? `${API_API_BASE_URL}/admin/orders/${orderId}/status`
+        : `${API_API_BASE_URL}/vendor/${vendorId}/orders/${orderId}/status`;
+
+      const headers = actingAsAdmin
+        ? { "Content-Type": "application/json", ...adminHeaders() }
+        : { "Content-Type": "application/json" };
+
+      console.log("[updateStatus]", { actingAsAdmin, url, headers, body, orderId, vendorId });
+
+      const res = await fetch(url, {
+        method: "PATCH",
+        headers,
+        body: JSON.stringify(body),
       });
-  }, [products, searchTerm, activeBrand, activeCategoryId, sortBy]);
 
-  const categoryRoots = useMemo(() => categories.filter((category) => !category.parent_id), [categories]);
+      const text = await res.text();
+      let data = null;
+      try {
+        data = text ? JSON.parse(text) : null;
+      } catch {
+        data = null;
+      }
 
-  if (loading) {
-    return (
-      <div className="vendor-store-page">
-        <AppHeader showSearch={false} />
-        <div className="vendor-store-loading">Loading vendor panel...</div>
-      </div>
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || `HTTP ${res.status}`);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || data?.message || "Update failed");
+      }
+
+      // Stop alert sound after successful action
+      ringSoundRef.current?.();
+      ringSoundRef.current = null;
+      setIncomingOrders([]);
+
+      await fetchOrders();
+    } catch (err) {
+      console.error("[updateStatus] failed:", err);
+      alert(`Failed: ${err.message}`);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const confirmReject = (orderId) => {
+    const reason = window.prompt(
+      "Reason for rejection (leave blank for default):"
     );
-  }
+    if (reason === null) return; // cancelled prompt
+    updateStatus(orderId, "cancelled", reason || "Rejected by store");
+  };
 
-  if (error || !vendor) {
-    return (
-      <div className="vendor-store-page">
-        <AppHeader showSearch={false} />
-        <div className="vendor-store-error">
-          <h2>Vendor panel not found</h2>
-          <p>{error || 'This vendor could not be loaded.'}</p>
-          <button onClick={() => navigate('/vendor')}>Back to Vendor Login</button>
-        </div>
-      </div>
-    );
-  }
+  // Export currently-filtered orders as an Excel-compatible file.
+  const generateExcel = () => {
+    const fmtPhone = (p) => {
+      const digits = String(p || "").replace(/\D/g, "");
+      return /^\d{10}$/.test(digits)
+        ? `+91 ${digits.slice(0, 5)} ${digits.slice(5)}`
+        : p || "";
+    };
+    const rows = [
+      ["Order ID", "Date", "Status", "Customer", "Phone", "Product", "Size", "Color", "Barcode", "Qty", "Price (\u20b9)"],
+    ];
+    filteredForExport.forEach((order) => {
+      (order.items || []).forEach((item) => {
+        rows.push([
+          `#${order.id.slice(-8).toUpperCase()}`,
+          new Date(order.created_at).toLocaleString("en-IN"),
+          order.status,
+          order.customer_name || "",
+          fmtPhone(order.customer_phone),
+          item.product_name || "",
+          item.size || "",
+          item.color || "",
+          item.barcode || "",
+          item.quantity || 1,
+          Number(item.price || 0).toFixed(2),
+        ]);
+      });
+    });
+    const table = `<table>${rows
+      .map(
+        (r) =>
+          `<tr>${r
+            .map((c) => `<td>${String(c).replace(/</g, "&lt;")}</td>`)
+            .join("")}</tr>`
+      )
+      .join("")}</table>`;
+    const blob = new Blob([table], {
+      type: "application/vnd.ms-excel;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `orders_${dateFrom || "all"}_to_${dateTo || "today"}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const ACTIVE_TABS = ["placed", "confirmed", "packed", "out_for_delivery"];
+  const filtered = orders.filter((o) => {
+    if (
+      ACTIVE_TABS.includes(statusFilter) &&
+      (o.status === "delivered" || o.otp_verified_at)
+    ) {
+      return false;
+    }
+    if (statusFilter !== "all" && o.status !== statusFilter) return false;
+    if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59"))
+      return false;
+    return true;
+  });
+
+  const filteredForExport = orders.filter((o) => {
+    if (dateFrom && new Date(o.created_at) < new Date(dateFrom)) return false;
+    if (dateTo && new Date(o.created_at) > new Date(dateTo + "T23:59:59"))
+      return false;
+    return statusFilter === "all" ? true : o.status === statusFilter;
+  });
+
+  const newCount = orders.filter((o) => o.status === "placed").length;
+  const inProgressCount = orders.filter(
+    (o) =>
+      ["confirmed", "packed", "out_for_delivery"].includes(o.status) &&
+      !o.otp_verified_at
+  ).length;
+  const deliveredCount = orders.filter((o) => o.status === "delivered").length;
+  const totalRevenue = orders
+    .filter((o) => ["delivered", "completed"].includes(o.status))
+    .reduce((sum, order) => {
+      const itemsTotal = (order.items || []).reduce(
+        (s, it) => s + Number(it.price || 0) * Number(it.quantity || 0),
+        0
+      );
+      return sum + itemsTotal;
+    }, 0);
+
+  const metrics = [
+    { label: "New orders", value: newCount, tone: "accent" },
+    { label: "In progress", value: inProgressCount, tone: "blue" },
+    { label: "Delivered", value: deliveredCount, tone: "green" },
+    {
+      label: "Revenue",
+      value: `₹${totalRevenue.toLocaleString("en-IN")}`,
+      tone: "neutral",
+    },
+  ];
+
+  const ringMinutes = Math.floor(ringSecondsLeft / 60);
+  const ringSeconds = String(ringSecondsLeft % 60).padStart(2, "0");
 
   return (
-    <div className="vendor-store-page">
-      <AppHeader showSearch={false} />
-
-      <div className="vendor-store-shell">
-        <aside className="vendor-store-sidebar">
-          <div className="vendor-sidebar-group">
-            <div className="vendor-sidebar-title">SEARCH</div>
-            <input className="vendor-brand-search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Search products..." />
-          </div>
-
-          <div className="vendor-sidebar-group">
-            <div className="vendor-sidebar-title">CATEGORIES</div>
-            <button className={`vendor-sidebar-chip ${!activeCategoryId ? 'active' : ''}`} onClick={() => setActiveCategoryId(null)}>All Products</button>
-            {categoryRoots.slice(0, 12).map((category) => (
-              <button key={category.id} className={`vendor-sidebar-chip ${String(activeCategoryId) === String(category.id) ? 'active' : ''}`} onClick={() => setActiveCategoryId((prev) => (String(prev) === String(category.id) ? null : category.id))}>{category.name}</button>
-            ))}
-          </div>
-
-          <div className="vendor-sidebar-group">
-            <div className="vendor-sidebar-title">BRANDS</div>
-            <input className="vendor-brand-search" placeholder="Search brands..." value={brandSearchTerm} onChange={(e) => setBrandSearchTerm(e.target.value)} />
-            <div className="vendor-sidebar-list">
-              {brands.filter((brand) => normalizeText(brand.name).includes(normalizeText(brandSearchTerm))).slice(0, 20).map((brand) => (
-                <label key={brand.id} className={`vendor-sidebar-option ${normalizeText(activeBrand) === normalizeText(brand.name) ? 'active' : ''}`}>
-                  <input type="checkbox" checked={normalizeText(activeBrand) === normalizeText(brand.name)} onChange={() => setActiveBrand((prev) => (normalizeText(prev) === normalizeText(brand.name) ? null : brand.name))} />
-                  <span>{brand.name}</span>
-                </label>
-              ))}
+    <VendorLayout
+      activeKey="orders"
+      storeName={storeName}
+      menuItems={menuItems}
+      onMenuClick={handleMenuClick}
+    >
+      <div className="vo-page">
+        {incomingOrders.length > 0 && (
+          <div
+            className="vo-incoming-alert"
+            role="alertdialog"
+            aria-live="assertive"
+          >
+            <div className="vo-incoming-icon" aria-hidden="true">
+              🔔
+            </div>
+            <div className="vo-incoming-copy">
+              <strong>
+                {incomingOrders.length === 1
+                  ? "New order received"
+                  : `${incomingOrders.length} new orders received`}
+              </strong>
+              <span>
+                Accept or reject before the store confirmation window closes.
+              </span>
+              <b>
+                {ringMinutes}:{ringSeconds} remaining
+              </b>
+            </div>
+            <div className="vo-incoming-actions">
+              <button
+                className="vo-btn vo-btn-accept"
+                onClick={() =>
+                  document
+                    .querySelector(".vo-card-new")
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" })
+                }
+              >
+                View order
+              </button>
+              <button
+                className="vo-alert-dismiss"
+                onClick={() => {
+                  ringSoundRef.current?.();
+                  ringSoundRef.current = null;
+                  setIncomingOrders([]);
+                }}
+                aria-label="Dismiss incoming order alert"
+              >
+                ✕
+              </button>
             </div>
           </div>
+        )}
 
-          <div className="vendor-sidebar-group">
-            <div className="vendor-sidebar-title">SORT</div>
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-              <option value="newest">Newest</option>
-              <option value="price-low">Price: Low → High</option>
-              <option value="price-high">Price: High → Low</option>
-            </select>
+        <div className="vo-hero">
+          <div className="vo-hero-copy">
+            <p className="vo-eyebrow">Vendor dashboard</p>
+            <h2 className="vo-title">
+              Orders
+              {newCount > 0 && <span className="vo-badge">{newCount} new</span>}
+            </h2>
+            <p className="vo-subtitle">
+              Incoming orders stay synced live, so you can move through requests
+              without leaving the page.
+            </p>
           </div>
-
-          <button className="vendor-clear-btn" onClick={() => { setSearchTerm(''); setBrandSearchTerm(''); setActiveCategoryId(null); setActiveBrand(null); setSortBy('newest'); }}>Clear All Filters</button>
-        </aside>
-
-        <main className="vendor-store-main">
-          <div className="vendor-store-hero">
-            <div className="vendor-store-hero-left">
-              <div className="vendor-breadcrumbs">Vendor Panel &nbsp;›&nbsp; {vendor.store_name}</div>
-              <div className="vendor-store-headline">
-                <div className="vendor-store-logo-wrap">
-                  {vendor.vendor_img_url ? <img src={vendor.vendor_img_url} alt={vendor.store_name} /> : <div className="vendor-store-logo-fallback">{(vendor.store_name || 'V').charAt(0)}</div>}
-                </div>
-                <div className="vendor-store-headline-copy">
-                  <h1>{vendor.store_name}{vendor.is_verified ? <span className="vendor-verified-badge">✓</span> : null}</h1>
-                  <p>{vendor.description || 'Vendor storefront and management view.'}</p>
-                  <div className="vendor-store-meta-row"><span>{identifier === 'all' ? `${vendors.length} vendors` : 'Active store'}</span></div>
-                </div>
-              </div>
-              <div className="vendor-top-actions">
-                <button className="vendor-visit-btn" onClick={() => navigate('/vendor/register')}>New Vendor Registration</button>
-                <button className="vendor-visit-btn secondary" onClick={() => navigate('/')}>Back to Home</button>
-              </div>
+          <div className="vo-hero-actions">
+            <div className={`vo-live-pill ${refreshing ? "busy" : "online"}`}>
+              <span className="vo-live-dot" />
+              {refreshing ? "Syncing…" : `Updated ${lastUpdatedAt || "just now"}`}
             </div>
-            <div className="vendor-store-sidecard">
-              <div className="vendor-sidecard-title">Store Summary</div>
-              <p>{filteredProducts.length} products visible with current filters.</p>
-              <button className="vendor-directions-btn" onClick={() => navigate('/shop')}>Open Shop View</button>
-            </div>
+            <button
+              className="vo-refresh-btn"
+              onClick={() => fetchOrders()}
+              disabled={loading || refreshing}
+            >
+              {refreshing ? "Refreshing…" : "Refresh"}
+            </button>
           </div>
+        </div>
 
-          <section id="product-sections" className="vendor-products-section">
-            <div className="vendor-products-header">
-              <h2>Products</h2>
-              <p>{filteredProducts.length} items</p>
+        <div className="vo-metrics">
+          {metrics.map((metric) => (
+            <div key={metric.label} className={`vo-metric-card ${metric.tone}`}>
+              <span className="vo-metric-label">{metric.label}</span>
+              <strong className="vo-metric-value">{metric.value}</strong>
             </div>
+          ))}
+        </div>
 
-            <div className="vendor-product-grid">
-              {filteredProducts.map((product) => {
-                const image = product.image || product.image_url || product.product_image || '';
-                return (
-                  <article key={product.id} className="vendor-product-card" onClick={() => navigate(`/product/${product.id}`)}>
-                    <div className="vendor-product-image-wrap">
-                      {image ? <img src={image} alt={product.name} loading="lazy" /> : <div className="vendor-product-image-fallback">No image</div>}
-                    </div>
-                    <div className="vendor-product-copy">
-                      <p className="vendor-product-brand">{product.brand || product.brand_name || product.store_name || 'Blinkiefash'}</p>
-                      <h3>{product.name}</h3>
-                      <div className="vendor-product-price-row">
-                        <strong>₹{product.discount_price || product.price || 0}</strong>
-                        {product.price && product.discount_price && Number(product.price) > Number(product.discount_price) ? <span>₹{product.price}</span> : null}
+        <div className="vo-report-bar">
+          <span className="vo-report-bar-title">📅 Filter &amp; Export</span>
+          <div className="vo-date-filter">
+            <label>
+              From
+              <input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </label>
+            <label>
+              To
+              <input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </label>
+            {(dateFrom || dateTo) && (
+              <button
+                className="vo-date-clear"
+                onClick={() => {
+                  setDateFrom("");
+                  setDateTo("");
+                }}
+              >
+                ✕ Clear
+              </button>
+            )}
+          </div>
+          <button
+            className="vo-btn vo-btn-excel"
+            onClick={generateExcel}
+            title="Export filtered orders to Excel"
+          >
+            📊 Generate Excel
+          </button>
+        </div>
+
+        <div className="vo-tabs">
+          {[
+            "all",
+            "placed",
+            "confirmed",
+            "packed",
+            "out_for_delivery",
+            "delivered",
+            "cancelled",
+          ].map((s) => (
+            <button
+              key={s}
+              className={`vo-tab ${statusFilter === s ? "active" : ""}`}
+              onClick={() => setStatusFilter(s)}
+            >
+              {s === "all"
+                ? "All"
+                : s === "out_for_delivery"
+                ? "Delivery"
+                : s.charAt(0).toUpperCase() + s.slice(1)}
+              {s === "placed" && newCount > 0 && <span className="vo-tab-dot" />}
+            </button>
+          ))}
+        </div>
+
+        {loading ? (
+          <div className="vo-loading">Loading orders…</div>
+        ) : error ? (
+          <div className="vo-error">{error}</div>
+        ) : filtered.length === 0 ? (
+          <div className="vo-empty">
+            <div className="vo-empty-icon">📭</div>
+            <p>No {statusFilter === "all" ? "" : statusFilter} orders</p>
+          </div>
+        ) : (
+          <div className="vo-list">
+            {filtered.map((order) => {
+              const sl = STATUS_LABELS[order.status] || {
+                text: order.status,
+                color: "#374151",
+                bg: "#F3F4F6",
+              };
+              const isNew = order.status === "placed";
+              const busy = actionLoading?.startsWith(order.id);
+
+              return (
+                <div key={order.id} className="vo-order-group">
+                  <div className={`vo-card ${isNew ? "vo-card-new" : ""}`}>
+                    <div className="vo-card-head">
+                      <div>
+                        <span className="vo-order-id">
+                          #{order.id.slice(-8).toUpperCase()}
+                        </span>
+                        <span
+                          className="vo-status-badge"
+                          style={{ color: sl.color, background: sl.bg }}
+                        >
+                          {sl.text}
+                        </span>
+                      </div>
+                      <div className="vo-meta">
+                        <span>
+                          {new Date(order.created_at).toLocaleString("en-IN", {
+                            day: "2-digit",
+                            month: "short",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        <span className="vo-amount">
+                          ₹
+                          {Number(
+                            order.final_amount || order.total_amount
+                          ).toFixed(0)}
+                        </span>
                       </div>
                     </div>
-                  </article>
-                );
-              })}
-            </div>
-          </section>
-        </main>
+
+                    <div className="vo-customer">
+                      👤 {order.customer_name || "Customer"}
+                      {order.customer_phone && (
+                        <a
+                          href={`tel:${order.customer_phone}`}
+                          className="vo-phone"
+                        >
+                          📞{" "}
+                          {/^\d{10}$/.test(
+                            String(order.customer_phone).replace(/\D/g, "")
+                          )
+                            ? `+91 ${String(order.customer_phone)
+                                .replace(/\D/g, "")
+                                .replace(/(\d{5})(\d{5})/, "$1 $2")}`
+                            : order.customer_phone}
+                        </a>
+                      )}
+                    </div>
+
+                    {order.store_pickup_otp &&
+                      order.status !== "delivered" &&
+                      !order.otp_verified_at && (
+                        <div
+                          className="vo-otp-section"
+                          style={{
+                            background: "#E0E7FF",
+                            borderLeft: "4px solid #4F46E5",
+                          }}
+                        >
+                          <div className="vo-otp-label">
+                            🏪 Store Pickup OTP
+                            {order.store_pickup_verified_at && (
+                              <span className="vo-otp-verified">✓ Verified</span>
+                            )}
+                          </div>
+                          <div className="vo-otp-code">
+                            {order.store_pickup_otp}
+                          </div>
+                          {order.store_pickup_verified_at && (
+                            <div className="vo-otp-time">
+                              Verified at{" "}
+                              {new Date(
+                                order.store_pickup_verified_at
+                              ).toLocaleString("en-IN", {
+                                day: "2-digit",
+                                month: "short",
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {isAdmin() && order.items?.[0]?.vendor_name && (
+                      <div className="vo-vendor-tag">
+                        🏪 {order.items[0].vendor_name}
+                      </div>
+                    )}
+
+                    {/* Actions */}
+                    {isNew && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() => updateStatus(order.id, "confirmed")}
+                        >
+                          {busy ? "…" : "✅ Accept"}
+                        </button>
+                        <button
+                          className="vo-btn vo-btn-reject"
+                          disabled={busy}
+                          onClick={() => confirmReject(order.id)}
+                        >
+                          {busy ? "…" : "❌ Reject"}
+                        </button>
+                      </div>
+                    )}
+
+                    {order.status === "confirmed" && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() => updateStatus(order.id, "packed")}
+                        >
+                          {busy ? "…" : "📦 Mark Packed"}
+                        </button>
+                      </div>
+                    )}
+
+                    {order.status === "packed" && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-accept"
+                          disabled={busy}
+                          onClick={() =>
+                            updateStatus(order.id, "out_for_delivery")
+                          }
+                        >
+                          {busy ? "…" : "🛵 Out for Delivery"}
+                        </button>
+                      </div>
+                    )}
+
+                    {!isAdmin() &&
+                      vendorId &&
+                      order.status === "delivered" && (
+                        <div className="vo-actions">
+                          <button
+                            className="vo-btn vo-btn-invoice"
+                            onClick={() =>
+                              window.open(
+                                `${API_API_BASE_URL}/vendor/${vendorId}/orders/${order.id}/invoice`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            🧾 Download Invoice
+                          </button>
+                        </div>
+                      )}
+                  </div>
+
+                  {(order.items || []).length > 0 && (
+                    <div className="vo-items-panel">
+                      <div className="vo-items-panel-title">📦 Items</div>
+                      {(order.items || []).map((item, idx) => {
+                        const imageUrl = getItemImageUrl(item);
+                        return (
+                          <div key={idx} className="vo-item">
+                            <div className="vo-item-main">
+                              <div className="vo-item-media">
+                                {imageUrl ? (
+                                  <img
+                                    src={imageUrl}
+                                    alt={item.product_name || "Product"}
+                                  />
+                                ) : (
+                                  <span>🛍️</span>
+                                )}
+                              </div>
+                              <div className="vo-item-copy">
+                                <span className="vo-item-name">
+                                  {item.product_name}
+                                </span>
+                                <span className="vo-item-detail">
+                                  {[item.size, item.color]
+                                    .filter(Boolean)
+                                    .join(" · ")}{" "}
+                                  × {item.quantity}
+                                </span>
+                                {item.barcode && (
+                                  <span className="vo-item-barcode">
+                                    🏷️ {item.barcode}
+                                  </span>
+                                )}
+                                <span className="vo-item-price">
+                                  ₹{Number(item.price || 0).toFixed(0)}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
-    </div>
+    </VendorLayout>
   );
 }

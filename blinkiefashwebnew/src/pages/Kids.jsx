@@ -6,7 +6,6 @@ import {
   MdKeyboardArrowDown,
   MdPersonOutline,
   MdFavoriteBorder,
-  MdFavorite,
   MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
@@ -32,6 +31,7 @@ import {
 
 import Footer from "../components/Footer";
 import PageSEO from "../components/PageSEO";
+import ProductCard from "../components/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
@@ -46,9 +46,6 @@ import "./Kids.css";
 import kidsHeroBanner from "../assets/kids-hero.png";
 import kidsBoysBanner from "../assets/kids-boys.png";
 import kidsGirlsBanner from "../assets/kids-girls.png";
-
-
-
 
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
@@ -145,26 +142,45 @@ const TOP_BRANDS_FALLBACK = [
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
 function normalizeProduct(p) {
-  const price = Number(p.discount_price ?? p.price ?? 0);
-  const mrp = Number(p.price ?? p.original_price ?? price);
-  const discount = mrp > price ? Math.round(((mrp - price) / mrp) * 100) : 0;
+  const salePrice = Number(p.discount_price ?? p.price ?? 0);
+  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
+  const discount =
+    originalPrice > salePrice
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
+  const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
+
   return {
+    ...p,
     id: p.id,
     name: p.name,
     brand: p.brand,
-    image: resolveImageUrl(p.image),
-    price,
-    mrp,
-    discount,
+    image,
+    image_url: image,
+    // ProductCard expects these field names
+    price: originalPrice,
+    discount_price: salePrice,
+    _mrp: originalPrice,
+    _price: salePrice,
+    color: p.color || p.colour || "Multi color",
+    is_bestseller: p.is_bestseller ?? false,
+    is_try_and_buy: p.is_try_and_buy ?? false,
+    in_stock: p.in_stock !== false,
+    available: p.available !== false,
+    rating: p.rating ?? p.avg_rating ?? 0,
+    review_count: p.review_count ?? p.reviews_count ?? 0,
+    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
+    discount,
   };
 }
 
 export default function Kids() {
   const navigate = useNavigate();
   const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount, addToCart } = useCart();
-  const { items: wishlistItems, isWishlisted, toggleWishlist } = useWishlist();
+  const { count: cartCount } = useCart();
+  const { items: wishlistItems } = useWishlist();
 
   const city =
     localStorage.getItem("bfw_city") ||
@@ -295,48 +311,58 @@ export default function Kids() {
     };
   }, [kidsResolved, kidsRootId, kidsSubcats]);
 
-  const kidsScopedShopUrl = useCallback((opts = {}) => {
-    const params = new URLSearchParams();
-    // Prefer a leaf category; otherwise force Kids root so Shop never opens unfiltered.
-    if (opts.categoryId) {
-      params.set("category_id", String(opts.categoryId));
-    } else if (kidsRootId) {
-      params.set("category_id", String(kidsRootId));
-    }
-    let search = opts.search ? String(opts.search).trim() : "";
-    // If we still have no category_id, force a kids-scoped search so the full catalog cannot open.
-    if (!params.has("category_id")) {
-      const lower = search.toLowerCase();
-      if (!lower.includes("kid") && !lower.includes("child") && !lower.includes("baby") && !lower.includes("boy") && !lower.includes("girl")) {
-        search = search ? `kids ${search}` : "kids";
-      } else if (!search) {
-        search = "kids";
+  const kidsScopedShopUrl = useCallback(
+    (opts = {}) => {
+      const params = new URLSearchParams();
+      if (opts.categoryId) {
+        params.set("category_id", String(opts.categoryId));
+      } else if (kidsRootId) {
+        params.set("category_id", String(kidsRootId));
       }
-    }
-    if (search) params.set("search", search);
-    const qs = params.toString();
-    return qs ? `/shop?${qs}` : "/shop?search=kids";
-  }, [kidsRootId]);
+      let search = opts.search ? String(opts.search).trim() : "";
+      if (!params.has("category_id")) {
+        const lower = search.toLowerCase();
+        if (
+          !lower.includes("kid") &&
+          !lower.includes("child") &&
+          !lower.includes("baby") &&
+          !lower.includes("boy") &&
+          !lower.includes("girl")
+        ) {
+          search = search ? `kids ${search}` : "kids";
+        } else if (!search) {
+          search = "kids";
+        }
+      }
+      if (search) params.set("search", search);
+      const qs = params.toString();
+      return qs ? `/shop?${qs}` : "/shop?search=kids";
+    },
+    [kidsRootId]
+  );
 
-  const findSubcatByLabel = useCallback((label) => {
-    const needle = String(label || "")
-      .toLowerCase()
-      .replace(/&/g, " ")
-      .replace(/[^a-z0-9\s]/g, " ")
-      .replace(/\s+/g, " ")
-      .trim();
-    if (!needle || !kidsSubcats.length) return null;
+  const findSubcatByLabel = useCallback(
+    (label) => {
+      const needle = String(label || "")
+        .toLowerCase()
+        .replace(/&/g, " ")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+      if (!needle || !kidsSubcats.length) return null;
 
-    const exact = kidsSubcats.find((c) => c.name.toLowerCase().trim() === needle);
-    if (exact) return exact;
+      const exact = kidsSubcats.find((c) => c.name.toLowerCase().trim() === needle);
+      if (exact) return exact;
 
-    return (
-      kidsSubcats.find((c) => {
-        const name = c.name.toLowerCase();
-        return name.includes(needle) || needle.includes(name);
-      }) || null
-    );
-  }, [kidsSubcats]);
+      return (
+        kidsSubcats.find((c) => {
+          const name = c.name.toLowerCase();
+          return name.includes(needle) || needle.includes(name);
+        }) || null
+      );
+    },
+    [kidsSubcats]
+  );
 
   const categoryStripItems = useMemo(() => {
     if (kidsSubcats.length) {
@@ -346,12 +372,10 @@ export default function Kids() {
           id: cat.id,
           label: cat.name,
           image,
-          // Leaf category only — not the full Kids tree
           to: kidsScopedShopUrl({ categoryId: cat.id }),
         };
       });
     }
-    // No DB subcategories yet: still scope under Kids root + search by label
     return KIDS_CATEGORY_FALLBACK.map((item) => {
       const match = findSubcatByLabel(item.label);
       return {
@@ -365,12 +389,6 @@ export default function Kids() {
       };
     });
   }, [kidsSubcats, kidsScopedShopUrl, findSubcatByLabel]);
-
-  const goProduct = (id) => {
-    navigate(`/product/${id}`, {
-      state: { from: "kids", fromLabel: "Kids", fromPath: "/kids" },
-    });
-  };
 
   const handleSearchSubmit = (e) => {
     e.preventDefault();
@@ -428,7 +446,11 @@ export default function Kids() {
           </form>
 
           <div className="catalog-header-actions-wrap">
-            <button type="button" className="catalog-location-pill kids-location-pill" onClick={() => navigate("/account")}>
+            <button
+              type="button"
+              className="catalog-location-pill kids-location-pill"
+              onClick={() => navigate("/account")}
+            >
               <MdLocationOn className="kids-location-icon" />
               <span className="kids-location-text">
                 <span className="kids-location-label">Delivering to</span>
@@ -438,21 +460,39 @@ export default function Kids() {
             </button>
 
             <div className="hp-header-actions kids-header-actions">
-              <button type="button" className="kids-icon-action" onClick={() => navigate("/notifications")}>
+              <button
+                type="button"
+                className="kids-icon-action"
+                onClick={() => navigate("/notifications")}
+              >
                 <MdNotificationsNone />
                 <span>Notifications</span>
               </button>
-              <button type="button" className="kids-icon-action" onClick={() => navigate("/wishlist")}>
+              <button
+                type="button"
+                className="kids-icon-action"
+                onClick={() => navigate("/wishlist")}
+              >
                 <MdFavoriteBorder />
                 <span>Wishlist</span>
-                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
+                {wishlistCount > 0 ? (
+                  <span className="hp-icon-badge">{wishlistCount}</span>
+                ) : null}
               </button>
-              <button type="button" className="kids-icon-action" onClick={() => navigate("/cart")}>
+              <button
+                type="button"
+                className="kids-icon-action"
+                onClick={() => navigate("/cart")}
+              >
                 <MdOutlineShoppingCart />
                 <span>Cart</span>
                 {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
               </button>
-              <button type="button" className="kids-icon-action kids-account-action" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
+              <button
+                type="button"
+                className="kids-icon-action kids-account-action"
+                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
+              >
                 <MdPersonOutline />
                 <span>{accountLabel}</span>
               </button>
@@ -482,7 +522,11 @@ export default function Kids() {
               </button>
             ))}
           </div>
-          <button type="button" className="kids-nav-offers" onClick={() => navigate("/offers")}>
+          <button
+            type="button"
+            className="kids-nav-offers"
+            onClick={() => navigate("/offers")}
+          >
             <MdSettings /> Offers
           </button>
         </nav>
@@ -692,69 +736,14 @@ export default function Kids() {
 
               <div className="hp-deals-rail" role="list" ref={picksRailRef}>
                 {products.map((p, idx) => (
-                  <article
+                  <div
                     key={`kids-pick-${p.id}-${idx}`}
-                    className="hp-deal-card"
+                    className="hp-deal-card-wrapper"
                     role="listitem"
-                    onClick={() => goProduct(p.id)}
+                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
                   >
-                    <div className="hp-deal-media">
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} loading="lazy" />
-                      ) : (
-                        <div className="hp-deal-fallback">No image</div>
-                      )}
-                      <span className={`hp-deal-ribbon${p.discount === 0 ? " new" : ""}`}>
-                        {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-                      </span>
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? " active" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist({
-                            productId: p.id,
-                            name: p.name,
-                            image: p.image,
-                            price: p.price,
-                          });
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p.price}</span>
-                        {p.mrp > p.price && <span className="hp-deal-mrp">₹{p.mrp}</span>}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}>
-                          {p.discount > 0 ? `${p.discount}% OFF` : "NEW"}
-                        </span>
-                        <button
-                          type="button"
-                          className="hp-deal-cart"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart({
-                              productId: p.id,
-                              variantId: p.id,
-                              name: p.name,
-                              image: p.image,
-                              price: p.price,
-                            });
-                          }}
-                          aria-label="Add to cart"
-                        >
-                          <MdOutlineShoppingCart />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
+                    <ProductCard product={p} />
+                  </div>
                 ))}
               </div>
 

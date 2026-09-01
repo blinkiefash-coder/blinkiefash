@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   MdFavoriteBorder,
@@ -6,6 +7,7 @@ import {
   MdLocalShipping,
   MdCheckroom,
   MdStar,
+  MdCheckCircle,
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
@@ -76,6 +78,9 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
   const { addToCart, getCartQty } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [announcement, setAnnouncement] = useState("");
+
   const wishlisted = isWishlisted(product.id);
   const cartQty = getCartQty(product.variant_id || product.id);
 
@@ -106,6 +111,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
   const reviewCount = Number(product.review_count || product.reviews_count || 0);
   const soldCount = Number(product.sold_count || product.sales_count || 0);
   const soldLabel = soldCount > 0 ? `${soldCount.toLocaleString("en-IN")} sold` : "";
+  const hasMeta = rating > 0 || Boolean(soldLabel);
+  const outOfStock = product.in_stock === false || product.available === false;
 
   const handleAddToWishlist = async (event) => {
     event.stopPropagation();
@@ -171,12 +178,16 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
     event.stopPropagation();
     event.preventDefault();
 
+    if (isAddingToCart || outOfStock) return;
+
     const { userId, token } = getAuth();
     if (!userId && !token) {
       alert("Please login to add items to cart");
       navigate("/login");
       return;
     }
+
+    setIsAddingToCart(true);
 
     if (typeof addToCart === "function") {
       try {
@@ -188,7 +199,9 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
           price: salePrice,
         });
         window.dispatchEvent(new Event("cart:updated"));
+        setAnnouncement(`${product.name} added to cart`);
         if (onCartAdded) onCartAdded();
+        setIsAddingToCart(false);
         return;
       } catch (err) {
         console.error("[ProductCard] context cart failed", err);
@@ -199,6 +212,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       const variantId = await resolveAvailableVariantId(product);
       if (!variantId) {
         alert("No available variant for this product");
+        setIsAddingToCart(false);
         return;
       }
 
@@ -222,11 +236,13 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       }
 
       window.dispatchEvent(new Event("cart:updated"));
+      setAnnouncement(`${product.name} added to cart`);
       if (onCartAdded) onCartAdded();
-      alert("Added to cart");
     } catch (err) {
       console.error("[ProductCard] cart failed", err);
       alert(`Unable to add to cart: ${err.message}`);
+    } finally {
+      setIsAddingToCart(false);
     }
   };
 
@@ -235,6 +251,12 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       className="pc-card"
       onClick={() => navigate(`/product/${product.id}`)}
     >
+      {/* Visually hidden live region so screen reader users hear
+          confirmation without relying on the icon-only button. */}
+      <span className="pc-sr-only" aria-live="polite">
+        {announcement}
+      </span>
+
       <div className="pc-top">
         <span
           className={`pc-badge ${
@@ -253,7 +275,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
           type="button"
           className={`pc-wishlist${wishlisted ? " active" : ""}`}
           onClick={handleAddToWishlist}
-          aria-label="Add to wishlist"
+          aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+          aria-pressed={wishlisted}
         >
           {wishlisted ? <MdFavorite /> : <MdFavoriteBorder />}
         </button>
@@ -275,6 +298,33 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
             <MdCheckroom />
           </div>
         )}
+
+        {/* Cart action lives on the image, so its position never
+            depends on whether rating/sold metadata exists below. */}
+        <button
+          type="button"
+          className={`pc-cart-fab${cartQty > 0 ? " in-cart" : ""}${
+            isAddingToCart ? " is-loading" : ""
+          }`}
+          onClick={handleAddToCart}
+          disabled={isAddingToCart || outOfStock}
+          aria-disabled={isAddingToCart || outOfStock}
+          aria-busy={isAddingToCart}
+          aria-label={
+            outOfStock
+              ? "Out of stock"
+              : cartQty > 0
+                ? `In cart, quantity ${cartQty}`
+                : "Add to cart"
+          }
+        >
+          {!isAddingToCart &&
+            (cartQty > 0 ? (
+              <span className="pc-cart-qty">{cartQty}</span>
+            ) : (
+              <MdAddShoppingCart />
+            ))}
+        </button>
       </div>
 
       <div className="pc-body">
@@ -285,11 +335,11 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
         <div className="pc-price-row">
           <strong>{formatPrice(salePrice)}</strong>
           {hasDiscount ? <span>{formatPrice(originalPrice)}</span> : null}
+          {hasDiscount ? <em className="pc-off-inline">{offPercent}% OFF</em> : null}
         </div>
-        {hasDiscount ? <p className="pc-off">{offPercent}% OFF</p> : null}
 
-        <div className="pc-meta-row">
-          <div className="pc-meta-left">
+        {hasMeta && (
+          <div className="pc-meta-row">
             {rating > 0 && (
               <span className="pc-rating">
                 <MdStar aria-hidden="true" /> {rating.toFixed(1)}
@@ -299,22 +349,17 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
             {rating > 0 && soldLabel && <span className="pc-meta-sep">|</span>}
             {soldLabel && <span className="pc-sold">{soldLabel}</span>}
           </div>
-          <button
-            type="button"
-            className={`pc-cart-btn${cartQty > 0 ? " in-cart" : ""}`}
-            onClick={handleAddToCart}
-            aria-label={cartQty > 0 ? `In cart, quantity ${cartQty}` : "Add to cart"}
-          >
-            {cartQty > 0 ? <span className="pc-cart-qty">+{cartQty}</span> : <MdAddShoppingCart />}
-          </button>
-        </div>
+        )}
 
         <div className="pc-delivery-banner">
-          <MdLocalShipping aria-hidden="true" />
-          <span>
-            Delivery in <strong>60 Minutes</strong>
-            <br />
-            <span className="pc-delivery-sub">Or it&apos;s free!</span>
+          <span className="pc-delivery-icon">
+            <MdLocalShipping aria-hidden="true" />
+          </span>
+          <span className="pc-delivery-text">
+            <strong>Delivery in 60 Minutes</strong>
+            <span className="pc-delivery-sub">
+              <MdCheckCircle aria-hidden="true" /> Or it&apos;s free!
+            </span>
           </span>
         </div>
       </div>

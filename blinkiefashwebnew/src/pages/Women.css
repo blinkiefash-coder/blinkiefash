@@ -578,4 +578,66 @@
     width: 50px;
     height: 50px;
   }
+} 
+
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* ===== Product rails → better mobile layout ===== */
+
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* Mobile: turn the rail into a 2-column grid */
+@media (max-width: 640px) {
+  .women-picks-section .hp-deals-wrap {
+    position: relative;
+  }
+
+  /* Hide the side arrows on mobile – users scroll the grid instead */
+  .women-picks-section .hp-deals-prev,
+  .women-picks-section .hp-deals-next {
+    display: none;
+  }
+
+  .women-picks-section .hp-deals-rail {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    overflow-x: visible;
+    scroll-snap-type: none;
+    padding: 0;
+  }
+
+  .women-picks-section .hp-deal-card-wrapper {
+    min-width: 0;
+    max-width: none;
+    flex: none;
+    width: 100%;
+  }
+
+  .women-picks-section .pc-card {
+    height: auto;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 380px) {
+  .women-picks-section .hp-deals-rail {
+    gap: 8px;
+  }
 }

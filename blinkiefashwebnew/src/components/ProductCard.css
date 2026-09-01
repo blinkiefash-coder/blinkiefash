@@ -7,6 +7,13 @@
   cursor: pointer;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  /* Lets the narrow-card rules below react to the card's own
+     rendered width, not just the viewport — correct whether the
+     grid shows 2 or 3 cards per row on the same screen. */
+  container-type: inline-size;
+  container-name: pc;
 }
 
 .pc-card:hover {
@@ -69,6 +76,7 @@
   align-items: center;
   justify-content: center;
   transition: color 0.15s ease, transform 0.15s ease;
+  flex-shrink: 0;
 }
 
 .pc-wishlist:hover {
@@ -76,25 +84,41 @@
   transform: scale(1.08);
 }
 
+.pc-wishlist.active {
+  color: #ec4899;
+}
+
+.pc-wishlist {
+  position: relative;
+}
+
+/* ── Image box — FIXED aspect ratio (3:4), no content-based
+   padding, so it never resizes based on the source photo. Every
+   card's box is identical; the photo fills it via object-fit and
+   gets cropped, never stretched or letterboxed. ── */
+/* ── Image box ── */
 .pc-image-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  overflow: hidden;
   background: #f8fafc;
   box-sizing: border-box;
+  display: flex;               /* centers the img */
+  align-items: center;
+  justify-content: center;
 }
 
 .pc-image-wrap img {
-  width: 100%;
-  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
   object-fit: contain;
+  object-position: center;
+  display: block;
   transition: transform 0.25s ease;
   backface-visibility: hidden;
-  transform: translateZ(0);
 }
 
 .pc-card:hover .pc-image-wrap img {
@@ -102,14 +126,128 @@
 }
 
 .pc-no-image {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   color: #cbd5e1;
   font-size: 36px;
+}
+
+/* ── Add-to-cart FAB — sits on the image, same corner on every
+   card regardless of rating/sold text below, so it never looks
+   lopsided. ── */
+.pc-cart-fab {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  border: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #fff;
+  color: var(--brand-green, #16a34a);
+  font-size: 17px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+
+/* Invisible padding that extends the tap target to ~44px (WCAG
+   2.5.5) without changing the button's visible 34px size. */
+.pc-cart-fab::before {
+  content: "";
+  position: absolute;
+  inset: -5px;
+}
+
+.pc-cart-fab:hover {
+  background: var(--brand-green, #16a34a);
+  color: #fff;
+  transform: scale(1.08);
+}
+
+.pc-cart-fab:focus-visible,
+.pc-wishlist:focus-visible {
+  outline: 2px solid var(--brand-green, #16a34a);
+  outline-offset: 2px;
+}
+
+.pc-cart-fab.in-cart {
+  background: var(--brand-green, #16a34a);
+  color: #fff;
+  width: auto;
+  min-width: 34px;
+  padding: 0 10px;
+  border-radius: 17px;
+  font-weight: 800;
+}
+
+.pc-cart-fab[disabled] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: none;
+  transform: none;
+}
+
+.pc-cart-fab.is-loading {
+  color: transparent;
+}
+
+.pc-cart-fab.is-loading::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--brand-green, #16a34a);
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: pc-spin 0.6s linear infinite;
+}
+
+.pc-cart-fab.in-cart.is-loading::after {
+  border-color: #fff;
+  border-top-color: transparent;
+}
+
+@keyframes pc-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.pc-cart-qty {
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* Visually hidden but announced by screen readers — used for the
+   "added to cart" live-region confirmation. */
+.pc-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .pc-body {
   padding: 10px 12px 14px;
   position: relative;
   border-top: 1px solid #f1f5f9;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
 }
 
 .pc-body small {
@@ -145,8 +283,9 @@
 .pc-price-row {
   margin-top: 8px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 7px;
+  flex-wrap: wrap;
 }
 
 .pc-price-row strong {
@@ -163,72 +302,108 @@
   text-decoration: line-through;
 }
 
-.pc-off {
-  display: inline-flex;
-  width: fit-content;
-  margin: 6px 0 0;
-  padding: 3px 7px;
-  border-radius: 5px;
-  font-size: 10px;
+.pc-off-inline {
+  font-style: normal;
+  font-size: 10.5px;
   font-weight: 800;
-  color: #fff;
-  background: #dc2626;
+  color: #dc2626;
 }
 
-.pc-cart {
-  position: absolute;
-  right: 10px;
-  bottom: 12px;
-  border: 0;
-  background: #dcfce7;
-  color: #16a34a;
-  border-radius: 9px;
-  min-width: 32px;
-  height: 32px;
-  font-size: 16px;
-  cursor: pointer;
+.pc-meta-row {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.pc-rating {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  gap: 2px;
+  font-weight: 700;
+  color: #0f172a;
 }
 
-.pc-cart:hover {
-  background: #16a34a;
-  color: #fff;
-  transform: scale(1.06);
-}
-
-.pc-cart-btn.in-cart {
-  background: var(--brand-green);
-  color: #fff;
-  font-weight: 800;
-  font-size: 14px;
-}
-
-.pc-cart-qty {
+.pc-rating svg {
+  color: #f59e0b;
   font-size: 13px;
-  font-weight: 800;
-  line-height: 1;
 }
 
-/* ── Delivery banner strip ────────────────────────────────── */
+.pc-review-count {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.pc-meta-sep {
+  color: #cbd5e1;
+}
+
+.pc-sold {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Delivery banner — icon in its own accent circle, headline
+   bold, "free" line separated out with a check icon. ── */
 .pc-delivery-banner {
   margin-top: 10px;
   display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  background: var(--brand-green-soft);
-  border: 1px solid var(--brand-green-border);
-  border-radius: 14px;
-  padding: 10px 12px;
-  font-size: 12.5px;
-  color: var(--brand-dark);
-  line-height: 1.4;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  border: 1px solid var(--brand-green-border, #bbf7d0);
+  border-radius: 12px;
+  padding: 7px 10px;
+}
+
+.pc-delivery-icon {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-green, #16a34a);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.35);
+}
+
+.pc-delivery-text {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.pc-delivery-text strong {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand-dark, #14532d);
+  line-height: 1.25;
+}
+
+.pc-delivery-sub {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand-green, #16a34a);
+}
+
+.pc-delivery-sub svg {
+  font-size: 12px;
+}
 
 .pc-skeleton {
-  height: 300px;
-  border-radius: 18px;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
   background: linear-gradient(90deg, #f0f3f7 25%, #e8edf3 50%, #f0f3f7 75%);
   background-size: 320px 100%;
   animation: pcShimmer 1.2s linear infinite;
@@ -245,25 +420,127 @@
 
 @media (max-width: 640px) {
   .pc-body h3 {
-    min-height: 54px;
+    min-height: 34px;
+    font-size: 12.5px;
+    -webkit-line-clamp: 2;
   }
 }
 
 @media (max-width: 420px) {
   .pc-body {
-    padding: 6px 6px 8px;
+    padding: 8px 8px 10px;
   }
 
   .pc-body h3 {
-    font-size: 12px;
-    min-height: 32px;
+    font-size: 11.5px;
+    min-height: 30px;
   }
 
   .pc-body small {
     font-size: 9px;
   }
 
+  .pc-sub {
+    font-size: 10px;
+  }
+
   .pc-price-row strong {
+    font-size: 13.5px;
+  }
+
+  .pc-price-row span {
+    font-size: 10px;
+  }
+
+  .pc-wishlist {
+    width: 28px;
+    height: 28px;
     font-size: 14px;
   }
-}}
+}
+
+/* ── Narrow-card layout (e.g. 3-per-row mobile grids) — keyed to
+   the card's own width via container queries, not the viewport,
+   so it applies correctly no matter the grid's column count. ── */
+@container pc (max-width: 190px) {
+  .pc-badge {
+    font-size: 7.5px;
+    padding: 4px 7px;
+  }
+
+  .pc-wishlist,
+  .pc-cart-fab {
+    width: 24px;
+    height: 24px;
+    font-size: 13px;
+  }
+
+  .pc-body {
+    align-items: center;
+    text-align: center;
+    padding: 8px 6px 10px;
+  }
+
+  .pc-body h3 {
+    font-size: 10.5px;
+    min-height: 0;
+    -webkit-line-clamp: 2;
+  }
+
+  .pc-body small {
+    font-size: 8px;
+  }
+
+  .pc-sub {
+    font-size: 9px;
+  }
+
+  .pc-price-row {
+    justify-content: center;
+  }
+
+  .pc-price-row strong {
+    font-size: 12.5px;
+  }
+
+  .pc-price-row span {
+    font-size: 9px;
+  }
+
+  .pc-off-inline {
+    font-size: 9px;
+  }
+
+  .pc-meta-row {
+    justify-content: center;
+    font-size: 9px;
+  }
+
+  .pc-delivery-banner {
+    margin-top: 8px;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 3px;
+    padding: 7px 6px;
+  }
+
+  .pc-delivery-icon {
+    width: 22px;
+    height: 22px;
+    font-size: 12px;
+  }
+
+  .pc-delivery-text {
+    align-items: center;
+  }
+
+  .pc-delivery-text strong {
+    font-size: 9.5px;
+    white-space: nowrap;
+  }
+
+  .pc-delivery-sub {
+    font-size: 8.5px;
+  }
+}
