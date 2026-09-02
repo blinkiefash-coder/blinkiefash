@@ -475,7 +475,7 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     const order = orderRows[0];
 
     const { rows: items } = await pool.query(
-      `SELECT oi.quantity, oi.price, p.name AS product_name, v.size, v.color, v.barcode, b.name AS brand_name
+      `SELECT oi.quantity, oi.price, p.name AS product_name, v.size, v.color, v.barcode, v.mrp, b.name AS brand_name
        FROM order_items oi
        JOIN product_variants v ON v.id = oi.variant_id
        JOIN products p ON p.id = v.product_id
@@ -492,7 +492,12 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
     
     let subtotal = 0;
     const itemRows = items.map(it => {
-      const vendorPrice = calculateVendorPrice(parseFloat(it.price), it.brand_name, it.product_name);
+      const vendorPrice = calculateVendorPrice(
+        parseFloat(it.price), 
+        it.brand_name, 
+        it.product_name,
+        it.mrp ? parseFloat(it.mrp) : null
+      );
       const lineTotal = vendorPrice * it.quantity;
       subtotal += lineTotal;
       return `

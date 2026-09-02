@@ -39,9 +39,16 @@ export const getOrCreateInvoiceNumber = async (vendorId, orderId) => {
 
 // Same brand-based discount rule vendor.js uses to derive what the platform
 // pays the vendor for an item (i.e. the vendor's cost/payout price).
-export const calculateVendorPrice = (price, brandName, productName) => {
+// If MRP is available, use 50% of MRP for Crimsoune; otherwise fall back to price-based calculation.
+export const calculateVendorPrice = (price, brandName, productName, mrp = null) => {
   const name = (brandName || productName || "").toLowerCase();
-  if (name.includes("crimsoune")) return price * 0.9;
+  if (name.includes("crimsoune")) {
+    // For Crimsoune: vendor gets 50% of MRP if available, otherwise 90% of price
+    if (mrp != null) {
+      return mrp * 0.5;
+    }
+    return price * 0.9;
+  }
   if (name.includes("puma")) return price * 0.93;
   return price;
 };

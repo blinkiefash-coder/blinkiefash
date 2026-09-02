@@ -70,11 +70,11 @@ class _HomeScreenState extends State<HomeScreen>
   String _currentLocation = 'Detecting location...';
   double? _lastKnownLat;
   double? _lastKnownLng;
-  
+
   // EXPRESS delivery tab: 'all' shows all products, 'express' shows within 45km
   String _productDeliveryTab = 'all';
   double? _nearestStoreDistanceKm;
-  
+
   List<Map<String, dynamic>> _products = const [];
   List<Map<String, dynamic>> _categories = const []; // root only
   List<Map<String, dynamic>> _allCategories = const []; // full tree
@@ -1500,14 +1500,14 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _getTabFilteredProducts() {
     if (_productDeliveryTab == 'express') {
       // EXPRESS tab: Show products only if nearest store is within 45km
-      final canExpress = _nearestStoreDistanceKm != null && 
-                         _nearestStoreDistanceKm! <= 45;
+      final canExpress =
+          _nearestStoreDistanceKm != null && _nearestStoreDistanceKm! <= 45;
       return canExpress ? _products : const [];
     }
     // ALL tab: Return all products
     return _products;
   }
-  
+
   /// Returns whether EXPRESS delivery is available in this location
   bool _isExpressAvailable() {
     return _nearestStoreDistanceKm != null && _nearestStoreDistanceKm! <= 45;
@@ -1516,10 +1516,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Builds the delivery tab selector (ALL PRODUCTS vs EXPRESS)
   Widget _buildProductDeliveryTabs() {
     final expressAvailable = _isExpressAvailable();
-    final displayDistance = _nearestStoreDistanceKm != null 
+    final displayDistance = _nearestStoreDistanceKm != null
         ? '(${_nearestStoreDistanceKm!.toStringAsFixed(1)} km away)'
         : '';
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Row(
@@ -1529,15 +1529,18 @@ class _HomeScreenState extends State<HomeScreen>
             child: GestureDetector(
               onTap: () => setState(() => _productDeliveryTab = 'all'),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: _productDeliveryTab == 'all' 
-                      ? _green 
+                  color: _productDeliveryTab == 'all'
+                      ? _green
                       : const Color(0xFFF0FDF4),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _productDeliveryTab == 'all' 
-                        ? _green 
+                    color: _productDeliveryTab == 'all'
+                        ? _green
                         : const Color(0xFFDCFCE7),
                   ),
                 ),
@@ -1550,8 +1553,8 @@ class _HomeScreenState extends State<HomeScreen>
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: _productDeliveryTab == 'all' 
-                              ? Colors.white 
+                          color: _productDeliveryTab == 'all'
+                              ? Colors.white
                               : _green,
                         ),
                       ),
@@ -1561,7 +1564,7 @@ class _HomeScreenState extends State<HomeScreen>
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: _productDeliveryTab == 'all' 
+                          color: _productDeliveryTab == 'all'
                               ? Colors.white.withValues(alpha: 0.8)
                               : const Color(0xFF6B7280),
                         ),
@@ -1576,24 +1579,27 @@ class _HomeScreenState extends State<HomeScreen>
           // EXPRESS tab
           Expanded(
             child: GestureDetector(
-              onTap: expressAvailable 
+              onTap: expressAvailable
                   ? () => setState(() => _productDeliveryTab = 'express')
                   : null,
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 12,
+                  horizontal: 12,
+                ),
                 decoration: BoxDecoration(
                   color: !expressAvailable
                       ? const Color(0xFFF3F4F6)
-                      : _productDeliveryTab == 'express' 
-                          ? const Color(0xFFDC2626)
-                          : const Color(0xFFFEE2E2),
+                      : _productDeliveryTab == 'express'
+                      ? const Color(0xFFDC2626)
+                      : const Color(0xFFFEE2E2),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: !expressAvailable
                         ? const Color(0xFFD1D5DB)
-                        : _productDeliveryTab == 'express' 
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFFFFCAD5),
+                        : _productDeliveryTab == 'express'
+                        ? const Color(0xFFDC2626)
+                        : const Color(0xFFFFCAD5),
                   ),
                 ),
                 child: Center(
@@ -1607,22 +1613,24 @@ class _HomeScreenState extends State<HomeScreen>
                           fontWeight: FontWeight.w700,
                           color: !expressAvailable
                               ? const Color(0xFF9CA3AF)
-                              : _productDeliveryTab == 'express' 
-                                  ? Colors.white 
-                                  : const Color(0xFFDC2626),
+                              : _productDeliveryTab == 'express'
+                              ? Colors.white
+                              : const Color(0xFFDC2626),
                         ),
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        expressAvailable ? '< 45km $displayDistance' : 'Not available',
+                        expressAvailable
+                            ? '< 45km $displayDistance'
+                            : 'Not available',
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
                           color: !expressAvailable
                               ? const Color(0xFF6B7280)
-                              : _productDeliveryTab == 'express' 
-                                  ? Colors.white.withValues(alpha: 0.8)
-                                  : const Color(0xFFDC2626),
+                              : _productDeliveryTab == 'express'
+                              ? Colors.white.withValues(alpha: 0.8)
+                              : const Color(0xFFDC2626),
                         ),
                       ),
                     ],
@@ -3580,7 +3588,7 @@ class _HomeScreenState extends State<HomeScreen>
   List<Map<String, dynamic>> _newAndTrendyProducts() {
     final items = <Map<String, dynamic>>[];
     final filteredProducts = _getTabFilteredProducts();
-    
+
     for (final product in filteredProducts) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
       final discPrice =
