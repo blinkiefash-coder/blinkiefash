@@ -16,8 +16,8 @@ import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 
-import { detectCurrentCity } from '../utils/location';
-import { hasVendorPasswordAuth } from '../utils/vendorSession';
+// import { detectCurrentCity } from '../utils/location';
+// import { hasVendorPasswordAuth } from '../utils/vendorSession';
 
 // import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 
@@ -45,17 +45,13 @@ function resolveImageUrl(raw) {
 const HERO_SLIDES = [
     {
     image: menwomenBanner,
-    to: '/shop?search=men%20women',
+    to: '/shop?search=men%women',
     pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
     to: '/shop?search=Puma',
-
-   
-    pos: 'center',
-
     pos: 'center 20%',
 
   },
