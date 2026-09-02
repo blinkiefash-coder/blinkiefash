@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import VendorLayout from "../components/VendorLayout";
 import { API_API_BASE_URL } from "../apiBase";
 import { fetchVendorProfile } from "../utils/vendorSession";
-import { isAdmin, adminHeaders } from "../utils/adminSession";
+import { isAdmin, adminHeaders, adminEmail } from "../utils/adminSession";
 import "./VendorOrders.css";
 
 const STATUS_LABELS = {
@@ -726,6 +726,24 @@ export default function VendorOrders() {
                           </button>
                         </div>
                       )}
+
+                    {isAdmin() && order.status === "delivered" && (
+                      <div className="vo-actions">
+                        <button
+                          className="vo-btn vo-btn-invoice"
+                          onClick={() =>
+                            window.open(
+                              `${API_API_BASE_URL}/admin/orders/${order.id}/invoice?admin_email=${encodeURIComponent(
+                                adminEmail()
+                              )}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          💰 Platform P&amp;L Invoice
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {(order.items || []).length > 0 && (
