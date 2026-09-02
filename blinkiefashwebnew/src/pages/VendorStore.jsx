@@ -727,7 +727,7 @@ export default function VendorOrders() {
                         </div>
                       )}
 
-                    {isAdmin() && order.status === "delivered" && (
+                    {isAdmin() && (
                       <div className="vo-actions">
                         <button
                           className="vo-btn vo-btn-invoice"
