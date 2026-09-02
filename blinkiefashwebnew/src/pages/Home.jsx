@@ -17,6 +17,7 @@ import {
   MdKeyboardArrowDown,
   MdClose,
   MdFavoriteBorder,
+  MdLocalOffer,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -31,7 +32,7 @@ import { API_BASE_URL } from '../apiBase';
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
 
-import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
+// import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 
 
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
@@ -52,22 +53,31 @@ const HERO_SLIDES = [
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
     to: '/shop?search=Puma',
-    pos: 'center 20%',
+    aw: 1600,
+    ah: 700,
+    pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
     to: '/shop?search=Xinso',
+    aw: 1600,
+    ah: 1000,
+    pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
     to: '/shop?search=kids',
+    aw: 1650,
+    ah: 820,
+    pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
     to: '/shop?search=men',
+   
   },
   {
     image:
@@ -618,12 +628,34 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
+ 
+
   useEffect(() => {
-    const track = heroTrackRef.current;
-    if (!track) return;
-    const left = heroIndex * track.clientWidth;
-    track.scrollTo({ left, behavior: 'smooth' });
-  }, [heroIndex]);
+  const track = heroTrackRef.current;
+  if (!track) return;
+  const left = heroIndex * track.clientWidth;
+  track.scrollTo({ left, behavior: 'smooth' });
+}, [heroIndex]);
+
+const heroCarouselRef = useRef(null);
+
+useEffect(() => {
+  const wrap = heroCarouselRef.current;
+  const track = heroTrackRef.current;
+  if (!wrap || !track) return;
+
+  const applyHeight = () => {
+    const width = wrap.clientWidth;
+    const slide = HERO_SLIDES[heroIndex];
+    if (!slide?.aw || !slide?.ah || !width) return;
+    const height = Math.round((width * slide.ah) / slide.aw);
+    track.style.height = `${height}px`;
+  };
+
+  applyHeight();
+  window.addEventListener('resize', applyHeight);
+  return () => window.removeEventListener('resize', applyHeight);
+}, [heroIndex]);
 
     useEffect(() => {
     let cancelled = false;
@@ -1335,31 +1367,26 @@ export default function Home() {
 
         
 
-        <section className="hp-hero-carousel">
-          <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
-            <MdChevronLeft />
-          </button>
-          <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide) => (
-              <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
-                <img
-                  src={slide.image}
-                  alt=""
-                  className="hp-slide-img"
-                  style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                />
-              </button>
-            ))}
-          </div>
-          <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
-            <MdChevronRight />
-          </button>
-          <div className="hp-hero-dots">
-            {HERO_SLIDES.map((slide, i) => (
-              <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
-            ))}
-          </div>
-        </section>
+        <section className="hp-hero-carousel" ref={heroCarouselRef}>
+  <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
+    <MdChevronLeft />
+  </button>
+  <div className="hp-hero-track" ref={heroTrackRef}>
+    {HERO_SLIDES.map((slide) => (
+      <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
+        <img src={slide.image} alt="" className="hp-slide-img" />
+      </button>
+    ))}
+  </div>
+  <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
+    <MdChevronRight />
+  </button>
+  <div className="hp-hero-dots">
+    {HERO_SLIDES.map((slide, i) => (
+      <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
+    ))}
+  </div>
+</section>
 
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
@@ -1411,6 +1438,25 @@ export default function Home() {
             </div>
             <div className="hp-reward-graphic" aria-hidden="true">
               🎁
+            </div>
+          </div>
+
+          {/* 4. FLAT 5% OFF + FREE DELIVERY — stacked in the 4th column */}
+          <div className="hp-reward-stack">
+            <div className="hp-reward-mini">
+              <div>
+                <strong>FLAT 5% OFF</strong>
+                <span>ON FIRST ORDER</span>
+                <span className="hp-reward-mini-chip">Use Code: WELCOME5</span>
+              </div>
+              <MdLocalOffer className="hp-reward-mini-icon" />
+            </div>
+            <div className="hp-reward-mini">
+              <div>
+                <strong>FREE DELIVERY</strong>
+                <span>ON ORDERS ABOVE ₹1499</span>
+              </div>
+              <MdLocalShipping className="hp-reward-mini-icon" />
             </div>
           </div>
         </div>
