@@ -222,14 +222,11 @@ const miniPromoCards = [
   },
 ];
 
+// Matches ProductCard's expected shape: price = MRP, discount_price = sale
+// price, plus the optional flags it reads (is_bestseller, is_try_and_buy).
 function normalizeProduct(p) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
-  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
-  const discount =
-    originalPrice > salePrice
-      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
-      : 0;
-
+  const originalPrice = Number(p.price ?? p.original_price ?? salePrice);
   const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
 
   return {
@@ -239,29 +236,15 @@ function normalizeProduct(p) {
     brand: p.brand,
     image,
     image_url: image,
-    // ProductCard expects these field names
     price: originalPrice,
     discount_price: salePrice,
-    _mrp: originalPrice,
-    _price: salePrice,
-    color: p.color || p.colour || "Multi color",
     is_bestseller: p.is_bestseller ?? false,
     is_try_and_buy: p.is_try_and_buy ?? false,
-    in_stock: p.in_stock !== false,
-    available: p.available !== false,
-    rating: p.rating ?? p.avg_rating ?? 0,
-    review_count: p.review_count ?? p.reviews_count ?? 0,
-    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
-    discount,
   };
 }
 
-
 // Banner images for the hero slideshow.
-
-// Banner images for the Men hero cards: [main, trending side, arrivals side]
-
 const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
 
 function heroBannerStyle(url) {
@@ -302,7 +285,9 @@ export default function Men() {
   const [heroSlide, setHeroSlide] = useState(0);
   const picksRailRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first
+  // Resolve the real "Men" category from the DB category tree first — every
+  // link and product fetch on this page is scoped to that subtree so this
+  // page only ever shows men's items, never women's/kids'/other sections'.
   useEffect(() => {
     let cancelled = false;
 
@@ -331,7 +316,7 @@ export default function Men() {
     };
   }, []);
 
-  // Pull real brand logos from the backend
+  // Pull real brand logos from the backend for "Top Brands You Love".
   useEffect(() => {
     let cancelled = false;
 
@@ -357,7 +342,10 @@ export default function Men() {
     };
   }, []);
 
-  // Once we know which category *is* Men, fetch products scoped to it
+  // Once we know which category *is* Men, fetch products scoped to it.
+  // No gender-text or bestseller fallback here on purpose — if the Men
+  // subtree has no products yet we show an empty state instead of mixing
+  // in items from other sections.
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -380,6 +368,8 @@ export default function Men() {
       }
 
       if (!found.length && menRootId) {
+        // Some backends only tag leaf-level products, not the root — retry
+        // against each direct subcategory and merge until we have 8.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
@@ -644,7 +634,7 @@ export default function Men() {
           </button>
         </section>
 
-        {/* Hero — single banner with copy + floating category card, like a storefront takeover */}
+        {/* Hero — single banner, plain image with slide controls */}
         <section className="men-hero-banner" aria-label="Men's fashion highlights">
           <button
             type="button"
@@ -839,7 +829,7 @@ export default function Men() {
           </button>
         </section>
 
-        {/* Trending Now */}
+        {/* Trending Now — uses the shared ProductCard, same as Women.jsx */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
             <h2>Trending Now</h2>
@@ -867,78 +857,9 @@ export default function Men() {
                     key={`men-pick-${p.id}-${idx}`}
                     className="hp-deal-card-wrapper"
                     role="listitem"
-
-                    onClick={() =>
-                      navigate(`/product/${p.id}`, {
-                        state: { from: "men", fromLabel: "Men", fromPath: "/men" },
-                      })
-                    }
-                  >
-                    <div className="hp-deal-media">
-                      <span className="men-deal-trybuy">Try &amp; Buy</span>
-                      {p.image ? (
-                        <img src={p.image} alt={p.name} loading="lazy" />
-                      ) : (
-                        <div className="hp-deal-fallback">No image</div>
-                      )}
-                      <button
-                        type="button"
-                        className={`hp-deal-wish${isWishlisted(p.id) ? " active" : ""}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleWishlist({
-                            productId: p.id,
-                            name: p.name,
-                            image: p.image,
-                            price: p.price,
-                          });
-                        }}
-                        aria-label="Toggle wishlist"
-                      >
-                        {isWishlisted(p.id) ? <MdFavorite /> : <MdFavoriteBorder />}
-                      </button>
-                    </div>
-                    <div className="hp-deal-body">
-                      {p.brand && <p className="hp-deal-brand">{p.brand}</p>}
-                      <p className="hp-deal-name">{p.name}</p>
-                      <div className="hp-deal-price-row">
-                        <span className="hp-deal-price">₹{p.price}</span>
-                        {p.mrp > p.price && (
-                          <span className="hp-deal-mrp">₹{p.mrp}</span>
-                        )}
-                      </div>
-                      <div className="hp-deal-footer-row">
-                        <span
-                          className={`hp-deal-off${p.discount > 0 ? " discount" : ""}`}
-                        >
-                          {p.discount > 0 ? `${p.discount}% OFF` : "BESTSELLER"}
-                        </span>
-                        <button
-                          type="button"
-                          className="hp-deal-cart"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            addToCart({
-                              productId: p.id,
-                              variantId: p.id,
-                              name: p.name,
-                              image: p.image,
-                              price: p.price,
-                            });
-                          }}
-                          aria-label="Add to cart"
-                        >
-                          <MdOutlineShoppingCart />
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-
-                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
                   >
                     <ProductCard product={p} />
                   </div>
-
                 ))}
               </div>
 
