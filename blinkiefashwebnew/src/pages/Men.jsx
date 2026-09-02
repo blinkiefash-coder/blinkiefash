@@ -30,6 +30,11 @@ import {
   MdSupportAgent,
   MdArrowForward,
   MdGridView,
+  MdLocalShipping,
+  MdVerified,
+  MdCached,
+  MdPayments,
+  MdMyLocation,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
@@ -158,14 +163,70 @@ const TOP_BRANDS_FALLBACK = [
   "Wildcraft",
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
+/** Utility strip items — rendered as the top bar above the header */
+const utilityItems = [
+  { icon: MdLocalShipping, label: "Delivered in 60 Minutes" },
+  { icon: MdVerified, label: "100% Authentic Products" },
+  { icon: MdCached, label: "Easy Returns" },
+  { icon: MdPayments, label: "Cash on Delivery" },
+  { icon: MdMyLocation, label: "Track Your Order" },
+];
+
+/** The three large reward promo cards (Spin / Play / Refer) */
+const heroPromoCards = [
+  {
+    title: "SPIN & WIN",
+    subtitle: "Spin the wheel & win exciting rewards!",
+    highlight: "Up To ₹500 OFF",
+    accent: "green",
+    action: "SPIN NOW",
+    icon: "🎡",
+    to: "/spin-wheel",
+  },
+  {
+    title: "PLAY & WIN",
+    subtitle: "Play fun games & win big discounts!",
+    highlight: "Up To ₹250 OFF",
+    accent: "purple",
+    action: "PLAY NOW",
+    icon: "🎮",
+    to: "/play-and-win",
+  },
+  {
+    title: "REFER & EARN",
+    subtitle: "Refer your friend & you both get ₹100 off!",
+    highlight: "Use code: BLINK100",
+    accent: "pink",
+    action: "REFER NOW",
+    icon: "🎁",
+    to: "/refer-earn",
+  },
+];
+
+/** The two small stacked offer cards that share the fourth grid column */
+const miniPromoCards = [
+  {
+    title: "FLAT 5% OFF",
+    subtitle: "ON FIRST ORDER",
+    highlight: "Use Code: WELCOME5",
+    accent: "cream",
+    to: "/shop",
+    badge: true,
+  },
+  {
+    title: "FREE DELIVERY",
+    subtitle: "ON ORDERS ABOVE",
+    highlight: "₹1499",
+    accent: "blue",
+    to: "/shop",
+  },
+];
+
+// Matches ProductCard's expected shape: price = MRP, discount_price = sale
+// price, plus the optional flags it reads (is_bestseller, is_try_and_buy).
 function normalizeProduct(p) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
-  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
-  const discount =
-    originalPrice > salePrice
-      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
-      : 0;
-
+  const originalPrice = Number(p.price ?? p.original_price ?? salePrice);
   const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
 
   return {
@@ -175,25 +236,15 @@ function normalizeProduct(p) {
     brand: p.brand,
     image,
     image_url: image,
-    // ProductCard expects these field names
     price: originalPrice,
     discount_price: salePrice,
-    _mrp: originalPrice,
-    _price: salePrice,
-    color: p.color || p.colour || "Multi color",
     is_bestseller: p.is_bestseller ?? false,
     is_try_and_buy: p.is_try_and_buy ?? false,
-    in_stock: p.in_stock !== false,
-    available: p.available !== false,
-    rating: p.rating ?? p.avg_rating ?? 0,
-    review_count: p.review_count ?? p.reviews_count ?? 0,
-    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
-    discount,
   };
 }
 
-// Banner images for the Men hero cards: [main, trending side, arrivals side]
+// Banner images for the hero slideshow.
 const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
 
 function heroBannerStyle(url) {
@@ -231,9 +282,12 @@ export default function Men() {
   const [menSubcats, setMenSubcats] = useState([]);
   const [menResolved, setMenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
+  const [heroSlide, setHeroSlide] = useState(0);
   const picksRailRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first
+  // Resolve the real "Men" category from the DB category tree first — every
+  // link and product fetch on this page is scoped to that subtree so this
+  // page only ever shows men's items, never women's/kids'/other sections'.
   useEffect(() => {
     let cancelled = false;
 
@@ -262,7 +316,7 @@ export default function Men() {
     };
   }, []);
 
-  // Pull real brand logos from the backend
+  // Pull real brand logos from the backend for "Top Brands You Love".
   useEffect(() => {
     let cancelled = false;
 
@@ -288,7 +342,10 @@ export default function Men() {
     };
   }, []);
 
-  // Once we know which category *is* Men, fetch products scoped to it
+  // Once we know which category *is* Men, fetch products scoped to it.
+  // No gender-text or bestseller fallback here on purpose — if the Men
+  // subtree has no products yet we show an empty state instead of mixing
+  // in items from other sections.
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -311,6 +368,8 @@ export default function Men() {
       }
 
       if (!found.length && menRootId) {
+        // Some backends only tag leaf-level products, not the root — retry
+        // against each direct subcategory and merge until we have 8.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
@@ -397,7 +456,9 @@ export default function Men() {
         id: match?.id || `fallback-${label}`,
         label,
         icon: CATEGORY_ICONS[idx] || MdGridView,
-        image: match ? resolveImageUrl(match.image) || getCategoryImage(match.name) || "" : "",
+        image: match
+          ? resolveImageUrl(match.image) || getCategoryImage(match.name) || ""
+          : "",
         to: match
           ? menScopedShopUrl({ categoryId: match.id })
           : menScopedShopUrl({ search: label }),
@@ -421,15 +482,31 @@ export default function Men() {
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
 
+  const goHeroSlide = (dir) => {
+    setHeroSlide((cur) => (cur + dir + MEN_BANNERS.length) % MEN_BANNERS.length);
+  };
+
   const wishlistCount = wishlistItems?.length || 0;
 
   return (
     <div className="catalog-page men-page">
       <PageSEO
-        title="Men's Fashion — Shirts, T-Shirts, Jeans & More"
-        description="Shop the latest men's fashion at Blinkiefash — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across Odisha."
+        title="Men's Fashion — Shirts, T-Shirts, Jeans & More | Blinkiefash India"
+        description="Shop the latest men's fashion at Blinkiefash India — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across India."
         path="/men"
       />
+
+      {/* Utility strip */}
+      <div className="men-utility-strip" aria-label="Store benefits">
+        {utilityItems.map((item) => (
+          <div key={item.label} className="men-utility-item">
+            <span className="men-utility-icon" aria-hidden="true">
+              <item.icon />
+            </span>
+            <span>{item.label}</span>
+          </div>
+        ))}
+      </div>
 
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
@@ -467,7 +544,10 @@ export default function Men() {
               onClick={() => navigate("/account")}
             >
               <MdLocationOn />
-              <span>{city}</span>
+              <span className="men-location-copy">
+                <small>Delivering to</small>
+                <strong>{city}</strong>
+              </span>
               <MdKeyboardArrowDown />
             </button>
 
@@ -527,26 +607,76 @@ export default function Men() {
           <span className="current">Men</span>
         </div>
 
-        <section className="men-hero-grid" aria-label="Men's fashion highlights">
-          <div
-            className="men-hero-card men-hero-main"
-            style={{ ...heroBannerStyle(MEN_BANNERS[0]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
+        {/* Mode switcher: India (this page) vs Local */}
+        <section className="men-mode-row" aria-label="Store modes">
+          <button
+            type="button"
+            className="men-mode-card men-mode-selected"
+            onClick={() => navigate("/men")}
+          >
+            <span className="men-mode-icon">🌐</span>
+            <span className="men-mode-copy">
+              <strong>BLINKIEFASH INDIA</strong>
+              <small>Products from stores across India</small>
+            </span>
+          </button>
 
-          <div
-            className="men-hero-card men-hero-side men-hero-trending"
-            style={{ ...heroBannerStyle(MEN_BANNERS[1]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
-
-          <div
-            className="men-hero-card men-hero-side men-hero-arrivals"
-            style={{ ...heroBannerStyle(MEN_BANNERS[2]), cursor: "pointer" }}
-            onClick={() => navigate(menScopedShopUrl())}
-          />
+          <button
+            type="button"
+            className="men-mode-card men-mode-local"
+            onClick={() => navigate("/blinkiefash-local")}
+          >
+            <span className="men-mode-icon">⚡</span>
+            <span className="men-mode-copy">
+              <strong>BLINKIEFASH LOCAL</strong>
+              <small>Fast delivery from nearby stores</small>
+            </span>
+          </button>
         </section>
 
+        {/* Hero — single banner, plain image with slide controls */}
+        <section className="men-hero-banner" aria-label="Men's fashion highlights">
+          <button
+            type="button"
+            className="men-hero-arrow men-hero-arrow-prev"
+            aria-label="Previous banner"
+            onClick={() => goHeroSlide(-1)}
+          >
+            <MdChevronLeft />
+          </button>
+
+          <div
+            className="men-hero-slide"
+            style={heroBannerStyle(MEN_BANNERS[heroSlide])}
+            onClick={() => navigate(menScopedShopUrl())}
+            role="button"
+            tabIndex={0}
+            aria-label="Shop men's fashion"
+          />
+
+          <button
+            type="button"
+            className="men-hero-arrow men-hero-arrow-next"
+            aria-label="Next banner"
+            onClick={() => goHeroSlide(1)}
+          >
+            <MdChevronRight />
+          </button>
+
+          <div className="men-hero-dots">
+            {MEN_BANNERS.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                className={`men-hero-dot${idx === heroSlide ? " active" : ""}`}
+                aria-label={`Show banner ${idx + 1}`}
+                onClick={() => setHeroSlide(idx)}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Category strip */}
         <section className="men-cat-strip" aria-label="Shop by category">
           <div className="men-cat-list">
             {categoryStripItems.map((cat) => (
@@ -581,6 +711,82 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Promo grid — 3 reward cards + a stacked pair of smaller offers */}
+        <section className="men-promo-grid" aria-label="Promotional offers">
+          {heroPromoCards.map((card, index) => {
+            const homeStyleClass = `men-home-reward-card ${
+              index === 0
+                ? "men-home-reward-spin"
+                : index === 1
+                  ? "men-home-reward-play"
+                  : "men-home-reward-refer"
+            }`;
+            return (
+              <article
+                key={card.title}
+                className={`men-promo-card-bfi men-promo-${card.accent} ${homeStyleClass}`}
+                onClick={() => navigate(card.to)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(card.to);
+                  }
+                }}
+              >
+                <div className="men-promo-content">
+                  <p className="men-promo-title-bfi">{card.title}</p>
+                  <p className="men-promo-subtitle-bfi">{card.subtitle}</p>
+                  <div className="men-promo-highlight-bfi">{card.highlight}</div>
+                  <button
+                    type="button"
+                    className="men-promo-button-bfi"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(card.to);
+                    }}
+                  >
+                    {card.action}
+                  </button>
+                </div>
+                <div className="men-promo-icon-bfi" aria-hidden="true">
+                  {card.icon}
+                </div>
+              </article>
+            );
+          })}
+
+          <div className="men-promo-mini-col">
+            {miniPromoCards.map((card) => (
+              <article
+                key={card.title}
+                className={`men-promo-mini men-promo-${card.accent}`}
+                onClick={() => navigate(card.to)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    navigate(card.to);
+                  }
+                }}
+              >
+                <div className="men-promo-mini-copy">
+                  <p className="men-promo-mini-title">{card.title}</p>
+                  <p className="men-promo-mini-sub">{card.subtitle}</p>
+                  {card.badge ? (
+                    <span className="men-promo-code-badge">{card.highlight}</span>
+                  ) : (
+                    <p className="men-promo-mini-highlight">{card.highlight}</p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+
+        {/* Secondary promo strip (Prepaid / Brands / Delivery) */}
         <section className="men-promo-strip">
           <button
             type="button"
@@ -623,9 +829,10 @@ export default function Men() {
           </button>
         </section>
 
+        {/* Trending Now — uses the shared ProductCard, same as Women.jsx */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
-            <h2>Top Picks for You</h2>
+            <h2>Trending Now</h2>
             <button type="button" onClick={() => navigate(menScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
@@ -650,7 +857,6 @@ export default function Men() {
                     key={`men-pick-${p.id}-${idx}`}
                     className="hp-deal-card-wrapper"
                     role="listitem"
-                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
                   >
                     <ProductCard product={p} />
                   </div>
@@ -673,6 +879,7 @@ export default function Men() {
           )}
         </section>
 
+        {/* Top Brands */}
         <section className="men-brands-section" aria-label="Top brands">
           <div className="hp-section-head">
             <h2>Top Brands You Love</h2>
@@ -711,6 +918,7 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Trust strip */}
         <section className="men-trust-strip" aria-label="Why shop with us">
           <div>
             <MdBolt />

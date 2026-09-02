@@ -48,6 +48,10 @@ import SavedAddresses from './pages/SavedAddresses';
 import { useAuth } from './context/AuthContext';
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
 
+// NEW: Blinkiefash India / Local mode pages
+// import BlinkiefashIndia from './pages/BlinkifashIndia';
+// import BlinkiefashLocal from './pages/BlinkiefashLocal';
+
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
     return children;
@@ -106,6 +110,8 @@ export default function App() {
     '/faqs',
     '/policies',
     '/privacy-policy',
+    '/blinkiefash-india',
+    '/blinkiefash-local',
   ].some((route) => pathname === route || pathname.startsWith(`${route}/`));
 
   return (
@@ -217,6 +223,10 @@ export default function App() {
         <Route path="/terms" element={<Policies />} />
         <Route path="/help-support" element={<HelpSupport />} />
         <Route path="/account/addresses" element={<SavedAddresses />} />
+
+        {/* NEW: Blinkiefash India / Local mode pages */}
+        {/* <Route path="/blinkiefash-india" element={<BlinkiefashIndia />} /> */}
+        {/* <Route path="/blinkiefash-local" element={<BlinkiefashLocal />} /> */}
       </Routes>
       {!isHome &&
         !isVendorArea &&

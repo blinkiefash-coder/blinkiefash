@@ -9,7 +9,6 @@ import {
   MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
-  MdSettings,
   MdCheckroom,
   MdStyle,
   MdDryCleaning,
@@ -25,6 +24,13 @@ import {
   MdSupportAgent,
   MdGridView,
   MdSpa,
+  MdMyLocation,
+  MdShield,
+  MdInventory2,
+  MdContentCopy,
+  MdSportsEsports,
+  MdRedeem,
+  MdTwoWheeler,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
@@ -107,17 +113,22 @@ const WOMEN_CATEGORY_FALLBACK = [
 ];
 
 const TOP_NAV = [
-  { label: "Men", to: "/men" },
   { label: "Women", to: "/women" },
-  { label: "Kids", to: "/kids" },
-  { label: "Home", to: "/shop?search=Home" },
-  { label: "Beauty", to: "/shop?search=Beauty" },
-  { label: "Accessories", to: "/shop?search=Accessories" },
+  { label: "Men", to: "/men" },
   { label: "Footwear", to: "/shop?search=Footwear" },
-  { label: "Bags", to: "/shop?search=Bags" },
-  { label: "Jewellery", to: "/shop?search=Jewellery" },
-  { label: "Travel", to: "/shop?search=Travel" },
-  { label: "Home Decor", to: "/shop?search=Home%20Decor" },
+  { label: "Electronics", to: "/shop?search=Electronics" },
+  { label: "Beauty", to: "/shop?search=Beauty" },
+  { label: "Home Living", to: "/shop?search=Home%20Living" },
+  { label: "Kids", to: "/kids" },
+  { label: "Travel & Backpack", to: "/shop?search=Travel" },
+];
+
+const TOP_STRIP_ITEMS = [
+  { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
+  { icon: MdShield, label: "100% Authentic Products" },
+  { icon: MdAutorenew, label: "Easy Returns" },
+  { icon: MdInventory2, label: "Cash on Delivery" },
+  { icon: MdMyLocation, label: "Track Your Order" },
 ];
 
 const TOP_BRANDS_FALLBACK = [
@@ -133,6 +144,13 @@ const TOP_BRANDS_FALLBACK = [
   "H&M",
   "Vero Moda",
 ].map((name) => ({ id: null, name, logo_url: "" }));
+
+// Hero carousel slides — plain banner images, no overlay copy.
+const HERO_SLIDES = [
+  { image: womenBanner1, tag: "Kurta sets for every mood" },
+  { image: womenBanner2, tag: "Trending styles" },
+  { image: womenBanner3, tag: "New arrivals" },
+];
 
 function normalizeProduct(p) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
@@ -169,6 +187,8 @@ function normalizeProduct(p) {
   };
 }
 
+
+
 // Banner images for the Women hero cards
 const WOMEN_BANNERS = [
   {
@@ -184,6 +204,7 @@ const WOMEN_BANNERS = [
     alt: "New arrivals for women — discover the latest drops.",
   },
 ];
+
 
 function ProductRail({ list, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
@@ -237,16 +258,12 @@ export default function Women() {
   const city =
     localStorage.getItem("bfw_city") ||
     localStorage.getItem("selectedCity") ||
-    "Cuttack";
+    "Khordha";
   const isLoggedIn =
     authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
   const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
   const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn
-    ? headerFirstName
-      ? `Hi, ${headerFirstName}`
-      : "My Account"
-    : "Login / Signup";
+  const accountLabel = isLoggedIn ? (headerFirstName ? headerFirstName : "My Account") : "Login";
 
   const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
@@ -256,6 +273,7 @@ export default function Women() {
   const [womenSubcats, setWomenSubcats] = useState([]);
   const [womenResolved, setWomenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
+  const [heroIndex, setHeroIndex] = useState(0);
   const trendingRef = useRef(null);
   const arrivalsRef = useRef(null);
 
@@ -366,6 +384,17 @@ export default function Women() {
     };
   }, [womenResolved, womenRootId, womenSubcats]);
 
+
+  // Auto-advance the hero carousel every 5s, pausing is unnecessary since
+  // arrows/dots simply reset the timer via index change.
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+
   const womenScopedShopUrl = useCallback(
     (opts = {}) => {
       const params = new URLSearchParams();
@@ -447,7 +476,14 @@ export default function Women() {
     navigate(womenScopedShopUrl({ search: value }));
   };
 
+  const handleCopyReferral = () => {
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText("BLINK100").catch(() => {});
+    }
+  };
+
   const wishlistCount = wishlistItems?.length || 0;
+  const slide = HERO_SLIDES[heroIndex];
 
   return (
     <div className="catalog-page women-page">
@@ -457,19 +493,24 @@ export default function Women() {
         path="/women"
       />
 
+      {/* Top utility strip */}
+      <div className="women-top-strip">
+        <div className="women-top-strip-inner">
+          {TOP_STRIP_ITEMS.map((item) => (
+            <span className="women-top-strip-item" key={item.label}>
+              <item.icon />
+              <span>{item.label}</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
           <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <img
-              src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
-              alt="Blinkiefash"
-              className="hp-logo"
-            />
-            <span className="hp-brand-text">
-              <span className="hp-brand-name">
-                BLINKIE<span className="hp-brand-accent">FASH</span>
-              </span>
-              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
+            <MdBolt className="women-brand-bolt" />
+            <span className="hp-brand-name">
+              BLINKIE<span className="hp-brand-accent">FASH</span>
             </span>
           </button>
 
@@ -479,7 +520,7 @@ export default function Women() {
               name="q"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for women's clothing, footwear, bags & more..."
+              placeholder="Search for Ethnic Wear, Kurta Sets, Sarees & more..."
             />
             <button type="submit" className="hp-search-btn" aria-label="Search products">
               <MdSearch />
@@ -489,8 +530,17 @@ export default function Women() {
           <div className="catalog-header-actions-wrap">
             <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
               <MdLocationOn />
-              <span>{city}</span>
-              <MdKeyboardArrowDown />
+              <span className="women-location-copy">
+                <span className="women-location-label">Delivering to</span>
+                <span className="women-location-value">
+                  {city} <MdKeyboardArrowDown />
+                </span>
+              </span>
+            </button>
+
+            <button type="button" className="women-change-location-btn" onClick={() => navigate("/account")}>
+              <MdMyLocation />
+              <span>Change Location</span>
             </button>
 
             <div className="hp-header-actions">
@@ -525,48 +575,166 @@ export default function Women() {
               </button>
             ))}
           </div>
-          <button type="button" className="women-nav-offers" onClick={() => navigate("/offers")}>
-            <MdSettings /> Offers
-          </button>
         </nav>
       </div>
 
       <main className="women-main">
-        <div className="women-breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>
-            Home
-          </button>
-          <span>›</span>
-          <span className="current">Women</span>
-        </div>
-
-        {/* Hero */}
-        <section className="women-hero-grid" aria-label="Women's fashion highlights">
+        {/* Shop mode row — same markup/classes as Home.jsx so it matches exactly */}
+        <section className="hp-mode-row" aria-label="Shop mode">
           <button
             type="button"
-            className="women-hero-main"
-            onClick={() => navigate(womenScopedShopUrl())}
+            className="hp-mode-banner hp-mode-india"
+            onClick={() => navigate("/blinkiefash-india")}
           >
-            <img src={WOMEN_BANNERS[0].src} alt={WOMEN_BANNERS[0].alt} />
+            <span className="hp-mode-icon">🌐</span>
+            <span className="hp-mode-copy">
+              <strong>BLINKIEFASH INDIA</strong>
+              <span>Products from stores across India</span>
+            </span>
           </button>
 
-          <div className="women-hero-side-col">
-            <button
-              type="button"
-              className="women-hero-side trending"
-              onClick={() => navigate(womenScopedShopUrl())}
-            >
-              <img src={WOMEN_BANNERS[1].src} alt={WOMEN_BANNERS[1].alt} />
-            </button>
+          <button
+            type="button"
+            className="hp-mode-banner hp-mode-local"
+            onClick={() => navigate("/blinkiefash-local")}
+          >
+            <span className="hp-mode-icon">⚡</span>
+            <span className="hp-mode-copy">
+              <strong>BLINKIEFASH LOCAL</strong>
+              <span>Fast delivery from nearby stores</span>
+            </span>
+          </button>
+        </section>
 
-            <button
-              type="button"
-              className="women-hero-side arrivals"
-              onClick={() => navigate(womenScopedShopUrl())}
-            >
-              <img src={WOMEN_BANNERS[2].src} alt={WOMEN_BANNERS[2].alt} />
+        {/* Hero carousel — image only, no overlay copy */}
+        <section className="women-hero-carousel" aria-label="Women's fashion highlights">
+          <button
+            type="button"
+            className="women-hero-arrow prev"
+            aria-label="Previous slide"
+            onClick={() => setHeroIndex((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+          >
+            <MdChevronLeft />
+          </button>
+
+          <button
+            type="button"
+            className="women-hero-media-btn"
+            onClick={() => navigate(womenScopedShopUrl())}
+          >
+            <img src={slide.image} alt={slide.tag} className="women-hero-img" />
+          </button>
+
+          <button
+            type="button"
+            className="women-hero-arrow next"
+            aria-label="Next slide"
+            onClick={() => setHeroIndex((i) => (i + 1) % HERO_SLIDES.length)}
+          >
+            <MdChevronRight />
+          </button>
+
+          <div className="women-hero-dots">
+            {HERO_SLIDES.map((s, idx) => (
+              <button
+                key={s.tag}
+                type="button"
+                className={`women-hero-dot${idx === heroIndex ? " active" : ""}`}
+                aria-label={`Go to slide ${idx + 1}`}
+                onClick={() => setHeroIndex(idx)}
+              />
+            ))}
+          </div>
+        </section>
+
+        {/* Reward / promo grid */}
+        <section className="women-rewards-grid" aria-label="Offers & rewards">
+          <div className="women-reward-card women-reward-spin">
+            <div>
+              <h3>SPIN &amp; WIN</h3>
+              <p>Spin the wheel &amp; win exciting rewards!</p>
+            </div>
+            <div className="women-reward-figure">
+              <div className="women-wheel" aria-hidden="true" />
+            </div>
+            <div>
+              <p className="women-reward-amount">Up To ₹500 OFF</p>
+              <button type="button" className="women-reward-btn" onClick={() => navigate("/offers")}>
+                SPIN NOW
+              </button>
+            </div>
+          </div>
+
+          <div className="women-reward-card women-reward-play">
+            <div>
+              <h3>PLAY &amp; WIN</h3>
+              <p>Play fun games &amp; win big discounts!</p>
+            </div>
+            <div className="women-reward-figure women-controller">
+              <MdSportsEsports />
+            </div>
+            <div>
+              <p className="women-reward-amount">Up To ₹250 OFF</p>
+              <button type="button" className="women-reward-btn" onClick={() => navigate("/offers")}>
+                PLAY NOW
+              </button>
+            </div>
+          </div>
+
+          <div className="women-reward-card women-reward-refer">
+            <div>
+              <h3>REFER &amp; EARN</h3>
+              <p>Refer your friend &amp; you both get ₹100 OFF!</p>
+            </div>
+            <div className="women-reward-code">
+              <span>
+                YOUR REFERRAL CODE
+                <br />
+                <strong>BLINK100</strong>
+              </span>
+              <button type="button" onClick={handleCopyReferral} aria-label="Copy referral code" style={{ border: "none", background: "none", cursor: "pointer", color: "#9f1239" }}>
+                <MdContentCopy />
+              </button>
+            </div>
+            <button type="button" className="women-reward-btn" onClick={() => navigate("/account")}>
+              REFER NOW
             </button>
           </div>
+
+          <div className="women-reward-stack">
+            <div className="women-reward-mini">
+              <div>
+                <strong>FLAT 5% OFF</strong>
+                <span>ON FIRST ORDER</span>
+                <span className="chip">Use Code: WELCOME5</span>
+              </div>
+              <MdRedeem className="women-reward-emoji" />
+            </div>
+            <div className="women-reward-mini">
+              <div>
+                <strong>FREE DELIVERY</strong>
+                <span>ON ORDERS ABOVE ₹1499</span>
+              </div>
+              <MdTwoWheeler className="women-reward-emoji" />
+            </div>
+          </div>
+        </section>
+
+        {/* Trending */}
+        <section className="section women-picks-section">
+          <div className="hp-section-head">
+            <h2>TRENDING NOW 🔥</h2>
+            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
+              View All <MdChevronRight />
+            </button>
+          </div>
+          {productsLoading ? (
+            <p className="women-empty-state">Loading today&apos;s picks…</p>
+          ) : products.length ? (
+            <ProductRail list={products} railRef={trendingRef} keyPrefix="women-trend" />
+          ) : (
+            <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
+          )}
         </section>
 
         {/* Categories */}
@@ -603,6 +771,7 @@ export default function Women() {
             ))}
           </div>
         </section>
+
 
         {/* Promos */}
         <section className="women-promo-strip" aria-label="Offers">
@@ -666,10 +835,11 @@ export default function Women() {
           )}
         </section>
 
+
         {/* New arrivals */}
         <section className="section women-picks-section">
           <div className="hp-section-head">
-            <h2>New Arrivals ✨</h2>
+            <h2>NEW ARRIVALS ✨</h2>
             <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
