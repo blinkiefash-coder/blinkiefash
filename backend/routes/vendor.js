@@ -10,6 +10,7 @@ import {
   notifyCustomerOfStatus,
   notifyVendorOfNewOrder,
 } from "../utils/firebaseAdmin.js";
+import { getOrCreateInvoiceNumber, calculateVendorPrice } from "../utils/invoiceNumbers.js";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -35,41 +36,6 @@ const createPasswordHash = (password = "") => {
   const salt = crypto.randomBytes(16).toString("hex");
   const derived = crypto.scryptSync(password, salt, 64).toString("hex");
   return `${salt}:${derived}`;
-};
-
-// Returns this vendor's own sequential invoice number for an order (e.g.
-// INV-0001), assigning one lazily on first call and reusing it afterwards.
-const getOrCreateInvoiceNumber = async (vendorId, orderId) => {
-  const existing = await pool.query(
-    `SELECT invoice_number FROM vendor_order_invoices WHERE vendor_id = $1 AND order_id = $2`,
-    [vendorId, orderId]
-  );
-  if (existing.rows.length) return existing.rows[0].invoice_number;
-
-  const counter = await pool.query(
-    `INSERT INTO vendor_invoice_counters (vendor_id, last_number)
-     VALUES ($1, 1)
-     ON CONFLICT (vendor_id) DO UPDATE SET last_number = vendor_invoice_counters.last_number + 1
-     RETURNING last_number`,
-    [vendorId]
-  );
-  const invoiceNumber = `INV-${String(counter.rows[0].last_number).padStart(4, "0")}`;
-
-  const inserted = await pool.query(
-    `INSERT INTO vendor_order_invoices (vendor_id, order_id, invoice_number)
-     VALUES ($1, $2, $3)
-     ON CONFLICT (vendor_id, order_id) DO NOTHING
-     RETURNING invoice_number`,
-    [vendorId, orderId, invoiceNumber]
-  );
-  if (inserted.rows.length) return inserted.rows[0].invoice_number;
-
-  // Lost a race to a concurrent request — use the number it already assigned.
-  const race = await pool.query(
-    `SELECT invoice_number FROM vendor_order_invoices WHERE vendor_id = $1 AND order_id = $2`,
-    [vendorId, orderId]
-  );
-  return race.rows[0].invoice_number;
 };
 
 const verifyPasswordHash = (password = "", storedHash = "") => {
@@ -518,14 +484,6 @@ router.get("/:id/orders/:orderId/invoice", async (req, res) => {
       [orderId, ownerIds]
     );
     if (!items.length) return res.status(404).send("No items found for this vendor on this order");
-
-    // Calculate vendor price based on brand discount
-    const calculateVendorPrice = (price, brandName, productName) => {
-      const name = (brandName || productName || "").toLowerCase();
-      if (name.includes("crimsoune")) return price * 0.9;
-      if (name.includes("puma")) return price * 0.93;
-      return price;
-    };
 
     const invoiceNumber = await getOrCreateInvoiceNumber(vendorId, orderId);
     const date = new Date(order.created_at).toLocaleDateString("en-IN", {

@@ -119,7 +119,7 @@
 
 .auth-input-wrap:focus-within {
   border-color: var(--theme-primary, var(--brand-green));
-}}
+}
 
 .auth-input-wrap input {
   border: none;
@@ -197,13 +197,13 @@
   flex-shrink: 0;
   accent-color: var(--theme-primary, var(--brand-green));
   cursor: pointer;
-}}
+}
 
 .auth-checkbox-label a {
   color: var(--theme-dark, var(--brand-green-dark));
   font-weight: 700;
   text-decoration: none;
-}}
+}
 
 .auth-checkbox-label a:hover {
   text-decoration: underline;
