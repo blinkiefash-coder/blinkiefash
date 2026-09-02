@@ -3117,6 +3117,7 @@ html, body, #root {
   .hp-drawer-backdrop,
   .hp-location-sheet-backdrop {
     overscroll-behavior: contain;
+  }
 }
 
 /* =========================================================
