@@ -16,6 +16,14 @@ import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 
+import { detectCurrentCity } from '../utils/location';
+import { hasVendorPasswordAuth } from '../utils/vendorSession';
+
+// import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
+
+import menwomenBanner from '../assets/men-women.webp';
+
+
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
 import couponImage from '../assets/coupon.png';
@@ -35,11 +43,21 @@ function resolveImageUrl(raw) {
 }
 
 const HERO_SLIDES = [
+    {
+    image: menwomenBanner,
+    to: '/shop?search=men%20women',
+    pos: 'center',
+  },
   {
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
     to: '/shop?search=Puma',
+
+   
+    pos: 'center',
+
     pos: 'center 20%',
+
   },
   {
     image:
@@ -84,7 +102,7 @@ const UNIVERSE_BRANDS = [
   {
     name: "Dhanista Boutique",
     image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png",
-    to: "/vendor/dhanista-fashion-store",
+    to: "/shop?search=Dhanista%20Boutique",
   },
   {
     name: "FCUK",
