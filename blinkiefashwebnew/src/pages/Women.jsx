@@ -190,20 +190,20 @@ function normalizeProduct(p) {
 
 
 // Banner images for the Women hero cards
-const WOMEN_BANNERS = [
-  {
-    src: womenBanner1,
-    alt: "Women's Collection — unmatched styles, unstoppable you. Explore the Women's Collection.",
-  },
-  {
-    src: womenBanner2,
-    alt: "Trending styles for women — shop what's popular right now.",
-  },
-  {
-    src: womenBanner3,
-    alt: "New arrivals for women — discover the latest drops.",
-  },
-];
+// const WOMEN_BANNERS = [
+//   {
+//     src: womenBanner1,
+//     alt: "Women's Collection — unmatched styles, unstoppable you. Explore the Women's Collection.",
+//   },
+//   {
+//     src: womenBanner2,
+//     alt: "Trending styles for women — shop what's popular right now.",
+//   },
+//   {
+//     src: womenBanner3,
+//     alt: "New arrivals for women — discover the latest drops.",
+//   },
+// ];
 
 
 function ProductRail({ list, railRef, keyPrefix }) {

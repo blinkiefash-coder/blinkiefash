@@ -47,7 +47,7 @@ import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
-import menBanner2 from "../assets/men-banner-2.png";
+// import menBanner2 from "../assets/men-banner-2.png";
 import menBanner3 from "../assets/men-banner-3.png";
 import "./Shop.css";
 import "./Home.css";
@@ -245,7 +245,7 @@ function normalizeProduct(p) {
 }
 
 // Banner images for the hero slideshow.
-const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
+const MEN_BANNERS = [menBanner1,  menBanner3];
 
 function heroBannerStyle(url) {
   return {
