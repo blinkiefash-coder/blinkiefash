@@ -337,7 +337,7 @@ router.get("/:id/orders", async (req, res) => {
            'variant_id', oi.variant_id,
            'quantity', oi.quantity,
            'price', CASE 
-             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%crimsoune%' THEN (oi.price * 0.9)::DECIMAL
+             WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%crimsoune%' THEN COALESCE((v.mrp * 0.5)::DECIMAL, (oi.price * 0.9)::DECIMAL)
              WHEN LOWER(COALESCE(b.name, p.name)) LIKE '%puma%' THEN (oi.price * 0.93)::DECIMAL
              ELSE oi.price
            END,
