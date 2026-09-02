@@ -70,6 +70,11 @@ class _HomeScreenState extends State<HomeScreen>
   String _currentLocation = 'Detecting location...';
   double? _lastKnownLat;
   double? _lastKnownLng;
+  
+  // EXPRESS delivery tab: 'all' shows all products, 'express' shows within 45km
+  String _productDeliveryTab = 'all';
+  double? _nearestStoreDistanceKm;
+  
   List<Map<String, dynamic>> _products = const [];
   List<Map<String, dynamic>> _categories = const []; // root only
   List<Map<String, dynamic>> _allCategories = const []; // full tree
@@ -302,7 +307,8 @@ class _HomeScreenState extends State<HomeScreen>
                             userId: userId,
                             gender: selectedGender,
                           );
-                          if (result['success'] == true && dialogContext.mounted) {
+                          if (result['success'] == true &&
+                              dialogContext.mounted) {
                             Navigator.of(dialogContext).pop();
                           } else {
                             setDialogState(() => isSaving = false);
@@ -663,6 +669,7 @@ class _HomeScreenState extends State<HomeScreen>
 
       setState(() {
         _outOfServiceArea = outOfArea;
+        _nearestStoreDistanceKm = distKm?.toDouble();
         // Keep the full fetched batch (not just a handful) so the Deals of the
         // Day / New & Trendy filters below have enough products to reliably
         // fill a 10-slide scroller instead of running out after a few items.
@@ -1488,6 +1495,147 @@ class _HomeScreenState extends State<HomeScreen>
     );
   }
 
+  // ── PRODUCT DELIVERY TAB FILTERING ────────────────────────────────────────
+  /// Returns filtered products based on the selected delivery tab
+  List<Map<String, dynamic>> _getTabFilteredProducts() {
+    if (_productDeliveryTab == 'express') {
+      // EXPRESS tab: Show products only if nearest store is within 45km
+      final canExpress = _nearestStoreDistanceKm != null && 
+                         _nearestStoreDistanceKm! <= 45;
+      return canExpress ? _products : const [];
+    }
+    // ALL tab: Return all products
+    return _products;
+  }
+  
+  /// Returns whether EXPRESS delivery is available in this location
+  bool _isExpressAvailable() {
+    return _nearestStoreDistanceKm != null && _nearestStoreDistanceKm! <= 45;
+  }
+
+  /// Builds the delivery tab selector (ALL PRODUCTS vs EXPRESS)
+  Widget _buildProductDeliveryTabs() {
+    final expressAvailable = _isExpressAvailable();
+    final displayDistance = _nearestStoreDistanceKm != null 
+        ? '(${_nearestStoreDistanceKm!.toStringAsFixed(1)} km away)'
+        : '';
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      child: Row(
+        children: [
+          // ALL PRODUCTS tab
+          Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _productDeliveryTab = 'all'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: _productDeliveryTab == 'all' 
+                      ? _green 
+                      : const Color(0xFFF0FDF4),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _productDeliveryTab == 'all' 
+                        ? _green 
+                        : const Color(0xFFDCFCE7),
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'ALL PRODUCTS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: _productDeliveryTab == 'all' 
+                              ? Colors.white 
+                              : _green,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'All available',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: _productDeliveryTab == 'all' 
+                              ? Colors.white.withValues(alpha: 0.8)
+                              : const Color(0xFF6B7280),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          // EXPRESS tab
+          Expanded(
+            child: GestureDetector(
+              onTap: expressAvailable 
+                  ? () => setState(() => _productDeliveryTab = 'express')
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                decoration: BoxDecoration(
+                  color: !expressAvailable
+                      ? const Color(0xFFF3F4F6)
+                      : _productDeliveryTab == 'express' 
+                          ? const Color(0xFFDC2626)
+                          : const Color(0xFFFEE2E2),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: !expressAvailable
+                        ? const Color(0xFFD1D5DB)
+                        : _productDeliveryTab == 'express' 
+                            ? const Color(0xFFDC2626)
+                            : const Color(0xFFFFCAD5),
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '⚡ EXPRESS',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: !expressAvailable
+                              ? const Color(0xFF9CA3AF)
+                              : _productDeliveryTab == 'express' 
+                                  ? Colors.white 
+                                  : const Color(0xFFDC2626),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        expressAvailable ? '< 45km $displayDistance' : 'Not available',
+                        style: TextStyle(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
+                          color: !expressAvailable
+                              ? const Color(0xFF6B7280)
+                              : _productDeliveryTab == 'express' 
+                                  ? Colors.white.withValues(alpha: 0.8)
+                                  : const Color(0xFFDC2626),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ── HOME BODY ───────────────────────────────────────────────────────────────
   Widget _homeBody() {
     if (_isLoading) {
@@ -1509,6 +1657,7 @@ class _HomeScreenState extends State<HomeScreen>
             if (_outOfServiceArea) ...[
               _serviceAreaGate(),
             ] else ...[
+              _buildProductDeliveryTabs(),
               _heroBanner(),
               _sectionHeader(
                 'TOP BRANDS',
@@ -1534,7 +1683,7 @@ class _HomeScreenState extends State<HomeScreen>
                   MaterialPageRoute(builder: (_) => const AllProductsScreen()),
                 ),
               ),
-              _products.isNotEmpty
+              _getTabFilteredProducts().isNotEmpty
                   ? _dealsOfTheDayCategories()
                   : _stockOutBanner(),
               const SizedBox(height: 16),
@@ -1550,7 +1699,7 @@ class _HomeScreenState extends State<HomeScreen>
                   ),
                 ),
               ),
-              _products.isNotEmpty
+              _getTabFilteredProducts().isNotEmpty
                   ? _newAndTrendyCategories()
                   : _stockOutBanner(),
               const SizedBox(height: 16),
@@ -2391,9 +2540,8 @@ class _HomeScreenState extends State<HomeScreen>
                     'assets/images/libasbanner.jpeg',
                     () => Navigator.of(context).push(
                       MaterialPageRoute(
-                        builder: (_) => const AllProductsScreen(
-                          initialSearch: 'Libas',
-                        ),
+                        builder: (_) =>
+                            const AllProductsScreen(initialSearch: 'Libas'),
                       ),
                     ),
                   ),
@@ -3397,8 +3545,9 @@ class _HomeScreenState extends State<HomeScreen>
   // Shared discount-computation used by Deals of the Day.
   List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount}) {
     final dealsProducts = <Map<String, dynamic>>[];
+    final filteredProducts = _getTabFilteredProducts();
 
-    for (final product in _products) {
+    for (final product in filteredProducts) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
       final discPrice =
           double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
@@ -3430,7 +3579,9 @@ class _HomeScreenState extends State<HomeScreen>
   // ── New & Trendy: Full-price products (no discount), newest first ─────────
   List<Map<String, dynamic>> _newAndTrendyProducts() {
     final items = <Map<String, dynamic>>[];
-    for (final product in _products) {
+    final filteredProducts = _getTabFilteredProducts();
+    
+    for (final product in filteredProducts) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
       final discPrice =
           double.tryParse((product['discount_price'] ?? '').toString()) ?? 0;
@@ -3442,10 +3593,10 @@ class _HomeScreenState extends State<HomeScreen>
         items.add({...product, 'calculated_discount': 0});
       }
     }
-    // _products is already newest-first (default backend sort), so this keeps
+    // filtered products are already newest-first (default backend sort), so this keeps
     // the freshest/trendiest arrivals first without needing a separate sort.
     // Palermo shoes are pinned as the first card (fetched separately since it's
-    // often not among the most-recent products in _products).
+    // often not among the most-recent products in filtered products).
     final pinned = _pinnedNewAndTrendyProduct;
     final rest = items.take(_kSectionSlideLimit - (pinned != null ? 1 : 0));
     return [if (pinned != null) pinned, ...rest];

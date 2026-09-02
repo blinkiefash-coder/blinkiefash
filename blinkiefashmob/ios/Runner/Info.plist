@@ -84,6 +84,7 @@
 			<string>Editor</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
+				<string>app-1-492570746016-ios-b3c29ff6c6738bb5edbdc5</string>
 				<string>blinkiefash</string>
 			</array>
 		</dict>

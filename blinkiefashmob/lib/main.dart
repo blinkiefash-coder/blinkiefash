@@ -25,15 +25,19 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
   _prewarmBackend();
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint('Firebase init failed: $e');
+  }
   runApp(const BlinkieFashApp());
   unawaited(_initializeServices());
 }
 
 Future<void> _initializeServices() async {
   try {
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
     await FirebaseAppCheckConfig.initialize();
     await NotificationService.instance.init();
   } catch (e) {
@@ -45,7 +49,10 @@ void _prewarmBackend() {
   http
       .get(Uri.parse('$apiBaseUrl/health'))
       .timeout(const Duration(seconds: 90))
-      .catchError((_) => http.Response('', 0));
+      .catchError((error) {
+        debugPrint('[Prewarm] backend unavailable: $error');
+        return http.Response('', 503);
+      });
 }
 
 class BlinkieFashApp extends StatefulWidget {
