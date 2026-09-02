@@ -5,6 +5,8 @@ import {
   MdChevronRight,
   MdChevronLeft,
   MdArrowForward,
+  MdLocalOffer,
+  MdLocalShipping,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -781,6 +783,25 @@ export default function Home() {
             </div>
             <div className="hp-reward-graphic" aria-hidden="true">
               🎁
+            </div>
+          </div>
+
+          {/* 4. FLAT 5% OFF + FREE DELIVERY — stacked in the 4th column */}
+          <div className="hp-reward-stack">
+            <div className="hp-reward-mini">
+              <div>
+                <strong>FLAT 5% OFF</strong>
+                <span>ON FIRST ORDER</span>
+                <span className="hp-reward-mini-chip">Use Code: WELCOME5</span>
+              </div>
+              <MdLocalOffer className="hp-reward-mini-icon" />
+            </div>
+            <div className="hp-reward-mini">
+              <div>
+                <strong>FREE DELIVERY</strong>
+                <span>ON ORDERS ABOVE ₹1499</span>
+              </div>
+              <MdLocalShipping className="hp-reward-mini-icon" />
             </div>
           </div>
         </div>
