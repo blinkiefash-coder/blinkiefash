@@ -1,34 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  MdLocationOn,
   MdVisibility,
-  MdOutlineShoppingCart,
-  MdSearch,
   MdChevronRight,
   MdChevronLeft,
-  MdLocalShipping,
-  MdVerifiedUser,
-  MdAutorenew,
-  MdPayments,
-  MdTrackChanges,
   MdArrowForward,
-  MdPersonOutline,
-  MdKeyboardArrowDown,
-  MdClose,
-  MdFavoriteBorder,
-  MdLocalOffer,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
+import Navbar from '../components/Navbar';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { useAuth } from '../context/AuthContext';
-import { useCart } from '../context/CartContext';
-import { useWishlist } from '../context/WishlistContext';
-import { getCategories, getBestsellers, getAddresses, getProducts, getBrands, getProductById } from '../api';
+import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
+
 import { detectCurrentCity } from '../utils/location';
 import { hasVendorPasswordAuth } from '../utils/vendorSession';
 
@@ -36,10 +23,16 @@ import { hasVendorPasswordAuth } from '../utils/vendorSession';
 
 import menwomenBanner from '../assets/men-women.webp';
 
+
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
+
+import couponImage from '../assets/coupon.png';
 
 import './Shop.css';
 import './Home.css';
+
+// TODO: replace with your real Play Store listing URL
+const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.blinkiefash.app';
 
 function resolveImageUrl(raw) {
   const value = (raw ?? '').toString().trim();
@@ -59,44 +52,33 @@ const HERO_SLIDES = [
     image:
       'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
     to: '/shop?search=Puma',
+
    
     pos: 'center',
+
+    pos: 'center 20%',
+
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
     to: '/shop?search=Xinso',
-    aw: 1600,
-    ah: 1000,
-    pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
     to: '/shop?search=kids',
-    aw: 1650,
-    ah: 820,
-    pos: 'center',
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
     to: '/shop?search=men',
-   
   },
   {
     image:
       'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png',
     to: '/shop?search=women',
   },
-];
-
-const UTILITY_ITEMS = [
-  { icon: MdLocalShipping, label: 'Delivered in 60 Minutes' },
-  { icon: MdVerifiedUser, label: '100% Authentic Products' },
-  { icon: MdAutorenew, label: 'Easy Returns' },
-  { icon: MdPayments, label: 'Cash on Delivery' },
-  { icon: MdTrackChanges, label: 'Track Your Order' },
 ];
 
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, beauty: 4 };
@@ -193,29 +175,7 @@ function chipFallbackIcon(label, audience) {
   return CHIP_ICON_BY_AUDIENCE[audienceKey] || '🛍️';
 }
 
-const normalizeText = (value) => String(value || '').trim().toLowerCase();
-
-const rankedMatches = (items, query, limit, getter) => {
-  const prefix = [];
-  const contains = [];
-  const lower = normalizeText(query);
-
-  for (const item of items) {
-    const text = normalizeText(getter(item));
-    if (!text) continue;
-    if (text.startsWith(lower)) {
-      prefix.push(item);
-    } else if (text.includes(lower)) {
-      contains.push(item);
-    }
-    if (prefix.length >= limit) break;
-  }
-
-  return [...prefix, ...contains].slice(0, limit);
-};
-
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
-const RECENT_SEARCH_KEY = 'bfw_recent_searches';
 
 let _homeCache = null;
 
@@ -235,15 +195,7 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const { user, isLoggedIn, userGender } = useAuth();
-  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
-  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
-  const { count } = useCart();
-  const { items: wishlistItems } = useWishlist();
-
-  const [city, setCity] = useState(() => localStorage.getItem('bfw_city') || 'Cuttack');
-  const [locating, setLocating] = useState(false);
+  const { isLoggedIn, userGender } = useAuth();
   const c = _homeCache;
   const [categories, setCategories] = useState(() => c?.categories ?? []);
   const [deals, setDeals] = useState(() => c?.deals ?? []);
@@ -259,10 +211,6 @@ export default function Home() {
   const [kidsCats, setKidsCats] = useState(() => c?.kidsCats ?? []);
   const [electronicsCats, setElectronicsCats] = useState(() => c?.electronicsCats ?? []);
   const [trendyShoesCats, setTrendyShoesCats] = useState(() => c?.trendyShoesCats ?? []);
-  const [beautyCats, setBeautyCats] = useState(() => c?.beautyCats ?? []);
-  const [homeLivingCats, setHomeLivingCats] = useState(() => c?.homeLivingCats ?? []);
-  const [travelCats, setTravelCats] = useState(() => c?.travelCats ?? []);
-  const [hoveredNav, setHoveredNav] = useState(null);
   const [activeCollectionCats, setActiveCollectionCats] = useState({});
   const [under999Products, setUnder999Products] = useState(() => c?.under999Products ?? []);
   const [under1999Products, setUnder1999Products] = useState(() => c?.under1999Products ?? []);
@@ -276,36 +224,11 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
-  const [locationSheetOpen, setLocationSheetOpen] = useState(false);
-  const [addressLoading, setAddressLoading] = useState(false);
-  const [savedAddresses, setSavedAddresses] = useState([]);
-  const [locationError, setLocationError] = useState('');
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
-
-  const [searchInput, setSearchInput] = useState('');
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || '[]');
-      return Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : [];
-    } catch {
-      return [];
-    }
-  });
-  const searchBlurTimerRef = useRef(null);
-  const searchSuggestTimerRef = useRef(null);
-
-  // Mobile drawer
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [expandedDrawerCats, setExpandedDrawerCats] = useState(() => new Set());
-  const drawerRef = useRef(null);
-  const drawerTriggerRef = useRef(null);
-  const drawerFirstLinkRef = useRef(null);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -581,9 +504,6 @@ export default function Home() {
         const freshKidsCats = childCatsFor('Kids');
         const freshElectronicsCats = childCatsFor('Electronics');
         const freshShoesCats = childCatsFor('Footwear');
-        const freshBeautyCats = childCatsFor('Beauty');
-        const freshHomeLivingCats = childCatsFor(['Home Living', 'Living', 'Home & Living']);
-        const freshTravelCats = childCatsFor(['Travel and Backpack', 'Travel & Backpack', 'Travel']);
 
         _homeCache = {
           categories: freshCategories, deals: freshDeals, newProducts: freshNewProducts,
@@ -592,7 +512,6 @@ export default function Home() {
           under999Products: freshUnder999, under1999Products: freshUnder1999, topBrands: brandsList,
           mensCats: freshMensCats, womensCats: freshWomensCats, kidsCats: freshKidsCats,
           electronicsCats: freshElectronicsCats, trendyShoesCats: freshShoesCats,
-          beautyCats: freshBeautyCats, homeLivingCats: freshHomeLivingCats, travelCats: freshTravelCats,
         };
 
         setCategories(freshCategories);
@@ -612,9 +531,6 @@ export default function Home() {
         setKidsCats(freshKidsCats);
         setElectronicsCats(freshElectronicsCats);
         setTrendyShoesCats(freshShoesCats);
-        setBeautyCats(freshBeautyCats);
-        setHomeLivingCats(freshHomeLivingCats);
-        setTravelCats(freshTravelCats);
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load the home feed');
       } finally {
@@ -633,34 +549,12 @@ export default function Home() {
     return () => clearInterval(timer);
   }, []);
 
- 
-
   useEffect(() => {
-  const track = heroTrackRef.current;
-  if (!track) return;
-  const left = heroIndex * track.clientWidth;
-  track.scrollTo({ left, behavior: 'smooth' });
-}, [heroIndex]);
-
-const heroCarouselRef = useRef(null);
-
-useEffect(() => {
-  const wrap = heroCarouselRef.current;
-  const track = heroTrackRef.current;
-  if (!wrap || !track) return;
-
-  const applyHeight = () => {
-    const width = wrap.clientWidth;
-    const slide = HERO_SLIDES[heroIndex];
-    if (!slide?.aw || !slide?.ah || !width) return;
-    const height = Math.round((width * slide.ah) / slide.aw);
-    track.style.height = `${height}px`;
-  };
-
-  applyHeight();
-  window.addEventListener('resize', applyHeight);
-  return () => window.removeEventListener('resize', applyHeight);
-}, [heroIndex]);
+    const track = heroTrackRef.current;
+    if (!track) return;
+    const left = heroIndex * track.clientWidth;
+    track.scrollTo({ left, behavior: 'smooth' });
+  }, [heroIndex]);
 
     useEffect(() => {
     let cancelled = false;
@@ -694,54 +588,6 @@ useEffect(() => {
       cancelled = true;
     };
   }, [exploreCatId]);
-
-  // Drawer focus trap
-  useEffect(() => {
-    if (!drawerOpen) return;
-
-    const focusTimer = setTimeout(() => {
-      drawerFirstLinkRef.current?.focus();
-    }, 50);
-
-    const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        setDrawerOpen(false);
-        drawerTriggerRef.current?.focus();
-        return;
-      }
-      if (e.key === 'Tab' && drawerRef.current) {
-        const focusables = drawerRef.current.querySelectorAll(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        );
-        if (focusables.length === 0) return;
-        const first = focusables[0];
-        const last = focusables[focusables.length - 1];
-        if (e.shiftKey && document.activeElement === first) {
-          e.preventDefault();
-          last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-          e.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener('keydown', onKeyDown);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    document.documentElement.style.overflow = 'hidden';
-
-    return () => {
-      clearTimeout(focusTimer);
-      document.removeEventListener('keydown', onKeyDown);
-      // Always fully unlock scroll (don't restore a stuck 'hidden')
-      document.body.style.overflow = '';
-      document.documentElement.style.overflow = '';
-      if (prevOverflow && prevOverflow !== 'hidden') {
-        document.body.style.overflow = prevOverflow;
-      }
-    };
-  }, [drawerOpen]);
 
     const loadMoreExploreProducts = async () => {
     if (exploreLoading || !exploreHasMore) return;
@@ -777,30 +623,8 @@ useEffect(() => {
     setHeroIndex((i) => (i + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
   };
 
-  // Shared lookup: category display name -> its mega-menu / drawer subcategory columns.
-  // Used by both the desktop hover mega menu and the mobile drawer accordion so the
-  // exact same subcategory groups appear in both places.
-  const getCategoryCols = (name) => {
-    const key = (name || '').toString().toLowerCase();
-    if (key.includes('women')) return womensCats;
-    if (key.includes('men')) return mensCats;
-    if (key.includes('kids')) return kidsCats;
-    if (key.includes('beaut')) return beautyCats;
-    if (key.includes('living') || key.includes('home')) return homeLivingCats;
-    if (key.includes('travel') || key.includes('backpack')) return travelCats;
-    if (key.includes('elect')) return electronicsCats;
-    if (key.includes('shoe') || key.includes('foot')) return trendyShoesCats;
-    return [];
-  };
-
-  const toggleDrawerCat = (id) => {
-    setExpandedDrawerCats((prev) => {
-      const next = new Set(prev);
-      const key = String(id);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
+  const handleCouponClick = () => {
+    window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
   };
 
   const topDeals = useMemo(() => {
@@ -845,22 +669,6 @@ useEffect(() => {
     return pinned ? [pinned, ...rest] : rest;
   }, [newProducts, pinnedNewProduct]);
 
-  const suggestionProductPool = useMemo(() => {
-    const seen = new Set();
-    const pool = [];
-    [newProducts, mensProducts, womensProducts, kidsProducts, electronicsProducts, trendyShoesProducts].forEach(
-      (list) => {
-        (Array.isArray(list) ? list : []).forEach((item) => {
-          const key = String(item?.id ?? '');
-          if (!key || seen.has(key)) return;
-          seen.add(key);
-          pool.push(item);
-        });
-      }
-    );
-    return pool;
-  }, [newProducts, mensProducts, womensProducts, kidsProducts, electronicsProducts, trendyShoesProducts]);
-
   // Gender-based recommended products
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
@@ -875,167 +683,6 @@ useEffect(() => {
     return [];
   }, [isLoggedIn, userGender, womensProducts, mensProducts]);
 
-  const handleDetectLocation = async () => {
-    setLocating(true);
-    setLocationError('');
-    const detected = await detectCurrentCity();
-    if (detected) {
-      setCity(detected);
-      localStorage.setItem('bfw_city', detected);
-      setLocationSheetOpen(false);
-    } else {
-      setLocationError('Unable to detect current location. Please pick from saved addresses.');
-    }
-    setLocating(false);
-  };
-
-  const openLocationSheet = async () => {
-    setLocationSheetOpen(true);
-    setLocationError('');
-    if (!isLoggedIn || !user?.id) {
-      setSavedAddresses([]);
-      return;
-    }
-    setAddressLoading(true);
-    try {
-      const res = await getAddresses(user.id);
-      setSavedAddresses(Array.isArray(res?.addresses) ? res.addresses : []);
-    } catch {
-      setLocationError('Could not load saved addresses right now.');
-    } finally {
-      setAddressLoading(false);
-    }
-  };
-
-  const selectSavedAddress = (addr) => {
-    const resolved = (addr?.city || addr?.address_line || '').toString().trim();
-    if (!resolved) return;
-    setCity(resolved);
-    localStorage.setItem('bfw_city', resolved);
-    setLocationSheetOpen(false);
-  };
-
-  const saveRecentSearch = (rawValue) => {
-    const value = String(rawValue || '').trim();
-    if (!value) return;
-    const deduped = [value, ...recentSearches.filter((item) => normalizeText(item) !== normalizeText(value))].slice(0, 8);
-    setRecentSearches(deduped);
-    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(deduped));
-  };
-
-  const updateSearchSuggestions = (value) => {
-    if (searchSuggestTimerRef.current) {
-      clearTimeout(searchSuggestTimerRef.current);
-      searchSuggestTimerRef.current = null;
-    }
-
-    const query = String(value || '').trim();
-    if (!query) {
-      searchSuggestTimerRef.current = setTimeout(() => {
-        setSearchSuggestions(
-          recentSearches.map((item) => ({ text: item, type: 'search', subtitle: 'Recent search' })).slice(0, 8)
-        );
-      }, 50);
-      return;
-    }
-
-    searchSuggestTimerRef.current = setTimeout(() => {
-      const q = normalizeText(query);
-      const seen = new Set();
-      const ranked = [];
-
-      const pushCandidate = (entry) => {
-        const clean = String(entry?.text || '').trim();
-        if (!clean) return;
-        const key = `${entry.type}:${clean.toLowerCase()}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        ranked.push(entry);
-      };
-
-      pushCandidate({ text: query, type: 'search' });
-
-      rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
-        pushCandidate({ text: item.name, type: 'category', id: item.id ? String(item.id) : '' });
-      });
-
-      const matchingBrands = rankedMatches(topBrands, q, 2, (item) => item.name);
-      const brandsToShow = matchingBrands.length > 0 ? matchingBrands : topBrands.slice(0, 2);
-      brandsToShow.forEach((item) => {
-        pushCandidate({
-          text: item.name,
-          type: 'brand',
-          subtitle: matchingBrands.length === 0 ? 'Popular brand' : '',
-        });
-      });
-
-      rankedMatches(suggestionProductPool, q, 4, (item) => item.name).forEach((item) => {
-        pushCandidate({ text: item.name, type: 'product' });
-      });
-
-      setSearchSuggestions(ranked.slice(0, 8));
-    }, 150);
-  };
-
-  const handleTopSearch = (event) => {
-    event.preventDefault();
-    const value = String(searchInput || '').trim();
-    saveRecentSearch(value);
-    setShowSearchSuggestions(false);
-    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop');
-  };
-
-  const handleSearchInputFocus = () => {
-    setShowSearchSuggestions(false);
-    const value = String(searchInput || '').trim();
-    navigate(value ? `/shop?search=${encodeURIComponent(value)}` : '/shop');
-  };
-
-  const handleSearchInputBlur = () => {
-    searchBlurTimerRef.current = setTimeout(() => {
-      setShowSearchSuggestions(false);
-    }, 120);
-  };
-
-  const applySuggestion = (item) => {
-    const type = item?.type || 'product';
-    const text = String(item?.text || '').trim();
-    const id = String(item?.id || '').trim();
-
-    if (!text) return;
-
-    setShowSearchSuggestions(false);
-
-    if (type === 'category') {
-      setSearchInput('');
-      navigate(id ? `/shop?category_id=${id}` : '/shop');
-      return;
-    }
-
-    setSearchInput(text);
-    saveRecentSearch(text);
-    navigate(`/shop?search=${encodeURIComponent(text)}`);
-  };
-
-  const closeDrawer = () => {
-    setDrawerOpen(false);
-    drawerTriggerRef.current?.focus();
-  };
-
-  const drawerGoCategory = (cat) => {
-    const nameKey = String(cat.name || '').toLowerCase().trim();
-    closeDrawer();
-    if (nameKey === 'men' || nameKey === 'mens') navigate('/men');
-    else if (nameKey === 'women' || nameKey === 'womens') navigate('/women');
-    else if (nameKey === 'kids' || nameKey === 'kid' || nameKey === 'children') navigate('/kids');
-    else navigate(`/shop?category_id=${cat.id}`);
-  };
-
-  const drawerGoSubcategory = (id) => {
-    closeDrawer();
-    navigate(`/shop?category_id=${id}`);
-  };
-
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
       <PageSEO
@@ -1047,351 +694,46 @@ useEffect(() => {
         <Loader overlay />
       ) : null}
 
-      <div className="hp-top-fixed">
-        <div className="hp-utility-bar">
-          <div className="hp-utility-marquee">
-            <div className="hp-utility-track">
-              {[...UTILITY_ITEMS, ...UTILITY_ITEMS].map((item, idx) => (
-                <span key={`${item.label}-${idx}`} className="hp-utility-item">
-                  <item.icon /> {item.label}
-                </span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="hp-sticky-head">
-          <header className="hp-main-header catalog-main-header">
-            <button type="button" className="hp-brand" onClick={() => navigate('/')}>
-              <img src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg" alt="Blinkiefash" className="hp-logo" />
-              <span className="hp-brand-text">
-                <span className="hp-brand-name">
-                  BLINKIE<span className="hp-brand-accent">FASH</span>
-                </span>
-                <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-              </span>
-            </button>
-
-            <form className="hp-header-search catalog-mobile-search" onSubmit={handleTopSearch}>
-              <MdSearch className="hp-search-icon" />
-              <input
-                name="q"
-                value={searchInput}
-                readOnly
-                onChange={(e) => {
-                  const value = e.target.value;
-                  setSearchInput(value);
-                  updateSearchSuggestions(value);
-                }}
-                onFocus={handleSearchInputFocus}
-                onBlur={handleSearchInputBlur}
-                onClick={handleSearchInputFocus}
-                placeholder="Search Ethnic Wear, Sneakers, Bags & more..."
-              />
-              {searchInput.trim() ? (
-                <button
-                  type="button"
-                  className="catalog-search-clear"
-                  aria-label="Clear search"
-                  onClick={() => {
-                    setSearchInput('');
-                    updateSearchSuggestions('');
-                  }}
-                >
-                  <MdClose />
-                </button>
-              ) : null}
-              <button type="submit" className="hp-search-btn" aria-label="Search products">
-                <MdSearch />
-              </button>
-              {showSearchSuggestions && searchSuggestions.length > 0 ? (
-                <div className="catalog-search-suggestions" role="listbox" aria-label="Search suggestions">
-                  {searchSuggestions.map((item, idx) => (
-                    <button
-                      key={`${item.type}-${item.text}-${idx}`}
-                      type="button"
-                      className="catalog-suggestion-item"
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => applySuggestion(item)}
-                    >
-                      <MdSearch />
-                      <span className="catalog-suggestion-text">{item.text}</span>
-                      <span className="catalog-suggestion-type">{item.subtitle || item.type}</span>
-                    </button>
-                  ))}
-                </div>
-              ) : null}
-            </form>
-
-            <div className="catalog-header-actions-wrap">
-              <button type="button" className="catalog-location-pill" onClick={openLocationSheet}>
-                <MdLocationOn />
-                <span>{locating ? 'Detecting...' : city}</span>
-                <MdKeyboardArrowDown />
-              </button>
-
-              <div className="hp-header-actions">
-                {canSwitchToVendor && (
-                  <button type="button" onClick={() => navigate('/vendor/orders')}>
-                    <MdArrowForward />
-                    <span>Vendor</span>
-                  </button>
-                )}
-                <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
-                  <MdPersonOutline />
-                  <span>{isLoggedIn ? (headerFirstName || 'Profile') : 'Login'}</span>
-                </button>
-                <button type="button" onClick={() => navigate('/wishlist')}>
-                  <MdFavoriteBorder />
-                  {wishlistItems.length > 0 && (
-                    <span className="hp-icon-badge">{wishlistItems.length}</span>
-                  )}
-                  <span>Wishlist</span>
-                </button>
-                <button type="button" onClick={() => navigate('/cart')}>
-                  <MdOutlineShoppingCart />
-                  {count > 0 && <span className="hp-icon-badge">{count}</span>}
-                  <span>Cart</span>
-                </button>
-              </div>
-            </div>
-          </header>
-
-          {/* CATEGORY NAV + MOBILE DRAWER */}
-          <nav className="hp-category-nav">
-            <button
-              type="button"
-              className="hp-drawer-toggle"
-              ref={drawerTriggerRef}
-              aria-expanded={drawerOpen}
-              aria-controls="hp-category-drawer"
-              aria-label="Open categories menu"
-              onClick={() => setDrawerOpen(true)}
-            >
-              <span className="hp-drawer-toggle-bars" aria-hidden="true">
-                <span />
-                <span />
-                <span />
-              </span>
-              <span className="hp-drawer-toggle-label">Categories</span>
-            </button>
-
-            <div className="hp-nav-links" onMouseLeave={() => setHoveredNav(null)}>
-              {categories.slice(0, 8).map((cat) => {
-                const nameKey = String(cat.name || '').toLowerCase().trim();
-                const goCategory = () => {
-                  if (nameKey === 'men' || nameKey === 'mens') navigate('/men');
-                  else if (nameKey === 'women' || nameKey === 'womens') navigate('/women');
-                  else if (nameKey === 'kids' || nameKey === 'kid' || nameKey === 'children') navigate('/kids');
-                  else navigate(`/shop?category_id=${cat.id}`);
-                };
-                return (
-                  <button
-                    key={cat.id}
-                    type="button"
-                    className="hp-nav-link"
-                    onClick={goCategory}
-                    onMouseEnter={() => setHoveredNav(cat.name)}
-                    onFocus={() => setHoveredNav(cat.name)}
-                  >
-                    {cat.name}
-                  </button>
-                );
-              })}
-
-              {hoveredNav ? (
-                <div className="hp-mega-menu" onMouseEnter={() => {}} onMouseLeave={() => setHoveredNav(null)}>
-                  <div className="hp-mega-columns">
-                    {getCategoryCols(hoveredNav).map((parent) => (
-                      <div key={parent.id} className="hp-mega-col">
-                        <button
-                          type="button"
-                          className="hp-mega-col-title"
-                          onClick={() => navigate(`/shop?category_id=${parent.id}`)}
-                        >
-                          {parent.name}
-                        </button>
-                        {Array.isArray(parent.subcategories) && parent.subcategories.length > 0 ? (
-                          <ul className="hp-mega-sublist">
-                            {parent.subcategories.map((sub) => (
-                              <li key={sub.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => navigate(`/shop?category_id=${sub.id}`)}
-                                  className="hp-mega-sublink"
-                                >
-                                  {(() => {
-                                    const subImg = resolveImageUrl(sub.image || parent.image);
-                                    return subImg ? (
-                                      <img src={subImg} alt={sub.name} />
-                                    ) : (
-                                      <span className="hp-mega-sub-fallback">•</span>
-                                    );
-                                  })()}{' '}
-                                  {sub.name}
-                                </button>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : null}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-          </nav>
-
-          {drawerOpen && (
-            <div className="hp-drawer-backdrop" onClick={closeDrawer} aria-hidden="true" />
-          )}
-
-          <aside
-            id="hp-category-drawer"
-            className={`hp-category-drawer${drawerOpen ? ' open' : ''}`}
-            role="dialog"
-            aria-modal="true"
-            aria-label="Shop by category"
-            ref={drawerRef}
-          >
-            <div className="hp-drawer-head">
-              <span className="hp-drawer-title">Categories</span>
-              <button
-                type="button"
-                className="hp-drawer-close"
-                aria-label="Close categories menu"
-                onClick={closeDrawer}
-              >
-                <MdClose />
-              </button>
-            </div>
-
-            <ul className="hp-drawer-list" role="list">
-              {categories.map((cat, idx) => {
-                const cols = getCategoryCols(cat.name);
-                const hasCols = Array.isArray(cols) && cols.length > 0;
-                const isExpanded = expandedDrawerCats.has(String(cat.id));
-                return (
-                  <li key={cat.id} className="hp-drawer-item">
-                    <div className="hp-drawer-row">
-                      <button
-                        type="button"
-                        className="hp-drawer-link"
-                        ref={idx === 0 ? drawerFirstLinkRef : null}
-                        onClick={() => drawerGoCategory(cat)}
-                      >
-                        {cat.name}
-                      </button>
-                      {hasCols ? (
-                        <button
-                          type="button"
-                          className={`hp-drawer-expand${isExpanded ? ' open' : ''}`}
-                          aria-expanded={isExpanded}
-                          aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${cat.name} subcategories`}
-                          onClick={() => toggleDrawerCat(cat.id)}
-                        >
-                          <MdKeyboardArrowDown />
-                        </button>
-                      ) : null}
-                    </div>
-
-                    {hasCols && isExpanded ? (
-                      <div className="hp-drawer-subpanel">
-                        {cols.map((parent) => (
-                          <div key={parent.id} className="hp-drawer-subgroup">
-                            <button
-                              type="button"
-                              className="hp-drawer-subgroup-title"
-                              onClick={() => drawerGoSubcategory(parent.id)}
-                            >
-                              {parent.name}
-                            </button>
-                            {Array.isArray(parent.subcategories) && parent.subcategories.length > 0 ? (
-                              <ul className="hp-drawer-subgroup-list" role="list">
-                                {parent.subcategories.map((sub) => {
-                                  const subImg = resolveImageUrl(sub.image || parent.image);
-                                  return (
-                                    <li key={sub.id}>
-                                      <button
-                                        type="button"
-                                        className="hp-drawer-subgroup-link"
-                                        onClick={() => drawerGoSubcategory(sub.id)}
-                                      >
-                                        <span className="hp-drawer-subgroup-icon" aria-hidden="true">
-                                          {subImg ? (
-                                            <img src={subImg} alt="" loading="lazy" />
-                                          ) : (
-                                            <span className="hp-drawer-subgroup-fallback">•</span>
-                                          )}
-                                        </span>
-                                        {sub.name}
-                                      </button>
-                                    </li>
-                                  );
-                                })}
-                              </ul>
-                            ) : null}
-                          </div>
-                        ))}
-                      </div>
-                    ) : null}
-                  </li>
-                );
-              })}
-            </ul>
-          </aside>
-        </div>
-      </div>
+      <Navbar />
 
       <main className="hp-main">
-          <section className="hp-mode-row" aria-label="Shop mode">
-          <button
-            type="button"
-            className="hp-mode-banner hp-mode-india"
-            onClick={() => navigate('/blinkiefash-india')}
-          >
-            <span className="hp-mode-icon">🌐</span>
-            <span className="hp-mode-copy">
-              <strong>BLINKIEFASH INDIA</strong>
-              <span>Products from stores across India</span>
-            </span>
-          </button>
 
+        <section className="hp-coupon-section">
           <button
             type="button"
-            className="hp-mode-banner hp-mode-local"
-            onClick={() => navigate('/blinkiefash-local')}
+            className="hp-coupon-banner"
+            onClick={handleCouponClick}
+            aria-label="Open Blinkiefash app on Play Store for exclusive coupon"
           >
-            <span className="hp-mode-icon">⚡</span>
-            <span className="hp-mode-copy">
-              <strong>BLINKIEFASH LOCAL</strong>
-              <span>Fast delivery from nearby stores</span>
-            </span>
+            <img src={couponImage} alt="Exclusive app coupon" className="hp-coupon-img" loading="lazy" />
           </button>
         </section>
 
-        
-
-        <section className="hp-hero-carousel" ref={heroCarouselRef}>
-  <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
-    <MdChevronLeft />
-  </button>
-  <div className="hp-hero-track" ref={heroTrackRef}>
-    {HERO_SLIDES.map((slide) => (
-      <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
-        <img src={slide.image} alt="" className="hp-slide-img" />
-      </button>
-    ))}
-  </div>
-  <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
-    <MdChevronRight />
-  </button>
-  <div className="hp-hero-dots">
-    {HERO_SLIDES.map((slide, i) => (
-      <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
-    ))}
-  </div>
-</section>
+        <section className="hp-hero-carousel">
+          <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
+            <MdChevronLeft />
+          </button>
+          <div className="hp-hero-track" ref={heroTrackRef}>
+            {HERO_SLIDES.map((slide) => (
+              <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
+                <img
+                  src={slide.image}
+                  alt=""
+                  className="hp-slide-img"
+                  style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                />
+              </button>
+            ))}
+          </div>
+          <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
+            <MdChevronRight />
+          </button>
+          <div className="hp-hero-dots">
+            {HERO_SLIDES.map((slide, i) => (
+              <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
+            ))}
+          </div>
+        </section>
 
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
@@ -1443,25 +785,6 @@ useEffect(() => {
             </div>
             <div className="hp-reward-graphic" aria-hidden="true">
               🎁
-            </div>
-          </div>
-
-          {/* 4. FLAT 5% OFF + FREE DELIVERY — stacked in the 4th column */}
-          <div className="hp-reward-stack">
-            <div className="hp-reward-mini">
-              <div>
-                <strong>FLAT 5% OFF</strong>
-                <span>ON FIRST ORDER</span>
-                <span className="hp-reward-mini-chip">Use Code: WELCOME5</span>
-              </div>
-              <MdLocalOffer className="hp-reward-mini-icon" />
-            </div>
-            <div className="hp-reward-mini">
-              <div>
-                <strong>FREE DELIVERY</strong>
-                <span>ON ORDERS ABOVE ₹1499</span>
-              </div>
-              <MdLocalShipping className="hp-reward-mini-icon" />
             </div>
           </div>
         </div>
@@ -1775,57 +1098,6 @@ useEffect(() => {
 
         <Footer />
       </main>
-
-      {locationSheetOpen && (
-        <div className="hp-location-sheet-backdrop" role="presentation" onClick={() => setLocationSheetOpen(false)}>
-          <section
-            className="hp-location-sheet"
-            role="dialog"
-            aria-modal="true"
-            aria-label="Select delivery location"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="hp-location-sheet-handle" aria-hidden="true" />
-            <h3>Choose delivery location</h3>
-            <button type="button" className="hp-location-current-btn" onClick={handleDetectLocation}>
-              <MdLocationOn /> {locating ? 'Detecting your location...' : 'Use current location'}
-            </button>
-
-            {locationError && <p className="hp-location-error">{locationError}</p>}
-
-            {isLoggedIn ? (
-              <>
-                <p className="hp-location-sheet-subtitle">Saved addresses</p>
-                {addressLoading ? (
-                  <p className="hp-location-sheet-muted">Loading addresses...</p>
-                ) : savedAddresses.length > 0 ? (
-                  <div className="hp-location-address-list">
-                    {savedAddresses.map((addr) => (
-                      <button
-                        key={addr.id}
-                        type="button"
-                        className="hp-location-address-item"
-                        onClick={() => selectSavedAddress(addr)}
-                      >
-                        <strong>{addr.name || 'Address'}</strong>
-                        <span>
-                          {addr.address_line}, {addr.city} - {addr.pincode}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="hp-location-sheet-muted">No saved addresses found yet.</p>
-                )}
-              </>
-            ) : (
-              <p className="hp-location-sheet-muted">
-                Log in to choose from saved addresses. For now, use current location.
-              </p>
-            )}
-          </section>
-        </div>
-      )}
     </div>
   );
 }

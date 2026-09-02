@@ -9,7 +9,9 @@ class FirebaseAppCheckConfig {
   static Future<void> initialize({bool? debugMode}) async {
     await FirebaseAppCheck.instance.activate(
       androidProvider: androidProviderFor(debugMode ?? kDebugMode),
-      appleProvider: AppleProvider.appAttest,
+      appleProvider: (debugMode ?? kDebugMode)
+          ? AppleProvider.debug
+          : AppleProvider.appAttest,
     );
   }
 }

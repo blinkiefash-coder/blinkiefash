@@ -1,10 +1,7 @@
 allprojects {
     repositories {
-        // HTTP mirrors (no SSL inspection)
-        maven(url = "http://repo1.maven.org/maven2/")
-        maven(url = "http://central.maven.org/maven2/")
-        maven(url = "http://repo.maven.apache.org/maven2/")
-        // HTTPS backups
+        maven(url = "https://repo1.maven.org/maven2/")
+        maven(url = "https://repo.maven.apache.org/maven2/")
         google()
         mavenCentral()
     }

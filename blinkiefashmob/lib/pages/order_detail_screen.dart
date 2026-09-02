@@ -1629,6 +1629,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
   Widget _estimatedDelivery(String status, Map<String, dynamic> order) {
     final isDelivered = status == 'delivered' || status == 'completed';
     final isScheduledOrder = _isScheduled(order);
+    final deliveryPromise = order['deliveryPromise']?.toString().trim();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1653,7 +1654,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                 ? 'Your order has been delivered'
                 : isScheduledOrder
                 ? _scheduledEtaText(order)
-                : 'Today, within 60 minutes',
+                : deliveryPromise?.isNotEmpty == true
+                ? deliveryPromise!
+                : 'Delivery estimate unavailable',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,

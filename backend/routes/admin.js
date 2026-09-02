@@ -259,7 +259,7 @@ router.get("/orders/:orderId/invoice", adminGuard, async (req, res) => {
 
     const { rows: items } = await pool.query(
       `SELECT oi.quantity, oi.price, p.name AS product_name,
-              b.name AS brand_name, p.vendor_id, v.store_name AS vendor_store_name
+              b.name AS brand_name, p.vendor_id, v.store_name AS vendor_store_name, pv.mrp
        FROM order_items oi
        JOIN product_variants pv ON pv.id = oi.variant_id
        JOIN products p ON p.id = pv.product_id
@@ -302,7 +302,12 @@ router.get("/orders/:orderId/invoice", adminGuard, async (req, res) => {
       let groupPayout = 0;
       const rows = group.items.map((it) => {
         const salePrice = parseFloat(it.price) || 0;
-        const payoutPrice = calculateVendorPrice(salePrice, it.brand_name, it.product_name);
+        const payoutPrice = calculateVendorPrice(
+          salePrice, 
+          it.brand_name, 
+          it.product_name,
+          it.mrp ? parseFloat(it.mrp) : null
+        );
         const saleAmount = salePrice * it.quantity;
         const payoutAmount = payoutPrice * it.quantity;
         groupSale += saleAmount;
