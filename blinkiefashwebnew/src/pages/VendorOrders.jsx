@@ -883,6 +883,32 @@ export default function VendorOrders() {
                           className="vo-btn vo-btn-invoice"
                           onClick={() =>
                             window.open(
+                              `${API_API_BASE_URL}/admin/orders/${order.id}/customer-bill?admin_email=${encodeURIComponent(
+                                adminEmail()
+                              )}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          🧾 Customer Bill
+                        </button>
+                        <button
+                          className="vo-btn vo-btn-invoice"
+                          onClick={() =>
+                            window.open(
+                              `${API_API_BASE_URL}/admin/orders/${order.id}/vendor-bills?admin_email=${encodeURIComponent(
+                                adminEmail()
+                              )}`,
+                              "_blank"
+                            )
+                          }
+                        >
+                          🏪 Vendor Bills
+                        </button>
+                        <button
+                          className="vo-btn vo-btn-invoice"
+                          onClick={() =>
+                            window.open(
                               `${API_API_BASE_URL}/admin/orders/${order.id}/invoice?admin_email=${encodeURIComponent(
                                 adminEmail()
                               )}`,
@@ -890,7 +916,7 @@ export default function VendorOrders() {
                             )
                           }
                         >
-                          💰 Platform P&amp;L Invoice
+                          💰 Platform P&L
                         </button>
                       </div>
                     )}
