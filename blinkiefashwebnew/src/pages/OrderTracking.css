@@ -652,3 +652,9 @@
     padding-left: 8px;
   }
 }
+
+.ot-eta-note {
+  font-size: 0.8rem;
+  color: #8a8a8a;
+  margin-top: 4px;
+}
