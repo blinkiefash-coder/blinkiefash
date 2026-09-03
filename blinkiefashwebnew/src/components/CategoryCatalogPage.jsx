@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { MdGridView } from "react-icons/md";
 
 import Footer from "./Footer";
+import Loader from "./Loader";
 import Navbar from "./Navbar";
 import PageSEO from "./PageSEO";
 import ProductCard, { ProductCardSkeleton } from "./ProductCard";
@@ -293,6 +294,14 @@ export default function CategoryCatalogPage({
   return (
     <div className="catalog-page ccp-page">
       <PageSEO title={pageTitle} description={pageDescription} />
+
+      {loading ? (
+        <Loader
+          overlay
+          label={`Loading ${sectionLabel.toLowerCase()}...`}
+          subtitle="Getting the latest products ready"
+        />
+      ) : null}
 
       <Navbar />
 
