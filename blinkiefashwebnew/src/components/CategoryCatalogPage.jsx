@@ -352,8 +352,8 @@ export default function CategoryCatalogPage({
                   ? Array.from({ length: 12 }).map((_, i) => (
                       <ProductCardSkeleton key={`ccp-skeleton-${i}`} />
                     ))
-                  : visibleProducts.map((product) => (
-                      <ProductCard key={product.id} product={product} />
+                  : visibleProducts.map((product, index) => (
+                      <ProductCard key={`${product.id}-${index}`} product={product} />
                     ))}
 
                 {!loading && visibleProducts.length === 0 ? (
