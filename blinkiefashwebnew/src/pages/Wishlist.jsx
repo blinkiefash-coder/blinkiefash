@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useWishlist } from "../context/WishlistContext";
+import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
 import "./Wishlist.css";
 
@@ -10,6 +11,7 @@ export default function Wishlist() {
   if (items.length === 0) {
     return (
       <div className="page wishlist-page">
+        <Navbar />
         <div className="wishlist-inner">
           <div className="wishlist-empty">
             <div className="wishlist-empty-icon">
@@ -45,6 +47,7 @@ export default function Wishlist() {
 
   return (
     <div className="page wishlist-page">
+      <Navbar />
       <div className="wishlist-inner">
         <div className="wishlist-header">
           <span className="wishlist-title">Wishlist</span>

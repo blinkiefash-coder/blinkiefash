@@ -1,4 +1,4 @@
-import { BrowserRouter,Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
@@ -31,8 +31,7 @@ import Careers from './pages/Careers';
 import ContactUs from './pages/ContactUs';
 import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
-import OrderList from './pages/OrderList';
-import OrderTrackingPageLive from './pages/OrderTracking';
+import OrderTracking from './pages/OrderTracking';
 
 function RequireVendorOrAdmin({ children }) {
   if (isAdmin() || hasVendorPasswordAuth()) {
@@ -106,8 +105,7 @@ export default function App() {
         <Route path="/vendor/stock-monitoring" element={<RequireVendorOrAdmin><StockMonitoring /></RequireVendorOrAdmin>} />
         <Route path="/vendor/product-analytics" element={<RequireVendorOrAdmin><ProductAnalytics /></RequireVendorOrAdmin>} />
         <Route path="/vendor/orders" element={<RequireVendorOrAdmin><VendorOrders /></RequireVendorOrAdmin>} />
-        <Route path="/orders" element={<OrderList userId={currentUserId} />} />
-        <Route path="/orders/:orderId" element={<OrderTrackingPageLive />} />
+        <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/vendor/edit-product" element={<RequireVendorOrAdmin><EditProduct /></RequireVendorOrAdmin>} />
         <Route path="/vendor/insights" element={<RequireAdmin><VendorProfile /></RequireAdmin>} />
         <Route path="/vendor/profile" element={<RequireVendorOrAdmin><VendorProfile /></RequireVendorOrAdmin>} />

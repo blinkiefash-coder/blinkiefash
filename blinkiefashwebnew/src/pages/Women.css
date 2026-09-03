@@ -23,10 +23,21 @@
   overflow-x: hidden;
 }
 
+/* Loading state: render the real page underneath and blur it while
+   <Loader overlay /> sits on top — mirrors .hp.hp-loading in Home.css. */
+.women-page.women-loading .women-top-strip,
+.women-page.women-loading .hp-sticky-head,
+.women-page.women-loading .women-main {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+}
+
 .women-page .catalog-main,
 .women-main {
   width: 100%;
-  max-width: 1440px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 18px 24px 48px;
   box-sizing: border-box;
@@ -45,7 +56,7 @@
 }
 
 .women-top-strip-inner {
-  max-width: 1440px;
+  max-width: 100%;
   margin: 0 auto;
   display: flex;
   align-items: center;
@@ -271,7 +282,7 @@
 }
 
 .women-topnav {
-  max-width: 1440px;
+  max-width: 100%;
   margin: 0 auto;
   justify-content: flex-start;
   gap: 30px;
@@ -317,11 +328,6 @@
 .women-breadcrumb {
   display: none;
 }
-
-/* India / Local shop-mode row now reuses Home.css's .hp-mode-row /
-   .hp-mode-banner classes directly (Home.css is imported above), so no
-   women-specific CSS is needed for it here — it will always stay in sync
-   with however that banner is styled on the Home page. */
 
 /* =========================================================
    HERO CAROUSEL
@@ -405,9 +411,12 @@
   border-radius: 4px;
 }
 
-/* Category circles */
+/* =========================================================
+   CATEGORY STRIP — larger image circles
+   ========================================================= */
+
 .women-cat-strip {
-  margin-bottom: 18px;
+  margin: 8px 0 22px;
   width: 100%;
   max-width: 100%;
   overflow: hidden;
@@ -415,14 +424,14 @@
 
 .women-cat-list {
   display: flex;
-  gap: 12px;
+  gap: 18px;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  padding: 4px 0 8px;
+  padding: 6px 2px 12px;
   width: 100%;
   max-width: 100%;
 }
@@ -436,52 +445,68 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   border: none;
   background: none;
   cursor: pointer;
-  min-width: 76px;
-  padding: 2px;
+  min-width: 96px;
+  max-width: 110px;
+  padding: 4px;
+  transition: transform 0.15s ease;
+}
+
+.women-cat-item:hover {
+  transform: translateY(-3px);
 }
 
 .women-cat-icon-wrap {
-  width: 64px;
-  height: 64px;
+  width: 88px;
+  height: 88px;
   border-radius: 50%;
   background: #fdf2f8;
-  border: 2px solid #fbcfe8;
+  border: 2.5px solid #fbcfe8;
   display: grid;
   place-items: center;
   overflow: hidden;
+  box-shadow: 0 4px 12px rgba(190, 24, 93, 0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.women-cat-item:hover .women-cat-icon-wrap {
+  border-color: #e91e63;
+  box-shadow: 0 8px 18px rgba(233, 30, 99, 0.16);
 }
 
 .women-cat-icon-wrap img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
 }
 
 .women-cat-fallback-icon {
-  font-size: 22px;
+  font-size: 28px;
   color: #be185d;
   display: inline-flex;
 }
 
-.women-cat-item span:last-child {
-  font-size: 11.5px;
-  font-weight: 600;
+.women-cat-item span:last-child,
+.women-cat-item .women-cat-label {
+  font-size: 12.5px;
+  font-weight: 700;
   color: #374151;
   text-align: center;
-  max-width: 80px;
+  max-width: 100px;
   line-height: 1.25;
-}
-
-.women-cat-item:hover .women-cat-icon-wrap {
-  border-color: #16a34a;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;                 /* ← add this */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 /* =========================================================
-   REWARDS / PROMO GRID (Spin & Win / Play & Win / Refer & Earn / Flat off)
+   REWARDS / PROMO GRID
    ========================================================= */
 
 .women-rewards-grid {
@@ -549,10 +574,21 @@
 }
 
 .women-reward-refer {
-  background: #fdf2f6;
+  background: linear-gradient(135deg, #9a3412 0%, #ea580c 55%, #fb923c 100%);
 }
 .women-reward-refer .women-reward-btn {
-  background: var(--w-pink-dark);
+  background: #fff;
+  color: var(--w-pink-dark);
+}
+.women-reward-refer .women-reward-code {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.55);
+}
+.women-reward-refer .women-reward-code span {
+  color: rgba(255, 255, 255, 0.85);
+}
+.women-reward-refer .women-reward-code strong {
+  color: #fff;
 }
 
 .women-reward-code {
@@ -623,43 +659,30 @@
   font-size: 26px;
 }
 
-/* wheel */
-.women-wheel {
-  width: 92px;
-  height: 92px;
-  border-radius: 50%;
-  position: relative;
-  background: conic-gradient(
-    #16a34a 0deg 60deg,
-    #ffffff 60deg 120deg,
-    #16a34a 120deg 180deg,
-    #ffffff 180deg 240deg,
-    #16a34a 240deg 300deg,
-    #ffffff 300deg 360deg
-  );
-  border: 3px solid #16a34a;
-  display: grid;
-  place-items: center;
-}
-
-.women-wheel::after {
-  content: "SPIN";
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  background: #fbbf24;
-  color: #7c2d12;
-  font-size: 8px;
-  font-weight: 900;
-  display: grid;
-  place-items: center;
-}
-
-/* controller */
-.women-controller {
+.women-reward-figure {
   font-size: 44px;
-  color: #7c3aed;
-  text-align: center;
+  line-height: 1;
+  width: 84px;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.08), 0 8px 18px rgba(0, 0, 0, 0.18);
+  flex: none;
+}
+
+.women-reward-card {
+  color: #fff;
+}
+.women-reward-card h3,
+.women-reward-card .women-reward-amount {
+  color: #fff;
+}
+.women-reward-card p {
+  color: rgba(255, 255, 255, 0.88);
 }
 
 /* Trust */
@@ -752,6 +775,159 @@
   -webkit-overflow-scrolling: touch;
 }
 
+/* =========================================================
+   PINK THEME
+   ========================================================= */
+.women-page {
+  --theme-primary: var(--w-pink);
+  --theme-light: #fde3ee;
+  --theme-dark: var(--w-pink-dark);
+  --theme-accent: #f472b6;
+  --brand-green: var(--w-pink);
+  --brand-green-dark: var(--w-pink-dark);
+}
+
+.women-page .hp-search-btn {
+  background: var(--w-pink);
+}
+
+.women-page .hp-nav-link:hover,
+.women-page .hp-nav-link.active {
+  color: var(--w-pink-dark);
+}
+.women-page .hp-nav-link:hover::after,
+.women-page .hp-nav-link.active::after {
+  background: var(--w-pink);
+}
+
+.women-page .hp-deals-prev svg,
+.women-page .hp-deals-next svg {
+  color: var(--w-pink-dark);
+}
+
+.women-page .hp-section-head button {
+  color: var(--w-pink-dark);
+}
+
+.women-page .hp-top-brand-card-more .hp-top-brand-logo {
+  background: #fde3ee;
+  border-color: #fbcfe8;
+}
+.women-page .hp-top-brand-card-more .hp-top-brand-logo span,
+.women-page .hp-top-brand-card-more .hp-top-brand-name {
+  color: var(--w-pink-dark);
+}
+
+.women-page .hp-explore-chip.active {
+  background: var(--w-pink);
+  border-color: var(--w-pink);
+  color: #fff;
+}
+.women-page .hp-explore-chip:hover {
+  border-color: var(--w-pink);
+  color: var(--w-pink-dark);
+}
+
+.women-page .hp-explore-more {
+  border-color: var(--w-pink);
+  color: var(--w-pink-dark);
+}
+.women-page .hp-explore-more:hover {
+  background: var(--w-pink);
+  color: #fff;
+}
+
+.women-reward-spin {
+  background: linear-gradient(135deg, #831843 0%, #db2777 55%, #f9a8d4 100%);
+}
+.women-reward-play {
+  background: linear-gradient(135deg, #9d174d 0%, #ec4899 55%, #f9a8d4 100%);
+}
+.women-reward-spin .women-reward-btn,
+.women-reward-play .women-reward-btn {
+  background: var(--w-pink-dark);
+}
+
+.women-wheel {
+  background: conic-gradient(
+    var(--w-pink) 0deg 60deg,
+    #ffffff 60deg 120deg,
+    var(--w-pink) 120deg 180deg,
+    #ffffff 180deg 240deg,
+    var(--w-pink) 240deg 300deg,
+    #ffffff 300deg 360deg
+  );
+  border-color: var(--w-pink);
+}
+.women-wheel::after {
+  background: #fff0f6;
+  color: var(--w-pink-dark);
+}
+
+.women-controller {
+  color: var(--w-pink-dark);
+}
+
+.women-promo-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin: 20px 0;
+}
+.women-promo-card {
+  border: 1px solid #fbd7e4;
+  background: #fdf2f6;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  text-align: left;
+  cursor: pointer;
+}
+.women-promo-card .title {
+  font-weight: 900;
+  font-size: 14px;
+  margin: 0 0 2px;
+  color: var(--w-ink);
+}
+.women-promo-card .sub {
+  font-size: 12px;
+  color: var(--w-sub);
+  margin: 0;
+}
+.women-promo-card .cta {
+  color: var(--w-pink-dark);
+  font-weight: 800;
+  font-size: 12.5px;
+}
+.women-promo-brands-row {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+}
+.women-promo-brand-chip {
+  background: #fff;
+  border: 1px solid var(--w-pink);
+  color: var(--w-pink-dark);
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.women-explore-section {
+  margin-top: 30px;
+}
+
+
+
+@media (max-width: 768px) {
+  .women-promo-strip {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* ===== Responsive ===== */
 
 @media (max-width: 1100px) {
@@ -831,13 +1007,24 @@
     gap: 6px;
   }
 
+  .women-cat-list {
+    gap: 14px;
+  }
+
   .women-cat-item {
-    min-width: 68px;
+    min-width: 80px;
+    max-width: 92px;
   }
 
   .women-cat-icon-wrap {
-    width: 56px;
-    height: 56px;
+    width: 76px;
+    height: 76px;
+  }
+
+  .women-cat-item span:last-child,
+  .women-cat-item .women-cat-label {
+    font-size: 11.5px;
+    max-width: 84px;
   }
 
   .women-picks-section .hp-deals-prev,
@@ -866,17 +1053,16 @@
   }
 
   .women-cat-item {
-    min-width: 62px;
+    min-width: 72px;
+    max-width: 84px;
   }
 
   .women-cat-icon-wrap {
-    width: 50px;
-    height: 50px;
+    width: 68px;
+    height: 68px;
   }
 }
 
-
-
 .hp-deals-rail .hp-deal-card-wrapper {
   min-width: 180px;
   max-width: 220px;
@@ -887,25 +1073,12 @@
   height: 100%;
 }
 
-/* ===== Product rails → better mobile layout ===== */
-
-.hp-deals-rail .hp-deal-card-wrapper {
-  min-width: 180px;
-  max-width: 220px;
-  flex: 0 0 auto;
-}
-
-.hp-deals-rail .pc-card {
-  height: 100%;
-}
-
-/* Mobile: turn the rail into a 2-column grid */
+/* Mobile: rails → 2-column grid */
 @media (max-width: 640px) {
   .women-picks-section .hp-deals-wrap {
     position: relative;
   }
 
-  /* Hide the side arrows on mobile – users scroll the grid instead */
   .women-picks-section .hp-deals-prev,
   .women-picks-section .hp-deals-next {
     display: none;
@@ -932,9 +1105,212 @@
   }
 }
 
-/* Very small phones */
 @media (max-width: 380px) {
   .women-picks-section .hp-deals-rail {
     gap: 8px;
+  }
+}
+
+/* =========================================================
+   FILTER BAR + SHOP-STYLE PINK PANEL
+   ========================================================= */
+.women-filter-bar {
+  position: relative;
+  margin: 8px 0 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.women-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #fbcfe8;
+  background: #fff;
+  color: var(--w-pink-dark);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.women-filter-btn.is-active {
+  background: var(--w-pink);
+  border-color: var(--w-pink);
+  color: #fff;
+}
+
+.women-filters-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 24px;
+  border: 1px solid #fbd7e4;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-top: 4px;
+  box-shadow: 0 8px 24px rgba(190, 24, 93, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.women-filters-panel-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #fbe4ec;
+}
+
+.women-filters-panel-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--w-ink);
+}
+
+.women-filters-clear {
+  border: 0;
+  background: transparent;
+  color: var(--w-pink-dark);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-family: inherit;
+}
+.women-filters-clear:hover {
+  text-decoration: underline;
+}
+
+.women-filter-col h4 {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #4b1f2e;
+}
+
+.women-filter-search {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #fbd7e4;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.women-filter-search:focus {
+  border-color: var(--w-pink);
+  box-shadow: 0 0 0 3px rgba(233, 30, 99, 0.12);
+}
+
+.women-filter-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.women-filter-list label {
+  font-size: 12.5px;
+  color: #3c4453;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.women-filter-list input[type="checkbox"] {
+  accent-color: var(--w-pink);
+  width: 14px;
+  height: 14px;
+}
+
+.women-filter-swatches {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.women-swatch-label {
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.women-swatch-label.checked {
+  background: #fdf2f8;
+}
+
+.women-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  flex: none;
+}
+
+.women-filter-col > input[type="range"] {
+  width: 100%;
+  accent-color: var(--w-pink);
+}
+
+.women-filter-col p {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--w-pink-dark);
+}
+
+.women-filter-discount-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.women-filter-chip-item {
+  border: 1px solid #fbd7e4;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4453;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+.women-filter-chip-item:hover {
+  border-color: var(--w-pink);
+  color: var(--w-pink-dark);
+}
+.women-filter-chip-item.active {
+  background: var(--w-pink);
+  border-color: var(--w-pink);
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .women-filters-panel {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .women-filter-list {
+    grid-template-columns: 1fr;
   }
 }
