@@ -1,15 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MdSearch,
-  MdLocationOn,
-  MdKeyboardArrowDown,
-  MdPersonOutline,
-  MdFavoriteBorder,
-  MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
-  MdSettings,
   MdCheckroom,
   MdToys,
   MdDirectionsRun,
@@ -25,16 +18,12 @@ import {
   MdSecurity,
   MdSupportAgent,
   MdGridView,
-  MdMenu,
-  MdNotificationsNone,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
+import Navbar from "../components/Navbar";
 import PageSEO from "../components/PageSEO";
 import ProductCard from "../components/ProductCard";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
 import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
@@ -115,20 +104,6 @@ const KIDS_CATEGORY_FALLBACK = [
   { label: "Party Wear", icon: MdCelebration },
 ];
 
-const TOP_NAV = [
-  { label: "Men", to: "/men" },
-  { label: "Women", to: "/women" },
-  { label: "Kids", to: "/kids" },
-  { label: "Home", to: "/shop?search=Home" },
-  { label: "Beauty", to: "/shop?search=Beauty" },
-  { label: "Accessories", to: "/shop?search=Accessories" },
-  { label: "Footwear", to: "/footwear" },
-  { label: "Bags", to: "/shop?search=Bags" },
-  { label: "Jewellery", to: "/shop?search=Jewellery" },
-  { label: "Travel", to: "/shop?search=Travel" },
-  { label: "Home Decor", to: "/shop?search=Home%20Decor" },
-];
-
 const TOP_BRANDS_FALLBACK = [
   "Babyhug",
   "H&M",
@@ -178,25 +153,6 @@ function normalizeProduct(p) {
 
 export default function Kids() {
   const navigate = useNavigate();
-  const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount } = useCart();
-  const { items: wishlistItems } = useWishlist();
-
-  const city =
-    localStorage.getItem("bfw_city") ||
-    localStorage.getItem("selectedCity") ||
-    "Cuttack";
-  const isLoggedIn =
-    authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn
-    ? headerFirstName
-      ? `Hi, ${headerFirstName}`
-      : "My Account"
-    : "Login / Signup";
-
-  const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [kidsRootId, setKidsRootId] = useState(null);
@@ -390,23 +346,11 @@ export default function Kids() {
     });
   }, [kidsSubcats, kidsScopedShopUrl, findSubcatByLabel]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const value = searchInput.trim();
-    if (!value) {
-      navigate(kidsScopedShopUrl());
-      return;
-    }
-    navigate(kidsScopedShopUrl({ search: value }));
-  };
-
   const scrollPicks = (dir) => {
     const el = picksRailRef.current;
     if (!el) return;
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
-
-  const wishlistCount = wishlistItems?.length || 0;
 
   return (
     <div className="catalog-page kids-page">
@@ -416,121 +360,7 @@ export default function Kids() {
         path="/kids"
       />
 
-      <div className="hp-sticky-head catalog-home-topbar">
-        <header className="hp-main-header catalog-main-header">
-          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <img
-              src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
-              alt="Blinkiefash"
-              className="hp-logo"
-            />
-            <span className="hp-brand-text">
-              <span className="hp-brand-name">
-                BLINKIE<span className="hp-brand-accent">FASH</span>
-              </span>
-              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-            </span>
-          </button>
-
-          <form className="hp-header-search catalog-mobile-search" onSubmit={handleSearchSubmit}>
-            <MdSearch className="hp-search-icon" />
-            <input
-              name="q"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for kids clothing, toys, essentials & more..."
-            />
-            <button type="submit" className="hp-search-btn" aria-label="Search products">
-              <MdSearch />
-            </button>
-          </form>
-
-          <div className="catalog-header-actions-wrap">
-            <button
-              type="button"
-              className="catalog-location-pill kids-location-pill"
-              onClick={() => navigate("/account")}
-            >
-              <MdLocationOn className="kids-location-icon" />
-              <span className="kids-location-text">
-                <span className="kids-location-label">Delivering to</span>
-                <span className="kids-location-city">{city}</span>
-              </span>
-              <MdKeyboardArrowDown />
-            </button>
-
-            <div className="hp-header-actions kids-header-actions">
-              <button
-                type="button"
-                className="kids-icon-action"
-                onClick={() => navigate("/notifications")}
-              >
-                <MdNotificationsNone />
-                <span>Notifications</span>
-              </button>
-              <button
-                type="button"
-                className="kids-icon-action"
-                onClick={() => navigate("/wishlist")}
-              >
-                <MdFavoriteBorder />
-                <span>Wishlist</span>
-                {wishlistCount > 0 ? (
-                  <span className="hp-icon-badge">{wishlistCount}</span>
-                ) : null}
-              </button>
-              <button
-                type="button"
-                className="kids-icon-action"
-                onClick={() => navigate("/cart")}
-              >
-                <MdOutlineShoppingCart />
-                <span>Cart</span>
-                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
-              </button>
-              <button
-                type="button"
-                className="kids-icon-action kids-account-action"
-                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
-              >
-                <MdPersonOutline />
-                <span>{accountLabel}</span>
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <nav className="hp-category-nav kids-topnav">
-          <div className="hp-nav-links">
-            <button
-              type="button"
-              className="kids-categories-btn"
-              onClick={() => navigate("/shop")}
-            >
-              <MdMenu />
-              Categories
-              <MdKeyboardArrowDown />
-            </button>
-            {TOP_NAV.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className={`hp-nav-link${item.label === "Kids" ? " active" : ""}`}
-                onClick={() => navigate(item.to)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="kids-nav-offers"
-            onClick={() => navigate("/offers")}
-          >
-            <MdSettings /> Offers
-          </button>
-        </nav>
-      </div>
+      <Navbar />
 
       <main className="kids-main">
         <div className="kids-breadcrumb">
