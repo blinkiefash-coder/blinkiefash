@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav';
+import Loader from './components/Loader';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import Men from './pages/Men';
@@ -74,6 +75,16 @@ function RequireAdmin({ children }) {
 export default function App() {
   const { pathname } = useLocation();
   const { isLoggedIn, userGender } = useAuth();
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    setRouteLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      setRouteLoading(false);
+    }, 260);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pathname]);
 
   // Initialize theme based on user's gender
   useEffect(() => {
@@ -128,6 +139,10 @@ export default function App() {
     <div
       className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}`}
     >
+      {routeLoading ? (
+        <Loader overlay label="Loading page..." subtitle="Please wait" showLogo />
+      ) : null}
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
