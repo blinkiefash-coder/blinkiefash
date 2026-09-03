@@ -128,34 +128,12 @@ const MEN_CATEGORY_FALLBACK = [
   { label: "Ethnic Wear", icon: MdCheckroom },
 ];
 
-const CATEGORY_ICONS = [
-  MdCheckroom,
-  MdDryCleaning,
-  MdStyle,
-  MdOutlineWork,
-  MdSnowing,
-  MdDirectionsRun,
-  MdWatch,
-  MdVisibility,
-  MdSportsHandball,
-  MdWaterDrop,
-  MdBackpack,
-  MdSpa,
-  MdCheckroom,
-];
-
-const TOP_NAV = [
-  { label: "Men", to: "/men" },
-  { label: "Women", to: "/women" },
-  { label: "Kids", to: "/kids" },
-  { label: "Home", to: "/shop?search=Home" },
-  { label: "Beauty", to: "/shop?search=Beauty" },
-  { label: "Accessories", to: "/shop?search=Accessories" },
-  { label: "Footwear", to: "/footwear" },
-  { label: "Bags", to: "/shop?search=Bags" },
-  { label: "Jewellery", to: "/shop?search=Jewellery" },
-  { label: "Travel", to: "/shop?search=Travel" },
-  { label: "Home Decor", to: "/shop?search=Home%20Decor" },
+const TOP_STRIP_ITEMS = [
+  { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
+  { icon: MdShield, label: "100% Authentic Products" },
+  { icon: MdAutorenew, label: "Easy Returns" },
+  { icon: MdInventory2, label: "Cash on Delivery" },
+  { icon: MdMyLocation, label: "Track Your Order" },
 ];
 
 const TOP_BRANDS_FALLBACK = [
