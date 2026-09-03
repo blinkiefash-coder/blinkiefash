@@ -4,10 +4,8 @@ import {
   MdFavoriteBorder,
   MdFavorite,
   MdAddShoppingCart,
-  MdLocalShipping,
   MdCheckroom,
   MdStar,
-  MdCheckCircle,
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
@@ -355,18 +353,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
             {soldLabel && <span className="pc-sold">{soldLabel}</span>}
           </div>
         )}
-
-        <div className="pc-delivery-banner">
-          <span className="pc-delivery-icon">
-            <MdLocalShipping aria-hidden="true" />
-          </span>
-          <span className="pc-delivery-text">
-            <strong>Delivery in 60 Minutes</strong>
-            <span className="pc-delivery-sub">
-              <MdCheckCircle aria-hidden="true" /> Or it&apos;s free!
-            </span>
-          </span>
-        </div>
       </div>
     </article>
   );
