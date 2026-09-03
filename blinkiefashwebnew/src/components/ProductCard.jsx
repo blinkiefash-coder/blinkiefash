@@ -328,7 +328,12 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       <div className="pc-body">
         <small>{product.brand || "Brand"}</small>
         <h3>{product.name}</h3>
-        <p className="pc-sub">{product.color || "Multi color"}</p>
+        {/* Electronics/Footwear rows have no `color` most of the time —
+            fall back to the category/spec text instead of a misleading
+            "Multi color" label on, say, a pair of headphones. */}
+        <p className="pc-sub">
+          {product.color || product.category_name || product.category || "Multi color"}
+        </p>
 
         <div className="pc-price-row">
           <strong>{formatPrice(salePrice)}</strong>

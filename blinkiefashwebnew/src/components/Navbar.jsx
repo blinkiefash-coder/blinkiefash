@@ -43,15 +43,15 @@ const IconUser = () => (
 const CATEGORY_LINKS = [
   { label: "Women", path: "/women" },
   { label: "Men", path: "/men" },
-  { label: "Footwear", path: "/shop?search=shoes" },
-  { label: "Beauty", path: "/shop?search=beauty" },
-  { label: "Electronics", path: "/shop?search=electronics" },
+  { label: "Footwear", path: "/footwear" },
+  { label: "Beauty", path: "/beauty" },
+  { label: "Electronics", path: "/electronics" },
 ];
 
 const MORE_LINKS = [
   { label: "Kids", path: "/kids" },
-  { label: "Home & Living", path: "/shop?search=home-living" },
-  { label: "Backpack", path: "/shop?search=backpack" },
+  { label: "Home & Living", path: "/home-living" },
+  { label: "Backpack", path: "/backpack" },
 ];
 
 function readAuthFromStorage() {

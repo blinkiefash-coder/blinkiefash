@@ -121,6 +121,17 @@ const WOMEN_CATEGORY_FALLBACK = [
   { label: "Accessories", icon: MdStyle },
 ];
 
+const TOP_NAV = [
+  { label: "Women", to: "/women" },
+  { label: "Men", to: "/men" },
+  { label: "Footwear", to: "/footwear" },
+  { label: "Electronics", to: "/electronics" },
+  { label: "Beauty", to: "/shop?search=Beauty" },
+  { label: "Home Living", to: "/shop?search=Home%20Living" },
+  { label: "Kids", to: "/kids" },
+  { label: "Travel & Backpack", to: "/shop?search=Travel" },
+];
+
 const TOP_STRIP_ITEMS = [
   { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
   { icon: MdShield, label: "100% Authentic Products" },
