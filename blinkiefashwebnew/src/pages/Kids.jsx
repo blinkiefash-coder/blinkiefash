@@ -21,6 +21,7 @@ import {
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
+import Loader from "../components/Loader";
 import Navbar from "../components/Navbar";
 import PageSEO from "../components/PageSEO";
 import ProductCard from "../components/ProductCard";
@@ -359,6 +360,13 @@ export default function Kids() {
         description="Shop kids clothing, toys, footwear and everyday essentials at Blinkiefash — delivered in 60 minutes across Odisha."
         path="/kids"
       />
+      {productsLoading ? (
+        <Loader
+          overlay
+          label="Loading kids products..."
+          subtitle="Getting the latest products ready"
+        />
+      ) : null}
 
       <Navbar />
 

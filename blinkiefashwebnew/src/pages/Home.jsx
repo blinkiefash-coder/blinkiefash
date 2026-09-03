@@ -710,15 +710,38 @@ export default function Home() {
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide) => (
-              <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
-                <img
-                  src={slide.image}
-                  alt=""
-                  className="hp-slide-img"
-                  style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                />
-              </button>
+            {HERO_SLIDES.map((slide, index) => (
+              index === 0 ? (
+                <div type="button" key={slide.image} className="hp-slide hp-slide-first">
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="hp-slide-img"
+                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                  />
+                  <button
+                    type="button"
+                    className="hp-hero-hotspot hp-hero-hotspot-men"
+                    onClick={() => navigate("/men")}
+                    aria-label="Shop men's fashion"
+                  />
+                  <button
+                    type="button"
+                    className="hp-hero-hotspot hp-hero-hotspot-women"
+                    onClick={() => navigate("/women")}
+                    aria-label="Shop women's fashion"
+                  />
+                </div>
+              ) : (
+                <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="hp-slide-img"
+                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                  />
+                </button>
+              )
             ))}
           </div>
           <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
