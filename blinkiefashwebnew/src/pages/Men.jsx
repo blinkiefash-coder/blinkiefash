@@ -144,7 +144,7 @@ const TOP_NAV = [
   { label: "Home", to: "/shop?search=Home" },
   { label: "Beauty", to: "/shop?search=Beauty" },
   { label: "Accessories", to: "/shop?search=Accessories" },
-  { label: "Footwear", to: "/shop?search=Footwear" },
+  { label: "Footwear", to: "/footwear" },
   { label: "Bags", to: "/shop?search=Bags" },
   { label: "Jewellery", to: "/shop?search=Jewellery" },
   { label: "Travel", to: "/shop?search=Travel" },

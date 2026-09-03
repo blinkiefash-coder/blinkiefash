@@ -950,7 +950,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>ELECTRONICS COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/shop?search=electronics')}>
+              <button type="button" onClick={() => navigate('/electronics')}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -969,7 +969,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>TRENDY SHOES</h2>
-              <button type="button" onClick={() => navigate('/shop?search=shoes')}>
+              <button type="button" onClick={() => navigate('/footwear')}>
                 View All <MdChevronRight />
               </button>
             </div>

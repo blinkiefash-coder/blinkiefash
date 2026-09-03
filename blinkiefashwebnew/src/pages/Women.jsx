@@ -115,8 +115,8 @@ const WOMEN_CATEGORY_FALLBACK = [
 const TOP_NAV = [
   { label: "Women", to: "/women" },
   { label: "Men", to: "/men" },
-  { label: "Footwear", to: "/shop?search=Footwear" },
-  { label: "Electronics", to: "/shop?search=Electronics" },
+  { label: "Footwear", to: "/footwear" },
+  { label: "Electronics", to: "/electronics" },
   { label: "Beauty", to: "/shop?search=Beauty" },
   { label: "Home Living", to: "/shop?search=Home%20Living" },
   { label: "Kids", to: "/kids" },

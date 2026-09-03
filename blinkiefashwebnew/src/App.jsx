@@ -6,6 +6,11 @@ import Shop from './pages/Shop';
 import Men from './pages/Men';
 import Kids from './pages/Kids';
 import Women from './pages/Women';
+import Electronics from './pages/Electronics';
+import Footwear from './pages/Footwear';
+import Backpack from './pages/Backpack';
+import Beauty from './pages/Beauty';
+import HomeLiving from './pages/HomeLiving';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
@@ -87,6 +92,11 @@ export default function App() {
     pathname === '/men' ||
     pathname === '/kids' ||
     pathname === '/women' ||
+    pathname === '/electronics' ||
+    pathname === '/footwear' ||
+    pathname === '/backpack' ||
+    pathname === '/beauty' ||
+    pathname === '/home-living' ||
     pathname.startsWith('/product/');
   const isCheckoutPage = pathname === '/checkout';
   const isOrderTrackingPage = pathname.startsWith('/orders/');
@@ -125,6 +135,11 @@ export default function App() {
         <Route path="/men" element={<Men />} />
         <Route path="/kids" element={<Kids />} />
         <Route path="/women" element={<Women />} />
+        <Route path="/electronics" element={<Electronics />} />
+        <Route path="/footwear" element={<Footwear />} />
+        <Route path="/backpack" element={<Backpack />} />
+        <Route path="/beauty" element={<Beauty />} />
+        <Route path="/home-living" element={<HomeLiving />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
