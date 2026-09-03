@@ -1,49 +1,42 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MdSearch,
-  MdLocationOn,
-  MdKeyboardArrowDown,
-  MdPersonOutline,
-  MdFavoriteBorder,
-  MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
-  MdSettings,
   MdCheckroom,
+  MdStyle,
   MdDryCleaning,
-  MdWaterDrop,
-  MdOutlineWork,
-  MdSnowing,
   MdDirectionsRun,
   MdWatch,
   MdVisibility,
   MdSportsHandball,
   MdBackpack,
   MdSpa,
-  MdStyle,
+  MdOutlineWork,
+  MdSnowing,
+  MdWaterDrop,
   MdLocalOffer,
   MdBolt,
   MdAutorenew,
   MdVerifiedUser,
   MdSecurity,
   MdSupportAgent,
-  MdArrowForward,
   MdGridView,
-  MdLocalShipping,
-  MdVerified,
-  MdCached,
-  MdPayments,
   MdMyLocation,
+  MdShield,
+  MdInventory2,
+  MdArrowForward,
+  MdRedeem,
+  MdTwoWheeler,
+  MdFilterList,
 } from "react-icons/md";
 
+import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Loader from "../components/Loader";
 import PageSEO from "../components/PageSEO";
-import ProductCard from "../components/ProductCard";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
-import { getProducts, getCategories, getBrands } from "../api";
+import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
@@ -52,6 +45,22 @@ import menBanner3 from "../assets/men-banner-3.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Men.css";
+
+const EXPLORE_PAGE_SIZE = 6;
+
+const COLORS = [
+  ["Blue", "#2563eb"],
+  ["Black", "#111827"],
+  ["White", "#ffffff"],
+  ["Grey", "#9ca3af"],
+  ["Navy", "#1e3a8a"],
+  ["Green", "#22c55e"],
+  ["Red", "#ef4444"],
+  ["Beige", "#d6c7a1"],
+  ["Brown", "#78350f"],
+];
+
+const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
@@ -69,7 +78,7 @@ function extractProducts(payload) {
 }
 
 // Finds the exact "Men" root category (never matches "Women", which contains
-// "men" as a substring) the same way Home.jsx's collection rails do.
+// "men" as a substring).
 function rootIdForAny(allCats, names) {
   const needles = (Array.isArray(names) ? names : [names])
     .map((n) => (n || "").toString().toLowerCase().trim())
@@ -103,53 +112,30 @@ function childCatsFor(allCats, rootId) {
     .filter((c) => c.name);
 }
 
-const MEN_CATEGORY_FALLBACK_LABELS = [
-  "T-Shirts",
-  "Shirts",
-  "Jeans",
-  "Trousers",
-  "Jackets",
-  "Footwear",
-  "Watches",
-  "Accessories",
-  "Sportswear",
-  "Innerwear",
-  "Bags & Wallets",
-  "Perfumes",
-  "Ethnic Wear",
+const MEN_CATEGORY_FALLBACK = [
+  { label: "T-Shirts", icon: MdCheckroom },
+  { label: "Shirts", icon: MdDryCleaning },
+  { label: "Jeans", icon: MdStyle },
+  { label: "Trousers", icon: MdOutlineWork },
+  { label: "Jackets", icon: MdSnowing },
+  { label: "Footwear", icon: MdDirectionsRun },
+  { label: "Watches", icon: MdWatch },
+  { label: "Accessories", icon: MdVisibility },
+  { label: "Sportswear", icon: MdSportsHandball },
+  { label: "Innerwear", icon: MdWaterDrop },
+  { label: "Bags & Wallets", icon: MdBackpack },
+  { label: "Perfumes", icon: MdSpa },
+  { label: "Ethnic Wear", icon: MdCheckroom },
 ];
 
-const CATEGORY_ICONS = [
-  MdCheckroom,
-  MdDryCleaning,
-  MdStyle,
-  MdOutlineWork,
-  MdSnowing,
-  MdDirectionsRun,
-  MdWatch,
-  MdVisibility,
-  MdSportsHandball,
-  MdWaterDrop,
-  MdBackpack,
-  MdSpa,
-  MdCheckroom,
+const TOP_STRIP_ITEMS = [
+  { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
+  { icon: MdShield, label: "100% Authentic Products" },
+  { icon: MdAutorenew, label: "Easy Returns" },
+  { icon: MdInventory2, label: "Cash on Delivery" },
+  { icon: MdMyLocation, label: "Track Your Order" },
 ];
 
-const TOP_NAV = [
-  { label: "Men", to: "/men" },
-  { label: "Women", to: "/women" },
-  { label: "Kids", to: "/kids" },
-  { label: "Home", to: "/shop?search=Home" },
-  { label: "Beauty", to: "/shop?search=Beauty" },
-  { label: "Accessories", to: "/shop?search=Accessories" },
-  { label: "Footwear", to: "/shop?search=Footwear" },
-  { label: "Bags", to: "/shop?search=Bags" },
-  { label: "Jewellery", to: "/shop?search=Jewellery" },
-  { label: "Travel", to: "/shop?search=Travel" },
-  { label: "Home Decor", to: "/shop?search=Home%20Decor" },
-];
-
-// Used only if the backend has no brands yet, so the section never sits empty.
 const TOP_BRANDS_FALLBACK = [
   "Nike",
   "Adidas",
@@ -163,70 +149,20 @@ const TOP_BRANDS_FALLBACK = [
   "Wildcraft",
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
-/** Utility strip items — rendered as the top bar above the header */
-const utilityItems = [
-  { icon: MdLocalShipping, label: "Delivered in 60 Minutes" },
-  { icon: MdVerified, label: "100% Authentic Products" },
-  { icon: MdCached, label: "Easy Returns" },
-  { icon: MdPayments, label: "Cash on Delivery" },
-  { icon: MdMyLocation, label: "Track Your Order" },
+const HERO_SLIDES = [
+  { image: menBanner1, tag: "New season styles for him" },
+  { image: menBanner2, tag: "Trending this week" },
+  { image: menBanner3, tag: "Fresh arrivals" },
 ];
 
-/** The three large reward promo cards (Spin / Play / Refer) */
-const heroPromoCards = [
-  {
-    title: "SPIN & WIN",
-    subtitle: "Spin the wheel & win exciting rewards!",
-    highlight: "Up To ₹500 OFF",
-    accent: "green",
-    action: "SPIN NOW",
-    icon: "🎡",
-    to: "/spin-wheel",
-  },
-  {
-    title: "PLAY & WIN",
-    subtitle: "Play fun games & win big discounts!",
-    highlight: "Up To ₹250 OFF",
-    accent: "purple",
-    action: "PLAY NOW",
-    icon: "🎮",
-    to: "/play-and-win",
-  },
-  {
-    title: "REFER & EARN",
-    subtitle: "Refer your friend & you both get ₹100 off!",
-    highlight: "Use code: BLINK100",
-    accent: "pink",
-    action: "REFER NOW",
-    icon: "🎁",
-    to: "/refer-earn",
-  },
-];
-
-/** The two small stacked offer cards that share the fourth grid column */
-const miniPromoCards = [
-  {
-    title: "FLAT 5% OFF",
-    subtitle: "ON FIRST ORDER",
-    highlight: "Use Code: WELCOME5",
-    accent: "cream",
-    to: "/shop",
-    badge: true,
-  },
-  {
-    title: "FREE DELIVERY",
-    subtitle: "ON ORDERS ABOVE",
-    highlight: "₹1499",
-    accent: "blue",
-    to: "/shop",
-  },
-];
-
-// Matches ProductCard's expected shape: price = MRP, discount_price = sale
-// price, plus the optional flags it reads (is_bestseller, is_try_and_buy).
 function normalizeProduct(p) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
-  const originalPrice = Number(p.price ?? p.original_price ?? salePrice);
+  const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
+  const discount =
+    originalPrice > salePrice
+      ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
+      : 0;
+
   const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
 
   return {
@@ -238,52 +174,143 @@ function normalizeProduct(p) {
     image_url: image,
     price: originalPrice,
     discount_price: salePrice,
+    _mrp: originalPrice,
+    _price: salePrice,
+    color: p.color || p.colour || "Multi color",
     is_bestseller: p.is_bestseller ?? false,
     is_try_and_buy: p.is_try_and_buy ?? false,
+    in_stock: p.in_stock !== false,
+    available: p.available !== false,
+    rating: p.rating ?? p.avg_rating ?? 0,
+    review_count: p.review_count ?? p.reviews_count ?? 0,
+    sold_count: p.sold_count ?? p.sales_count ?? 0,
     isNew: p.is_new ?? p.isNew ?? false,
+    discount,
   };
 }
 
-// Banner images for the hero slideshow.
-const MEN_BANNERS = [menBanner1, menBanner2, menBanner3];
-
-function heroBannerStyle(url) {
-  return {
-    backgroundImage: `url(${url})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
+function ProductRail({ list, railRef, keyPrefix }) {
+  const scrollRail = (dir) => {
+    const el = railRef.current;
+    if (!el) return;
+    el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
+
+  return (
+    <div className="hp-deals-wrap">
+      <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRail(-1)}>
+        <MdChevronLeft />
+      </button>
+
+      <div className="hp-deals-rail" role="list" ref={railRef}>
+        {list.map((p, idx) => (
+          <div
+            key={`${keyPrefix}-${p.id}-${idx}`}
+            className="hp-deal-card-wrapper"
+            role="listitem"
+            style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
+          >
+            <ProductCard product={p} />
+          </div>
+        ))}
+      </div>
+
+      <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollRail(1)}>
+        <MdChevronRight />
+      </button>
+    </div>
+  );
 }
 
 export default function Men() {
   const navigate = useNavigate();
-  const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount } = useCart();
-  const { items: wishlistItems } = useWishlist();
 
-  const city =
-    localStorage.getItem("bfw_city") ||
-    localStorage.getItem("selectedCity") ||
-    "Cuttack";
-  const isLoggedIn =
-    authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn
-    ? headerFirstName
-      ? `Hi, ${headerFirstName}`
-      : "My Account"
-    : "Login / Signup";
-
-  const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
+  const [newArrivals, setNewArrivals] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [menRootId, setMenRootId] = useState(null);
   const [menSubcats, setMenSubcats] = useState([]);
   const [menResolved, setMenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
-  const [heroSlide, setHeroSlide] = useState(0);
-  const picksRailRef = useRef(null);
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  const [exploreCatId, setExploreCatId] = useState("");
+  const [exploreProducts, setExploreProducts] = useState([]);
+  const [exploreOffset, setExploreOffset] = useState(0);
+  const [exploreHasMore, setExploreHasMore] = useState(false);
+  const [exploreLoading, setExploreLoading] = useState(false);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [activeBrand, setActiveBrand] = useState([]);
+  const [activeColor, setActiveColor] = useState([]);
+  const [minDiscount, setMinDiscount] = useState(0);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(10000);
+  const [brandSearch, setBrandSearch] = useState("");
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+  const toggleBrandFilter = (name) => {
+    setActiveBrand((prev) =>
+      prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
+    );
+  };
+
+  const toggleColorFilter = (name) => {
+    setActiveColor((prev) =>
+      prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
+    );
+  };
+
+  const selectMinDiscount = (value) => {
+    setMinDiscount((prev) => (prev === value ? 0 : value));
+  };
+
+  const activeFilterCount =
+    activeBrand.length +
+    activeColor.length +
+    (minDiscount > 0 ? 1 : 0) +
+    (inStockOnly ? 1 : 0) +
+    (maxPrice < 10000 ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setActiveBrand([]);
+    setActiveColor([]);
+    setMinDiscount(0);
+    setInStockOnly(false);
+    setMaxPrice(10000);
+    setBrandSearch("");
+  };
+
+  const visibleBrands = brands.filter((b) =>
+    normalizeText(b.name).includes(normalizeText(brandSearch))
+  );
+
+  // Shared filter predicate, applied to any product list on this page
+  const applyProductFilters = useCallback(
+    (list) =>
+      (list || []).filter((p) => {
+        if (activeBrand.length > 0) {
+          const b = normalizeText(p.brand);
+          if (!activeBrand.map(normalizeText).includes(b)) return false;
+        }
+        if (activeColor.length > 0) {
+          const c = normalizeText(p.color);
+          if (c && !activeColor.map(normalizeText).includes(c)) return false;
+        }
+        if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
+        if (inStockOnly && p.in_stock === false) return false;
+        const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
+        if (finalPrice > maxPrice) return false;
+        return true;
+      }),
+    [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+  );
+
+  const trendingRef = useRef(null);
+  const arrivalsRef = useRef(null);
+  const dealsRef = useRef(null);
 
   // Resolve the real "Men" category from the DB category tree first — every
   // link and product fetch on this page is scoped to that subtree so this
@@ -295,11 +322,9 @@ export default function Men() {
       let allCats = [];
       try {
         const catRes = await getCategories();
-        if (Array.isArray(catRes)) {
-          allCats = catRes;
-        }
+        if (Array.isArray(catRes)) allCats = catRes;
       } catch {
-        // keep allCats as []
+        // keep []
       }
 
       const rootId = rootIdForAny(allCats, "Men");
@@ -316,7 +341,6 @@ export default function Men() {
     };
   }, []);
 
-  // Pull real brand logos from the backend for "Top Brands You Love".
   useEffect(() => {
     let cancelled = false;
 
@@ -342,10 +366,7 @@ export default function Men() {
     };
   }, []);
 
-  // Once we know which category *is* Men, fetch products scoped to it.
-  // No gender-text or bestseller fallback here on purpose — if the Men
-  // subtree has no products yet we show an empty state instead of mixing
-  // in items from other sections.
+  // Main product pool + deals
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -353,13 +374,14 @@ export default function Men() {
     (async () => {
       setProductsLoading(true);
       let found = [];
+      let dealList;
 
       if (menRootId) {
         try {
           const byCategory = await getProducts({
             category_id: menRootId,
             sort: "newest",
-            limit: 8,
+            limit: 30,
           });
           found = extractProducts(byCategory);
         } catch {
@@ -369,11 +391,11 @@ export default function Men() {
 
       if (!found.length && menRootId) {
         // Some backends only tag leaf-level products, not the root — retry
-        // against each direct subcategory and merge until we have 8.
+        // against each direct subcategory and merge until we have enough.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
-              getProducts({ category_id: sub.id, sort: "newest", limit: 4 }).catch(() => [])
+              getProducts({ category_id: sub.id, sort: "newest", limit: 5 }).catch(() => [])
             )
           );
           found = perSub.flatMap(extractProducts);
@@ -382,8 +404,41 @@ export default function Men() {
         }
       }
 
+      if (!found.length) {
+        try {
+          const bySearch = await getProducts({ search: "men", limit: 30 });
+          found = extractProducts(bySearch);
+        } catch {
+          found = [];
+        }
+      }
+
+      try {
+        const dealsRes = await getBestsellers(12);
+        dealList = extractProducts(dealsRes);
+      } catch {
+        dealList = [];
+      }
+
+      if (!dealList.length) {
+        try {
+          const fallbackDeals = await getProducts({
+            category_id: menRootId || undefined,
+            search: menRootId ? undefined : "men",
+            sort: "newest",
+            limit: 12,
+          });
+          dealList = extractProducts(fallbackDeals);
+        } catch {
+          dealList = [];
+        }
+      }
+
       if (!cancelled) {
-        setProducts(found.slice(0, 8).map(normalizeProduct));
+        const normalized = found.map(normalizeProduct);
+        setProducts(normalized.slice(0, 20));
+        setNewArrivals(normalized.slice(0, 10));
+        setDeals(dealList.map(normalizeProduct).slice(0, 12));
         setProductsLoading(false);
       }
     })();
@@ -392,6 +447,81 @@ export default function Men() {
       cancelled = true;
     };
   }, [menResolved, menRootId, menSubcats]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
+
+  // More to Explore
+  useEffect(() => {
+    if (!menResolved) return;
+    let cancelled = false;
+
+    (async () => {
+      setExploreLoading(true);
+      try {
+        const categoryId = exploreCatId || menRootId || undefined;
+        const res = await getProducts({
+          category_id: categoryId,
+          search: categoryId ? undefined : "men",
+          sort: "newest",
+          limit: EXPLORE_PAGE_SIZE,
+          offset: 0,
+        });
+        const items = extractProducts(res).map(normalizeProduct);
+        if (cancelled) return;
+        setExploreProducts(items);
+        setExploreOffset(items.length);
+        setExploreHasMore(items.length === EXPLORE_PAGE_SIZE);
+      } catch {
+        if (!cancelled) {
+          setExploreProducts([]);
+          setExploreOffset(0);
+          setExploreHasMore(false);
+        }
+      } finally {
+        if (!cancelled) setExploreLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [menResolved, menRootId, exploreCatId]);
+
+  const loadMoreExplore = async () => {
+    if (exploreLoading || !exploreHasMore) return;
+    setExploreLoading(true);
+    try {
+      const categoryId = exploreCatId || menRootId || undefined;
+      const res = await getProducts({
+        category_id: categoryId,
+        search: categoryId ? undefined : "men",
+        sort: "newest",
+        limit: EXPLORE_PAGE_SIZE,
+        offset: exploreOffset,
+      });
+      const items = extractProducts(res).map(normalizeProduct);
+      setExploreProducts((prev) => {
+        const seen = new Set(prev.map((p) => String(p.id)));
+        const merged = [...prev];
+        items.forEach((p) => {
+          const key = String(p.id || "");
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          merged.push(p);
+        });
+        return merged;
+      });
+      setExploreOffset((prev) => prev + items.length);
+      setExploreHasMore(items.length === EXPLORE_PAGE_SIZE);
+    } finally {
+      setExploreLoading(false);
+    }
+  };
 
   const menScopedShopUrl = useCallback(
     (opts = {}) => {
@@ -450,242 +580,300 @@ export default function Men() {
         };
       });
     }
-    return MEN_CATEGORY_FALLBACK_LABELS.map((label, idx) => {
-      const match = findMenSubcatByLabel(label);
+    return MEN_CATEGORY_FALLBACK.map((item) => {
+      const match = findMenSubcatByLabel(item.label);
       return {
-        id: match?.id || `fallback-${label}`,
-        label,
-        icon: CATEGORY_ICONS[idx] || MdGridView,
-        image: match
-          ? resolveImageUrl(match.image) || getCategoryImage(match.name) || ""
-          : "",
+        id: match?.id || `fallback-${item.label}`,
+        label: item.label,
+        icon: item.icon || MdGridView,
+        image: match ? resolveImageUrl(match.image) || getCategoryImage(match.name) || "" : "",
         to: match
           ? menScopedShopUrl({ categoryId: match.id })
-          : menScopedShopUrl({ search: label }),
+          : menScopedShopUrl({ search: item.label }),
       };
     });
   }, [menSubcats, menScopedShopUrl, findMenSubcatByLabel]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const value = searchInput.trim();
-    if (!value) {
-      navigate(menScopedShopUrl());
-      return;
-    }
-    navigate(menScopedShopUrl({ search: value }));
-  };
+  const exploreChips = useMemo(
+    () => [{ id: "", name: "All" }, ...menSubcats],
+    [menSubcats]
+  );
 
-  const scrollPicks = (dir) => {
-    const el = picksRailRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 320, behavior: "smooth" });
-  };
+  const topDeals = useMemo(() => {
+    const enriched = (Array.isArray(deals) ? deals : []).map((item) => {
+      const price = Number(item?.discount_price ?? item?.price ?? item?._price ?? 0);
+      const mrp = Number(item?.price ?? item?._mrp ?? item?.original_price ?? price);
+      const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+      return { ...item, _discount: discount };
+    });
+    return [...enriched].sort((a, b) => b._discount - a._discount).slice(0, 10);
+  }, [deals]);
 
-  const goHeroSlide = (dir) => {
-    setHeroSlide((cur) => (cur + dir + MEN_BANNERS.length) % MEN_BANNERS.length);
-  };
-
-  const wishlistCount = wishlistItems?.length || 0;
+  const slide = HERO_SLIDES[heroIndex];
 
   return (
-    <div className="catalog-page men-page">
+    <div className={`catalog-page men-page${!menResolved ? " men-loading" : ""}`}>
+      {!menResolved && <Loader overlay />}
       <PageSEO
         title="Men's Fashion — Shirts, T-Shirts, Jeans & More | Blinkiefash India"
         description="Shop the latest men's fashion at Blinkiefash India — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across India."
         path="/men"
       />
 
-      {/* Utility strip */}
-      <div className="men-utility-strip" aria-label="Store benefits">
-        {utilityItems.map((item) => (
-          <div key={item.label} className="men-utility-item">
-            <span className="men-utility-icon" aria-hidden="true">
+      <div className="men-top-strip">
+        <div className="men-top-strip-inner">
+          {TOP_STRIP_ITEMS.map((item) => (
+            <span className="men-top-strip-item" key={item.label}>
               <item.icon />
+              <span>{item.label}</span>
             </span>
-            <span>{item.label}</span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
-      <div className="hp-sticky-head catalog-home-topbar">
-        <header className="hp-main-header catalog-main-header">
-          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <img
-              src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
-              alt="Blinkiefash"
-              className="hp-logo"
-            />
-            <span className="hp-brand-text">
-              <span className="hp-brand-name">
-                BLINKIE<span className="hp-brand-accent">FASH</span>
-              </span>
-              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-            </span>
-          </button>
-
-          <form className="hp-header-search catalog-mobile-search" onSubmit={handleSearchSubmit}>
-            <MdSearch className="hp-search-icon" />
-            <input
-              name="q"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for men's clothing, shoes, accessories & more..."
-            />
-            <button type="submit" className="hp-search-btn" aria-label="Search products">
-              <MdSearch />
-            </button>
-          </form>
-
-          <div className="catalog-header-actions-wrap">
-            <button
-              type="button"
-              className="catalog-location-pill"
-              onClick={() => navigate("/account")}
-            >
-              <MdLocationOn />
-              <span className="men-location-copy">
-                <small>Delivering to</small>
-                <strong>{city}</strong>
-              </span>
-              <MdKeyboardArrowDown />
-            </button>
-
-            <div className="hp-header-actions">
-              <button
-                type="button"
-                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
-              >
-                <MdPersonOutline />
-                <span>{accountLabel}</span>
-              </button>
-              <button type="button" onClick={() => navigate("/wishlist")}>
-                <MdFavoriteBorder />
-                <span>Wishlist</span>
-                {wishlistCount > 0 ? (
-                  <span className="hp-icon-badge">{wishlistCount}</span>
-                ) : null}
-              </button>
-              <button type="button" onClick={() => navigate("/cart")}>
-                <MdOutlineShoppingCart />
-                <span>Cart</span>
-                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <nav className="hp-category-nav men-topnav">
-          <div className="hp-nav-links">
-            {TOP_NAV.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className={`hp-nav-link${item.label === "Men" ? " active" : ""}`}
-                onClick={() => navigate(item.to)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="men-nav-offers"
-            onClick={() => navigate("/offers")}
-          >
-            <MdSettings /> Offers
-          </button>
-        </nav>
-      </div>
+      <Navbar activeTab="Men" />
 
       <main className="men-main">
-        <div className="men-breadcrumb">
-          <button type="button" onClick={() => navigate("/")}>
-            Home
-          </button>
-          <span>›</span>
-          <span className="current">Men</span>
-        </div>
-
-        {/* Mode switcher: India (this page) vs Local */}
-        <section className="men-mode-row" aria-label="Store modes">
+        <section className="men-hero-carousel" aria-label="Men's fashion highlights">
           <button
             type="button"
-            className="men-mode-card men-mode-selected"
-            onClick={() => navigate("/men")}
-          >
-            <span className="men-mode-icon">🌐</span>
-            <span className="men-mode-copy">
-              <strong>BLINKIEFASH INDIA</strong>
-              <small>Products from stores across India</small>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="men-mode-card men-mode-local"
-            onClick={() => navigate("/blinkiefash-local")}
-          >
-            <span className="men-mode-icon">⚡</span>
-            <span className="men-mode-copy">
-              <strong>BLINKIEFASH LOCAL</strong>
-              <small>Fast delivery from nearby stores</small>
-            </span>
-          </button>
-        </section>
-
-        {/* Hero — single banner, plain image with slide controls */}
-        <section className="men-hero-banner" aria-label="Men's fashion highlights">
-          <button
-            type="button"
-            className="men-hero-arrow men-hero-arrow-prev"
-            aria-label="Previous banner"
-            onClick={() => goHeroSlide(-1)}
+            className="men-hero-arrow prev"
+            aria-label="Previous slide"
+            onClick={() => setHeroIndex((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
           >
             <MdChevronLeft />
           </button>
 
-          <div
-            className="men-hero-slide"
-            style={heroBannerStyle(MEN_BANNERS[heroSlide])}
-            onClick={() => navigate(menScopedShopUrl())}
-            role="button"
-            tabIndex={0}
-            aria-label="Shop men's fashion"
-          />
+          <button type="button" className="men-hero-media-btn" onClick={() => navigate(menScopedShopUrl())}>
+            <img src={slide.image} alt={slide.tag} className="men-hero-img" />
+          </button>
 
           <button
             type="button"
-            className="men-hero-arrow men-hero-arrow-next"
-            aria-label="Next banner"
-            onClick={() => goHeroSlide(1)}
+            className="men-hero-arrow next"
+            aria-label="Next slide"
+            onClick={() => setHeroIndex((i) => (i + 1) % HERO_SLIDES.length)}
           >
             <MdChevronRight />
           </button>
 
           <div className="men-hero-dots">
-            {MEN_BANNERS.map((_, idx) => (
+            {HERO_SLIDES.map((s, idx) => (
               <button
-                key={idx}
+                key={s.tag}
                 type="button"
-                className={`men-hero-dot${idx === heroSlide ? " active" : ""}`}
-                aria-label={`Show banner ${idx + 1}`}
-                onClick={() => setHeroSlide(idx)}
+                className={`men-hero-dot${idx === heroIndex ? " active" : ""}`}
+                aria-label={`Go to slide ${idx + 1}`}
+                onClick={() => setHeroIndex(idx)}
               />
             ))}
           </div>
         </section>
 
-        {/* Category strip */}
+        {/* Rewards — Home-style, shared classes */}
+        <section className="section hp-rewards-section" aria-label="Offers & rewards">
+          <div className="hp-rewards-grid">
+            <div className="hp-reward-panel hp-reward-spin">
+              <div className="hp-reward-copy">
+                <h3>SPIN &amp; WIN</h3>
+                <p>Spin the wheel &amp; win exciting discounts!</p>
+                <div className="hp-reward-amount">Up To ₹500</div>
+                <button type="button" onClick={() => navigate("/spin-wheel")}>
+                  SPIN NOW <MdArrowForward />
+                </button>
+              </div>
+              <div className="hp-reward-graphic hp-spin-wheel" aria-hidden="true">
+                🎡
+              </div>
+            </div>
+
+            <div className="hp-reward-panel hp-reward-play">
+              <div className="hp-reward-copy">
+                <h3>PLAY &amp; WIN</h3>
+                <p>Play fun games &amp; win big discounts!</p>
+                <div className="hp-reward-amount">Up To ₹250</div>
+                <button type="button" onClick={() => navigate("/play-and-win")}>
+                  PLAY NOW <MdArrowForward />
+                </button>
+              </div>
+              <div className="hp-reward-graphic" aria-hidden="true">
+                🎮
+              </div>
+            </div>
+
+            <div className="hp-reward-panel hp-reward-refer">
+              <div className="hp-reward-copy">
+                <h3>REFER &amp; EARN</h3>
+                <p>Refer your friend &amp; you both get ₹100 off!</p>
+                <div className="hp-referral-code">
+                  <span>YOUR REFERRAL CODE</span>
+                  <strong>BLINK100</strong>
+                </div>
+                <button type="button" onClick={() => navigate("/refer-earn")}>
+                  REFER NOW <MdArrowForward />
+                </button>
+              </div>
+              <div className="hp-reward-graphic" aria-hidden="true">
+                🎁
+              </div>
+            </div>
+
+            <div className="hp-reward-stack">
+              <div className="hp-reward-mini">
+                <div>
+                  <strong>FLAT 5% OFF</strong>
+                  <span>ON FIRST ORDER</span>
+                  <span className="hp-reward-mini-chip">Use Code: WELCOME5</span>
+                </div>
+                <MdRedeem className="hp-reward-mini-icon" />
+              </div>
+              <div className="hp-reward-mini">
+                <div>
+                  <strong>FREE DELIVERY</strong>
+                  <span>ON ORDERS ABOVE ₹1499</span>
+                </div>
+                <MdTwoWheeler className="hp-reward-mini-icon" />
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Filters */}
+        <div className="men-filter-bar">
+          <button
+            type="button"
+            className={`men-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
+            onClick={() => setFilterOpen((o) => !o)}
+          >
+            <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+          </button>
+
+          {filterOpen && (
+            <section className="men-filters-panel" role="dialog" aria-label="Men filters">
+              <div className="men-filters-panel-header">
+                <h3>Filters</h3>
+                {activeFilterCount > 0 ? (
+                  <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
+                    Clear All
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="men-filter-col">
+                <h4>Brand</h4>
+                <input
+                  className="men-filter-search"
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  placeholder="Search brand"
+                />
+                <div className="men-filter-list">
+                  {visibleBrands.slice(0, 15).map((brand) => (
+                    <label key={brand.id || brand.name}>
+                      <input
+                        type="checkbox"
+                        checked={activeBrand.includes(brand.name)}
+                        onChange={() => toggleBrandFilter(brand.name)}
+                      />
+                      <span>{brand.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="men-filter-col">
+                <h4>Color</h4>
+                <div className="men-filter-list men-filter-swatches">
+                  {COLORS.map(([name, hex]) => {
+                    const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                    return (
+                      <label key={name} className={`men-swatch-label${checked ? " checked" : ""}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
+                        <span className="men-swatch-dot" style={{ background: hex }} />
+                        <span>{name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="men-filter-col">
+                <h4>Price</h4>
+                <input
+                  type="range"
+                  min="500"
+                  max="12000"
+                  step="100"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                />
+                <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
+              </div>
+
+              <div className="men-filter-col">
+                <h4>Discount Range</h4>
+                <div className="men-filter-chips">
+                  {DISCOUNT_BUCKETS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`men-filter-chip-item${minDiscount === value ? " active" : ""}`}
+                      onClick={() => selectMinDiscount(value)}
+                    >
+                      {value}% and above
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="men-filter-col">
+                <h4>Availability</h4>
+                <div className="men-filter-list">
+                  <label>
+                    <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} />
+                    <span>In stock only</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Deals of the Day */}
+        {topDeals.length > 0 && (
+          <section className="section men-picks-section">
+            <div className="hp-section-head">
+              <h2>DEALS OF THE DAY</h2>
+              <button type="button" onClick={() => navigate(menScopedShopUrl())}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+            <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="men-deal" />
+          </section>
+        )}
+
+        {/* All Men's Picks */}
+        <section className="section men-picks-section">
+          <div className="hp-section-head">
+            <h2>ALL MEN&apos;S PICKS 👔</h2>
+            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
+              View All <MdChevronRight />
+            </button>
+          </div>
+          {productsLoading ? (
+            <Loader />
+          ) : products.length ? (
+            <ProductRail list={applyProductFilters(products)} railRef={trendingRef} keyPrefix="men-all" />
+          ) : (
+            <p className="men-empty-state">New men&apos;s styles are landing soon.</p>
+          )}
+        </section>
+
+        {/* Categories */}
         <section className="men-cat-strip" aria-label="Shop by category">
           <div className="men-cat-list">
             {categoryStripItems.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className="men-cat-item"
-                onClick={() => navigate(cat.to)}
-              >
+              <button key={cat.id} type="button" className="men-cat-item" onClick={() => navigate(cat.to)}>
                 <span className="men-cat-icon-wrap">
                   {cat.image ? (
                     <img
@@ -698,106 +886,24 @@ export default function Men() {
                       }}
                     />
                   ) : null}
-                  <span
-                    className="men-cat-fallback-icon"
-                    style={cat.image ? { display: "none" } : undefined}
-                  >
+                  <span className="men-cat-fallback-icon" style={cat.image ? { display: "none" } : undefined}>
                     {cat.icon ? <cat.icon /> : <MdGridView />}
                   </span>
                 </span>
-                <span>{cat.label}</span>
+                <span className="men-cat-label">{cat.label}</span>
               </button>
             ))}
           </div>
         </section>
 
-        {/* Promo grid — 3 reward cards + a stacked pair of smaller offers */}
-        <section className="men-promo-grid" aria-label="Promotional offers">
-          {heroPromoCards.map((card, index) => {
-            const homeStyleClass = `men-home-reward-card ${
-              index === 0
-                ? "men-home-reward-spin"
-                : index === 1
-                  ? "men-home-reward-play"
-                  : "men-home-reward-refer"
-            }`;
-            return (
-              <article
-                key={card.title}
-                className={`men-promo-card-bfi men-promo-${card.accent} ${homeStyleClass}`}
-                onClick={() => navigate(card.to)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    navigate(card.to);
-                  }
-                }}
-              >
-                <div className="men-promo-content">
-                  <p className="men-promo-title-bfi">{card.title}</p>
-                  <p className="men-promo-subtitle-bfi">{card.subtitle}</p>
-                  <div className="men-promo-highlight-bfi">{card.highlight}</div>
-                  <button
-                    type="button"
-                    className="men-promo-button-bfi"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(card.to);
-                    }}
-                  >
-                    {card.action}
-                  </button>
-                </div>
-                <div className="men-promo-icon-bfi" aria-hidden="true">
-                  {card.icon}
-                </div>
-              </article>
-            );
-          })}
-
-          <div className="men-promo-mini-col">
-            {miniPromoCards.map((card) => (
-              <article
-                key={card.title}
-                className={`men-promo-mini men-promo-${card.accent}`}
-                onClick={() => navigate(card.to)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    navigate(card.to);
-                  }
-                }}
-              >
-                <div className="men-promo-mini-copy">
-                  <p className="men-promo-mini-title">{card.title}</p>
-                  <p className="men-promo-mini-sub">{card.subtitle}</p>
-                  {card.badge ? (
-                    <span className="men-promo-code-badge">{card.highlight}</span>
-                  ) : (
-                    <p className="men-promo-mini-highlight">{card.highlight}</p>
-                  )}
-                </div>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        {/* Secondary promo strip (Prepaid / Brands / Delivery) */}
-        <section className="men-promo-strip">
-          <button
-            type="button"
-            className="men-promo-card men-promo-prepaid"
-            onClick={() => navigate("/offers")}
-          >
+        {/* Promos */}
+        <section className="men-promo-strip" aria-label="Offers">
+          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
             <div>
-              <p className="men-promo-title">Prepaid Order Offers</p>
-              <p className="men-promo-sub">Extra savings when you pay online</p>
+              <p className="title">EXTRA 10% OFF</p>
+              <p className="sub">On Prepaid Orders · Code BLINK10</p>
             </div>
-            <MdLocalOffer className="men-promo-icon" />
+            <MdLocalOffer style={{ fontSize: 28 }} />
           </button>
 
           <button
@@ -806,12 +912,15 @@ export default function Men() {
             onClick={() => navigate(menScopedShopUrl())}
           >
             <div>
-              <p className="men-promo-title">Top Brand Discounts</p>
-              <p className="men-promo-sub">Nike · Adidas · Puma &amp; more</p>
+              <p className="title">UP TO 60% OFF</p>
+              <p className="sub">On Top Brands</p>
+              <div className="men-promo-brands-row">
+                <span className="men-promo-brand-chip">NIKE</span>
+                <span className="men-promo-brand-chip">PUMA</span>
+                <span className="men-promo-brand-chip">LEVI&apos;S</span>
+              </div>
             </div>
-            <span className="men-promo-cta">
-              Shop Now <MdArrowForward />
-            </span>
+            <span className="cta">SHOP NOW →</span>
           </button>
 
           <button
@@ -820,66 +929,32 @@ export default function Men() {
             onClick={() => navigate(menScopedShopUrl())}
           >
             <div>
-              <p className="men-promo-title">Fast &amp; Free Delivery</p>
-              <p className="men-promo-sub">On eligible orders, in 60 minutes</p>
+              <p className="title">FREE DELIVERY</p>
+              <p className="sub">On Orders Above ₹1499</p>
+              <span className="cta">SHOP NOW →</span>
             </div>
-            <span className="men-promo-cta">
-              Shop Now <MdArrowForward />
-            </span>
+            <span style={{ fontSize: 28 }}>🛵</span>
           </button>
         </section>
 
-        {/* Trending Now — uses the shared ProductCard, same as Women.jsx */}
+        {/* New arrivals */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
-            <h2>Trending Now</h2>
+            <h2>NEW ARRIVALS ✨</h2>
             <button type="button" onClick={() => navigate(menScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
           </div>
-
           {productsLoading ? (
-            <p className="men-empty-state">Loading today&apos;s picks…</p>
-          ) : products.length ? (
-            <div className="hp-deals-wrap">
-              <button
-                type="button"
-                className="hp-deals-prev"
-                aria-label="Previous"
-                onClick={() => scrollPicks(-1)}
-              >
-                <MdChevronLeft />
-              </button>
-
-              <div className="hp-deals-rail" role="list" ref={picksRailRef}>
-                {products.map((p, idx) => (
-                  <div
-                    key={`men-pick-${p.id}-${idx}`}
-                    className="hp-deal-card-wrapper"
-                    role="listitem"
-                  >
-                    <ProductCard product={p} />
-                  </div>
-                ))}
-              </div>
-
-              <button
-                type="button"
-                className="hp-deals-next"
-                aria-label="Next"
-                onClick={() => scrollPicks(1)}
-              >
-                <MdChevronRight />
-              </button>
-            </div>
+            <Loader />
+          ) : newArrivals.length ? (
+            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" />
           ) : (
-            <p className="men-empty-state">
-              New men&apos;s styles are landing soon — check back shortly.
-            </p>
+            <p className="men-empty-state">Fresh styles coming soon.</p>
           )}
         </section>
 
-        {/* Top Brands */}
+        {/* Brands */}
         <section className="men-brands-section" aria-label="Top brands">
           <div className="hp-section-head">
             <h2>Top Brands You Love</h2>
@@ -899,17 +974,11 @@ export default function Men() {
                   key={`${brand.id || brand.name}-${idx}`}
                   type="button"
                   className="hp-top-brand-card"
-                  onClick={() => {
-                    navigate(menScopedShopUrl({ search: brand.name }));
-                  }}
+                  onClick={() => navigate(menScopedShopUrl({ search: brand.name }))}
                   aria-label={`Shop ${brand.name}`}
                 >
                   <span className="hp-top-brand-logo">
-                    {logo ? (
-                      <img src={logo} alt="" loading="lazy" />
-                    ) : (
-                      <span>{initials || "BR"}</span>
-                    )}
+                    {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials || "BR"}</span>}
                   </span>
                   <span className="hp-top-brand-name">{brand.name}</span>
                 </button>
@@ -918,7 +987,55 @@ export default function Men() {
           </div>
         </section>
 
-        {/* Trust strip */}
+        {/* More to Explore */}
+        <section className="section men-explore-section" aria-label="More to explore">
+          <div className="hp-section-head hp-feed-head">
+            <h2>MORE TO EXPLORE</h2>
+          </div>
+
+          <div className="hp-explore-chips" role="list">
+            {exploreChips.map((cat) => {
+              const selected = (cat.id ? String(cat.id) : "") === exploreCatId;
+              return (
+                <button
+                  key={cat.id || "all"}
+                  type="button"
+                  className={`hp-explore-chip${selected ? " active" : ""}`}
+                  role="listitem"
+                  onClick={() => setExploreCatId(cat.id ? String(cat.id) : "")}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {exploreProducts.length > 0 ? (
+            <div className="hp-explore-grid" role="list">
+              {exploreProducts.map((p, idx) => (
+                <ProductCard key={`explore-${p.id}-${idx}`} product={p} />
+              ))}
+              {exploreLoading
+                ? Array.from({ length: 3 }).map((_, idx) => <ProductCardSkeleton key={`explore-skel-${idx}`} />)
+                : null}
+            </div>
+          ) : !exploreLoading ? (
+            <p className="men-empty-state">No products in this category yet.</p>
+          ) : (
+            <div className="hp-explore-grid" role="list">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <ProductCardSkeleton key={`explore-init-${idx}`} />
+              ))}
+            </div>
+          )}
+
+          {!exploreLoading && exploreHasMore ? (
+            <button type="button" className="hp-explore-more" onClick={loadMoreExplore}>
+              Show More Products
+            </button>
+          ) : null}
+        </section>
+
         <section className="men-trust-strip" aria-label="Why shop with us">
           <div>
             <MdBolt />

@@ -1,4 +1,5 @@
 import logo from '../assets/logo.png';
+import './Loader.css';
 
 export default function Loader({
   label = '',
