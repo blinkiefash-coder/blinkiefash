@@ -23,8 +23,12 @@ import { API_BASE_URL } from '../apiBase';
 
 // import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 
-import menwomenBanner from '../assets/men-women.webp';
-
+import banner1 from '../assets/banner1.png';
+import banner2 from '../assets/banner2.png';
+import banner3 from '../assets/banner3.png';
+import banner4 from '../assets/banner4.png';
+import banner5 from '../assets/banner5.png';
+import banner6 from '../assets/banner6.png';
 
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
@@ -45,37 +49,31 @@ function resolveImageUrl(raw) {
 }
 
 const HERO_SLIDES = [
-    {
-    image: menwomenBanner,
+  {
+    image: banner1,
     to: '/shop?search=men%women',
     pos: 'center',
   },
   {
-    image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+    image: banner2,
     to: '/shop?search=Puma',
     pos: 'center 20%',
-
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+    image: banner3,
     to: '/shop?search=Xinso',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
+    image: banner4,
     to: '/shop?search=kids',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
+    image: banner5,
     to: '/shop?search=men',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png',
-    to: '/shop?search=women',
+    image: banner6,
+    to: '/shop?search=mk',
   },
 ];
 

@@ -23,6 +23,17 @@
   overflow-x: hidden;
 }
 
+/* Loading state: render the real page underneath and blur it while
+   <Loader overlay /> sits on top — mirrors .hp.hp-loading in Home.css. */
+.women-page.women-loading .women-top-strip,
+.women-page.women-loading .hp-sticky-head,
+.women-page.women-loading .women-main {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+}
+
 .women-page .catalog-main,
 .women-main {
   width: 100%;

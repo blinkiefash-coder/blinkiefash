@@ -29,6 +29,7 @@ import {
 
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Loader from "../components/Loader";
 import PageSEO from "../components/PageSEO";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
@@ -600,7 +601,8 @@ const applyProductFilters = useCallback(
   const slide = HERO_SLIDES[heroIndex];
 
   return (
-    <div className="catalog-page women-page">
+    <div className={`catalog-page women-page${!womenResolved ? " women-loading" : ""}`}>
+      {!womenResolved && <Loader overlay />}
       <PageSEO
         title="Women's Fashion — Kurtis, Dresses, Ethnic & More"
         description="Shop women's clothing, footwear, bags and jewellery at Blinkiefash — delivered in 60 minutes across Odisha."
@@ -848,7 +850,7 @@ const applyProductFilters = useCallback(
             </button>
           </div>
           {productsLoading ? (
-            <p className="women-empty-state">Loading today&apos;s picks…</p>
+            <Loader />
           ) : products.length ? (
             <ProductRail list={applyProductFilters(products)} railRef={trendingRef} keyPrefix="women-all" />
           ) : (
@@ -933,7 +935,7 @@ const applyProductFilters = useCallback(
             </button>
           </div>
           {productsLoading ? (
-            <p className="women-empty-state">Loading new arrivals…</p>
+            <Loader />
           ) : newArrivals.length ? (
             <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="women-new" />
           ) : (
