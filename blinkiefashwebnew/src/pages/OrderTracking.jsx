@@ -3,6 +3,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getOrderById, cancelOrder } from '../api';
 import Loader from '../components/Loader';
+import { estimateDeliveryFromDistance } from '../utils/deliveryEstimate';
+import { getDistanceKm } from '../utils/geoDistance';
 import './OrderTracking.css';
 
 const STEPS = [
@@ -157,12 +159,26 @@ export default function OrderTracking() {
   const pincode = order.address?.pincode || order.pincode || '';
   const items = order.items || [];
 
-  const deliveryPromise =
-    order.deliveryPromise ||
-    order.delivery_promise ||
-    (order.etaMinutes ? `Today · ~${order.etaMinutes} min` : 'Today');
+  // --- CHANGED: distance-based delivery estimate ---
+  // 1) Prefer a distance already sent by the backend (order.distanceKm / distance_km).
+  // 2) Otherwise compute it from shop/user coordinates, if present.
+  // 3) Otherwise show "unavailable".
+  const shopCoords = order.shop?.coords || order.store_location || null;       // { lat, lng }
+  const userCoords = order.address?.coords || order.delivery_location || null; // { lat, lng }
 
-  const distanceKm = order.distanceKm ?? order.distance_km ?? null;
+  const rawDistanceKm =
+    order.distanceKm ?? order.distance_km ?? getDistanceKm(shopCoords, userCoords);
+  const distanceKm = rawDistanceKm == null || rawDistanceKm === ''
+    ? null
+    : Number(rawDistanceKm);
+  const delivery = estimateDeliveryFromDistance(
+    Number.isFinite(distanceKm) ? distanceKm : null,
+  );
+
+  const deliveryPromise = delivery.tier !== 'unknown'
+    ? delivery.label
+    : order.deliveryPromise || order.delivery_promise || delivery.label;
+  // --- END CHANGED ---
 
   const statusLabel = isCancelled
     ? 'Cancelled'
@@ -253,6 +269,10 @@ export default function OrderTracking() {
               <p className="ot-eta-main">{deliveryPromise}</p>
               {distanceKm != null && (
                 <p className="ot-eta-sub">Distance: {Number(distanceKm).toFixed(1)} km</p>
+              )}
+              {/* NEW: real-world adjustment note (traffic/weather/etc.) */}
+              {delivery.note && delivery.tier !== 'unknown' && (
+                <p className="ot-eta-note">{delivery.note}</p>
               )}
               <span className="ot-badge info" style={{ marginTop: 12 }}>{statusLabel}</span>
             </section>
