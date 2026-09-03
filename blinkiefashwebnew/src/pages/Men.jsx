@@ -43,7 +43,7 @@ import ProductCard from "../components/ProductCard";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
+import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
@@ -52,8 +52,6 @@ import menBanner3 from "../assets/men-banner-3.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Men.css";
-
-const PRODUCTS_PAGE_SIZE = 8;
 
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
@@ -268,14 +266,9 @@ export default function Men() {
     localStorage.getItem("selectedCity") ||
     "Cuttack";
   const isLoggedIn =
-    authLoggedIn ||
-    Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const headerUserName = String(
-    user?.name || localStorage.getItem("userName") || ""
-  ).trim();
-  const headerFirstName = headerUserName
-    ? headerUserName.split(/\s+/)[0]
-    : "";
+    authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
+  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
+  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
   const accountLabel = isLoggedIn
     ? headerFirstName
       ? `Hi, ${headerFirstName}`
@@ -285,20 +278,16 @@ export default function Men() {
   const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
-  const [productsOffset, setProductsOffset] = useState(0);
-  const [productsHasMore, setProductsHasMore] = useState(false);
-  const [productsLoadingMore, setProductsLoadingMore] = useState(false);
-  const [dealsOfDay, setDealsOfDay] = useState([]);
-  const [dealsLoading, setDealsLoading] = useState(true);
   const [menRootId, setMenRootId] = useState(null);
   const [menSubcats, setMenSubcats] = useState([]);
   const [menResolved, setMenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
   const [heroSlide, setHeroSlide] = useState(0);
   const picksRailRef = useRef(null);
-  const dealsRailRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first.
+  // Resolve the real "Men" category from the DB category tree first — every
+  // link and product fetch on this page is scoped to that subtree so this
+  // page only ever shows men's items, never women's/kids'/other sections'.
   useEffect(() => {
     let cancelled = false;
 
@@ -353,116 +342,16 @@ export default function Men() {
     };
   }, []);
 
-  // Deals of the Day — same bestsellers endpoint Home uses,
-  // filtered to Men only; falls back to men-scoped products if needed.
-  useEffect(() => {
-    if (!menResolved) return;
-    let cancelled = false;
-
-    (async () => {
-      setDealsLoading(true);
-
-      const menCategoryIds = new Set(
-        [menRootId, ...menSubcats.map((c) => c.id)]
-          .filter((id) => id !== null && id !== undefined)
-          .map(String)
-      );
-
-      const belongsToMen = (p) => {
-        const catId = p?.category_id ?? p?.categoryId ?? p?.category?.id;
-        if (
-          catId !== undefined &&
-          catId !== null &&
-          menCategoryIds.has(String(catId))
-        ) {
-          return true;
-        }
-        const hay = `${p?.category_name || ""} ${p?.name || ""} ${
-          p?.brand || ""
-        } ${p?.gender || ""}`.toLowerCase();
-        if (/\bwomen'?s?\b|\bkids?\b|\bgirls?\b/.test(hay)) return false;
-        return /\bmen'?s?\b|\bmale\b/.test(hay);
-      };
-
-      const rankAndSlice = (list) =>
-        list
-          .map((p) => {
-            const price = Number(p.discount_price ?? p.price ?? 0);
-            const mrp = Number(p.price ?? p.original_price ?? price);
-            const discount =
-              mrp > price && mrp > 0
-                ? Math.round(((mrp - price) / mrp) * 100)
-                : 0;
-            return { ...p, _discount: discount };
-          })
-          .sort((a, b) => b._discount - a._discount)
-          .slice(0, 8)
-          .map(normalizeProduct);
-
-      // NOTE: `found` is intentionally not reset to [] in the catch blocks
-      // below — it's already [] from this initial declaration, so
-      // reassigning it there was a no-op flagged by no-useless-assignment.
-      let found = [];
-
-      try {
-        const res = await getBestsellers(40);
-        found = extractProducts(res).filter(belongsToMen);
-      } catch (err) {
-        console.warn("[Men] getBestsellers failed:", err);
-      }
-
-      // Fallback: men category products ranked by discount
-      if (!found.length && menRootId) {
-        try {
-          const byCat = await getProducts({
-            category_id: menRootId,
-            sort: "newest",
-            limit: 20,
-          });
-          found = extractProducts(byCat);
-        } catch (err) {
-          console.warn("[Men] men products fallback failed:", err);
-        }
-
-        if (!found.length && menSubcats.length) {
-          try {
-            const perSub = await Promise.all(
-              menSubcats.slice(0, 6).map((sub) =>
-                getProducts({
-                  category_id: sub.id,
-                  sort: "newest",
-                  limit: 4,
-                }).catch(() => [])
-              )
-            );
-            found = perSub.flatMap(extractProducts);
-          } catch {
-            // found stays [] from the initial declaration
-          }
-        }
-      }
-
-      if (!cancelled) {
-        setDealsOfDay(rankAndSlice(found));
-        setDealsLoading(false);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [menResolved, menRootId, menSubcats]);
-
-  // Initial men products (Trending Now + Show More)
+  // Once we know which category *is* Men, fetch products scoped to it.
+  // No gender-text or bestseller fallback here on purpose — if the Men
+  // subtree has no products yet we show an empty state instead of mixing
+  // in items from other sections.
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
 
     (async () => {
       setProductsLoading(true);
-      setProductsOffset(0);
-      setProductsHasMore(false);
-
       let found = [];
 
       if (menRootId) {
@@ -470,38 +359,31 @@ export default function Men() {
           const byCategory = await getProducts({
             category_id: menRootId,
             sort: "newest",
-            limit: PRODUCTS_PAGE_SIZE,
-            offset: 0,
+            limit: 8,
           });
           found = extractProducts(byCategory);
         } catch {
-          // found stays [] from the initial declaration
+          found = [];
         }
       }
 
-      if (!found.length && menRootId && menSubcats.length) {
+      if (!found.length && menRootId) {
+        // Some backends only tag leaf-level products, not the root — retry
+        // against each direct subcategory and merge until we have 8.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
-              getProducts({
-                category_id: sub.id,
-                sort: "newest",
-                limit: 4,
-                offset: 0,
-              }).catch(() => [])
+              getProducts({ category_id: sub.id, sort: "newest", limit: 4 }).catch(() => [])
             )
           );
           found = perSub.flatMap(extractProducts);
         } catch {
-          // found stays [] from the initial declaration
+          found = [];
         }
       }
 
       if (!cancelled) {
-        const slice = found.slice(0, PRODUCTS_PAGE_SIZE).map(normalizeProduct);
-        setProducts(slice);
-        setProductsOffset(slice.length);
-        setProductsHasMore(found.length >= PRODUCTS_PAGE_SIZE);
+        setProducts(found.slice(0, 8).map(normalizeProduct));
         setProductsLoading(false);
       }
     })();
@@ -510,40 +392,6 @@ export default function Men() {
       cancelled = true;
     };
   }, [menResolved, menRootId, menSubcats]);
-
-  const loadMoreProducts = async () => {
-    if (productsLoadingMore || !productsHasMore || !menRootId) return;
-
-    setProductsLoadingMore(true);
-    try {
-      const res = await getProducts({
-        category_id: menRootId,
-        sort: "newest",
-        limit: PRODUCTS_PAGE_SIZE,
-        offset: productsOffset,
-      });
-      const next = extractProducts(res).map(normalizeProduct);
-
-      setProducts((prev) => {
-        const seen = new Set(prev.map((p) => String(p.id)));
-        const merged = [...prev];
-        next.forEach((p) => {
-          const key = String(p?.id || "");
-          if (!key || seen.has(key)) return;
-          seen.add(key);
-          merged.push(p);
-        });
-        return merged;
-      });
-
-      setProductsOffset((prev) => prev + next.length);
-      setProductsHasMore(next.length >= PRODUCTS_PAGE_SIZE);
-    } catch {
-      setProductsHasMore(false);
-    } finally {
-      setProductsLoadingMore(false);
-    }
-  };
 
   const menScopedShopUrl = useCallback(
     (opts = {}) => {
@@ -578,9 +426,7 @@ export default function Men() {
         .replace(/\s+/g, " ")
         .trim();
       if (!needle || !menSubcats.length) return null;
-      const exact = menSubcats.find(
-        (c) => c.name.toLowerCase().trim() === needle
-      );
+      const exact = menSubcats.find((c) => c.name.toLowerCase().trim() === needle);
       if (exact) return exact;
       return (
         menSubcats.find((c) => {
@@ -595,8 +441,7 @@ export default function Men() {
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
       return menSubcats.map((cat) => {
-        const image =
-          resolveImageUrl(cat.image) || getCategoryImage(cat.name) || "";
+        const image = resolveImageUrl(cat.image) || getCategoryImage(cat.name) || "";
         return {
           id: cat.id,
           label: cat.name,
@@ -612,9 +457,7 @@ export default function Men() {
         label,
         icon: CATEGORY_ICONS[idx] || MdGridView,
         image: match
-          ? resolveImageUrl(match.image) ||
-            getCategoryImage(match.name) ||
-            ""
+          ? resolveImageUrl(match.image) || getCategoryImage(match.name) || ""
           : "",
         to: match
           ? menScopedShopUrl({ categoryId: match.id })
@@ -639,16 +482,8 @@ export default function Men() {
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
 
-  const scrollDeals = (dir) => {
-    const el = dealsRailRef.current;
-    if (!el) return;
-    el.scrollBy({ left: dir * 320, behavior: "smooth" });
-  };
-
   const goHeroSlide = (dir) => {
-    setHeroSlide(
-      (cur) => (cur + dir + MEN_BANNERS.length) % MEN_BANNERS.length
-    );
+    setHeroSlide((cur) => (cur + dir + MEN_BANNERS.length) % MEN_BANNERS.length);
   };
 
   const wishlistCount = wishlistItems?.length || 0;
@@ -675,11 +510,7 @@ export default function Men() {
 
       <div className="hp-sticky-head catalog-home-topbar">
         <header className="hp-main-header catalog-main-header">
-          <button
-            type="button"
-            className="hp-brand"
-            onClick={() => navigate("/")}
-          >
+          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
             <img
               src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
               alt="Blinkiefash"
@@ -693,10 +524,7 @@ export default function Men() {
             </span>
           </button>
 
-          <form
-            className="hp-header-search catalog-mobile-search"
-            onSubmit={handleSearchSubmit}
-          >
+          <form className="hp-header-search catalog-mobile-search" onSubmit={handleSearchSubmit}>
             <MdSearch className="hp-search-icon" />
             <input
               name="q"
@@ -704,11 +532,7 @@ export default function Men() {
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Search for men's clothing, shoes, accessories & more..."
             />
-            <button
-              type="submit"
-              className="hp-search-btn"
-              aria-label="Search products"
-            >
+            <button type="submit" className="hp-search-btn" aria-label="Search products">
               <MdSearch />
             </button>
           </form>
@@ -745,9 +569,7 @@ export default function Men() {
               <button type="button" onClick={() => navigate("/cart")}>
                 <MdOutlineShoppingCart />
                 <span>Cart</span>
-                {cartCount > 0 ? (
-                  <span className="hp-icon-badge">{cartCount}</span>
-                ) : null}
+                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
               </button>
             </div>
           </div>
@@ -759,9 +581,7 @@ export default function Men() {
               <button
                 key={item.label}
                 type="button"
-                className={`hp-nav-link${
-                  item.label === "Men" ? " active" : ""
-                }`}
+                className={`hp-nav-link${item.label === "Men" ? " active" : ""}`}
                 onClick={() => navigate(item.to)}
               >
                 {item.label}
@@ -815,10 +635,7 @@ export default function Men() {
         </section>
 
         {/* Hero — single banner, plain image with slide controls */}
-        <section
-          className="men-hero-banner"
-          aria-label="Men's fashion highlights"
-        >
+        <section className="men-hero-banner" aria-label="Men's fashion highlights">
           <button
             type="button"
             className="men-hero-arrow men-hero-arrow-prev"
@@ -851,9 +668,7 @@ export default function Men() {
               <button
                 key={idx}
                 type="button"
-                className={`men-hero-dot${
-                  idx === heroSlide ? " active" : ""
-                }`}
+                className={`men-hero-dot${idx === heroSlide ? " active" : ""}`}
                 aria-label={`Show banner ${idx + 1}`}
                 onClick={() => setHeroSlide(idx)}
               />
@@ -878,8 +693,7 @@ export default function Men() {
                       alt={cat.label}
                       onError={(event) => {
                         event.currentTarget.style.display = "none";
-                        const fallback =
-                          event.currentTarget.nextElementSibling;
+                        const fallback = event.currentTarget.nextElementSibling;
                         if (fallback) fallback.style.display = "inline-flex";
                       }}
                     />
@@ -924,9 +738,7 @@ export default function Men() {
                 <div className="men-promo-content">
                   <p className="men-promo-title-bfi">{card.title}</p>
                   <p className="men-promo-subtitle-bfi">{card.subtitle}</p>
-                  <div className="men-promo-highlight-bfi">
-                    {card.highlight}
-                  </div>
+                  <div className="men-promo-highlight-bfi">{card.highlight}</div>
                   <button
                     type="button"
                     className="men-promo-button-bfi"
@@ -964,13 +776,9 @@ export default function Men() {
                   <p className="men-promo-mini-title">{card.title}</p>
                   <p className="men-promo-mini-sub">{card.subtitle}</p>
                   {card.badge ? (
-                    <span className="men-promo-code-badge">
-                      {card.highlight}
-                    </span>
+                    <span className="men-promo-code-badge">{card.highlight}</span>
                   ) : (
-                    <p className="men-promo-mini-highlight">
-                      {card.highlight}
-                    </p>
+                    <p className="men-promo-mini-highlight">{card.highlight}</p>
                   )}
                 </div>
               </article>
@@ -987,9 +795,7 @@ export default function Men() {
           >
             <div>
               <p className="men-promo-title">Prepaid Order Offers</p>
-              <p className="men-promo-sub">
-                Extra savings when you pay online
-              </p>
+              <p className="men-promo-sub">Extra savings when you pay online</p>
             </div>
             <MdLocalOffer className="men-promo-icon" />
           </button>
@@ -1001,9 +807,7 @@ export default function Men() {
           >
             <div>
               <p className="men-promo-title">Top Brand Discounts</p>
-              <p className="men-promo-sub">
-                Nike · Adidas · Puma &amp; more
-              </p>
+              <p className="men-promo-sub">Nike · Adidas · Puma &amp; more</p>
             </div>
             <span className="men-promo-cta">
               Shop Now <MdArrowForward />
@@ -1017,9 +821,7 @@ export default function Men() {
           >
             <div>
               <p className="men-promo-title">Fast &amp; Free Delivery</p>
-              <p className="men-promo-sub">
-                On eligible orders, in 60 minutes
-              </p>
+              <p className="men-promo-sub">On eligible orders, in 60 minutes</p>
             </div>
             <span className="men-promo-cta">
               Shop Now <MdArrowForward />
@@ -1027,35 +829,32 @@ export default function Men() {
           </button>
         </section>
 
-        {/* Deals of the Day — scoped to Men only */}
+        {/* Trending Now — uses the shared ProductCard, same as Women.jsx */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
-            <h2>Deals of the Day</h2>
-            <button
-              type="button"
-              onClick={() => navigate(menScopedShopUrl())}
-            >
+            <h2>Trending Now</h2>
+            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
           </div>
 
-          {dealsLoading ? (
-            <p className="men-empty-state">Loading today&apos;s best deals…</p>
-          ) : dealsOfDay.length ? (
+          {productsLoading ? (
+            <p className="men-empty-state">Loading today&apos;s picks…</p>
+          ) : products.length ? (
             <div className="hp-deals-wrap">
               <button
                 type="button"
                 className="hp-deals-prev"
                 aria-label="Previous"
-                onClick={() => scrollDeals(-1)}
+                onClick={() => scrollPicks(-1)}
               >
                 <MdChevronLeft />
               </button>
 
-              <div className="hp-deals-rail" role="list" ref={dealsRailRef}>
-                {dealsOfDay.map((p, idx) => (
+              <div className="hp-deals-rail" role="list" ref={picksRailRef}>
+                {products.map((p, idx) => (
                   <div
-                    key={`men-deal-${p.id}-${idx}`}
+                    key={`men-pick-${p.id}-${idx}`}
                     className="hp-deal-card-wrapper"
                     role="listitem"
                   >
@@ -1068,81 +867,11 @@ export default function Men() {
                 type="button"
                 className="hp-deals-next"
                 aria-label="Next"
-                onClick={() => scrollDeals(1)}
+                onClick={() => scrollPicks(1)}
               >
                 <MdChevronRight />
               </button>
             </div>
-          ) : (
-            <p className="men-empty-state">
-              No deals live right now — check back soon.
-            </p>
-          )}
-        </section>
-
-        {/* Trending Now + Show More */}
-        <section className="section men-picks-section">
-          <div className="hp-section-head">
-            <h2>Trending Now</h2>
-            <button
-              type="button"
-              onClick={() => navigate(menScopedShopUrl())}
-            >
-              View All <MdChevronRight />
-            </button>
-          </div>
-
-          {productsLoading ? (
-            <p className="men-empty-state">Loading today&apos;s picks…</p>
-          ) : products.length ? (
-            <>
-              <div className="hp-deals-wrap">
-                <button
-                  type="button"
-                  className="hp-deals-prev"
-                  aria-label="Previous"
-                  onClick={() => scrollPicks(-1)}
-                >
-                  <MdChevronLeft />
-                </button>
-
-                <div className="hp-deals-rail" role="list" ref={picksRailRef}>
-                  {products.map((p, idx) => (
-                    <div
-                      key={`men-pick-${p.id}-${idx}`}
-                      className="hp-deal-card-wrapper"
-                      role="listitem"
-                    >
-                      <ProductCard product={p} />
-                    </div>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  className="hp-deals-next"
-                  aria-label="Next"
-                  onClick={() => scrollPicks(1)}
-                >
-                  <MdChevronRight />
-                </button>
-              </div>
-
-              {!productsLoadingMore && productsHasMore ? (
-                <button
-                  type="button"
-                  className="hp-explore-more"
-                  onClick={loadMoreProducts}
-                  style={{ marginTop: 16 }}
-                >
-                  Show More Products
-                </button>
-              ) : null}
-
-              {productsLoadingMore ? (
-                <p className="men-empty-state">Loading more products…</p>
-              ) : null}
-            </>
           ) : (
             <p className="men-empty-state">
               New men&apos;s styles are landing soon — check back shortly.

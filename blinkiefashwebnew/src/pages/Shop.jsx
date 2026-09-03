@@ -2,27 +2,13 @@ import "./Shop.css";
 import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
+import Navbar from "../components/Navbar";
 import Categorydrawer from "../components/Categorydrawer";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 
-import {
-  MdClose,
-  MdFavoriteBorder,
-  MdGridView,
-  MdKeyboardArrowDown,
-  MdLocationOn,
-  MdOutlineShoppingCart,
-  MdPersonOutline,
-  MdSearch,
-  MdCheckroom,
-  MdTune,
-} from "react-icons/md";
+import { MdGridView, MdKeyboardArrowDown, MdTune } from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
-import { hasVendorPasswordAuth } from "../utils/vendorSession";
 import "./Home.css";
 
 const COLORS = [
@@ -40,7 +26,6 @@ const COLORS = [
 const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 const API_BASE = API_API_BASE_URL;
-const RECENT_SEARCH_KEY = "bfw_recent_searches";
 
 const resolveImageUrl = (raw) => {
   const value = (raw ?? "").toString().trim();
@@ -72,30 +57,6 @@ const buildChildrenMap = (data) => {
 export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount } = useCart();
-  const { count: wishlistCount } = useWishlist();
-
-  const city =
-    localStorage.getItem("bfw_city") ||
-    localStorage.getItem("selectedCity") ||
-    "Cuttack";
-  const isLoggedIn =
-    authLoggedIn ||
-    Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const canSwitchToVendor =
-    user?.role === "vendor" && hasVendorPasswordAuth();
-  const headerUserName = String(
-    user?.name || localStorage.getItem("userName") || ""
-  ).trim();
-  const headerFirstName = headerUserName
-    ? headerUserName.split(/\s+/)[0]
-    : "";
-  const accountLabel = isLoggedIn
-    ? headerFirstName
-      ? `Hi, ${headerFirstName}`
-      : "My Account"
-    : "Login / Signup";
 
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -110,17 +71,6 @@ export default function Shop() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
-  const [showSearchSuggestions, setShowSearchSuggestions] = useState(false);
-  const [recentSearches, setRecentSearches] = useState(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(RECENT_SEARCH_KEY) || "[]");
-      return Array.isArray(stored) ? stored.filter(Boolean).slice(0, 8) : [];
-    } catch {
-      return [];
-    }
-  });
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
@@ -130,9 +80,6 @@ export default function Shop() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [drawerParent, setDrawerParent] = useState(null);
   const activeCategoryTriggerRef = useRef(null);
-
-  const searchBlurTimerRef = useRef(null);
-  const searchSuggestTimerRef = useRef(null);
 
   const getChildren = useCallback(
     (parentId) => {
@@ -216,25 +163,6 @@ export default function Shop() {
   const normalizeSearchText = (value) =>
     normalizeText(value).replace(/[^a-z0-9]+/g, "");
 
-  const rankedMatches = (items, query, limit, getter) => {
-    const prefix = [];
-    const contains = [];
-    const lower = normalizeText(query);
-
-    for (const item of items) {
-      const text = normalizeText(getter(item));
-      if (!text) continue;
-      if (text.startsWith(lower)) {
-        prefix.push(item);
-      } else if (text.includes(lower)) {
-        contains.push(item);
-      }
-      if (prefix.length >= limit) break;
-    }
-
-    return [...prefix, ...contains].slice(0, limit);
-  };
-
   const extractProducts = (payload) => {
     if (Array.isArray(payload)) return payload;
     if (payload && Array.isArray(payload.products)) return payload.products;
@@ -248,7 +176,6 @@ export default function Shop() {
 
     const id = setTimeout(() => {
       setSearchTerm(nextSearch);
-      setSearchInput(nextSearch);
       setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
       setVisibleCount(24);
     }, 0);
@@ -549,171 +476,6 @@ export default function Shop() {
     navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
   };
 
-  const saveRecentSearch = (rawValue) => {
-    const value = String(rawValue || "").trim();
-    if (!value) return;
-
-    const deduped = [
-      value,
-      ...recentSearches.filter(
-        (item) => normalizeText(item) !== normalizeText(value)
-      ),
-    ].slice(0, 8);
-    setRecentSearches(deduped);
-    localStorage.setItem(RECENT_SEARCH_KEY, JSON.stringify(deduped));
-  };
-
-  const updateSearchSuggestions = (value) => {
-    if (searchSuggestTimerRef.current) {
-      clearTimeout(searchSuggestTimerRef.current);
-      searchSuggestTimerRef.current = null;
-    }
-
-    const query = String(value || "").trim();
-    if (!query) {
-      searchSuggestTimerRef.current = setTimeout(async () => {
-        const recentsFallback = recentSearches.map((item) => ({
-          text: item,
-          type: "search",
-          subtitle: "Recent search",
-        }));
-        try {
-          const userIdParam = localStorage.getItem("userUuid") || "";
-          const response = await fetch(
-            `${API_BASE}/analytics/suggestions?user_id=${encodeURIComponent(userIdParam)}&limit=5`
-          );
-          const data = await response.json();
-
-          const results = [];
-          const seen = new Set();
-          const pushResult = (text, subtitle) => {
-            const clean = String(text || "").trim();
-            if (!clean) return;
-            const key = clean.toLowerCase();
-            if (seen.has(key)) return;
-            seen.add(key);
-            results.push({ text: clean, type: "search", subtitle });
-          };
-
-          (Array.isArray(data?.recentSearches) ? data.recentSearches : []).forEach(
-            (text) => pushResult(text, "Recent search")
-          );
-          (Array.isArray(data?.trendingSearches)
-            ? data.trendingSearches
-            : []
-          ).forEach((text) => pushResult(text, "Trending"));
-
-          if (results.length === 0) {
-            setSearchSuggestions(recentsFallback.slice(0, 8));
-          } else {
-            setSearchSuggestions(results.slice(0, 8));
-          }
-        } catch {
-          setSearchSuggestions(recentsFallback.slice(0, 8));
-        }
-      }, 50);
-      return;
-    }
-
-    searchSuggestTimerRef.current = setTimeout(() => {
-      const q = normalizeText(query);
-      const seen = new Set();
-      const ranked = [];
-
-      const pushCandidate = (entry) => {
-        const clean = String(entry?.text || "").trim();
-        if (!clean) return;
-        const key = `${entry.type}:${clean.toLowerCase()}`;
-        if (seen.has(key)) return;
-        seen.add(key);
-        ranked.push(entry);
-      };
-
-      pushCandidate({ text: query, type: "search" });
-
-      rankedMatches(categories, q, 2, (item) => item.name).forEach((item) => {
-        pushCandidate({
-          text: item.name,
-          type: "category",
-          id: item.id ? String(item.id) : "",
-        });
-      });
-
-      const matchingBrands = rankedMatches(brands, q, 2, (item) => item.name);
-      const brandsToShow =
-        matchingBrands.length > 0 ? matchingBrands : brands.slice(0, 2);
-      brandsToShow.forEach((item) => {
-        pushCandidate({
-          text: item.name,
-          type: "brand",
-          id: item.id ? String(item.id) : "",
-          subtitle: matchingBrands.length === 0 ? "Popular brand" : "",
-        });
-      });
-
-      rankedMatches(products, q, 4, (item) => item.name).forEach((item) => {
-        pushCandidate({ text: item.name, type: "product" });
-      });
-
-      setSearchSuggestions(ranked.slice(0, 8));
-    }, 150);
-  };
-
-  const handleTopSearch = (event) => {
-    event.preventDefault();
-    const value = String(searchInput || "").trim();
-    saveRecentSearch(value);
-    setShowSearchSuggestions(false);
-    navigateWithFilters({ nextSearch: value });
-  };
-
-  const handleSearchInputFocus = () => {
-    if (searchBlurTimerRef.current) {
-      clearTimeout(searchBlurTimerRef.current);
-      searchBlurTimerRef.current = null;
-    }
-    updateSearchSuggestions(searchInput);
-    setShowSearchSuggestions(true);
-  };
-
-  const handleSearchInputBlur = () => {
-    searchBlurTimerRef.current = setTimeout(() => {
-      setShowSearchSuggestions(false);
-    }, 120);
-  };
-
-  const applySuggestion = (item) => {
-    const type = item?.type || "product";
-    const text = String(item?.text || "").trim();
-    const id = String(item?.id || "").trim();
-
-    if (!text) return;
-
-    setShowSearchSuggestions(false);
-
-    if (type === "category") {
-      setSearchInput("");
-      setSearchTerm("");
-      setActiveBrand([]);
-      setActiveCategoryId(id || null);
-      navigateWithFilters({ nextSearch: "", nextCategoryId: id || null });
-      return;
-    }
-
-    if (type === "brand") {
-      setSearchInput("");
-      setSearchTerm("");
-      setActiveCategoryId(null);
-      setActiveBrand([text]);
-      navigateWithFilters({ nextSearch: "", nextCategoryId: null });
-      return;
-    }
-
-    setSearchInput(text);
-    saveRecentSearch(text);
-    navigateWithFilters({ nextSearch: text });
-  };
-
   const toggleBrandFilter = (name) => {
     setActiveBrand((prev) =>
       prev.includes(name)
@@ -795,135 +557,8 @@ export default function Shop() {
         description="Browse thousands of products across Men, Women, Kids, Electronics & Footwear. Filter by brand, price and colour. Express 60-minute delivery in Odisha."
         path="/shop"
       />
-      <div className="hp-sticky-head catalog-home-topbar">
-        <header className="hp-main-header catalog-main-header">
-          <button
-            type="button"
-            className="hp-brand"
-            onClick={() => navigate("/")}
-          >
-            <img
-              src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
-              alt="Blinkiefash"
-              className="hp-logo"
-            />
-            <span className="hp-brand-text">
-              <span className="hp-brand-name">
-                BLINKIE<span className="hp-brand-accent">FASH</span>
-              </span>
-              <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-            </span>
-          </button>
 
-          <form
-            className="hp-header-search catalog-mobile-search"
-            onSubmit={handleTopSearch}
-          >
-            <MdSearch className="hp-search-icon" />
-            <input
-              name="q"
-              value={searchInput}
-              onChange={(e) => {
-                const value = e.target.value;
-                setSearchInput(value);
-                updateSearchSuggestions(value);
-                if (!value.trim()) {
-                  navigateWithFilters({ nextSearch: "" });
-                }
-              }}
-              onFocus={handleSearchInputFocus}
-              onBlur={handleSearchInputBlur}
-              placeholder="Search products, brands..."
-            />
-            {searchInput.trim() ? (
-              <button
-                type="button"
-                className="catalog-search-clear"
-                aria-label="Clear search"
-                onClick={() => {
-                  setSearchInput("");
-                  updateSearchSuggestions("");
-                  navigateWithFilters({ nextSearch: "" });
-                }}
-              >
-                <MdClose />
-              </button>
-            ) : null}
-            <button
-              type="submit"
-              className="hp-search-btn"
-              aria-label="Search products"
-            >
-              <MdSearch />
-            </button>
-            {showSearchSuggestions && searchSuggestions.length > 0 ? (
-              <div
-                className="catalog-search-suggestions"
-                role="listbox"
-                aria-label="Search suggestions"
-              >
-                {searchSuggestions.map((item, idx) => (
-                  <button
-                    key={`${item.type}-${item.text}-${idx}`}
-                    type="button"
-                    className="catalog-suggestion-item"
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => applySuggestion(item)}
-                  >
-                    <MdSearch />
-                    <span className="catalog-suggestion-text">{item.text}</span>
-                    <span className="catalog-suggestion-type">
-                      {item.subtitle || item.type}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            ) : null}
-          </form>
-
-          <div className="catalog-header-actions-wrap">
-            <button
-              type="button"
-              className="catalog-location-pill"
-              onClick={() => navigate("/account")}
-            >
-              <MdLocationOn />
-              <span>{city}</span>
-              <MdKeyboardArrowDown />
-            </button>
-
-            <div className="hp-header-actions">
-              {canSwitchToVendor ? (
-                <button type="button" onClick={() => navigate("/vendor/orders")}>
-                  <MdCheckroom />
-                  <span>Switch to Vendor</span>
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => navigate(isLoggedIn ? "/account" : "/login")}
-              >
-                <MdPersonOutline />
-                <span>{accountLabel}</span>
-              </button>
-              <button type="button" onClick={() => navigate("/wishlist")}>
-                <MdFavoriteBorder />
-                <span>Wishlist</span>
-                {wishlistCount > 0 ? (
-                  <span className="hp-icon-badge">{wishlistCount}</span>
-                ) : null}
-              </button>
-              <button type="button" onClick={() => navigate("/cart")}>
-                <MdOutlineShoppingCart />
-                <span>Cart</span>
-                {cartCount > 0 ? (
-                  <span className="hp-icon-badge">{cartCount}</span>
-                ) : null}
-              </button>
-            </div>
-          </div>
-        </header>
-      </div>
+      <Navbar />
 
       <main className="catalog-main">
         <div className="catalog-headline-row">
