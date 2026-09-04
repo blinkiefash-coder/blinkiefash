@@ -44,10 +44,17 @@
 }
 
 .logo-img {
-  height: 38px;
+  height: 52px;
   width: auto;
+  max-width: 190px;
   object-fit: contain;
   display: block;
+  mix-blend-mode: multiply;
+  transition: transform 0.18s ease;
+}
+
+.nav-logo-btn:hover .logo-img {
+  transform: scale(1.025);
 }
 
 .brand-block {
@@ -634,7 +641,8 @@ form.search-box.search-box {
   }
 
   .nav-left .logo-img {
-    height: 32px;
+    height: 40px;
+    max-width: 148px;
   }
 
   .nav-left .brand {
@@ -650,7 +658,6 @@ form.search-box.search-box {
     margin-left: auto;
   }
 
-
   .nav-right form.search-box,
   .nav-right form.search-box.search-box {
     display: none !important;
@@ -658,6 +665,10 @@ form.search-box.search-box {
 
   .nav-mobile-search-btn {
     display: inline-flex;
+
+  .nav-right form.search-box.search-box {
+    display: none !important;
+
   }
 
   .nav-right .nav-action-copy {

@@ -4,9 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
-
-const LOGO_URL =
-  "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
+import logo from "../assets/logo1.png";
 
 /* ---------- inline icons ---------- */
 const IconChevronDown = ({ size = 14 }) => (
@@ -242,14 +240,7 @@ export default function Navbar() {
         {/* LEFT: logo + brand + address */}
         <div className="nav-left">
           <button type="button" className="nav-logo-btn" onClick={() => navigate("/")} aria-label="Home">
-            <img src={LOGO_URL} alt="" className="logo-img" />
-            <div className="brand-block">
-              <span className="brand">
-                <span className="brand-black">BLINKIE</span>
-                <span className="brand-green">FASH</span>
-              </span>
-              <span className="brand-tagline">DELIVERED IN 60 MINUTES</span>
-            </div>
+            <img src={logo} alt="Blinkiefash" className="logo-img" />
           </button>
         </div>
 

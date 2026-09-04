@@ -1,8 +1,10 @@
 import "./Navbar.css";
-import logo from "../assets/logo.png";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { API_API_BASE_URL } from "../apiBase";
+
+const NAVBAR_LOGO_URL =
+  "https://res.cloudinary.com/vu2qpoeq/image/upload/v1788066240/file_000000003b80820b855728d691b4f9f1.png";
 
 export default function Navbar({ active }) {
   const [activeTab, setActiveTab] = useState(active || "ALL");
@@ -202,15 +204,12 @@ export default function Navbar({ active }) {
       </button>
 
       <div className="nav-left">
-        <img src={logo} alt="Blinkiefash" className="logo-img" />
-
-        <span className="brand" 
-            onClick={() => navigate("/")}
-              style={{ cursor: "pointer" }}
-            >
-          <span className="brand-black">BLINKIE</span>
-          <span className="brand-green">FASH</span>
-        </span>
+        <img
+          src={NAVBAR_LOGO_URL}
+          alt="Blinkiefash"
+          className="logo-img"
+          onClick={() => navigate("/")}
+        />
 
         {/* Admin/Vendor Navigation Links - Hidden on mobile */}
         <nav className="nav-links" style={{ display: 'flex', gap: '20px', marginLeft: '40px' }}>

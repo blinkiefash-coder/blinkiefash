@@ -14,7 +14,11 @@
 }
 
 .logo-img {
+  width: clamp(132px, 16vw, 190px);
   height: 55px;
+  object-fit: contain;
+  display: block;
+  cursor: pointer;
 }
 
 /* Brand */
@@ -298,9 +302,11 @@
   }
   .nav-hamburger { display: inline-flex; align-items: center; justify-content: center; }
 
-  .nav-left { gap: 8px; }
-  .nav-left .logo-img { height: 36px; }
-  .nav-left .brand { font-size: 16px; }
+  .nav-left { gap: 8px; min-width: 0; }
+  .nav-left .logo-img {
+    width: clamp(112px, 34vw, 160px);
+    height: 40px;
+  }
   .nav-left .address-box { display: none; }
   .nav-left .nav-links { display: none; }
 
