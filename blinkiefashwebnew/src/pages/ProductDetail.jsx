@@ -623,12 +623,6 @@ export default function ProductDetail() {
             alt="Blinkiefash"
             className="hp-logo"
           />
-          <span className="hp-brand-text">
-            <span className="hp-brand-name">
-              BLINKIE<span className="hp-brand-accent">FASH</span>
-            </span>
-            <span className="hp-tagline">DELIVERED IN 60 MINUTES</span>
-          </span>
         </button>
 
         <form className="hp-header-search" onSubmit={handleSearchSubmit}>
