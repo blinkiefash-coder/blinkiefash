@@ -665,10 +665,6 @@ form.search-box.search-box {
 
   .nav-mobile-search-btn {
     display: inline-flex;
-
-  .nav-right form.search-box.search-box {
-    display: none !important;
-
   }
 
   .nav-right .nav-action-copy {
