@@ -5,7 +5,6 @@ import {
   MdChevronRight,
   MdChevronLeft,
   MdArrowForward,
-  MdLocalOffer,
   MdLocalShipping,
 } from 'react-icons/md';
 
@@ -807,16 +806,8 @@ export default function Home() {
             </div>
           </div>
 
-          {/* 4. FLAT 5% OFF + FREE DELIVERY — stacked in the 4th column */}
+          {/* 4. FREE DELIVERY — fills the 4th column */}
           <div className="hp-reward-stack">
-            <div className="hp-reward-mini">
-              <div>
-                <strong>FLAT 5% OFF</strong>
-                <span>ON FIRST ORDER</span>
-                <span className="hp-reward-mini-chip">Use Code: WELCOME5</span>
-              </div>
-              <MdLocalOffer className="hp-reward-mini-icon" />
-            </div>
             <div className="hp-reward-mini">
               <div>
                 <strong>FREE DELIVERY</strong>

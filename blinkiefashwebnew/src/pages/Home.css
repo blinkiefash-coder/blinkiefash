@@ -935,9 +935,8 @@
 }
 
 /* ================================================================
-   REWARDS GRID — desktop: Spin | Play | Refer | Stack (Flat 5% Off +
-   Free Delivery) all in one row. The stack column holds two mini
-   cards on top of each other so 4 offers show in a single row.
+  REWARDS GRID — desktop: Spin | Play | Refer | Free Delivery
+  all in one row.
    ================================================================ */
 .hp-rewards-grid {
   display: grid;
@@ -1104,11 +1103,10 @@
   backdrop-filter: blur(2px);
 }
 
-/* ===== FLAT 5% OFF / FREE DELIVERY — stacked mini cards (4th column) ===== */
+/* ===== FREE DELIVERY — fills the 4th reward column ===== */
 .hp-reward-stack {
   display: flex;
   flex-direction: column;
-  gap: 14px;
   min-width: 0;
 }
 
@@ -1122,7 +1120,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  min-height: 0;
+  min-height: 180px;
 }
 
 .hp-reward-mini:last-child {
@@ -2021,7 +2019,7 @@
   }
 
   /* Tablet: keep 2-up before the 640px mobile rule takes over.
-     The stack (Flat 5% Off + Free Delivery) spans both columns
+    The reward cards span both columns
      and lays its two mini cards out side by side. */
   .hp-rewards-grid {
     grid-template-columns: 1fr 1fr;
@@ -3376,6 +3374,26 @@ html, body, #root {
   }
 }
 
+@media (max-width: 768px) {
+  .hp-slide {
+    aspect-ratio: 16 / 10 !important;
+  }
+
+  .hp-deals-rail {
+    grid-auto-columns: minmax(132px, 42vw) !important;
+    gap: 10px !important;
+    padding-top: 2px;
+  }
+
+  .hp-deals-rail .pc-image-wrap {
+    aspect-ratio: 4 / 5;
+  }
+
+  .hp-deals-rail .pc-body {
+    padding: 8px 9px 11px;
+  }
+}
+
 @media (max-width: 420px) {
   .hp-coupon-section {
     margin: 0 -8px 0 !important;
@@ -3534,6 +3552,7 @@ html, body, #root {
 @media (max-width: 420px) {
   .hp-slide {
     aspect-ratio: 3.4 / 1 !important;
+    min-height: 145px !important;
   }
 }
 
@@ -3555,7 +3574,7 @@ html, body, #root {
 @media (max-width: 768px) {
   .hp-rewards-grid {
     display: grid !important;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-template-areas: none !important;
     gap: 6px !important;
     width: 100% !important;
@@ -3565,10 +3584,16 @@ html, body, #root {
   .hp-reward-play  { grid-area: auto !important; }
   .hp-reward-refer { grid-area: auto !important; }
 
-  /* Keep the 5%-off / free-delivery stack full width below the row */
+  /* Let the remaining offer join the other three cards in the grid. */
   .hp-reward-stack {
-    grid-column: 1 / -1 !important;
+    display: contents !important;
+    grid-column: auto !important;
     grid-area: auto !important;
+  }
+
+  .hp-reward-mini {
+    grid-column: auto !important;
+    min-height: 108px !important;
   }
 
   .hp-reward-panel,
