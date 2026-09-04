@@ -310,6 +310,23 @@
   align-items: center;
   gap: 20px;
   flex-shrink: 0;
+  position: relative;
+}
+
+/* Mobile-only search icon trigger (hidden on desktop) */
+.nav-mobile-search-btn {
+  display: none;
+  border: none;
+  background: transparent;
+  padding: 8px;
+  cursor: pointer;
+  color: #111827;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-mobile-search-btn:hover {
+  color: #0e7d47;
 }
 
 /* ===== SEARCH — redesigned pill ===== */
@@ -633,8 +650,14 @@ form.search-box.search-box {
     margin-left: auto;
   }
 
-  .nav-right .search-box {
-    display: none;
+
+  .nav-right form.search-box,
+  .nav-right form.search-box.search-box {
+    display: none !important;
+  }
+
+  .nav-mobile-search-btn {
+    display: inline-flex;
   }
 
   .nav-right .nav-action-copy {
@@ -648,6 +671,69 @@ form.search-box.search-box {
 
   .profile-dropdown {
     display: none !important;
+  }
+  .navbar-search-only .nav-hamburger,
+  .navbar-search-only .nav-left,
+  .navbar-search-only .nav-mobile-search-btn,
+  .navbar-search-only .nav-action-btn,
+  .navbar-search-only .profile-box {
+    display: none !important;
+  }
+
+
+  /* Search-only mobile navbar: full-bleed, no side padding */
+  .navbar.navbar-search-only,
+  .navbar-search-only.navbar,
+  nav.navbar-search-only {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 10px 0 !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    gap: 0 !important;
+  }
+
+  .navbar-search-only .nav-right,
+  .navbar-search-only .nav-right * {
+    box-sizing: border-box !important;
+  }
+
+  .navbar-search-only .nav-right {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .navbar-search-only .nav-right form.search-box,
+  .navbar-search-only .nav-right form.search-box.search-box {
+    display: flex !important;
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    border-left: none !important;
+    border-right: none !important;
+    border-top: none !important;
+    box-shadow: none !important;
+  }
+
+  .navbar-search-only .nav-right form.search-box:focus-within {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* In case a page-level wrapper adds its own side padding */
+  .navbar-search-only,
+  body:has(.navbar-search-only) .navbar-spacer {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
   }
 }
 
