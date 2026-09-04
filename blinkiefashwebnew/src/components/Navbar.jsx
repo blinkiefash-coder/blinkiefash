@@ -1,6 +1,6 @@
 import "./Navbar.css";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
@@ -80,8 +80,15 @@ export default function Navbar() {
   const closeHoverTimer = useRef(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const moreRef = useRef(null);
   const profileRef = useRef(null);
+
+  /* Mobile "search-only" mode: on the shop/search page, mobile navbar shows
+     just the full search bar (no hamburger, logo, cart, wishlist, profile).
+     Desktop layout is unaffected — this only applies inside the existing
+     max-width: 900px media query in Navbar.css. */
+  const isSearchOnlyMobile = location.pathname.startsWith("/shop");
 
   useEffect(() => {
     const syncAuth = () => {
@@ -218,7 +225,7 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="navbar">
+      <header className={`navbar${isSearchOnlyMobile ? " navbar-search-only" : ""}`}>
         <button
           type="button"
           className="nav-hamburger"
@@ -333,6 +340,16 @@ export default function Navbar() {
 
         {/* RIGHT: search + actions */}
         <div className="nav-right">
+          {/* Mobile-only search icon — taps straight to the shop/search page */}
+          <button
+            type="button"
+            className="nav-mobile-search-btn"
+            aria-label="Search"
+            onClick={() => navigate("/shop")}
+          >
+            <IconSearch />
+          </button>
+
           <form className="search-box" onSubmit={handleSearch}>
             <span className="search-icon-leading" aria-hidden="true">
               <IconSearch />
@@ -508,7 +525,7 @@ export default function Navbar() {
 
               {isLoggedIn && (
                 <button type="button" className="nav-drawer-link nav-drawer-logout" onClick={requestLogout}>
-                  ⎋ Logout
+                  Logout
                 </button>
               )}
             </aside>
