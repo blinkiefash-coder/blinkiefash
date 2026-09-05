@@ -488,8 +488,48 @@ export default function Home() {
         }));
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
+        
+        // Priority brands that should appear first
+        const priorityBrands = [
+          'Soul Store',
+          'Adidas',
+          'Nike',
+          'Puma',
+          'Reebok',
+          'Skechers',
+          'New Balance',
+          'Converse',
+          'Vans',
+          'Levi\'s',
+          'Tommy Hilfiger',
+          'Calvin Klein',
+          'Ralph Lauren',
+          'Guess',
+          'Diesel',
+          'Lee',
+          'Wrangler',
+          'H&M',
+          'Zara',
+          'Forever 21',
+        ];
+
         const brandsList = [...brandsSource]
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+          .sort((a, b) => {
+            const aName = (a.name || '').trim();
+            const bName = (b.name || '').trim();
+            const aPriority = priorityBrands.findIndex(p => p.toLowerCase() === aName.toLowerCase());
+            const bPriority = priorityBrands.findIndex(p => p.toLowerCase() === bName.toLowerCase());
+            
+            // If both in priority list, sort by priority
+            if (aPriority !== -1 && bPriority !== -1) {
+              return aPriority - bPriority;
+            }
+            // Priority brands come first
+            if (aPriority !== -1) return -1;
+            if (bPriority !== -1) return 1;
+            // Rest sorted alphabetically
+            return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
+          });
 
         if (cancelled) return;
 
