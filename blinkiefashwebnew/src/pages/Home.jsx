@@ -90,6 +90,8 @@ function sortCategories(list) {
   });
 }
 
+const NIKE_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg';
+
 const UNIVERSE_BRANDS = [
   {
     name: "Puma",
@@ -472,16 +474,7 @@ export default function Home() {
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
         const brandsList = [...brandsSource]
-          .sort((a, b) => {
-            const ar = knownIndex(a.name);
-            const br = knownIndex(b.name);
-            if (ar !== br) return ar - br;
-            const ac = Number(a._count || 0);
-            const bc = Number(b._count || 0);
-            if (bc !== ac) return bc - ac;
-            return a.name.localeCompare(b.name);
-          })
-          .slice(0, 12);
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
         if (cancelled) return;
 
@@ -784,6 +777,71 @@ export default function Home() {
               </button>
             </div>
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} />
+          </section>
+        )}
+
+        {topBrands.length > 0 && (
+          <section className="section hp-shop-brands-section" aria-label="Shop by brands">
+            <div className="hp-shop-brands-head">
+              <div className="hp-shop-brands-title-group">
+                <div className="hp-shop-brands-title-wrap">
+                  <span className="hp-shop-brands-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <h2>
+                    <span className="hp-shop-brands-heading-dark">SHOP BY</span>{' '}
+                    <span className="hp-shop-brands-heading-green">BRANDS</span>
+                  </h2>
+                </div>
+                <p className="hp-shop-brands-subtitle">Top brands. Latest styles. Delivered in a blink.</p>
+              </div>
+              <button type="button" onClick={() => navigate('/shop')}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+
+            <div className="hp-shop-brands-grid">
+              {topBrands.map((brand, idx) => {
+                const label = (brand.name || '').toString().trim();
+                const displayName = label || 'Brand';
+                const normalizedDisplayName = normalizeBrandName(displayName);
+                const logo = normalizedDisplayName === 'nike'
+                  ? NIKE_LOGO_URL
+                  : resolveImageUrl(brand.logo_url || brand.image);
+                const isFeatured = idx === 0;
+
+                return (
+                  <article
+                    key={`${brand.id || displayName}-${idx}`}
+                    className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
+                  >
+                    <div className="hp-shop-brand-visual">
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt={displayName}
+                          loading="lazy"
+                          className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
+                        />
+                      ) : (
+                        <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                          {displayName.slice(0, 5).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="hp-shop-brand-action"
+                      onClick={() => navigate(`/shop?search=${encodeURIComponent(displayName)}`)}
+                    >
+                      Shop <MdChevronRight />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
           </section>
         )}
 
