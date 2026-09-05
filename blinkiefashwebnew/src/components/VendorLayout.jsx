@@ -136,18 +136,31 @@ export default function VendorLayout({
         </div>
 
         <nav className="vendor-nav-links">
-          {finalMenuItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={item.key === activeKey ? 'active' : ''}
-              title={item.label}
-              onClick={() => onMenuClick?.(item)}
-            >
-              <span className="vendor-nav-icon">{item.icon}</span>
-              {!isSidebarCollapsed ? <span className="vendor-nav-text">{item.label}</span> : null}
-            </button>
-          ))}
+          {finalMenuItems.map((item, index) => {
+            // Add separator before admin items
+            const isAdminItem = item.isAdmin;
+            const prevItem = index > 0 ? finalMenuItems[index - 1] : null;
+            const showSeparator = isAdminItem && prevItem && !prevItem.isAdmin;
+
+            return (
+              <div key={item.key}>
+                {showSeparator && (
+                  <div className="vendor-nav-separator">
+                    <span className="vendor-nav-section-label">Admin</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={`${item.key === activeKey ? 'active' : ''} ${isAdminItem ? 'admin-item' : ''}`}
+                  title={item.label}
+                  onClick={() => onMenuClick?.(item)}
+                >
+                  <span className="vendor-nav-icon">{item.icon}</span>
+                  {!isSidebarCollapsed ? <span className="vendor-nav-text">{item.label}</span> : null}
+                </button>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="vendor-sidebar-footer">
