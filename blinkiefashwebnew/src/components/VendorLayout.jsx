@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './vendorLayout.css';
 import { API_API_BASE_URL } from '../apiBase';
 import { clearVendorPasswordAuth } from '../utils/vendorSession';
+import { isAdmin } from '../utils/adminSession';
 
 const DEFAULT_MENU = [
   { key: 'orders', label: 'Orders', icon: '◍' },
@@ -11,6 +12,11 @@ const DEFAULT_MENU = [
   { key: 'stock', label: 'Stock Monitoring', icon: '📦' },
   { key: 'analytics', label: 'Product Analytics', icon: '📊' },
   { key: 'profile', label: 'Store / Profile', icon: '👤' },
+];
+
+const ADMIN_MENU = [
+  { key: 'create-vendor', label: 'Create Vendor', icon: '➕', isAdmin: true },
+  { key: 'manage-categories', label: 'Manage Catalog', icon: '📚', isAdmin: true },
 ];
 
 export default function VendorLayout({
@@ -27,16 +33,18 @@ export default function VendorLayout({
   const [togglingOp, setTogglingOp] = useState(false);
 
   const resolvedVendorId = vendorId || localStorage.getItem('vendor_id') || '';
+  const isAdminMode = isAdmin();
 
   useEffect(() => {
-    if (!resolvedVendorId) return;
+    // Skip operational status fetch for admin users (no vendor_id)
+    if (!resolvedVendorId || isAdminMode) return;
     fetch(`${API_API_BASE_URL}/vendor/${resolvedVendorId}`)
       .then((r) => r.json())
       .then((d) => {
         if (typeof d.is_operational === 'boolean') setIsOperational(d.is_operational);
       })
       .catch(() => {});
-  }, [resolvedVendorId]);
+  }, [resolvedVendorId, isAdminMode]);
 
   const toggleOperational = async () => {
     if (!resolvedVendorId || togglingOp || isOperational === null) return;
@@ -76,9 +84,18 @@ export default function VendorLayout({
             ? 'Stock Monitoring'
             : activeKey === 'analytics'
               ? 'Product Analytics'
-                    : activeKey === 'profile'
-                      ? 'Store / Profile'
-              : 'Vendor Portal';
+              : activeKey === 'profile'
+                ? 'Store / Profile'
+                : activeKey === 'create-vendor'
+                  ? 'Create Vendor'
+                  : activeKey === 'manage-categories'
+                    ? 'Manage Catalog'
+                    : 'Vendor Portal';
+
+  // Build menu with admin items if user is admin
+  const finalMenuItems = menuItems === DEFAULT_MENU && isAdmin()
+    ? [...DEFAULT_MENU, ...ADMIN_MENU]
+    : menuItems;
 
   return (
     <div className={`vendor-product-shell ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
@@ -96,9 +113,9 @@ export default function VendorLayout({
         </div>
 
         <div className="vendor-store-card">
-          <strong>My Store</strong>
+          <strong>{isAdminMode ? 'Admin Panel' : 'My Store'}</strong>
           <span>{storeName}</span>
-          {resolvedVendorId && isOperational !== null ? (
+          {!isAdminMode && resolvedVendorId && isOperational !== null ? (
             <div className="vendor-op-toggle-row">
               <span className={`vendor-op-label ${isOperational ? 'op-live' : 'op-paused'}`}>
                 {togglingOp ? 'Updating…' : isOperational ? '🟢 Store Live' : '🔴 Store Paused'}
@@ -119,24 +136,37 @@ export default function VendorLayout({
         </div>
 
         <nav className="vendor-nav-links">
-          {menuItems.map((item) => (
-            <button
-              key={item.key}
-              type="button"
-              className={item.key === activeKey ? 'active' : ''}
-              title={item.label}
-              onClick={() => onMenuClick?.(item)}
-            >
-              <span className="vendor-nav-icon">{item.icon}</span>
-              {!isSidebarCollapsed ? <span className="vendor-nav-text">{item.label}</span> : null}
-            </button>
-          ))}
+          {finalMenuItems.map((item, index) => {
+            // Add separator before admin items
+            const isAdminItem = item.isAdmin;
+            const prevItem = index > 0 ? finalMenuItems[index - 1] : null;
+            const showSeparator = isAdminItem && prevItem && !prevItem.isAdmin;
+
+            return (
+              <div key={item.key}>
+                {showSeparator && (
+                  <div className="vendor-nav-separator">
+                    <span className="vendor-nav-section-label">Admin</span>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className={`${item.key === activeKey ? 'active' : ''} ${isAdminItem ? 'admin-item' : ''}`}
+                  title={item.label}
+                  onClick={() => onMenuClick?.(item)}
+                >
+                  <span className="vendor-nav-icon">{item.icon}</span>
+                  {!isSidebarCollapsed ? <span className="vendor-nav-text">{item.label}</span> : null}
+                </button>
+              </div>
+            );
+          })}
         </nav>
 
         <div className="vendor-sidebar-footer">
           <div className="vendor-status-card">
-            <span className="vendor-status-label">Store status</span>
-            <strong>{resolvedVendorId && isOperational !== null ? (isOperational ? 'Open for business' : 'Paused for now') : 'Checking status'}</strong>
+            <span className="vendor-status-label">{isAdminMode ? 'Mode' : 'Store status'}</span>
+            <strong>{isAdminMode ? 'Admin' : (resolvedVendorId && isOperational !== null ? (isOperational ? 'Open for business' : 'Paused for now') : 'Checking status')}</strong>
           </div>
         </div>
       </aside>

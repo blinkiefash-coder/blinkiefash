@@ -4,8 +4,6 @@ import {
   MdVisibility,
   MdChevronRight,
   MdChevronLeft,
-  MdArrowForward,
-  MdLocalShipping,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -28,6 +26,10 @@ import banner3 from '../assets/banner3.png';
 import banner4 from '../assets/banner4.png';
 import banner5 from '../assets/banner5.png';
 import banner6 from '../assets/banner6.png';
+import playAndWinImage from '../assets/play&win.png';
+import spinAndWinImage from '../assets/spin&win.png';
+import referAndEarnImage from '../assets/refer&earn.png';
+import freeDeliveryImage from '../assets/freedelivery.png';
 
 // Mobile-cropped versions of the hero banners (shown < 768px via <picture>)
 import mobilebanner1 from '../assets/mobilebanner1.png';
@@ -101,6 +103,8 @@ function sortCategories(list) {
     return an.localeCompare(bn);
   });
 }
+
+const NIKE_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg';
 
 const UNIVERSE_BRANDS = [
   {
@@ -485,16 +489,7 @@ export default function Home() {
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
         const brandsList = [...brandsSource]
-          .sort((a, b) => {
-            const ar = knownIndex(a.name);
-            const br = knownIndex(b.name);
-            if (ar !== br) return ar - br;
-            const ac = Number(a._count || 0);
-            const bc = Number(b._count || 0);
-            if (bc !== ac) return bc - ac;
-            return a.name.localeCompare(b.name);
-          })
-          .slice(0, 12);
+          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 
         if (cancelled) return;
 
@@ -782,77 +777,96 @@ export default function Home() {
         {loading && <Loader label="Loading todays picks..." />}
 
         <section className="section hp-rewards-section">
-        <div className="hp-rewards-grid">
-          {/* 1. SPIN & WIN */}
-          <div className="hp-reward-panel hp-reward-spin">
-            <div className="hp-reward-copy">
-              <h3>SPIN &amp; WIN</h3>
-              <p>Spin the wheel &amp; win exciting discounts!</p>
-              <div className="hp-reward-amount">Up To ₹500</div>
-              <button type="button" onClick={() => navigate('/spin-wheel')}>
-                SPIN NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic hp-spin-wheel" aria-hidden="true">
-              🎡
-            </div>
+          <div className="hp-rewards-grid">
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/spin-wheel')}>
+              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/play-and-win')}>
+              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/refer-earn')}>
+              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/shop')}>
+              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
+            </button>
           </div>
-
-          {/* 2. PLAY & WIN  (now next to Spin) */}
-          <div className="hp-reward-panel hp-reward-play">
-            <div className="hp-reward-copy">
-              <h3>PLAY &amp; WIN</h3>
-              <p>Play fun games &amp; win big discounts!</p>
-              <div className="hp-reward-amount">Up To ₹250</div>
-              <button type="button" onClick={() => navigate('/play-and-win')}>
-                PLAY NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic" aria-hidden="true">
-              🎮
-            </div>
-          </div>
-
-          {/* 3. REFER & EARN  (full width below) */}
-          <div className="hp-reward-panel hp-reward-refer">
-            <div className="hp-reward-copy">
-              <h3>REFER &amp; EARN</h3>
-              <p>Refer your friend &amp; you both get ₹100 off!</p>
-              <div className="hp-referral-code">
-                <span>YOUR REFERRAL CODE</span>
-                <strong>BLINK100</strong>
-              </div>
-              <button type="button" onClick={() => navigate('/refer-earn')}>
-                REFER NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic" aria-hidden="true">
-              🎁
-            </div>
-          </div>
-
-          {/* 4. FREE DELIVERY — fills the 4th column */}
-          <div className="hp-reward-stack">
-            <div className="hp-reward-mini">
-              <div>
-                <strong>FREE DELIVERY</strong>
-                <span>ON ORDERS ABOVE ₹1499</span>
-              </div>
-              <MdLocalShipping className="hp-reward-mini-icon" />
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
         {topDeals.length > 0 && (
           <section className="section">
-            <div className="hp-section-head">
-              <h2>DEALS OF THE DAY</h2>
+            <div className="hp-section-head hp-deals-section-head">
+              <h2 className="hp-deals-title">DEALS OF THE DAY</h2>
               <button type="button" onClick={() => navigate('/shop?sort=bestseller')}>
                 View All <MdChevronRight />
               </button>
             </div>
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} />
+          </section>
+        )}
+
+        {topBrands.length > 0 && (
+          <section className="section hp-shop-brands-section" aria-label="Shop by brands">
+            <div className="hp-shop-brands-head">
+              <div className="hp-shop-brands-title-group">
+                <div className="hp-shop-brands-title-wrap">
+                  <span className="hp-shop-brands-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </span>
+                  <h2>
+                    <span className="hp-shop-brands-heading-dark">SHOP BY</span>{' '}
+                    <span className="hp-shop-brands-heading-green">BRANDS</span>
+                  </h2>
+                </div>
+                <p className="hp-shop-brands-subtitle">Top brands. Latest styles. Delivered in a blink.</p>
+              </div>
+              <button type="button" onClick={() => navigate('/shop')}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+
+            <div className="hp-shop-brands-grid">
+              {topBrands.map((brand, idx) => {
+                const label = (brand.name || '').toString().trim();
+                const displayName = label || 'Brand';
+                const normalizedDisplayName = normalizeBrandName(displayName);
+                const logo = normalizedDisplayName === 'nike'
+                  ? NIKE_LOGO_URL
+                  : resolveImageUrl(brand.logo_url || brand.image);
+                const isFeatured = idx === 0;
+
+                return (
+                  <article
+                    key={`${brand.id || displayName}-${idx}`}
+                    className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
+                  >
+                    <div className="hp-shop-brand-visual">
+                      {logo ? (
+                        <img
+                          src={logo}
+                          alt={displayName}
+                          loading="lazy"
+                          className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
+                        />
+                      ) : (
+                        <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                          {displayName.slice(0, 5).toUpperCase()}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      className="hp-shop-brand-action"
+                      onClick={() => navigate(`/shop?search=${encodeURIComponent(displayName)}`)}
+                    >
+                      Shop <MdChevronRight />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
           </section>
         )}
 
