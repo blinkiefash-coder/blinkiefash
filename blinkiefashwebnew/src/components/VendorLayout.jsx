@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './vendorLayout.css';
 import { API_API_BASE_URL } from '../apiBase';
 import { clearVendorPasswordAuth } from '../utils/vendorSession';
+import { isAdmin } from '../utils/adminSession';
 
 const DEFAULT_MENU = [
   { key: 'orders', label: 'Orders', icon: '◍' },
@@ -11,6 +12,11 @@ const DEFAULT_MENU = [
   { key: 'stock', label: 'Stock Monitoring', icon: '📦' },
   { key: 'analytics', label: 'Product Analytics', icon: '📊' },
   { key: 'profile', label: 'Store / Profile', icon: '👤' },
+];
+
+const ADMIN_MENU = [
+  { key: 'create-vendor', label: 'Create Vendor', icon: '➕', isAdmin: true },
+  { key: 'manage-categories', label: 'Manage Catalog', icon: '📚', isAdmin: true },
 ];
 
 export default function VendorLayout({
@@ -76,9 +82,18 @@ export default function VendorLayout({
             ? 'Stock Monitoring'
             : activeKey === 'analytics'
               ? 'Product Analytics'
-                    : activeKey === 'profile'
-                      ? 'Store / Profile'
-              : 'Vendor Portal';
+              : activeKey === 'profile'
+                ? 'Store / Profile'
+                : activeKey === 'create-vendor'
+                  ? 'Create Vendor'
+                  : activeKey === 'manage-categories'
+                    ? 'Manage Catalog'
+                    : 'Vendor Portal';
+
+  // Build menu with admin items if user is admin
+  const finalMenuItems = menuItems === DEFAULT_MENU && isAdmin()
+    ? [...DEFAULT_MENU, ...ADMIN_MENU]
+    : menuItems;
 
   return (
     <div className={`vendor-product-shell ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
@@ -119,7 +134,7 @@ export default function VendorLayout({
         </div>
 
         <nav className="vendor-nav-links">
-          {menuItems.map((item) => (
+          {finalMenuItems.map((item) => (
             <button
               key={item.key}
               type="button"

@@ -45,6 +45,8 @@ import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
 import HelpSupport from './pages/helpsupport'; 
 import SavedAddresses from './pages/SavedAddresses';
+import CreateVendor from './pages/CreateVendor';
+import ManageCategories from './pages/ManageCategories';
 import { useAuth } from './context/AuthContext';
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
 
@@ -208,6 +210,22 @@ export default function App() {
             <RequireVendorOrAdmin>
               <VendorProfile />
             </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/create-vendor"
+          element={
+            <RequireAdmin>
+              <CreateVendor />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/vendor/manage-categories"
+          element={
+            <RequireAdmin>
+              <ManageCategories />
+            </RequireAdmin>
           }
         />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
