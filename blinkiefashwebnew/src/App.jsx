@@ -1,11 +1,17 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav';
+import Loader from './components/Loader';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import Men from './pages/Men';
 import Kids from './pages/Kids';
 import Women from './pages/Women';
+import Electronics from './pages/Electronics';
+import Footwear from './pages/Footwear';
+import Backpack from './pages/Backpack';
+import Beauty from './pages/Beauty';
+import HomeLiving from './pages/HomeLiving';
 import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
@@ -71,6 +77,16 @@ function RequireAdmin({ children }) {
 export default function App() {
   const { pathname } = useLocation();
   const { isLoggedIn, userGender } = useAuth();
+  const [routeLoading, setRouteLoading] = useState(false);
+
+  useEffect(() => {
+    setRouteLoading(true);
+    const timeoutId = window.setTimeout(() => {
+      setRouteLoading(false);
+    }, 260);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [pathname]);
 
   // Initialize theme based on user's gender
   useEffect(() => {
@@ -89,6 +105,11 @@ export default function App() {
     pathname === '/men' ||
     pathname === '/kids' ||
     pathname === '/women' ||
+    pathname === '/electronics' ||
+    pathname === '/footwear' ||
+    pathname === '/backpack' ||
+    pathname === '/beauty' ||
+    pathname === '/home-living' ||
     pathname.startsWith('/product/');
   const isCheckoutPage = pathname === '/checkout';
   const isOrderTrackingPage = pathname.startsWith('/orders/');
@@ -120,6 +141,10 @@ export default function App() {
     <div
       className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}`}
     >
+      {routeLoading ? (
+        <Loader overlay label="Loading page..." subtitle="Please wait" showLogo />
+      ) : null}
+
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/shop" element={<Shop />} />
@@ -127,6 +152,11 @@ export default function App() {
         <Route path="/men" element={<Men />} />
         <Route path="/kids" element={<Kids />} />
         <Route path="/women" element={<Women />} />
+        <Route path="/electronics" element={<Electronics />} />
+        <Route path="/footwear" element={<Footwear />} />
+        <Route path="/backpack" element={<Backpack />} />
+        <Route path="/beauty" element={<Beauty />} />
+        <Route path="/home-living" element={<HomeLiving />} />
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />

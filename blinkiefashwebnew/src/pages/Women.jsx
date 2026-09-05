@@ -1,12 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  MdSearch,
-  MdLocationOn,
-  MdKeyboardArrowDown,
-  MdPersonOutline,
-  MdFavoriteBorder,
-  MdOutlineShoppingCart,
   MdChevronLeft,
   MdChevronRight,
   MdCheckroom,
@@ -27,27 +21,44 @@ import {
   MdMyLocation,
   MdShield,
   MdInventory2,
-  MdContentCopy,
-  MdSportsEsports,
-  MdRedeem,
   MdTwoWheeler,
+  MdFilterList,
 } from "react-icons/md";
 
+import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import Loader from "../components/Loader";
 import PageSEO from "../components/PageSEO";
-import ProductCard from "../components/ProductCard";
-import { useAuth } from "../context/AuthContext";
-import { useCart } from "../context/CartContext";
-import { useWishlist } from "../context/WishlistContext";
-import { getProducts, getCategories, getBrands } from "../api";
+import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
 import womenBanner1 from "../assets/women-banner-1.png";
 import womenBanner2 from "../assets/women-banner-2.png";
 import womenBanner3 from "../assets/women-banner-3.png";
+import playAndWinImage from "../assets/play&win.png";
+import spinAndWinImage from "../assets/spin&win.png";
+import referAndEarnImage from "../assets/refer&earn.png";
+import freeDeliveryImage from "../assets/freedelivery.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Women.css";
+
+const EXPLORE_PAGE_SIZE = 6;
+
+const COLORS = [
+  ["Pink", "#ec4899"],
+  ["Blue", "#2563eb"],
+  ["Black", "#111827"],
+  ["Green", "#22c55e"],
+  ["Purple", "#7c3aed"],
+  ["Red", "#ef4444"],
+  ["Yellow", "#facc15"],
+  ["White", "#ffffff"],
+  ["Grey", "#9ca3af"],
+];
+
+const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
@@ -115,8 +126,8 @@ const WOMEN_CATEGORY_FALLBACK = [
 const TOP_NAV = [
   { label: "Women", to: "/women" },
   { label: "Men", to: "/men" },
-  { label: "Footwear", to: "/shop?search=Footwear" },
-  { label: "Electronics", to: "/shop?search=Electronics" },
+  { label: "Footwear", to: "/footwear" },
+  { label: "Electronics", to: "/electronics" },
   { label: "Beauty", to: "/shop?search=Beauty" },
   { label: "Home Living", to: "/shop?search=Home%20Living" },
   { label: "Kids", to: "/kids" },
@@ -145,7 +156,6 @@ const TOP_BRANDS_FALLBACK = [
   "Vero Moda",
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
-// Hero carousel slides — plain banner images, no overlay copy.
 const HERO_SLIDES = [
   { image: womenBanner1, tag: "Kurta sets for every mood" },
   { image: womenBanner2, tag: "Trending styles" },
@@ -169,7 +179,6 @@ function normalizeProduct(p) {
     brand: p.brand,
     image,
     image_url: image,
-    // ProductCard expects these field names
     price: originalPrice,
     discount_price: salePrice,
     _mrp: originalPrice,
@@ -187,25 +196,6 @@ function normalizeProduct(p) {
   };
 }
 
-
-
-// Banner images for the Women hero cards
-const WOMEN_BANNERS = [
-  {
-    src: womenBanner1,
-    alt: "Women's Collection — unmatched styles, unstoppable you. Explore the Women's Collection.",
-  },
-  {
-    src: womenBanner2,
-    alt: "Trending styles for women — shop what's popular right now.",
-  },
-  {
-    src: womenBanner3,
-    alt: "New arrivals for women — discover the latest drops.",
-  },
-];
-
-
 function ProductRail({ list, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
     const el = railRef.current;
@@ -215,12 +205,7 @@ function ProductRail({ list, railRef, keyPrefix }) {
 
   return (
     <div className="hp-deals-wrap">
-      <button
-        type="button"
-        className="hp-deals-prev"
-        aria-label="Previous"
-        onClick={() => scrollRail(-1)}
-      >
+      <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRail(-1)}>
         <MdChevronLeft />
       </button>
 
@@ -237,12 +222,7 @@ function ProductRail({ list, railRef, keyPrefix }) {
         ))}
       </div>
 
-      <button
-        type="button"
-        className="hp-deals-next"
-        aria-label="Next"
-        onClick={() => scrollRail(1)}
-      >
+      <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollRail(1)}>
         <MdChevronRight />
       </button>
     </div>
@@ -251,31 +231,93 @@ function ProductRail({ list, railRef, keyPrefix }) {
 
 export default function Women() {
   const navigate = useNavigate();
-  const { user, isLoggedIn: authLoggedIn } = useAuth();
-  const { count: cartCount } = useCart();
-  const { items: wishlistItems } = useWishlist();
 
-  const city =
-    localStorage.getItem("bfw_city") ||
-    localStorage.getItem("selectedCity") ||
-    "Khordha";
-  const isLoggedIn =
-    authLoggedIn || Boolean(localStorage.getItem("userUuid") || localStorage.getItem("token"));
-  const headerUserName = String(user?.name || localStorage.getItem("userName") || "").trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : "";
-  const accountLabel = isLoggedIn ? (headerFirstName ? headerFirstName : "My Account") : "Login";
-
-  const [searchInput, setSearchInput] = useState("");
   const [products, setProducts] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
+  const [deals, setDeals] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [womenRootId, setWomenRootId] = useState(null);
   const [womenSubcats, setWomenSubcats] = useState([]);
   const [womenResolved, setWomenResolved] = useState(false);
   const [brands, setBrands] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
+
+  const [exploreCatId, setExploreCatId] = useState("");
+  const [exploreProducts, setExploreProducts] = useState([]);
+  const [exploreOffset, setExploreOffset] = useState(0);
+  const [exploreHasMore, setExploreHasMore] = useState(false);
+  const [exploreLoading, setExploreLoading] = useState(false);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+const [activeBrand, setActiveBrand] = useState([]);
+const [activeColor, setActiveColor] = useState([]);
+const [minDiscount, setMinDiscount] = useState(0);
+const [inStockOnly, setInStockOnly] = useState(false);
+const [maxPrice, setMaxPrice] = useState(10000);
+const [brandSearch, setBrandSearch] = useState("");
+
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+const toggleBrandFilter = (name) => {
+  setActiveBrand((prev) =>
+    prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
+  );
+};
+
+const toggleColorFilter = (name) => {
+  setActiveColor((prev) =>
+    prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
+  );
+};
+
+const selectMinDiscount = (value) => {
+  setMinDiscount((prev) => (prev === value ? 0 : value));
+};
+
+const activeFilterCount =
+  activeBrand.length +
+  activeColor.length +
+  (minDiscount > 0 ? 1 : 0) +
+  (inStockOnly ? 1 : 0) +
+  (maxPrice < 10000 ? 1 : 0);
+
+const clearAllFilters = () => {
+  setActiveBrand([]);
+  setActiveColor([]);
+  setMinDiscount(0);
+  setInStockOnly(false);
+  setMaxPrice(10000);
+  setBrandSearch("");
+};
+
+const visibleBrands = brands.filter((b) =>
+  normalizeText(b.name).includes(normalizeText(brandSearch))
+);
+
+// Shared filter predicate, applied to any product list on this page
+const applyProductFilters = useCallback(
+  (list) =>
+    (list || []).filter((p) => {
+      if (activeBrand.length > 0) {
+        const b = normalizeText(p.brand);
+        if (!activeBrand.map(normalizeText).includes(b)) return false;
+      }
+      if (activeColor.length > 0) {
+        const c = normalizeText(p.color);
+        if (c && !activeColor.map(normalizeText).includes(c)) return false;
+      }
+      if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
+      if (inStockOnly && p.in_stock === false) return false;
+      const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
+      if (finalPrice > maxPrice) return false;
+      return true;
+    }),
+  [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+);
+
   const trendingRef = useRef(null);
   const arrivalsRef = useRef(null);
+  const dealsRef = useRef(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -328,6 +370,7 @@ export default function Women() {
     };
   }, []);
 
+  // Main product pool + deals
   useEffect(() => {
     if (!womenResolved) return;
     let cancelled = false;
@@ -335,13 +378,14 @@ export default function Women() {
     (async () => {
       setProductsLoading(true);
       let found = [];
+      let dealList;
 
       if (womenRootId) {
         try {
           const byCategory = await getProducts({
             category_id: womenRootId,
             sort: "newest",
-            limit: 16,
+            limit: 30,
           });
           found = extractProducts(byCategory);
         } catch {
@@ -353,7 +397,7 @@ export default function Women() {
         try {
           const perSub = await Promise.all(
             womenSubcats.slice(0, 6).map((sub) =>
-              getProducts({ category_id: sub.id, sort: "newest", limit: 4 }).catch(() => [])
+              getProducts({ category_id: sub.id, sort: "newest", limit: 5 }).catch(() => [])
             )
           );
           found = perSub.flatMap(extractProducts);
@@ -364,17 +408,39 @@ export default function Women() {
 
       if (!found.length) {
         try {
-          const bySearch = await getProducts({ search: "women", limit: 16 });
+          const bySearch = await getProducts({ search: "women", limit: 30 });
           found = extractProducts(bySearch);
         } catch {
           found = [];
         }
       }
 
+      try {
+        const dealsRes = await getBestsellers(12);
+        dealList = extractProducts(dealsRes);
+      } catch {
+        dealList = [];
+      }
+
+      if (!dealList.length) {
+        try {
+          const fallbackDeals = await getProducts({
+            category_id: womenRootId || undefined,
+            search: womenRootId ? undefined : "women",
+            sort: "newest",
+            limit: 12,
+          });
+          dealList = extractProducts(fallbackDeals);
+        } catch {
+          dealList = [];
+        }
+      }
+
       if (!cancelled) {
         const normalized = found.map(normalizeProduct);
-        setProducts(normalized.slice(0, 8));
-        setNewArrivals(normalized.slice(0, 8));
+        setProducts(normalized.slice(0, 20));
+        setNewArrivals(normalized.slice(0, 10));
+        setDeals(dealList.map(normalizeProduct).slice(0, 12));
         setProductsLoading(false);
       }
     })();
@@ -384,9 +450,6 @@ export default function Women() {
     };
   }, [womenResolved, womenRootId, womenSubcats]);
 
-
-  // Auto-advance the hero carousel every 5s, pausing is unnecessary since
-  // arrows/dots simply reset the timer via index change.
   useEffect(() => {
     const id = setInterval(() => {
       setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
@@ -394,6 +457,73 @@ export default function Women() {
     return () => clearInterval(id);
   }, []);
 
+  // More to Explore
+  useEffect(() => {
+    if (!womenResolved) return;
+    let cancelled = false;
+
+    (async () => {
+      setExploreLoading(true);
+      try {
+        const categoryId = exploreCatId || womenRootId || undefined;
+        const res = await getProducts({
+          category_id: categoryId,
+          search: categoryId ? undefined : "women",
+          sort: "newest",
+          limit: EXPLORE_PAGE_SIZE,
+          offset: 0,
+        });
+        const items = extractProducts(res).map(normalizeProduct);
+        if (cancelled) return;
+        setExploreProducts(items);
+        setExploreOffset(items.length);
+        setExploreHasMore(items.length === EXPLORE_PAGE_SIZE);
+      } catch {
+        if (!cancelled) {
+          setExploreProducts([]);
+          setExploreOffset(0);
+          setExploreHasMore(false);
+        }
+      } finally {
+        if (!cancelled) setExploreLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [womenResolved, womenRootId, exploreCatId]);
+
+  const loadMoreExplore = async () => {
+    if (exploreLoading || !exploreHasMore) return;
+    setExploreLoading(true);
+    try {
+      const categoryId = exploreCatId || womenRootId || undefined;
+      const res = await getProducts({
+        category_id: categoryId,
+        search: categoryId ? undefined : "women",
+        sort: "newest",
+        limit: EXPLORE_PAGE_SIZE,
+        offset: exploreOffset,
+      });
+      const items = extractProducts(res).map(normalizeProduct);
+      setExploreProducts((prev) => {
+        const seen = new Set(prev.map((p) => String(p.id)));
+        const merged = [...prev];
+        items.forEach((p) => {
+          const key = String(p.id || "");
+          if (!key || seen.has(key)) return;
+          seen.add(key);
+          merged.push(p);
+        });
+        return merged;
+      });
+      setExploreOffset((prev) => prev + items.length);
+      setExploreHasMore(items.length === EXPLORE_PAGE_SIZE);
+    } finally {
+      setExploreLoading(false);
+    }
+  };
 
   const womenScopedShopUrl = useCallback(
     (opts = {}) => {
@@ -466,34 +596,32 @@ export default function Women() {
     });
   }, [womenSubcats, womenScopedShopUrl, findWomenSubcatByLabel]);
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const value = searchInput.trim();
-    if (!value) {
-      navigate(womenScopedShopUrl());
-      return;
-    }
-    navigate(womenScopedShopUrl({ search: value }));
-  };
+  const exploreChips = useMemo(
+    () => [{ id: "", name: "All" }, ...womenSubcats],
+    [womenSubcats]
+  );
 
-  const handleCopyReferral = () => {
-    if (navigator?.clipboard?.writeText) {
-      navigator.clipboard.writeText("BLINK100").catch(() => {});
-    }
-  };
+  const topDeals = useMemo(() => {
+    const enriched = (Array.isArray(deals) ? deals : []).map((item) => {
+      const price = Number(item?.discount_price ?? item?.price ?? item?._price ?? 0);
+      const mrp = Number(item?.price ?? item?._mrp ?? item?.original_price ?? price);
+      const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+      return { ...item, _discount: discount };
+    });
+    return [...enriched].sort((a, b) => b._discount - a._discount).slice(0, 10);
+  }, [deals]);
 
-  const wishlistCount = wishlistItems?.length || 0;
   const slide = HERO_SLIDES[heroIndex];
 
   return (
-    <div className="catalog-page women-page">
+    <div className={`catalog-page women-page${!womenResolved ? " women-loading" : ""}`}>
+      {!womenResolved && <Loader overlay />}
       <PageSEO
         title="Women's Fashion — Kurtis, Dresses, Ethnic & More"
         description="Shop women's clothing, footwear, bags and jewellery at Blinkiefash — delivered in 60 minutes across Odisha."
         path="/women"
       />
 
-      {/* Top utility strip */}
       <div className="women-top-strip">
         <div className="women-top-strip-inner">
           {TOP_STRIP_ITEMS.map((item) => (
@@ -505,108 +633,9 @@ export default function Women() {
         </div>
       </div>
 
-      <div className="hp-sticky-head catalog-home-topbar">
-        <header className="hp-main-header catalog-main-header">
-          <button type="button" className="hp-brand" onClick={() => navigate("/")}>
-            <MdBolt className="women-brand-bolt" />
-            <span className="hp-brand-name">
-              BLINKIE<span className="hp-brand-accent">FASH</span>
-            </span>
-          </button>
-
-          <form className="hp-header-search catalog-mobile-search" onSubmit={handleSearchSubmit}>
-            <MdSearch className="hp-search-icon" />
-            <input
-              name="q"
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search for Ethnic Wear, Kurta Sets, Sarees & more..."
-            />
-            <button type="submit" className="hp-search-btn" aria-label="Search products">
-              <MdSearch />
-            </button>
-          </form>
-
-          <div className="catalog-header-actions-wrap">
-            <button type="button" className="catalog-location-pill" onClick={() => navigate("/account")}>
-              <MdLocationOn />
-              <span className="women-location-copy">
-                <span className="women-location-label">Delivering to</span>
-                <span className="women-location-value">
-                  {city} <MdKeyboardArrowDown />
-                </span>
-              </span>
-            </button>
-
-            <button type="button" className="women-change-location-btn" onClick={() => navigate("/account")}>
-              <MdMyLocation />
-              <span>Change Location</span>
-            </button>
-
-            <div className="hp-header-actions">
-              <button type="button" onClick={() => navigate(isLoggedIn ? "/account" : "/login")}>
-                <MdPersonOutline />
-                <span>{accountLabel}</span>
-              </button>
-              <button type="button" onClick={() => navigate("/wishlist")}>
-                <MdFavoriteBorder />
-                <span>Wishlist</span>
-                {wishlistCount > 0 ? <span className="hp-icon-badge">{wishlistCount}</span> : null}
-              </button>
-              <button type="button" onClick={() => navigate("/cart")}>
-                <MdOutlineShoppingCart />
-                <span>Cart</span>
-                {cartCount > 0 ? <span className="hp-icon-badge">{cartCount}</span> : null}
-              </button>
-            </div>
-          </div>
-        </header>
-
-        <nav className="hp-category-nav women-topnav">
-          <div className="hp-nav-links">
-            {TOP_NAV.map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                className={`hp-nav-link${item.label === "Women" ? " active" : ""}`}
-                onClick={() => navigate(item.to)}
-              >
-                {item.label}
-              </button>
-            ))}
-          </div>
-        </nav>
-      </div>
+      <Navbar activeTab="Women" />
 
       <main className="women-main">
-        {/* Shop mode row — same markup/classes as Home.jsx so it matches exactly */}
-        <section className="hp-mode-row" aria-label="Shop mode">
-          <button
-            type="button"
-            className="hp-mode-banner hp-mode-india"
-            onClick={() => navigate("/blinkiefash-india")}
-          >
-            <span className="hp-mode-icon">🌐</span>
-            <span className="hp-mode-copy">
-              <strong>BLINKIEFASH INDIA</strong>
-              <span>Products from stores across India</span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            className="hp-mode-banner hp-mode-local"
-            onClick={() => navigate("/blinkiefash-local")}
-          >
-            <span className="hp-mode-icon">⚡</span>
-            <span className="hp-mode-copy">
-              <strong>BLINKIEFASH LOCAL</strong>
-              <span>Fast delivery from nearby stores</span>
-            </span>
-          </button>
-        </section>
-
-        {/* Hero carousel — image only, no overlay copy */}
         <section className="women-hero-carousel" aria-label="Women's fashion highlights">
           <button
             type="button"
@@ -617,11 +646,7 @@ export default function Women() {
             <MdChevronLeft />
           </button>
 
-          <button
-            type="button"
-            className="women-hero-media-btn"
-            onClick={() => navigate(womenScopedShopUrl())}
-          >
+          <button type="button" className="women-hero-media-btn" onClick={() => navigate(womenScopedShopUrl())}>
             <img src={slide.image} alt={slide.tag} className="women-hero-img" />
           </button>
 
@@ -647,91 +672,149 @@ export default function Women() {
           </div>
         </section>
 
-        {/* Reward / promo grid */}
-        <section className="women-rewards-grid" aria-label="Offers & rewards">
-          <div className="women-reward-card women-reward-spin">
-            <div>
-              <h3>SPIN &amp; WIN</h3>
-              <p>Spin the wheel &amp; win exciting rewards!</p>
-            </div>
-            <div className="women-reward-figure">
-              <div className="women-wheel" aria-hidden="true" />
-            </div>
-            <div>
-              <p className="women-reward-amount">Up To ₹500 OFF</p>
-              <button type="button" className="women-reward-btn" onClick={() => navigate("/offers")}>
-                SPIN NOW
-              </button>
-            </div>
-          </div>
-
-          <div className="women-reward-card women-reward-play">
-            <div>
-              <h3>PLAY &amp; WIN</h3>
-              <p>Play fun games &amp; win big discounts!</p>
-            </div>
-            <div className="women-reward-figure women-controller">
-              <MdSportsEsports />
-            </div>
-            <div>
-              <p className="women-reward-amount">Up To ₹250 OFF</p>
-              <button type="button" className="women-reward-btn" onClick={() => navigate("/offers")}>
-                PLAY NOW
-              </button>
-            </div>
-          </div>
-
-          <div className="women-reward-card women-reward-refer">
-            <div>
-              <h3>REFER &amp; EARN</h3>
-              <p>Refer your friend &amp; you both get ₹100 OFF!</p>
-            </div>
-            <div className="women-reward-code">
-              <span>
-                YOUR REFERRAL CODE
-                <br />
-                <strong>BLINK100</strong>
-              </span>
-              <button type="button" onClick={handleCopyReferral} aria-label="Copy referral code" style={{ border: "none", background: "none", cursor: "pointer", color: "#9f1239" }}>
-                <MdContentCopy />
-              </button>
-            </div>
-            <button type="button" className="women-reward-btn" onClick={() => navigate("/account")}>
-              REFER NOW
+        <section className="section hp-rewards-section" aria-label="Offers & rewards">
+          <div className="hp-rewards-grid">
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
+              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
             </button>
-          </div>
-
-          <div className="women-reward-stack">
-            <div className="women-reward-mini">
-              <div>
-                <strong>FLAT 5% OFF</strong>
-                <span>ON FIRST ORDER</span>
-                <span className="chip">Use Code: WELCOME5</span>
-              </div>
-              <MdRedeem className="women-reward-emoji" />
-            </div>
-            <div className="women-reward-mini">
-              <div>
-                <strong>FREE DELIVERY</strong>
-                <span>ON ORDERS ABOVE ₹1499</span>
-              </div>
-              <MdTwoWheeler className="women-reward-emoji" />
-            </div>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/play-and-win")}>
+              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/refer-earn")}>
+              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/shop")}>
+              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
+            </button>
           </div>
         </section>
 
-        {/* Trending */}
+        {/* Filters */}
+          <div className="women-filter-bar">
+            <button
+              type="button"
+              className={`women-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
+              onClick={() => setFilterOpen((o) => !o)}
+            >
+              <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+            </button>
+
+            {filterOpen && (
+              <section className="women-filters-panel" role="dialog" aria-label="Women filters">
+                <div className="women-filters-panel-header">
+                  <h3>Filters</h3>
+                  {activeFilterCount > 0 ? (
+                    <button type="button" className="women-filters-clear" onClick={clearAllFilters}>
+                      Clear All
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="women-filter-col">
+                  <h4>Brand</h4>
+                  <input
+                    className="women-filter-search"
+                    value={brandSearch}
+                    onChange={(e) => setBrandSearch(e.target.value)}
+                    placeholder="Search brand"
+                  />
+                  <div className="women-filter-list">
+                    {visibleBrands.slice(0, 15).map((brand) => (
+                      <label key={brand.id || brand.name}>
+                        <input
+                          type="checkbox"
+                          checked={activeBrand.includes(brand.name)}
+                          onChange={() => toggleBrandFilter(brand.name)}
+                        />
+                        <span>{brand.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="women-filter-col">
+                  <h4>Color</h4>
+                  <div className="women-filter-list women-filter-swatches">
+                    {COLORS.map(([name, hex]) => {
+                      const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                      return (
+                        <label key={name} className={`women-swatch-label${checked ? " checked" : ""}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
+                          <span className="women-swatch-dot" style={{ background: hex }} />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="women-filter-col">
+                  <h4>Price</h4>
+                  <input
+                    type="range"
+                    min="500"
+                    max="12000"
+                    step="100"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  />
+                  <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
+                </div>
+
+                <div className="women-filter-col">
+                  <h4>Discount Range</h4>
+                  <div className="women-filter-chips">
+                    {DISCOUNT_BUCKETS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`women-filter-chip-item${minDiscount === value ? " active" : ""}`}
+                        onClick={() => selectMinDiscount(value)}
+                      >
+                        {value}% and above
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="women-filter-col">
+                  <h4>Availability</h4>
+                  <div className="women-filter-list">
+                    <label>
+                      <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} />
+                      <span>In stock only</span>
+                    </label>
+                  </div>
+                </div>
+              </section>
+            )}
+          </div>
+
+        {/* Deals of the Day */}
+        {topDeals.length > 0 && (
+          <section className="section women-picks-section">
+            <div className="hp-section-head hp-deals-section-head">
+              <h2 className="hp-deals-title">DEALS OF THE DAY</h2>
+              <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+            <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="women-deal" />
+          </section>
+        )}
+
+        {/* All Women's Picks */}
         <section className="section women-picks-section">
           <div className="hp-section-head">
-            <h2>TRENDING NOW 🔥</h2>
+            <h2>ALL WOMEN&apos;S PICKS ✨</h2>
             <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
               View All <MdChevronRight />
             </button>
           </div>
           {productsLoading ? (
-            <p className="women-empty-state">Loading today&apos;s picks…</p>
+            <Loader />
           ) : products.length ? (
-            <ProductRail list={products} railRef={trendingRef} keyPrefix="women-trend" />
+            <ProductRail list={applyProductFilters(products)} railRef={trendingRef} keyPrefix="women-all" />
           ) : (
             <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
           )}
@@ -741,12 +824,7 @@ export default function Women() {
         <section className="women-cat-strip" aria-label="Shop by category">
           <div className="women-cat-list">
             {categoryStripItems.map((cat) => (
-              <button
-                key={cat.id}
-                type="button"
-                className="women-cat-item"
-                onClick={() => navigate(cat.to)}
-              >
+              <button key={cat.id} type="button" className="women-cat-item" onClick={() => navigate(cat.to)}>
                 <span className="women-cat-icon-wrap">
                   {cat.image ? (
                     <img
@@ -759,27 +837,19 @@ export default function Women() {
                       }}
                     />
                   ) : null}
-                  <span
-                    className="women-cat-fallback-icon"
-                    style={cat.image ? { display: "none" } : undefined}
-                  >
+                  <span className="women-cat-fallback-icon" style={cat.image ? { display: "none" } : undefined}>
                     {cat.icon ? <cat.icon /> : <MdGridView />}
                   </span>
                 </span>
-                <span>{cat.label}</span>
+                <span className="women-cat-label">{cat.label}</span>
               </button>
             ))}
           </div>
         </section>
 
-
         {/* Promos */}
         <section className="women-promo-strip" aria-label="Offers">
-          <button
-            type="button"
-            className="women-promo-card women-promo-prepaid"
-            onClick={() => navigate("/offers")}
-          >
+          <button type="button" className="women-promo-card women-promo-prepaid" onClick={() => navigate("/offers")}>
             <div>
               <p className="title">EXTRA 10% OFF</p>
               <p className="sub">On Prepaid Orders · Code BLINK10</p>
@@ -818,24 +888,6 @@ export default function Women() {
           </button>
         </section>
 
-        {/* Trending */}
-        <section className="section women-picks-section">
-          <div className="hp-section-head">
-            <h2>Trending Now 🔥</h2>
-            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
-              View All <MdChevronRight />
-            </button>
-          </div>
-          {productsLoading ? (
-            <p className="women-empty-state">Loading today&apos;s picks…</p>
-          ) : products.length ? (
-            <ProductRail list={products} railRef={trendingRef} keyPrefix="women-trend" />
-          ) : (
-            <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
-          )}
-        </section>
-
-
         {/* New arrivals */}
         <section className="section women-picks-section">
           <div className="hp-section-head">
@@ -845,9 +897,9 @@ export default function Women() {
             </button>
           </div>
           {productsLoading ? (
-            <p className="women-empty-state">Loading new arrivals…</p>
+            <Loader />
           ) : newArrivals.length ? (
-            <ProductRail list={newArrivals} railRef={arrivalsRef} keyPrefix="women-new" />
+            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="women-new" />
           ) : (
             <p className="women-empty-state">Fresh styles coming soon.</p>
           )}
@@ -873,23 +925,66 @@ export default function Women() {
                   key={`${brand.id || brand.name}-${idx}`}
                   type="button"
                   className="hp-top-brand-card"
-                  onClick={() => {
-                    navigate(womenScopedShopUrl({ search: brand.name }));
-                  }}
+                  onClick={() => navigate(womenScopedShopUrl({ search: brand.name }))}
                   aria-label={`Shop ${brand.name}`}
                 >
                   <span className="hp-top-brand-logo">
-                    {logo ? (
-                      <img src={logo} alt="" loading="lazy" />
-                    ) : (
-                      <span>{initials || "BR"}</span>
-                    )}
+                    {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials || "BR"}</span>}
                   </span>
                   <span className="hp-top-brand-name">{brand.name}</span>
                 </button>
               );
             })}
           </div>
+        </section>
+
+        {/* More to Explore */}
+        <section className="section women-explore-section" aria-label="More to explore">
+          <div className="hp-section-head hp-feed-head">
+            <h2>MORE TO EXPLORE</h2>
+          </div>
+
+          <div className="hp-explore-chips" role="list">
+            {exploreChips.map((cat) => {
+              const selected = (cat.id ? String(cat.id) : "") === exploreCatId;
+              return (
+                <button
+                  key={cat.id || "all"}
+                  type="button"
+                  className={`hp-explore-chip${selected ? " active" : ""}`}
+                  role="listitem"
+                  onClick={() => setExploreCatId(cat.id ? String(cat.id) : "")}
+                >
+                  {cat.name}
+                </button>
+              );
+            })}
+          </div>
+
+          {exploreProducts.length > 0 ? (
+            <div className="hp-explore-grid" role="list">
+              {exploreProducts.map((p, idx) => (
+                <ProductCard key={`explore-${p.id}-${idx}`} product={p} />
+              ))}
+              {exploreLoading
+                ? Array.from({ length: 3 }).map((_, idx) => <ProductCardSkeleton key={`explore-skel-${idx}`} />)
+                : null}
+            </div>
+          ) : !exploreLoading ? (
+            <p className="women-empty-state">No products in this category yet.</p>
+          ) : (
+            <div className="hp-explore-grid" role="list">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <ProductCardSkeleton key={`explore-init-${idx}`} />
+              ))}
+            </div>
+          )}
+
+          {!exploreLoading && exploreHasMore ? (
+            <button type="button" className="hp-explore-more" onClick={loadMoreExplore}>
+              Show More Products
+            </button>
+          ) : null}
         </section>
 
         <section className="women-trust-strip" aria-label="Why shop with us">

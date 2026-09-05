@@ -1,0 +1,178 @@
+/* Shared layout for CategoryCatalogPage (used by Electronics.jsx and
+   Footwear.jsx). Colors/spacing/radius come from index.css tokens and
+   Shop.css's .catalog-* classes so both pages match Men/Women/Kids/Shop. */
+
+.ccp-header {
+  background: var(--surface, #fff);
+  position: sticky;
+  top: 0;
+  z-index: 60;
+}
+
+.ccp-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.ccp-brand {
+  border: none;
+  background: none;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand-green-dark, #15803d);
+  cursor: pointer;
+  flex: none;
+}
+
+.ccp-header-search {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--brand-bg, #f8fafc);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 999px;
+  padding: 8px 14px;
+  max-width: 480px;
+}
+
+.ccp-header-search svg {
+  color: var(--muted, #64748b);
+  flex: none;
+}
+
+.ccp-header-search input {
+  border: none;
+  background: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+}
+
+.ccp-icon-btn {
+  position: relative;
+  border: none;
+  background: none;
+  font-size: 22px;
+  color: var(--brand-dark, #0f172a);
+  cursor: pointer;
+  padding: 4px;
+}
+
+.ccp-badge {
+  position: absolute;
+  top: -2px;
+  right: -4px;
+  background: var(--brand-green, #16a34a);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 999px;
+  min-width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 3px;
+}
+
+.ccp-main {
+  max-width: none;
+  margin: 0 auto;
+  width: 100%;
+  padding: 16px 20px 40px;
+}
+
+.ccp-page-title-row {
+  margin-bottom: 16px;
+}
+
+.ccp-page-title {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand-dark, #0f172a);
+  margin: 0;
+}
+
+.ccp-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.ccp-sidebar {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: var(--radius-md, 16px);
+  padding: 16px;
+  position: sticky;
+  top: 90px;
+}
+
+.ccp-sidebar-title {
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 10px;
+  color: var(--brand-dark, #0f172a);
+}
+
+.ccp-sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ccp-sidebar-list button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  border: none;
+  background: none;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm, 10px);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+  cursor: pointer;
+}
+
+.ccp-sidebar-list button:hover {
+  background: var(--brand-bg, #f8fafc);
+}
+
+.ccp-sidebar-list button.active {
+  background: var(--brand-green-soft, #dcfce7);
+  color: var(--brand-green-dark, #15803d);
+}
+
+.ccp-content {
+  min-width: 0;
+}
+
+/* Responsive: sidebar collapses above the grid on small screens,
+   matching the accessibility/responsive parity requirement. */
+@media (max-width: 860px) {
+  .ccp-layout {
+    grid-template-columns: 1fr;
+  }
+  .ccp-sidebar {
+    position: static;
+  }
+  .ccp-sidebar-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+  .ccp-header-search {
+    display: none;
+  }
+}

@@ -4,7 +4,6 @@ import {
   MdVisibility,
   MdChevronRight,
   MdChevronLeft,
-  MdArrowForward,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -16,13 +15,21 @@ import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 
-import { detectCurrentCity } from '../utils/location';
-import { hasVendorPasswordAuth } from '../utils/vendorSession';
+// import { detectCurrentCity } from '../utils/location';
+// import { hasVendorPasswordAuth } from '../utils/vendorSession';
 
 // import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
 
-import menwomenBanner from '../assets/men-women.webp';
-
+import banner1 from '../assets/banner1.png';
+import banner2 from '../assets/banner2.png';
+import banner3 from '../assets/banner3.png';
+import banner4 from '../assets/banner4.png';
+import banner5 from '../assets/banner5.png';
+import banner6 from '../assets/banner6.png';
+import playAndWinImage from '../assets/play&win.png';
+import spinAndWinImage from '../assets/spin&win.png';
+import referAndEarnImage from '../assets/refer&earn.png';
+import freeDeliveryImage from '../assets/freedelivery.png';
 
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
@@ -43,41 +50,31 @@ function resolveImageUrl(raw) {
 }
 
 const HERO_SLIDES = [
-    {
-    image: menwomenBanner,
-    to: '/shop?search=men%20women',
+  {
+    image: banner1,
+    to: '/shop?search=men%women',
     pos: 'center',
   },
   {
-    image:
-      'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786099594/file_00000000445081fab93f08877e2a7788_irgiib.png',
+    image: banner2,
     to: '/shop?search=Puma',
-
-   
-    pos: 'center',
-
     pos: 'center 20%',
-
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+    image: banner3,
     to: '/shop?search=Xinso',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000d97882078a43ead8169d48bc.png',
+    image: banner4,
     to: '/shop?search=kids',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/file_00000000fe588230bbc34825cce0a0fc.png',
+    image: banner5,
     to: '/shop?search=men',
   },
   {
-    image:
-      'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787397902/IMG_20260822_123232.png',
-    to: '/shop?search=women',
+    image: banner6,
+    to: '/shop?search=mk',
   },
 ];
 
@@ -714,15 +711,38 @@ export default function Home() {
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide) => (
-              <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
-                <img
-                  src={slide.image}
-                  alt=""
-                  className="hp-slide-img"
-                  style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                />
-              </button>
+            {HERO_SLIDES.map((slide, index) => (
+              index === 0 ? (
+                <div type="button" key={slide.image} className="hp-slide hp-slide-first">
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="hp-slide-img"
+                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                  />
+                  <button
+                    type="button"
+                    className="hp-hero-hotspot hp-hero-hotspot-men"
+                    onClick={() => navigate("/men")}
+                    aria-label="Shop men's fashion"
+                  />
+                  <button
+                    type="button"
+                    className="hp-hero-hotspot hp-hero-hotspot-women"
+                    onClick={() => navigate("/women")}
+                    aria-label="Shop women's fashion"
+                  />
+                </div>
+              ) : (
+                <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="hp-slide-img"
+                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                  />
+                </button>
+              )
             ))}
           </div>
           <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
@@ -739,61 +759,26 @@ export default function Home() {
         {loading && <Loader label="Loading todays picks..." />}
 
         <section className="section hp-rewards-section">
-        <div className="hp-rewards-grid">
-          {/* 1. SPIN & WIN */}
-          <div className="hp-reward-panel hp-reward-spin">
-            <div className="hp-reward-copy">
-              <h3>SPIN &amp; WIN</h3>
-              <p>Spin the wheel &amp; win exciting discounts!</p>
-              <div className="hp-reward-amount">Up To ₹500</div>
-              <button type="button" onClick={() => navigate('/spin-wheel')}>
-                SPIN NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic hp-spin-wheel" aria-hidden="true">
-              🎡
-            </div>
+          <div className="hp-rewards-grid">
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/spin-wheel')}>
+              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/play-and-win')}>
+              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/refer-earn')}>
+              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/shop')}>
+              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
+            </button>
           </div>
-
-          {/* 2. PLAY & WIN  (now next to Spin) */}
-          <div className="hp-reward-panel hp-reward-play">
-            <div className="hp-reward-copy">
-              <h3>PLAY &amp; WIN</h3>
-              <p>Play fun games &amp; win big discounts!</p>
-              <div className="hp-reward-amount">Up To ₹250</div>
-              <button type="button" onClick={() => navigate('/play-and-win')}>
-                PLAY NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic" aria-hidden="true">
-              🎮
-            </div>
-          </div>
-
-          {/* 3. REFER & EARN  (full width below) */}
-          <div className="hp-reward-panel hp-reward-refer">
-            <div className="hp-reward-copy">
-              <h3>REFER &amp; EARN</h3>
-              <p>Refer your friend &amp; you both get ₹100 off!</p>
-              <div className="hp-referral-code">
-                <span>YOUR REFERRAL CODE</span>
-                <strong>BLINK100</strong>
-              </div>
-              <button type="button" onClick={() => navigate('/refer-earn')}>
-                REFER NOW <MdArrowForward />
-              </button>
-            </div>
-            <div className="hp-reward-graphic" aria-hidden="true">
-              🎁
-            </div>
-          </div>
-        </div>
-      </section>
+        </section>
 
         {topDeals.length > 0 && (
           <section className="section">
-            <div className="hp-section-head">
-              <h2>DEALS OF THE DAY</h2>
+            <div className="hp-section-head hp-deals-section-head">
+              <h2 className="hp-deals-title">DEALS OF THE DAY</h2>
               <button type="button" onClick={() => navigate('/shop?sort=bestseller')}>
                 View All <MdChevronRight />
               </button>
@@ -933,7 +918,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>ELECTRONICS COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/shop?search=electronics')}>
+              <button type="button" onClick={() => navigate('/electronics')}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -952,7 +937,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <div className="hp-section-head hp-feed-head">
               <h2>TRENDY SHOES</h2>
-              <button type="button" onClick={() => navigate('/shop?search=shoes')}>
+              <button type="button" onClick={() => navigate('/footwear')}>
                 View All <MdChevronRight />
               </button>
             </div>
