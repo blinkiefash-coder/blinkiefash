@@ -1819,11 +1819,21 @@
 
 .hp-shop-brands-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(170px, 1fr);
   gap: 14px;
   align-items: stretch;
   width: 100%;
   margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 2px 8px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: thin;
+  scrollbar-color: #d1d5db #f3f4f6;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x;
 }
 
 .hp-shop-brand-card {
@@ -1839,6 +1849,8 @@
   justify-content: space-between;
   padding: 0;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
 }
 
 .hp-shop-brand-card:hover {
@@ -1936,11 +1948,22 @@
 
 @media (max-width: 1000px) {
   .hp-shop-brands-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-template-rows: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(160px, 1fr);
+    gap: 12px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
   }
 
   .hp-shop-brand-visual {
     min-height: 200px;
+  }
+
+  .hp-shop-brand-card {
+    scroll-snap-align: start;
   }
 }
 
@@ -1971,14 +1994,25 @@
 
   .hp-shop-brands-grid {
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-rows: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100vw - 32px) / 2);
     gap: 10px;
-    overflow: visible;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
   }
 
   .hp-shop-brand-card {
     min-width: 0;
     min-height: 190px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   .hp-shop-brand-visual {
@@ -1998,11 +2032,17 @@
   }
 
   .hp-shop-brands-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: none;
+    grid-template-rows: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(160px, 1fr);
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
   }
 
   .hp-shop-brand-visual {
-    min-height: 260px;
+    min-height: 200px;
   }
 
   .hp-shop-brand-name-overlay {
@@ -2053,13 +2093,28 @@
     overflow-y: hidden;
     padding: 2px 2px 8px;
     scroll-snap-type: x mandatory;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db #f3f4f6;
     -webkit-overflow-scrolling: touch;
     touch-action: pan-x;
   }
 
   .hp-shop-brands-grid::-webkit-scrollbar {
-    display: none;
+    height: 6px;
+  }
+
+  .hp-shop-brands-grid::-webkit-scrollbar-track {
+    background: #f3f4f6;
+    border-radius: 10px;
+  }
+
+  .hp-shop-brands-grid::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 10px;
+  }
+
+  .hp-shop-brands-grid::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
   }
 
   .hp-shop-brand-visual {
