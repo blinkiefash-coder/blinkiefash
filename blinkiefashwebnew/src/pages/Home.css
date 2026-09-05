@@ -1676,7 +1676,7 @@
 
 .hp-brand-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -3711,4 +3711,16 @@ html, body, #root {
   position: relative;
   z-index: 5;
   pointer-events: auto !important;
+}
+
+/* =========================================================
+   Mobile-only hero aspect ratio — matches mobilebanner1-6.png
+   (1950x800). Deliberately scoped to phones only (<=767px) so
+   tablets (iPad = 768px+ portrait width) and desktop keep the
+   3.4/1 desktop banner ratio untouched.
+   ========================================================= */
+@media (max-width: 767px) {
+  .hp-slide {
+    aspect-ratio: 1950 / 800 !important;
+  }
 }
