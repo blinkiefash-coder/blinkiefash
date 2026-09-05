@@ -1011,6 +1011,55 @@ export default function Home() {
           </section>
         )}
 
+        {topBrands.length > 0 && (
+          <section className="section hp-shop-brands-section" aria-label="Shop by brands">
+            <div className="hp-shop-brands-head">
+              <div className="hp-shop-brands-title-wrap">
+                <span className="hp-shop-brands-mark" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M7 10.5V7.5A5 5 0 0 1 12 2.5a5 5 0 0 1 5 5v3m-11 0h12l-1.2 8.4A2.8 2.8 0 0 1 15 21.5H9a2.8 2.8 0 0 1-2.8-2.6L5 10.5Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </span>
+                <h2>SHOP BY BRANDS</h2>
+              </div>
+              <button type="button" onClick={() => navigate('/shop')}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+
+            <div className="hp-shop-brands-grid">
+              {topBrands.slice(0, 5).map((brand, idx) => {
+                const label = (brand.name || '').toString().trim();
+                const logo = resolveImageUrl(brand.logo_url || brand.image);
+                const displayName = label || 'Brand';
+                const brandWord = displayName.toUpperCase();
+
+                return (
+                  <article key={`${brand.id || displayName}-${idx}`} className="hp-shop-brand-card">
+                    <div className="hp-shop-brand-visual">
+                      {logo ? (
+                        <img src={logo} alt={displayName} loading="lazy" />
+                      ) : (
+                        <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                          {brandWord.slice(0, 5)}
+                        </div>
+                      )}
+                      <div className="hp-shop-brand-name-overlay">{brandWord}</div>
+                    </div>
+                    <button
+                      type="button"
+                      className="hp-shop-brand-action"
+                      onClick={() => navigate(`/shop?search=${encodeURIComponent(displayName)}`)}
+                    >
+                      SHOP {brandWord} <MdChevronRight />
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
         <section className="section hp-universe-section" aria-label="Blinkiefash Universe">
           <div className="hp-universe-explore-row">
             <span className="hp-universe-line" />

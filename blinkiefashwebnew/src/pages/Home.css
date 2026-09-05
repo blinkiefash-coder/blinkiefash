@@ -1730,9 +1730,283 @@
   display: block;
 }
 
+.hp-shop-brands-section {
+  margin: 18px 0 0;
+  padding: 10px 0 10px;
+  background: #fff;
+  width: 100%;
+  max-width: 100%;
+}
+
+.hp-shop-brands-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.hp-shop-brands-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.hp-shop-brands-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hp-shop-brands-mark {
+  width: 42px;
+  height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px 12px 14px 14px;
+  background: #0a2d2d;
+  color: #d9f59d;
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.14);
+  flex-shrink: 0;
+  transform: rotate(-12deg);
+}
+
+.hp-shop-brands-mark svg {
+  width: 28px;
+  height: 28px;
+  transform: rotate(12deg);
+}
+
+.hp-shop-brands-head h2 {
+  margin: 0;
+  font-size: clamp(1.9rem, 2.6vw, 3.2rem);
+  line-height: 0.98;
+  letter-spacing: -0.055em;
+  font-weight: 950;
+  color: #072d2e;
+  white-space: nowrap;
+}
+
+.hp-shop-brands-heading-dark {
+  color: #0b1d2d;
+}
+
+.hp-shop-brands-heading-green {
+  color: #159447;
+}
+
+.hp-shop-brands-subtitle {
+  margin: 0;
+  font-size: 0.94rem;
+  color: #7d8793;
+  font-weight: 500;
+  letter-spacing: -0.025em;
+}
+
+.hp-shop-brands-head button {
+  border: none;
+  background: transparent;
+  color: #21a85d;
+  font-size: clamp(0.95rem, 1.2vw, 1.3rem);
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  margin-top: 8px;
+}
+
+.hp-shop-brands-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px;
+  align-items: stretch;
+  width: 100%;
+  margin: 0;
+}
+
+.hp-shop-brand-card {
+  width: 100%;
+  min-height: 270px;
+  border: 1px solid #e5e7eb;
+  border-radius: 22px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.hp-shop-brand-card:hover {
+  transform: translateY(-4px);
+  border-color: #bfeecb;
+  box-shadow: 0 16px 26px rgba(15, 23, 42, 0.08);
+}
+
+.hp-shop-brand-card.featured {
+  border-color: #c7f0d0;
+  background: #fff;
+}
+
+.hp-shop-brand-visual {
+  position: relative;
+  min-height: 205px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  padding: 18px 12px 8px;
+}
+
+.hp-shop-brand-logo {
+  max-width: 100%;
+  max-height: 150px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  filter: none;
+}
+
+.hp-shop-brand-nike-logo {
+  max-height: 68px;
+  width: 100%;
+  object-fit: contain;
+  padding: 0 14px;
+}
+
+.hp-shop-brand-fallback {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(2.3rem, 2.6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.08em;
+  color: #0f172a;
+}
+
+.hp-shop-brand-action {
+  width: calc(100% - 16px);
+  margin: 0 auto 14px;
+  border: 1.5px solid rgba(17, 24, 39, 0.85);
+  background: #fff;
+  color: #0f172a;
+  border-radius: 999px;
+  padding: 10px 12px;
+  font-size: 0.86rem;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.hp-shop-brand-action:hover,
+.hp-shop-brand-action:focus-visible {
+  background: #1ea85c;
+  border-color: #1ea85c;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.hp-shop-brand-card.featured .hp-shop-brand-action {
+  background: #fff;
+  border-color: rgba(17, 24, 39, 0.85);
+  color: #0f172a;
+}
+
+.hp-shop-brand-card.featured .hp-shop-brand-action:hover,
+.hp-shop-brand-card.featured .hp-shop-brand-action:focus-visible {
+  background: #1ea85c;
+  border-color: #1ea85c;
+  color: #fff;
+}
+
+.hp-shop-brand-action svg {
+  font-size: 1.2rem;
+}
+
+@media (max-width: 1000px) {
+  .hp-shop-brands-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .hp-shop-brands-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hp-shop-brands-title-wrap {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .hp-shop-brands-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+  }
+
+  .hp-shop-brands-head h2 {
+    font-size: clamp(2.2rem, 9vw, 3.2rem);
+  }
+
+  .hp-shop-brands-subtitle {
+    font-size: 0.9rem;
+  }
+
+  .hp-shop-brands-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    overflow: visible;
+  }
+
+  .hp-shop-brand-card {
+    min-width: 0;
+    min-height: 190px;
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 130px;
+  }
+
+  .hp-shop-brand-action {
+    width: calc(100% - 14px);
+    font-size: 0.8rem;
+    padding: 10px 10px;
+  }
+}
+
 @media (max-width: 1000px) {
   .hp-brand-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-shop-brands-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 260px;
+  }
+
+  .hp-shop-brand-name-overlay {
+    font-size: clamp(1.7rem, 5vw, 2.6rem);
   }
 }
 
@@ -1747,6 +2021,60 @@
 
   .hp-brand-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hp-shop-brands-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .hp-shop-brands-title-wrap {
+    width: 100%;
+    gap: 10px;
+  }
+
+  .hp-shop-brands-mark {
+    width: 42px;
+    height: 42px;
+    border-radius: 14px;
+  }
+
+  .hp-shop-brands-head h2 {
+    font-size: clamp(1.8rem, 9vw, 3rem);
+  }
+
+  .hp-shop-brands-grid {
+    grid-template-columns: none;
+    grid-template-rows: minmax(0, 1fr);
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 10px) / 2);
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding: 2px 2px 8px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .hp-shop-brands-grid::-webkit-scrollbar {
+    display: none;
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 240px;
+  }
+
+  .hp-shop-brand-card {
+    min-width: 0;
+    scroll-snap-align: start;
+  }
+
+  .hp-shop-brand-action {
+    width: calc(100% - 12px);
+    font-size: 0.8rem;
+    padding: 11px 10px;
   }
 }
 
