@@ -489,18 +489,24 @@ export default function Home() {
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
         
-        // Priority brands that should appear first
+        // Priority brands that should appear first - in specific order
         const priorityBrands = [
-          'Soul Store',
-          'Adidas',
-          'Nike',
+          'The Soul Store',
+          'US POLO',
+          'Manyvar',
+          'Levis',
           'Puma',
+          'Bear House',
+          'W',
+          'Aurelia',
+          'MK',
+          'Nike',
+          'Adidas',
           'Reebok',
           'Skechers',
           'New Balance',
           'Converse',
           'Vans',
-          'Levi\'s',
           'Tommy Hilfiger',
           'Calvin Klein',
           'Ralph Lauren',
