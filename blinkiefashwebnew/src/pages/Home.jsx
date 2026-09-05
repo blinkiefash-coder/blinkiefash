@@ -491,17 +491,17 @@ export default function Home() {
         
         // Priority brands that should appear first - in specific order
         const priorityBrands = [
-          'soul store',
-          'us polo',
-          'manyvar',
+          'the souled store',
+          'us polo assn',
+          'manyavar',
           'levis',
           'puma',
-          'bear house',
+          'the bear house',
           'w',
           'aurelia',
           'mk',
           'nike',
-          'adidas',
+          'addidas',
           'reebok',
           'skechers',
           'new balance',
