@@ -43,9 +43,12 @@ export default function EditProduct() {
   const handleMenuClick = (item) => {
     if (item.key === "orders")   navigate("/vendor/orders");
     if (item.key === "products")  navigate("/vendor/add-product");
+    if (item.key === "edit")      navigate("/vendor/edit-product");
     if (item.key === "stock")     navigate("/vendor/stock-monitoring");
     if (item.key === "analytics") navigate("/vendor/product-analytics");
-    if (item.key === "orders")    navigate("/vendor/orders");
+    if (item.key === "profile")   navigate("/vendor/profile");
+    if (item.key === "create-vendor") navigate("/vendor/create-vendor");
+    if (item.key === "manage-categories") navigate("/vendor/manage-categories");
   };
 
   const resolveVariantPrice = (rawValue, mrpValue) => {
@@ -72,8 +75,21 @@ export default function EditProduct() {
       if (vid === "all") {
         // Fetch all vendors' products in parallel and merge
         const vendors = vendorList || adminVendors;
+        if (!vendors || vendors.length === 0) {
+          console.warn("No vendors available for admin");
+          setProducts([]);
+          setLoading(false);
+          return;
+        }
         const results = await Promise.all(
-          vendors.map(v => fetch(`${API_API_BASE_URL}/vendor/${v.id}/products`).then(r => r.json()).catch(() => []))
+          vendors.map(v => 
+            fetch(`${API_API_BASE_URL}/vendor/${v.id}/products`)
+              .then(r => r.json())
+              .catch(err => {
+                console.error(`Failed to load products for vendor ${v.id}:`, err);
+                return [];
+              })
+          )
         );
         list = results.flat().filter(p => p?.id);
         // Deduplicate by product id
@@ -81,6 +97,7 @@ export default function EditProduct() {
         list = list.filter(p => { if (seen.has(p.id)) return false; seen.add(p.id); return true; });
       } else {
         const res = await fetch(`${API_API_BASE_URL}/vendor/${vid}/products`);
+        if (!res.ok) throw new Error(`Failed to load products: ${res.status}`);
         const data = await res.json();
         list = Array.isArray(data) ? data : [];
       }
@@ -103,7 +120,8 @@ export default function EditProduct() {
       setColorEdits(colorMap);
       setBarcodeEdits(barcodeMap);
     } catch (err) {
-      console.error(err);
+      console.error("Error loading products:", err);
+      setProducts([]);
     } finally {
       setLoading(false);
     }
@@ -116,15 +134,22 @@ export default function EditProduct() {
       if (adminMode) {
         try {
           const r = await fetch(`${API_API_BASE_URL}/admin/vendors`, { headers: adminHeaders() });
+          if (!r.ok) throw new Error(`Failed to load vendors: ${r.status}`);
           const d = await r.json();
           if (cancelled) return;
           const list = Array.isArray(d.vendors) ? d.vendors : [];
+          console.log("[EditProduct] Loaded vendors for admin:", list.length);
           setAdminVendors(list);
           // Default to "all" so admin sees everything at once
           setSelectedAdminVendorId("all");
           await loadProducts("all", list);
-        } catch {
-          if (!cancelled) setLoading(false);
+        } catch (err) {
+          console.error("[EditProduct] Failed to load admin vendors:", err);
+          if (!cancelled) {
+            setAdminVendors([]);
+            setProducts([]);
+            setLoading(false);
+          }
         }
         return;
       }

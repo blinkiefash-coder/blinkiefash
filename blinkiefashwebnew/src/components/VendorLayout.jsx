@@ -33,16 +33,18 @@ export default function VendorLayout({
   const [togglingOp, setTogglingOp] = useState(false);
 
   const resolvedVendorId = vendorId || localStorage.getItem('vendor_id') || '';
+  const isAdminMode = isAdmin();
 
   useEffect(() => {
-    if (!resolvedVendorId) return;
+    // Skip operational status fetch for admin users (no vendor_id)
+    if (!resolvedVendorId || isAdminMode) return;
     fetch(`${API_API_BASE_URL}/vendor/${resolvedVendorId}`)
       .then((r) => r.json())
       .then((d) => {
         if (typeof d.is_operational === 'boolean') setIsOperational(d.is_operational);
       })
       .catch(() => {});
-  }, [resolvedVendorId]);
+  }, [resolvedVendorId, isAdminMode]);
 
   const toggleOperational = async () => {
     if (!resolvedVendorId || togglingOp || isOperational === null) return;
@@ -111,9 +113,9 @@ export default function VendorLayout({
         </div>
 
         <div className="vendor-store-card">
-          <strong>My Store</strong>
+          <strong>{isAdminMode ? 'Admin Panel' : 'My Store'}</strong>
           <span>{storeName}</span>
-          {resolvedVendorId && isOperational !== null ? (
+          {!isAdminMode && resolvedVendorId && isOperational !== null ? (
             <div className="vendor-op-toggle-row">
               <span className={`vendor-op-label ${isOperational ? 'op-live' : 'op-paused'}`}>
                 {togglingOp ? 'Updating…' : isOperational ? '🟢 Store Live' : '🔴 Store Paused'}
@@ -150,8 +152,8 @@ export default function VendorLayout({
 
         <div className="vendor-sidebar-footer">
           <div className="vendor-status-card">
-            <span className="vendor-status-label">Store status</span>
-            <strong>{resolvedVendorId && isOperational !== null ? (isOperational ? 'Open for business' : 'Paused for now') : 'Checking status'}</strong>
+            <span className="vendor-status-label">{isAdminMode ? 'Mode' : 'Store status'}</span>
+            <strong>{isAdminMode ? 'Admin' : (resolvedVendorId && isOperational !== null ? (isOperational ? 'Open for business' : 'Paused for now') : 'Checking status')}</strong>
           </div>
         </div>
       </aside>
