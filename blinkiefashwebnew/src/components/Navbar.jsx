@@ -12,6 +12,11 @@ const IconChevronDown = ({ size = 14 }) => (
     <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
+const IconArrowLeft = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <path d="M19 12H5M11 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
 const IconSearch = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
     <circle cx="11" cy="11" r="7" />
@@ -85,9 +90,9 @@ export default function Navbar() {
   const profileRef = useRef(null);
 
   /* Mobile "search-only" mode: on the shop/search page, mobile navbar shows
-     just the full search bar (no hamburger, logo, cart, wishlist, profile).
-     Desktop layout is unaffected — this only applies inside the existing
-     max-width: 900px media query in Navbar.css. */
+     a back button, a compact logo, and the full search bar (no hamburger,
+     cart, wishlist, or profile). Desktop layout is unaffected — this only
+     applies inside the existing max-width: 900px media query in Navbar.css. */
   const isSearchOnlyMobile = location.pathname.startsWith("/shop");
 
   useEffect(() => {
@@ -223,9 +228,32 @@ export default function Navbar() {
     navigate(q ? `/shop?search=${encodeURIComponent(q)}` : "/shop");
   };
 
+  /* Mobile search-only back button: use browser history when there is
+     somewhere to go back to, otherwise fall back to Home so it never
+     dead-ends someone who landed on /shop directly (e.g. from a link). */
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <>
       <header className={`navbar${isSearchOnlyMobile ? " navbar-search-only" : ""}`}>
+        {/* Mobile search-only mode only — lets someone leave the full-width
+            search bar view without needing the hamburger, which is hidden
+            in this mode. */}
+        <button
+          type="button"
+          className="nav-back-btn"
+          aria-label="Go back"
+          onClick={handleBack}
+        >
+          <IconArrowLeft />
+        </button>
+
         <button
           type="button"
           className="nav-hamburger"
