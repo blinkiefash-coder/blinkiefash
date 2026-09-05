@@ -491,40 +491,40 @@ export default function Home() {
         
         // Priority brands that should appear first - in specific order
         const priorityBrands = [
-          'The Soul Store',
-          'US POLO',
-          'Manyvar',
-          'Levis',
-          'Puma',
-          'Bear House',
-          'W',
-          'Aurelia',
-          'MK',
-          'Nike',
-          'Adidas',
-          'Reebok',
-          'Skechers',
-          'New Balance',
-          'Converse',
-          'Vans',
-          'Tommy Hilfiger',
-          'Calvin Klein',
-          'Ralph Lauren',
-          'Guess',
-          'Diesel',
-          'Lee',
-          'Wrangler',
-          'H&M',
-          'Zara',
-          'Forever 21',
+          'soul store',
+          'us polo',
+          'manyvar',
+          'levis',
+          'puma',
+          'bear house',
+          'w',
+          'aurelia',
+          'mk',
+          'nike',
+          'adidas',
+          'reebok',
+          'skechers',
+          'new balance',
+          'converse',
+          'vans',
+          'tommy hilfiger',
+          'calvin klein',
+          'ralph lauren',
+          'guess',
+          'diesel',
+          'lee',
+          'wrangler',
+          'h&m',
+          'zara',
+          'forever 21',
         ];
 
         const brandsList = [...brandsSource]
           .sort((a, b) => {
-            const aName = (a.name || '').trim();
-            const bName = (b.name || '').trim();
-            const aPriority = priorityBrands.findIndex(p => p.toLowerCase() === aName.toLowerCase());
-            const bPriority = priorityBrands.findIndex(p => p.toLowerCase() === bName.toLowerCase());
+            const aName = (a.name || '').trim().toLowerCase();
+            const bName = (b.name || '').trim().toLowerCase();
+            const aPriority = priorityBrands.indexOf(aName);
+            const bPriority = priorityBrands.indexOf(bName);
             
             // If both in priority list, sort by priority
             if (aPriority !== -1 && bPriority !== -1) {
