@@ -31,6 +31,14 @@ import spinAndWinImage from '../assets/spin&win.png';
 import referAndEarnImage from '../assets/refer&earn.png';
 import freeDeliveryImage from '../assets/freedelivery.png';
 
+// Mobile-cropped versions of the hero banners (shown < 768px via <picture>)
+import mobilebanner1 from '../assets/mobilebanner1.png';
+import mobilebanner2 from '../assets/mobilebanner2.png';
+import mobilebanner3 from '../assets/mobilebanner3.png';
+import mobilebanner4 from '../assets/mobilebanner4.png';
+import mobilebanner5 from '../assets/mobilebanner5.png';
+import mobilebanner6 from '../assets/mobilebanner6.png';
+
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
 import couponImage from '../assets/coupon.png';
@@ -52,28 +60,34 @@ function resolveImageUrl(raw) {
 const HERO_SLIDES = [
   {
     image: banner1,
+    mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
   },
   {
     image: banner2,
+    mobileImage: mobilebanner2,
     to: '/shop?search=Puma',
     pos: 'center 20%',
   },
   {
     image: banner3,
+    mobileImage: mobilebanner3,
     to: '/shop?search=Xinso',
   },
   {
     image: banner4,
+    mobileImage: mobilebanner4,
     to: '/shop?search=kids',
   },
   {
     image: banner5,
+    mobileImage: mobilebanner5,
     to: '/shop?search=men',
   },
   {
     image: banner6,
+    mobileImage: mobilebanner6,
     to: '/shop?search=mk',
   },
 ];
@@ -107,6 +121,7 @@ const UNIVERSE_BRANDS = [
     name: "FCUK",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
     to: "/shop?search=FCUK",
+    pos: "left center",
   },
   {
     name: "Libas",
@@ -707,12 +722,17 @@ export default function Home() {
             {HERO_SLIDES.map((slide, index) => (
               index === 0 ? (
                 <div type="button" key={slide.image} className="hp-slide hp-slide-first">
-                  <img
-                    src={slide.image}
-                    alt=""
-                    className="hp-slide-img"
-                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                  />
+                  <picture>
+                    {slide.mobileImage ? (
+                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+                    ) : null}
+                    <img
+                      src={slide.image}
+                      alt=""
+                      className="hp-slide-img"
+                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                    />
+                  </picture>
                   <button
                     type="button"
                     className="hp-hero-hotspot hp-hero-hotspot-men"
@@ -728,12 +748,17 @@ export default function Home() {
                 </div>
               ) : (
                 <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
-                  <img
-                    src={slide.image}
-                    alt=""
-                    className="hp-slide-img"
-                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                  />
+                  <picture>
+                    {slide.mobileImage ? (
+                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+                    ) : null}
+                    <img
+                      src={slide.image}
+                      alt=""
+                      className="hp-slide-img"
+                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                    />
+                  </picture>
                 </button>
               )
             ))}
@@ -869,7 +894,12 @@ export default function Home() {
                 onClick={() => navigate(brand.to)}
                 aria-label={`Explore ${brand.name}`}
               >
-                <img src={brand.image} alt={`${brand.name} banner`} loading="lazy" />
+                <img
+                  src={brand.image}
+                  alt={`${brand.name} banner`}
+                  loading="lazy"
+                  style={brand.pos ? { objectPosition: brand.pos } : undefined}
+                />
               </button>
             ))}
           </div>
