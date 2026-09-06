@@ -10,6 +10,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#16a34a" />
 
+    <!-- Critical CSS: Prevent FOUC by ensuring vendor page loads with proper styles -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; background: #fff; color: #0f172a; }
+      .vendor-page { display: grid; grid-template-columns: 1fr; min-height: 100vh; background: linear-gradient(135deg, #f0fdf4 0%, #f9fafb 100%); }
+      .vendor-hero-panel { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: center; padding: 40px; max-width: 1400px; margin: 0 auto; }
+      .vendor-card { background: rgba(255, 255, 255, 0.95); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15); max-width: 440px; }
+      .vendor-card h2 { font-size: 26px; font-weight: 800; margin-bottom: 10px; color: #0f172a; }
+      .vendor-card form { display: flex; flex-direction: column; gap: 20px; }
+      .vendor-card input { padding: 14px 16px; border-radius: 10px; border: 1.5px solid #e5e7eb; outline: none; font-size: 14px; background: #f9fafb; width: 100%; box-sizing: border-box; }
+      .vendor-card button[type="submit"] { margin-top: 8px; padding: 14px 16px; border: none; border-radius: 10px; background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); color: white; font-weight: 700; font-size: 15px; cursor: pointer; }
+      @media (max-width: 1024px) { .vendor-hero-panel { grid-template-columns: 1fr; } .vendor-card { max-width: 100%; } }
+    </style>
+
     <!-- Primary SEO -->
     <title>Blinkiefash — 60-Minute Fashion Delivery in Odisha</title>
     <meta name="description" content="Shop top brands like Puma, Nike, Adidas, Levi's and more. Get clothing, footwear, electronics and accessories delivered to your door in 60 minutes across Cuttack and Bhubaneswar." />
