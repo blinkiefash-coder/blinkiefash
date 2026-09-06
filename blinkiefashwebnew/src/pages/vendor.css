@@ -1,11 +1,3 @@
-.vendor-page {
-  min-height: 100vh;
-  background: linear-gradient(180deg, #f0fdf4 0%, #fafafa 40%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-}
 /* Page background */
 .vendor-page {
   min-height: 100vh;
