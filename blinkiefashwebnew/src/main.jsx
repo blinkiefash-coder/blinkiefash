@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import ScrollToTop from './components/ScrollToTop.jsx';
 import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
+import './pages/vendor.css';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';

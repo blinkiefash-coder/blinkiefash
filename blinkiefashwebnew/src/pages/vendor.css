@@ -9,7 +9,6 @@
   display: grid;
   place-items: stretch center;
   padding: 28px;
-  border: 5px solid red !important;
 }
 
 .vendor-hero-panel {
