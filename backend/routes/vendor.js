@@ -381,12 +381,10 @@ router.get("/:id/orders", async (req, res) => {
       ownerIds
     );
 
-    // Each order card should show only this vendor's own revenue and their
-    // own invoice number (assigned lazily when they first generate the
-    // invoice/packing-slip) — not the full multi-vendor order total.
+    // Each order card should show the global invoice number
+    // (assigned lazily when first invoice is generated)
     const invoiceRows = await pool.query(
-      `SELECT order_id, invoice_number FROM vendor_order_invoices WHERE vendor_id = $1`,
-      [id]
+      `SELECT order_id, invoice_number FROM order_invoices`
     );
     const invoiceNumberByOrderId = Object.fromEntries(
       invoiceRows.rows.map((r) => [String(r.order_id), r.invoice_number])
@@ -430,11 +428,11 @@ router.patch("/:id/orders/:orderId/invoice-number", async (req, res) => {
     if (!order.rows.length) return res.status(404).json({ error: "Order not found" });
 
     await pool.query(
-      `INSERT INTO vendor_order_invoices (vendor_id, order_id, invoice_number)
+      `INSERT INTO order_invoices (order_id, invoice_number, assigned_by_vendor_id)
        VALUES ($1, $2, $3)
-       ON CONFLICT (vendor_id, order_id)
+       ON CONFLICT (order_id)
        DO UPDATE SET invoice_number = EXCLUDED.invoice_number`,
-      [vendorId, orderId, invoiceNumber]
+      [orderId, invoiceNumber, vendorId]
     );
 
     res.json({ success: true, invoice_number: invoiceNumber });
