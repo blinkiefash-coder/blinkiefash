@@ -97,84 +97,116 @@
   width: 100%;
   max-width: 440px;
   justify-self: end;
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(16px);
-  border-radius: 24px;
-  padding: 34px;
-  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.12);
-  border: 1px solid rgba(229, 231, 235, 0.9);
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  transition: box-shadow 0.3s ease;
+}
+
+.vendor-card:hover {
+  box-shadow: 0 24px 72px rgba(15, 23, 42, 0.18);
 }
 
 /* Heading */
 .vendor-card h2 {
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 800;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  color: #0f172a;
+  letter-spacing: -0.02em;
 }
 
 .vendor-subtext,
 .vendor-register-link {
   font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 20px;
+  color: #64748b;
+  margin-bottom: 24px;
+  line-height: 1.5;
 }
 
 /* Form: gap-based spacing instead of scattered per-element margins */
 .vendor-card form {
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 20px;
 }
 
 .vendor-card label {
   font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+  display: block;
+  margin-bottom: 6px;
 }
 
 /* Inputs */
 .vendor-card input {
-  padding: 13px 14px;
-  border-radius: 12px;
-  border: 1px solid #c9f7d8;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1.5px solid #e5e7eb;
   outline: none;
   font-size: 14px;
-  background: #fff;
+  background: #f9fafb;
   width: 100%;
   box-sizing: border-box;
+  transition: all 0.3s ease;
+  color: #0f172a;
+}
+
+.vendor-card input:focus {
+  background: #fff;
+  border-color: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.1);
+}
+
+.vendor-card input::placeholder {
+  color: #9ca3af;
 }
 
 /* Submit button — scoped to [type="submit"] so it no longer bleeds
    its styles onto the password-visibility toggle button below */
 .vendor-card button[type="submit"] {
-  margin-top: 4px;
-  padding: 13px 14px;
+  margin-top: 8px;
+  padding: 14px 16px;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
   color: white;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 15px;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
-  box-shadow: 0 16px 30px rgba(34, 197, 94, 0.22);
+  transition: all 0.3s ease;
+  box-shadow: 0 10px 28px rgba(34, 197, 94, 0.25);
+  letter-spacing: -0.01em;
 }
 
 .vendor-card button[type="submit"]:hover {
-  transform: translateY(-1px);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(34, 197, 94, 0.3);
+}
+
+.vendor-card button[type="submit"]:active {
+  transform: translateY(0);
 }
 
 .vendor-register-link {
-  margin-top: 14px;
+  margin-top: 18px;
   font-size: 14px;
   text-align: center;
 }
 
 .vendor-register-link a {
-  color: #15803d;
+  color: #16a34a;
   font-weight: 700;
   text-decoration: none;
+  transition: color 0.3s ease;
 }
 
 .vendor-register-link a:hover {
-  text-decoration: underline;
+  color: #15803d;
 }
 
 /* Screen-reader-only utility: keeps content in the accessibility tree
@@ -198,7 +230,7 @@
 
 .vendor-password-field input {
   width: 100%;
-  padding-right: 44px; /* room for the toggle button */
+  padding-right: 48px; /* room for the toggle button */
   box-sizing: border-box;
 }
 
@@ -207,27 +239,28 @@
 .vendor-card .vendor-password-toggle {
   position: absolute;
   top: 50%;
-  right: 6px;
+  right: 10px;
   transform: translateY(-50%);
-  width: 32px;
-  height: 32px;
+  width: 36px;
+  height: 36px;
   padding: 0;
   margin: 0;
   border: none;
   border-radius: 8px;
   background: transparent;
-  color: #6b7280;
+  color: #9ca3af;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   font-size: 18px;
   box-shadow: none;
+  transition: all 0.3s ease;
 }
 
 .vendor-card .vendor-password-toggle:hover,
 .vendor-card .vendor-password-toggle:focus-visible {
-  background: rgba(22, 163, 74, 0.1);
+  background: rgba(34, 197, 94, 0.12);
   color: #16a34a;
 }
 
@@ -240,14 +273,13 @@
 .vendor-forgot-row {
   display: flex;
   justify-content: flex-end;
-  margin-top: -6px; /* pulls it a bit closer under the password field since gap already spaces it */
+  margin-top: -8px; /* pulls it a bit closer under the password field since gap already spaces it */
 }
 
 .vendor-forgot-link {
   font-size: 13px;
   font-weight: 700;
-  color: #15803d;
-  text-decoration: none;
+  color: #16a34a;
 }
 
 .vendor-forgot-link:hover,
@@ -269,6 +301,19 @@
 .vendor-success h3 {
   color: #22c55e;
   margin-bottom: 10px;
+}
+
+/* Error state */
+.vendor-error {
+  background: rgba(239, 68, 68, 0.08);
+  border-left: 3px solid #ef4444;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #991b1b;
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.4;
 }
 
 /* ─────────────────────────────────────────────────────────── */
@@ -326,50 +371,53 @@
   .vendor-card {
     width: 100%;
     max-width: 100%;
-    padding: 20px;
-    border-radius: 12px;
+    padding: 28px;
+    border-radius: 16px;
   }
 
   .vendor-card form {
-    gap: 14px;
+    gap: 16px;
   }
 
   .vendor-card h2 {
-    font-size: 20px;
-    margin-bottom: 4px;
+    font-size: 22px;
+    margin-bottom: 6px;
   }
 
   .vendor-subtext {
-    font-size: 12px;
-    margin-bottom: 16px;
+    font-size: 13px;
+    margin-bottom: 20px;
   }
 
   .vendor-card label {
     font-size: 12px;
+    font-weight: 600;
   }
 
   .vendor-card input {
-    padding: 10px;
-    font-size: 14px;
-    min-height: 42px;
-    border-radius: 6px;
-  }
-
-  .vendor-card button[type="submit"] {
-    margin-top: 2px;
-    padding: 10px;
-    font-size: 14px;
+    padding: 12px 14px;
+    font-size: 15px;
+    min-height: 44px;
     border-radius: 8px;
   }
 
+  .vendor-card button[type="submit"] {
+    margin-top: 4px;
+    padding: 12px 14px;
+    font-size: 15px;
+    border-radius: 8px;
+    font-weight: 700;
+  }
+
   .vendor-register-link {
-    margin-top: 12px;
-    font-size: 12px;
+    margin-top: 16px;
+    font-size: 13px;
   }
 
   .vendor-error {
-    font-size: 12px;
-    margin: 8px 0;
+    font-size: 13px;
+    margin: 10px 0;
+    padding: 10px 12px;
   }
 }
 
@@ -384,30 +432,31 @@
   }
 
   .vendor-hero-copy h1 {
-    font-size: 28px;
+    font-size: 26px;
   }
 
   .vendor-card {
-    padding: 16px;
-    border-radius: 10px;
+    padding: 20px;
+    border-radius: 12px;
   }
 
   .vendor-card form {
-    gap: 12px;
+    gap: 14px;
   }
 
   .vendor-card h2 {
-    font-size: 18px;
-    margin-bottom: 8px;
+    font-size: 20px;
+    margin-bottom: 6px;
   }
 
   .vendor-subtext {
-    font-size: 11px;
-    margin-bottom: 14px;
+    font-size: 12px;
+    margin-bottom: 18px;
   }
 
   .vendor-card label {
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 600;
   }
 
   .vendor-card input {
