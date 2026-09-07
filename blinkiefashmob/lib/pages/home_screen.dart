@@ -5833,12 +5833,8 @@ class _HomeScreenState extends State<HomeScreen>
     // Sort brands by priority (matching web version logic)
     final sortedBrands = [..._brands].toList();
     sortedBrands.sort((a, b) {
-      final aName = (a['name']?.toString() ?? '')
-          .toLowerCase()
-          .trim();
-      final bName = (b['name']?.toString() ?? '')
-          .toLowerCase()
-          .trim();
+      final aName = (a['name']?.toString() ?? '').toLowerCase().trim();
+      final bName = (b['name']?.toString() ?? '').toLowerCase().trim();
       final aPriority = priorityBrands.indexOf(aName);
       final bPriority = priorityBrands.indexOf(bName);
 
@@ -6000,31 +5996,16 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(4),
-              child: LinearProgressIndicator(
-                value: progress.clamp(0.0, 1.0),
-                minHeight: 3,
-                backgroundColor: const Color(0xFFE2E8F0),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF16A34A),
-                ),
-              ),
-            ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(4),
+        child: LinearProgressIndicator(
+          value: progress.clamp(0.0, 1.0),
+          minHeight: 3,
+          backgroundColor: const Color(0xFFE2E8F0),
+          valueColor: const AlwaysStoppedAnimation<Color>(
+            Color(0xFF16A34A),
           ),
-          const SizedBox(width: 8),
-          Text(
-            '${((progress * 100).toStringAsFixed(0))}%',
-            style: const TextStyle(
-              fontSize: 10,
-              color: Color(0xFF6B7280),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
