@@ -154,7 +154,11 @@ export default function BrandPage() {
   const activeFilterCount =
     (appliedPriceRange.min || appliedPriceRange.max ? 1 : 0) + (selectedCategoryId ? 1 : 0);
 
+
   const bannerUrl = resolveImageUrl(getBrandBanner(brandInfo) || brandInfo?.logo_url);
+
+  const bannerUrl = resolveImageUrl(brandInfo?.banner);
+
   const displayName = brandInfo?.name || brandName || 'Brand';
   const currentSortLabel =
     SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
