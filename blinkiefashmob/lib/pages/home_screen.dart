@@ -5910,7 +5910,7 @@ class _HomeScreenState extends State<HomeScreen>
                           borderRadius: BorderRadius.circular(13),
                           child: imgUrl != null
                               ? Padding(
-                                  padding: const EdgeInsets.all(10),
+                                  padding: const EdgeInsets.all(6),
                                   child: CachedNetworkImage(
                                     imageUrl: imgUrl,
                                     memCacheWidth:
@@ -5919,7 +5919,7 @@ class _HomeScreenState extends State<HomeScreen>
                                                   context,
                                                 ).devicePixelRatio)
                                             .round(),
-                                    fit: BoxFit.contain,
+                                    fit: BoxFit.scaleDown,
                                     placeholder: (ctx, u) => const Center(
                                       child: Icon(
                                         Icons.storefront_outlined,
@@ -6002,9 +6002,7 @@ class _HomeScreenState extends State<HomeScreen>
           value: progress.clamp(0.0, 1.0),
           minHeight: 3,
           backgroundColor: const Color(0xFFE2E8F0),
-          valueColor: const AlwaysStoppedAnimation<Color>(
-            Color(0xFF16A34A),
-          ),
+          valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF16A34A)),
         ),
       ),
     );
