@@ -5853,8 +5853,11 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         SizedBox(
           height: 160,
-          child: ScrollConfiguration(
-            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+          child: ScrollbarTheme(
+            data: ScrollbarThemeData(
+              thumbColor: WidgetStateProperty.all(Colors.transparent),
+              trackColor: WidgetStateProperty.all(Colors.transparent),
+            ),
             child: ListView.builder(
               controller: _brandScrollController,
               scrollDirection: Axis.horizontal,
