@@ -3667,18 +3667,21 @@ class _HomeScreenState extends State<HomeScreen>
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
     final variantData = _getCardVariant(item);
-    final price = double.tryParse((variantData['discount_price'] ?? '').toString()) ?? 0;
+    final price =
+        double.tryParse((variantData['discount_price'] ?? '').toString()) ?? 0;
     final mrp = double.tryParse((variantData['price'] ?? '').toString()) ?? 0;
     final image = _imgUrl(variantData['image_url'] ?? item['image']);
     final hasDiscount = mrp > 0 && price > 0 && mrp > price;
-    final discountPercent = hasDiscount ? ((mrp - price) / mrp * 100).round() : 0;
+    final discountPercent = hasDiscount
+        ? ((mrp - price) / mrp * 100).round()
+        : 0;
     final savings = hasDiscount ? (mrp - price).toStringAsFixed(0) : '0';
-    
+
     // Get rating and review info (if available)
     final rating = item['rating'] ?? 4.6;
     final reviewCount = item['review_count'] ?? '1.2K';
     final isTryAndBuy = item['is_try_and_buy'] == true;
-    
+
     final wishItem = WishlistItem(
       productId: item['id']?.toString() ?? '',
       name: name,
@@ -3744,31 +3747,21 @@ class _HomeScreenState extends State<HomeScreen>
                       left: 8,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                          horizontal: 8,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: const Color(0xFFFF8C42),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.card_giftcard_rounded,
-                              color: Colors.white,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                            Text(
-                              'Try & Buy',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
+                        child: const Text(
+                          'TRY & BUY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
                     ),
@@ -3802,7 +3795,8 @@ class _HomeScreenState extends State<HomeScreen>
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
                           size: 16,
-                          color: WishlistManager.instance.isWishlisted(
+                          color:
+                              WishlistManager.instance.isWishlisted(
                                 wishItem.productId,
                               )
                               ? const Color(0xFFE11D48)
@@ -3843,37 +3837,36 @@ class _HomeScreenState extends State<HomeScreen>
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     // ── BRAND WITH RATING ───────────────────────────────
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            brand.toUpperCase(),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Color(0xFF1F2937),
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      brand.toUpperCase(),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF1F2937),
+                        letterSpacing: 0.3,
+                      ),
                     ),
                     // ── RATING & REVIEWS ────────────────────────────────
                     Row(
                       children: [
-                        const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFCA311)),
+                        const Icon(
+                          Icons.star_rounded,
+                          size: 11,
+                          color: Color(0xFFFCA311),
+                        ),
                         const SizedBox(width: 2),
                         Text(
                           '$rating',
                           style: const TextStyle(
-                            fontSize: 10,
+                            fontSize: 9,
                             fontWeight: FontWeight.w600,
                             color: Color(0xFF1F2937),
                           ),
@@ -3882,89 +3875,81 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           '($reviewCount)',
                           style: const TextStyle(
-                            fontSize: 9,
+                            fontSize: 8,
                             fontWeight: FontWeight.w500,
                             color: Color(0xFF6B7280),
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 3),
                     // ── PRODUCT NAME ────────────────────────────────────
                     Text(
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
-                        height: 1.2,
+                        height: 1.1,
                       ),
                     ),
-                    // ── CATEGORY/TYPE ───────────────────────────────────
-                    Text(
-                      'Casual Shoes',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 9,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF9CA3AF),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 2),
                     // ── PRICE SECTION ───────────────────────────────────
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
                         // Sale price
                         Text(
                           '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 14,
+                            fontSize: 12,
                             fontWeight: FontWeight.w800,
                             color: Color(0xFFDC2626),
                           ),
                         ),
-                        // MRP strikethrough
-                        if (hasDiscount)
-                          Text(
-                            '₹${mrp.toStringAsFixed(0)}',
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFF9CA3AF),
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
                         // Discount % badge
                         if (hasDiscount) ...[
-                          const SizedBox(height: 3),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
-                              vertical: 2,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEE2E2),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '$discountPercent% OFF',
-                              style: const TextStyle(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: Color(0xFFDC2626),
-                              ),
-                            ),
-                          ),
-                          // You save
                           const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                '₹${mrp.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF9CA3AF),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  '$discountPercent% OFF',
+                                  style: const TextStyle(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 1),
                           Text(
                             'You save ₹$savings',
                             style: const TextStyle(
-                              fontSize: 9,
+                              fontSize: 8,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFFDC2626),
                             ),
