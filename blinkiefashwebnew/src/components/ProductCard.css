@@ -1,12 +1,14 @@
 .pc-card {
   position: relative;
-  border: 1px solid #eef1f5;
-  border-radius: 12px;
+  border: 1px solid #f1f4f8;
+  border-radius: 16px;
   background: #fff;
   overflow: hidden;
   cursor: pointer;
-  box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px rgba(15, 23, 42, 0.05);
+  transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.25s ease;
   display: flex;
   flex-direction: column;
   /* Lets the narrow-card rules below react to the card's own
@@ -17,9 +19,17 @@
 }
 
 .pc-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 16px 32px rgba(15, 23, 42, 0.12);
+  transform: translateY(-5px);
+  box-shadow: 0 4px 8px rgba(15, 23, 42, 0.06), 0 20px 36px rgba(15, 23, 42, 0.14);
   border-color: #dcfce7;
+}
+
+/* Hover does nothing on touch devices, so give tapping the card
+   itself a quick press-down instead — keeps the interaction from
+   feeling inert on phones. */
+.pc-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .pc-top {
@@ -31,17 +41,17 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 10px 10px 0;
+  padding: 12px 12px 0;
 }
 
 .pc-badge {
-  font-size: 9px;
+  font-size: 10.5px;
   font-weight: 800;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.4px;
   text-transform: uppercase;
   color: #fff;
   border-radius: 20px;
-  padding: 5px 10px;
+  padding: 6px 11px;
   box-shadow: 0 4px 10px rgba(15, 23, 42, 0.18);
 }
 
@@ -63,46 +73,44 @@
 
 .pc-wishlist {
   border: 0;
-  background: #fff;
-  width: 32px;
-  height: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(4px);
+  width: 34px;
+  height: 34px;
   border-radius: 50%;
   font-size: 16px;
   line-height: 1;
   color: #94a3b8;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.14);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.16);
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s ease, transform 0.15s ease;
+  transition: color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
   flex-shrink: 0;
+  position: relative;
 }
 
 .pc-wishlist:hover {
   color: var(--theme-primary, #ec4899);
-  transform: scale(1.08);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
 }
 
 .pc-wishlist.active {
   color: var(--theme-primary, #ec4899);
 }
 
-.pc-wishlist {
-  position: relative;
-}
-
 /* ── Image box — FIXED aspect ratio (3:4), no content-based
    padding, so it never resizes based on the source photo. Every
    card's box is identical; the photo fills it via object-fit and
    gets cropped, never stretched or letterboxed. ── */
-/* ── Image box ── */
 .pc-image-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 3 / 4;
   overflow: hidden;
-  background: #f8fafc;
+  background: radial-gradient(120% 100% at 50% 20%, #fbfcfe 0%, #f0f3f8 100%);
   box-sizing: border-box;
   display: flex;               /* centers the img */
   align-items: center;
@@ -110,19 +118,19 @@
 }
 
 .pc-image-wrap img {
-  max-width: 100%;
-  max-height: 100%;
+  max-width: 84%;
+  max-height: 84%;
   width: auto;
   height: auto;
   object-fit: contain;
   object-position: center;
   display: block;
-  transition: transform 0.25s ease;
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
   backface-visibility: hidden;
 }
 
 .pc-card:hover .pc-image-wrap img {
-  transform: scale(1.04);
+  transform: scale(1.06);
 }
 
 .pc-no-image {
@@ -140,12 +148,12 @@
    lopsided. ── */
 .pc-cart-fab {
   position: absolute;
-  right: 10px;
-  bottom: 10px;
+  right: 12px;
+  bottom: 12px;
   z-index: 2;
   border: 0;
-  width: 34px;
-  height: 34px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   background: #fff;
   color: var(--brand-green, #16a34a);
@@ -155,21 +163,22 @@
   align-items: center;
   justify-content: center;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
-  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 /* Invisible padding that extends the tap target to ~44px (WCAG
-   2.5.5) without changing the button's visible 34px size. */
+   2.5.5) without changing the button's visible size. */
 .pc-cart-fab::before {
   content: "";
   position: absolute;
-  inset: -5px;
+  inset: -4px;
 }
 
 .pc-cart-fab:hover {
   background: var(--brand-green, #16a34a);
   color: #fff;
-  transform: scale(1.08);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(22, 163, 74, 0.35);
 }
 
 .pc-cart-fab:focus-visible,
@@ -182,9 +191,9 @@
   background: var(--brand-green, #16a34a);
   color: #fff;
   width: auto;
-  min-width: 34px;
-  padding: 0 10px;
-  border-radius: 17px;
+  min-width: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
   font-weight: 800;
 }
 
@@ -227,6 +236,86 @@
   line-height: 1;
 }
 
+/* ── Quantity stepper — replaces the single add-to-cart FAB once
+   the item is already in the cart. Same corner/footprint as the
+   FAB so nothing jumps around when it swaps in. ── */
+.pc-cart-stepper {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  background: #fff;
+  border-radius: 999px;
+  padding: 3px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+  animation: pc-stepper-in 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes pc-stepper-in {
+  from {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.pc-cart-step-btn {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--brand-green, #16a34a);
+  color: #fff;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+/* Invisible padding to extend the tap target toward ~40px without
+   growing the visible pill. */
+.pc-cart-step-btn::before {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+
+.pc-cart-step-btn:hover {
+  transform: scale(1.1);
+}
+
+.pc-cart-step-btn:active {
+  transform: scale(0.92);
+}
+
+.pc-cart-step-btn:focus-visible {
+  outline: 2px solid var(--brand-green, #16a34a);
+  outline-offset: 2px;
+}
+
+.pc-cart-step-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.pc-cart-step-qty {
+  min-width: 22px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+
 /* Visually hidden but announced by screen readers — used for the
    "added to cart" live-region confirmation. */
 .pc-sr-only {
@@ -242,9 +331,8 @@
 }
 
 .pc-body {
-  padding: 10px 12px 14px;
+  padding: 12px 14px 16px;
   position: relative;
-  border-top: 1px solid #f1f5f9;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -252,21 +340,22 @@
 
 .pc-body small {
   display: block;
-  font-size: 10px;
-  color: #94a3b8;
-  margin-bottom: 3px;
+  font-size: 11px;
+  color: #9aa5b5;
+  margin-bottom: 4px;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   font-weight: 800;
 }
 
 .pc-body h3 {
   margin: 0;
-  font-size: 13.5px;
+  font-size: 15px;
   line-height: 1.32;
-  min-height: 36px;
+  min-height: 40px;
   color: #0f172a;
   font-weight: 700;
+  letter-spacing: -0.1px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   line-clamp: 2;
@@ -275,47 +364,51 @@
 }
 
 .pc-sub {
-  margin: 3px 0 0;
-  font-size: 11px;
-  color: #94a3b8;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #9aa5b5;
 }
 
 .pc-price-row {
-  margin-top: 8px;
+  margin-top: 10px;
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .pc-price-row strong {
-  font-size: 16px;
+  font-size: 20px;
   line-height: 1;
-  letter-spacing: 0;
+  letter-spacing: -0.2px;
   font-weight: 900;
   color: #16a34a;
 }
 
 .pc-price-row span {
-  font-size: 11.5px;
-  color: #9aa3b2;
+  font-size: 12.5px;
+  color: #c1c8d3;
   text-decoration: line-through;
 }
 
 .pc-off-inline {
   font-style: normal;
-  font-size: 10.5px;
+  font-size: 11px;
   font-weight: 800;
   color: #dc2626;
+  background: #fef2f2;
+  border-radius: 999px;
+  padding: 2px 7px;
+  line-height: 1.5;
 }
 
 .pc-meta-row {
-  margin-top: 8px;
+  margin-top: 9px;
   display: flex;
   align-items: center;
   gap: 6px;
   min-width: 0;
-  font-size: 11px;
+  font-size: 12px;
   color: #64748b;
 }
 
@@ -329,7 +422,7 @@
 
 .pc-rating svg {
   color: #f59e0b;
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .pc-review-count {
@@ -382,7 +475,7 @@
 }
 
 .pc-delivery-text strong {
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 800;
   color: var(--brand-dark, #14532d);
   line-height: 1.25;
@@ -392,7 +485,7 @@
   display: inline-flex;
   align-items: center;
   gap: 3px;
-  font-size: 10.5px;
+  font-size: 11.5px;
   font-weight: 700;
   color: var(--brand-green, #16a34a);
 }
@@ -403,7 +496,7 @@
 
 .pc-skeleton {
   aspect-ratio: 3 / 4;
-  border-radius: 12px;
+  border-radius: 16px;
   background: linear-gradient(90deg, #f0f3f7 25%, #e8edf3 50%, #f0f3f7 75%);
   background-size: 320px 100%;
   animation: pcShimmer 1.2s linear infinite;
@@ -420,36 +513,36 @@
 
 @media (max-width: 640px) {
   .pc-body h3 {
-    min-height: 34px;
-    font-size: 12.5px;
+    min-height: 38px;
+    font-size: 14px;
     -webkit-line-clamp: 2;
   }
 }
 
 @media (max-width: 420px) {
   .pc-body {
-    padding: 8px 8px 10px;
+    padding: 9px 9px 11px;
   }
 
   .pc-body h3 {
-    font-size: 11.5px;
-    min-height: 30px;
+    font-size: 13px;
+    min-height: 34px;
   }
 
   .pc-body small {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pc-sub {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .pc-price-row strong {
-    font-size: 13.5px;
+    font-size: 15.5px;
   }
 
   .pc-price-row span {
-    font-size: 10px;
+    font-size: 11px;
   }
 
   .pc-wishlist {
@@ -464,8 +557,8 @@
    so it applies correctly no matter the grid's column count. ── */
 @container pc (max-width: 190px) {
   .pc-badge {
-    font-size: 7.5px;
-    padding: 4px 7px;
+    font-size: 8.5px;
+    padding: 4px 8px;
   }
 
   .pc-wishlist,
@@ -475,6 +568,17 @@
     font-size: 13px;
   }
 
+  .pc-cart-step-btn {
+    width: 20px;
+    height: 20px;
+    font-size: 11px;
+  }
+
+  .pc-cart-step-qty {
+    min-width: 16px;
+    font-size: 11px;
+  }
+
   .pc-body {
     align-items: center;
     text-align: center;
@@ -482,17 +586,17 @@
   }
 
   .pc-body h3 {
-    font-size: 10.5px;
+    font-size: 12px;
     min-height: 0;
     -webkit-line-clamp: 2;
   }
 
   .pc-body small {
-    font-size: 8px;
+    font-size: 9px;
   }
 
   .pc-sub {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pc-price-row {
@@ -500,20 +604,20 @@
   }
 
   .pc-price-row strong {
-    font-size: 12.5px;
+    font-size: 14px;
   }
 
   .pc-price-row span {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pc-off-inline {
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pc-meta-row {
     justify-content: center;
-    font-size: 9px;
+    font-size: 10px;
   }
 
   .pc-delivery-banner {
@@ -536,11 +640,11 @@
   }
 
   .pc-delivery-text strong {
-    font-size: 9.5px;
+    font-size: 10.5px;
     white-space: nowrap;
   }
 
   .pc-delivery-sub {
-    font-size: 8.5px;
+    font-size: 9.5px;
   }
 }

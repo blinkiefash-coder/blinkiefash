@@ -2,9 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    <link rel="icon" href="/favicon-32x32.png" type="image/png" sizes="32x32">
+    <link rel="icon" href="/favicon-16x16.png" type="image/png" sizes="16x16">
+    <link rel="icon" href="/favicon-192x192.png" type="image/png" sizes="192x192">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#16a34a" />
+
+    <!-- Critical CSS: Minimal styles to prevent blank page before main CSS loads -->
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html { font-size: 16px; }
+      body { 
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        background: #fff;
+        color: #0f172a;
+        line-height: 1.5;
+        min-height: 100vh;
+      }
+      #root { display: block; }
+      /* Prevent layout shift - basic structure only */
+      input, textarea, select, button { font-family: inherit; font-size: inherit; }
+    </style>
 
     <!-- Primary SEO -->
     <title>Blinkiefash — 60-Minute Fashion Delivery in Odisha</title>
