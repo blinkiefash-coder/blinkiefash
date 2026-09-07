@@ -1,0 +1,266 @@
+/* About Us breaks out of the site's centered 1280px shell and uses the
+   full browser width. Every property that could conflict with .lp-body
+   (max-width:1280px; margin:0 auto; padding:16px 20px) is marked
+   !important so this wins no matter what order the two stylesheets
+   happen to load in. */
+/* =========================================================
+   ABOUT US — FULL SCREEN WIDTH
+   ========================================================= */
+
+.lp-body.abt-page-body {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+
+  margin: 0 !important;
+  padding: 16px 24px 28px !important;
+
+  box-sizing: border-box !important;
+}
+
+/* Every direct section fills the available page width */
+.lp-body.abt-page-body > * {
+  width: 100% !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.abt-page-body > * {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/* Keep an inner readable cap on text-only content (paragraphs, quote)
+   while cards/grids still stretch edge to edge. Remove this block if
+   you want the paragraphs to run full width too. */
+
+/* Verification bar */
+.abt-verify-bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;background:#f9fdf9;border:1px solid #dce9de;border-radius:14px;padding:10px 18px;font-size:12.5px;color:#4d6551}
+.abt-verify-left,.abt-verify-right{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.abt-verify-badge{color:#149040;font-weight:800}
+.abt-verify-hub{color:#0c7535;font-weight:700}
+.abt-verify-trial{color:#149040;font-weight:800}
+.abt-verify-sep{opacity:.5}
+
+/* Hero */
+.abt-hero{border:1px solid #dce9de;border-radius:20px;background:#fff;padding:36px 32px}
+.abt-hero-badges{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.abt-badge-amber{display:inline-flex;align-items:center;gap:6px;background:#fff8e8;color:#8a6410;border:1px solid #f0dfae;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700}
+.abt-badge-live{display:inline-flex;align-items:center;gap:6px;background:#edfff2;color:#0c7535;border:1px solid #b3e8c4;padding:5px 14px;border-radius:999px;font-size:11px;font-weight:800}
+.abt-live-dot{width:7px;height:7px;border-radius:50%;background:#149040}
+
+.abt-hero-title{font-size:clamp(30px,4.2vw,48px);line-height:1.1;font-weight:900;color:#0d1a0f;margin:0 0 16px;max-width:900px}
+.abt-hero-gradient{background:linear-gradient(90deg,#149040,#0c5a32,#0e7535);-webkit-background-clip:text;background-clip:text;color:transparent}
+.abt-hero-copy{font-size:16px;line-height:1.6;color:#3d5042;max-width:780px;margin:0 0 22px}
+.abt-hero-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:28px}
+.abt-btn-outline{display:inline-flex;align-items:center;gap:8px;background:#f0fbf3;border:1px solid #b5dfc2;color:#0f7a35;padding:11px 20px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer}
+.abt-btn-outline:hover{background:#e6f5ea}
+
+.abt-hero-stats{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
+.abt-hero-stat{background:#f9fdf9;border:1px solid #dce9dd;border-radius:14px;padding:14px;display:flex;flex-direction:column;align-items:center;text-align:center}
+.abt-hero-stat-val{font-size:20px;font-weight:900;color:#0e7535}
+.abt-hero-stat-lbl{font-size:11px;font-weight:800;color:#0d1810;margin-top:2px}
+.abt-hero-stat-sub{font-size:10px;color:#7a8c7d}
+
+/* Government / Startup Odisha section */
+.abt-gov{background:linear-gradient(120deg,#0a3520,#0c5a32 60%,#083a20);color:#fff;border-radius:20px;padding:36px 32px;display:grid;gap:28px;grid-template-columns:2fr 1fr;align-items:center}
+.abt-gov-tag{display:inline-flex;align-items:center;gap:6px;width:fit-content;background:rgba(255,255,255,.12);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;margin-bottom:14px}
+.abt-gov-title{font-size:clamp(22px,3.2vw,32px);font-weight:900;line-height:1.25;margin:0 0 14px;color:#fff}
+.abt-gov-highlight{color:#9df0b2}
+.abt-gov-left p{font-size:14px;line-height:1.6;color:#baf0ce;margin:0 0 10px}
+.abt-gov-card{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.2);border-radius:16px;padding:20px}
+.abt-gov-card-head{display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.16);padding-bottom:12px;margin-bottom:14px;font-size:11px;font-weight:800;color:#9df0b2;text-transform:uppercase}
+.abt-gov-verified{background:rgba(23,163,74,.25);color:#9df0b2;border:1px solid rgba(23,163,74,.35);border-radius:6px;font-size:10px;font-weight:800;padding:2px 8px;text-transform:uppercase}
+.abt-gov-recog{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
+.abt-gov-recog span{font-size:12px;color:#baf0ce}
+.abt-gov-recog strong{font-size:17px;letter-spacing:.04em;color:#fff}
+.abt-gov-mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.abt-gov-mini-stats div{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px}
+.abt-gov-mini-stats strong{display:block;font-size:16px;color:#9df0b2}
+.abt-gov-mini-stats span{font-size:10px;color:#baf0ce;text-transform:uppercase}
+.abt-gov-foot{display:flex;align-items:center;gap:6px;font-size:12px;color:#baf0ce}
+
+/* Leadership */
+.abt-team-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:26px}
+.abt-eyebrow{display:block;font-size:11px;font-weight:800;letter-spacing:.07em;text-transform:uppercase;color:#149040;margin-bottom:6px}
+.abt-eyebrow-light{color:#9df0b2}
+.abt-team-sub{font-size:14px;color:#4d6551;max-width:620px;margin-top:6px}
+.abt-pillar-badge{background:#0c5a32;color:#fff;padding:6px 16px;border-radius:999px;font-size:12px;font-weight:700;white-space:nowrap}
+
+.abt-team-group{margin-bottom:28px}
+.abt-team-group:last-child{margin-bottom:0}
+.abt-group-head{display:flex;align-items:center;gap:8px;border-bottom:1px solid #dce9dd;padding-bottom:8px;margin-bottom:16px;font-weight:800;text-transform:uppercase;font-size:13px;color:#0d1810}
+.abt-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.abt-dot-green{background:#0c5a32}
+.abt-dot-primary{background:#149040}
+.abt-dot-secondary{background:#2b6954}
+
+.abt-cards{display:grid;gap:16px}
+.abt-cards-2{grid-template-columns:1fr 1fr}
+.abt-cards-3{grid-template-columns:repeat(3,1fr)}
+
+.abt-person-card{background:#fff;border:1px solid #dde9de;border-radius:14px;padding:18px;display:flex;gap:14px;align-items:flex-start}
+.abt-person-card-dark{background:#101010;border-color:#333;color:#fff}
+.abt-avatar{width:60px;height:60px;border-radius:14px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}
+.abt-avatar-light{background:linear-gradient(135deg,#0c5a32,#149040);color:#fff}
+.abt-avatar-dark{background:#0c5a32;color:#9df0b2;border:1px solid rgba(157,240,178,.4)}
+.abt-avatar-sm{width:48px;height:48px;border-radius:10px;background:#edf9f1;color:#0c7535;font-size:14px}
+.abt-person-body{flex:1}
+.abt-person-row{display:flex;align-items:center;justify-content:space-between}
+.abt-role-tag{background:#edf9f1;color:#0c7535;font-weight:800;font-size:10px;padding:3px 10px;border-radius:6px;text-transform:uppercase}
+.abt-role-tag-lime{background:#9df0b2;color:#0d1810}
+.abt-check{color:#149040}
+.abt-check-lime{color:#9df0b2}
+.abt-person-body h4{margin:9px 0 2px;font-size:15px;font-weight:800;color:#0d1810}
+.abt-person-card-dark .abt-person-body h4{color:#fff}
+.abt-person-tag{font-size:12px;font-weight:700;color:#149040;margin:0 0 8px}
+.abt-person-tag-lime{color:#9df0b2}
+.abt-person-desc{font-size:12.5px;color:#4d6551;line-height:1.6;margin:0}
+.abt-person-desc-dark{color:#c9d6cb}
+
+.abt-tech-card{background:#fff;border:1px solid #dde9de;border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:12px}
+.abt-tech-head{display:flex;gap:12px;align-items:flex-start}
+.abt-tech-head h4{margin:4px 0 2px;font-size:14px;font-weight:800;color:#0d1810}
+.abt-tech-foot{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:#7a8c7d;border-top:1px solid #dce9dd;padding-top:10px;margin-top:auto}
+
+/* Purpose banner */
+.abt-purpose-banner{background:linear-gradient(120deg,#0a3520,#0c5a32 55%,#083a20);color:#fff;border-radius:20px;padding:32px;margin-bottom:22px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.abt-purpose-copy{max-width:640px}
+.abt-purpose-copy h2{font-size:clamp(20px,2.8vw,28px);font-weight:900;line-height:1.3;margin:6px 0 12px;color:#fff}
+.abt-purpose-copy p{font-size:13.5px;color:#baf0ce;margin:0}
+.abt-purpose-card{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.22);border-radius:16px;padding:20px;text-align:center;display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.abt-purpose-icon{font-size:30px}
+.abt-purpose-card-title{font-weight:800;font-size:15px;margin-top:6px;color:#fff}
+.abt-purpose-card-sub{font-size:11px;color:#baf0ce;margin-top:2px}
+.abt-purpose-card-tag{margin-top:10px;background:#9df0b2;color:#0d1810;font-weight:800;font-size:10px;padding:4px 12px;border-radius:999px;text-transform:uppercase}
+
+.abt-pills{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:20px 0}
+
+.abt-brands-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+.abt-brand-card{background:#fff;border:1px solid #dde9de;border-radius:14px;overflow:hidden}
+.abt-brand-img{width:100%;height:170px;object-fit:cover;display:block}
+.abt-brand-body{padding:14px}
+.abt-brand-tag{font-size:10px;font-weight:800;color:#149040;text-transform:uppercase;letter-spacing:.03em}
+.abt-brand-body h4{margin:6px 0 4px;font-size:14px;font-weight:800;color:#0d1810}
+.abt-brand-body p{font-size:12px;color:#4d6551;margin:0}
+
+/* Fulfillment mesh */
+.abt-center-head{text-align:center;max-width:620px;margin:0 auto 24px}
+.abt-mesh-card{background:#fff;border:1px solid #dce9de;border-radius:20px;padding:28px;display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.abt-mesh-left{flex:1;min-width:280px}
+.abt-mesh-badge{display:inline-flex;align-items:center;gap:6px;background:#edfff2;color:#0c7535;padding:6px 14px;border-radius:999px;font-size:11px;font-weight:800;margin-bottom:12px}
+.abt-mesh-left h3{font-size:clamp(20px,2.6vw,24px);font-weight:900;margin:0 0 10px;color:#0d1a0f}
+.abt-mesh-left p{font-size:13.5px;color:#4d6551;line-height:1.6;margin:0 0 16px}
+.abt-mesh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.abt-mesh-hub{background:#f9fdf9;border:1px solid #dce9dd;border-radius:10px;padding:10px;display:flex;flex-direction:column}
+.abt-mesh-hub-name{font-size:12px;font-weight:800;color:#149040}
+.abt-mesh-hub-status{font-size:10px;color:#7a8c7d}
+.abt-mesh-right{display:flex;flex-direction:column;gap:12px;flex-shrink:0;width:100%;max-width:270px}
+.abt-mesh-stat{display:flex;align-items:center;gap:12px;background:#f9fdf9;border:1px solid #dce9dd;border-radius:14px;padding:14px}
+.abt-mesh-stat-green{background:#0c5a32;color:#fff;border:none}
+.abt-mesh-stat-ico{font-size:20px}
+.abt-mesh-stat strong{display:block;font-size:17px;font-weight:900}
+.abt-mesh-stat span{font-size:10px;text-transform:uppercase;opacity:.85}
+
+/* Journey */
+.abt-journey-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.abt-journey-card{background:#fafcfa;border:1px solid #dde9de;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:6px}
+.abt-journey-year{align-self:flex-start;background:#edf9f1;color:#149040;font-weight:800;font-size:11px;padding:3px 10px;border-radius:6px}
+.abt-journey-card h4{margin:0;font-size:14px;font-weight:800;color:#0d1810}
+.abt-journey-card p{margin:0;font-size:12px;color:#4d6551;line-height:1.5}
+
+/* Final CTA */
+.abt-final-cta{background:linear-gradient(100deg,#101010,#0c5a32,#101010);color:#fff;border-radius:20px;padding:36px 32px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:24px}
+.abt-final-copy{max-width:560px}
+.abt-final-kicker{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,.12);padding:5px 14px;border-radius:999px;font-size:11px;font-weight:700;color:#9df0b2;margin-bottom:10px}
+.abt-final-copy h2{font-size:clamp(24px,3.2vw,30px);font-weight:900;margin:0 0 10px;color:#fff}
+.abt-final-copy p{font-size:13.5px;color:#c9d6cb;margin:0}
+.abt-final-actions{display:flex;flex-wrap:wrap;gap:10px}
+.abt-mail-btn{display:inline-flex;align-items:center;gap:8px;background:rgba(255,255,255,.15);color:#fff;padding:11px 18px;border-radius:10px;font-weight:800;font-size:13px;border:1px solid rgba(255,255,255,.2);text-decoration:none}
+.abt-mail-btn:hover{background:rgba(255,255,255,.25)}
+
+/* ── RESPONSIVE (aligned to the site's 960px / 640px breakpoints) ── */
+@media(max-width:1200px){
+  .abt-hero-stats{grid-template-columns:repeat(3,1fr)}
+  .abt-gov{grid-template-columns:1fr}
+}
+@media(max-width:960px){
+  .abt-cards-2{grid-template-columns:1fr 1fr}
+  .abt-cards-3{grid-template-columns:repeat(3,1fr)}
+  .abt-hero-stats{grid-template-columns:repeat(3,1fr)}
+  .abt-brands-grid{grid-template-columns:1fr 1fr}
+  .abt-mesh-grid{grid-template-columns:1fr 1fr}
+  .abt-journey-grid{grid-template-columns:1fr 1fr}
+  .abt-gov{grid-template-columns:1fr}
+}
+@media(max-width:640px){
+  .abt-page-body{padding:12px 16px 20px !important}
+  .abt-hero,.abt-gov,.abt-mesh-card,.abt-final-cta,.abt-purpose-banner{padding:20px 16px}
+  .abt-hero-stats{grid-template-columns:1fr 1fr}
+  .abt-cards-2,.abt-cards-3{grid-template-columns:1fr}
+  .abt-brands-grid,.abt-journey-grid{grid-template-columns:1fr}
+  .abt-mesh-grid{grid-template-columns:1fr 1fr}
+  .abt-final-cta{text-align:center;justify-content:center}
+  .abt-final-copy{text-align:center}
+  .abt-team-head{flex-direction:column;align-items:flex-start}
+}
+@media(max-width:400px){
+  .abt-hero-stats,.abt-mesh-grid{grid-template-columns:1fr 1fr}
+}
+
+/* Keep every About Us content block fluid across the full page width. */
+.abt-page-body .abt-hero-title,
+.abt-page-body .abt-hero-copy,
+.abt-page-body .abt-team-sub,
+.abt-page-body .abt-purpose-copy,
+.abt-page-body .abt-center-head,
+.abt-page-body .abt-mesh-right,
+.abt-page-body .abt-final-copy {
+  max-width: none;
+}
+
+.abt-page-body .abt-hero,
+.abt-page-body .abt-gov,
+.abt-page-body .au-section,
+.abt-final-cta {
+  width: 100%;
+}
+/* =========================================================
+   FORCE ABOUT US TO USE 100% AVAILABLE WIDTH
+   ========================================================= */
+
+html,
+body,
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+.lp {
+  width: 100%;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.lp-body.abt-page-body {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* Full-width About Us sections */
+.abt-page-body .abt-verify-bar,
+.abt-page-body .abt-hero,
+.abt-page-body .abt-gov,
+.abt-page-body .au-section,
+.abt-page-body .abt-final-cta {
+  width: 100% !important;
+  max-width: none !important;
+  box-sizing: border-box !important;
+}
