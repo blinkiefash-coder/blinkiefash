@@ -13,6 +13,7 @@ import Backpack from './pages/Backpack';
 import Beauty from './pages/Beauty';
 import HomeLiving from './pages/HomeLiving';
 import ProductDetail from './pages/ProductDetail';
+import BrandPage from './pages/brand';
 import Cart from './pages/Cart';
 import Wishlist from './pages/Wishlist';
 import Checkout from './pages/Checkout';
@@ -78,9 +79,22 @@ export default function App() {
   const { pathname } = useLocation();
   const { isLoggedIn, userGender } = useAuth();
   const [routeLoading, setRouteLoading] = useState(false);
+  const [lastPathname, setLastPathname] = useState(pathname);
 
-  useEffect(() => {
+  // Show the loader the instant the route changes. This is done as a
+  // render-time state adjustment (React's documented pattern for "reset
+  // state when a prop changes") rather than inside an effect, since setting
+  // it here means it's applied before the browser paints the new route —
+  // an effect would only run after that paint.
+  if (pathname !== lastPathname) {
+    setLastPathname(pathname);
     setRouteLoading(true);
+  }
+
+  // Hiding the loader after a short delay is a genuine side effect (a
+  // timer), so it stays in an effect — the setState call lives inside the
+  // setTimeout callback, not in the effect body itself.
+  useEffect(() => {
     const timeoutId = window.setTimeout(() => {
       setRouteLoading(false);
     }, 260);
@@ -110,7 +124,8 @@ export default function App() {
     pathname === '/backpack' ||
     pathname === '/beauty' ||
     pathname === '/home-living' ||
-    pathname.startsWith('/product/');
+    pathname.startsWith('/product/') ||
+    pathname.startsWith('/brands/');
   const isCheckoutPage = pathname === '/checkout';
   const isOrderTrackingPage = pathname.startsWith('/orders/');
   const isAccountPage = pathname === '/account' || pathname.startsWith('/account/');
@@ -158,6 +173,7 @@ export default function App() {
         <Route path="/beauty" element={<Beauty />} />
         <Route path="/home-living" element={<HomeLiving />} />
         <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/brands/:brandName" element={<BrandPage />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/checkout" element={<Checkout />} />

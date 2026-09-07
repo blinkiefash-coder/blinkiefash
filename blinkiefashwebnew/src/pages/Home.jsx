@@ -4,6 +4,16 @@ import {
   MdVisibility,
   MdChevronRight,
   MdChevronLeft,
+  MdWhatshot,
+  MdFavorite,
+  MdFiberNew,
+  MdMale,
+  MdFemale,
+  MdChildFriendly,
+  MdDevices,
+  MdDirectionsRun,
+  MdSell,
+  MdExplore,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -110,28 +120,28 @@ const UNIVERSE_BRANDS = [
   {
     name: "Puma",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
-    to: "/shop?search=Puma",
+    to: "/brands/Puma",
   },
   {
     name: "Dhanista Boutique",
     image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png",
-    to: "/shop?search=Dhanista%20Boutique",
+    to: "/brands/Dhanista%20Boutique",
   },
   {
     name: "FCUK",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
-    to: "/shop?search=FCUK",
+    to: "/brands/FCUK",
     pos: "left center",
   },
   {
     name: "Libas",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
-    to: "/shop?search=Libas%20Kurti%20Kurta%20Set",
+    to: "/brands/Libas",
   },
   {
     name: "MK",
     image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
-    to: "/shop?search=MK",
+    to: "/brands/MK",
   },
   {
     name: "Toys",
@@ -189,7 +199,7 @@ let _homeCache = null;
 function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   if (!el) return;
   const dir = direction < 0 ? -1 : 1;
-  const card = el.querySelector('.hp-deal-card, .hp-collection-chip, .hp-subcat-chip, .pc-card');
+  const card = el.querySelector('.hp-deal-card, .hp-collection-chip, .hp-subcat-chip, .pc-card, .hp-shop-brand-card');
   let step = Math.round(el.clientWidth * 0.95);
   if (card) {
     const styles = window.getComputedStyle(el);
@@ -198,6 +208,45 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
     step = Math.round((cardW + gap) * cardsPerPage);
   }
   el.scrollBy({ left: dir * step, behavior: 'smooth' });
+}
+
+/**
+ * Unified section heading, used by every rail on the home page (Deals,
+ * Shop by Brands, Picks for You, Recently Viewed, New In, the audience
+ * collections, price bands, Top Brands, More to Explore). Mirrors the
+ * "Shop by Brands" heading style everywhere so the page reads as one
+ * consistent system instead of a mix of header treatments.
+ */
+function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = 'View All', onViewAll }) {
+  return (
+    <div className="hp-shead">
+      <div className="hp-shead-title-group">
+        <div className="hp-shead-title-wrap">
+          {icon ? (
+            <span className="hp-shead-mark" aria-hidden="true">
+              {icon}
+            </span>
+          ) : null}
+          <h2 className="hp-shead-title">
+            {accentWord ? (
+              <>
+                <span>{title} </span>
+                <span className="hp-shead-accent">{accentWord}</span>
+              </>
+            ) : (
+              <span>{title}</span>
+            )}
+          </h2>
+        </div>
+        {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
+      </div>
+      {onViewAll ? (
+        <button type="button" className="hp-shead-action" onClick={onViewAll}>
+          {viewAllLabel} <MdChevronRight />
+        </button>
+      ) : null}
+    </div>
+  );
 }
 
 export default function Home() {
@@ -231,43 +280,12 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
-  const [brandsScrollState, setBrandsScrollState] = useState({ canLeft: false, canRight: false });
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
-  const brandsCarouselRef = useRef(null);
+  const shopBrandsRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
-
-  const updateBrandsScrollState = () => {
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return;
-    setBrandsScrollState({
-      canLeft: carousel.scrollLeft > 4,
-      canRight: carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 4,
-    });
-  };
-
-  useEffect(() => {
-    updateBrandsScrollState();
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return undefined;
-    carousel.addEventListener('scroll', updateBrandsScrollState, { passive: true });
-    window.addEventListener('resize', updateBrandsScrollState);
-    return () => {
-      carousel.removeEventListener('scroll', updateBrandsScrollState);
-      window.removeEventListener('resize', updateBrandsScrollState);
-    };
-  }, [topBrands.length]);
-
-  const scrollBrands = (direction) => {
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return;
-    carousel.scrollBy({
-      left: direction * Math.max(carousel.clientWidth * 0.72, 260),
-      behavior: 'smooth',
-    });
-  };
 
   useEffect(() => {
     const loadRecent = () => {
@@ -507,54 +525,9 @@ export default function Home() {
         }));
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
-        
-        // Priority brands that should appear first - in specific order
-        const priorityBrands = [
-          'the souled store',
-          'us polo assn',
-          'manyavar',
-          'levis',
-          'puma',
-          'the bear house',
-          'w',
-          'aurelia',
-          'mk',
-          'nike',
-          'addidas',
-          'reebok',
-          'skechers',
-          'new balance',
-          'converse',
-          'vans',
-          'tommy hilfiger',
-          'calvin klein',
-          'ralph lauren',
-          'guess',
-          'diesel',
-          'lee',
-          'wrangler',
-          'h&m',
-          'zara',
-          'forever 21',
-        ];
-
-        const brandsList = [...brandsSource]
-          .sort((a, b) => {
-            const aName = (a.name || '').trim().toLowerCase();
-            const bName = (b.name || '').trim().toLowerCase();
-            const aPriority = priorityBrands.indexOf(aName);
-            const bPriority = priorityBrands.indexOf(bName);
-            
-            // If both in priority list, sort by priority
-            if (aPriority !== -1 && bPriority !== -1) {
-              return aPriority - bPriority;
-            }
-            // Priority brands come first
-            if (aPriority !== -1) return -1;
-            if (bPriority !== -1) return 1;
-            // Rest sorted alphabetically
-            return aName.localeCompare(bName, undefined, { sensitivity: 'base' });
-          });
+        const brandsList = [...brandsSource].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+        );
 
         if (cancelled) return;
 
@@ -860,96 +833,88 @@ export default function Home() {
 
         {topDeals.length > 0 && (
           <section className="section">
-            <div className="hp-section-head hp-deals-section-head">
-              <h2 className="hp-deals-title">DEALS OF THE DAY</h2>
-              <button type="button" onClick={() => navigate('/shop?sort=bestseller')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdWhatshot />}
+              title="Deals of the"
+              accentWord="Day"
+              subtitle="Steep price cuts, refreshed daily."
+              onViewAll={() => navigate('/shop?sort=bestseller')}
+            />
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} />
           </section>
         )}
 
         {topBrands.length > 0 && (
           <section className="section hp-shop-brands-section" aria-label="Shop by brands">
-            <div className="hp-shop-brands-head">
-              <div className="hp-shop-brands-title-group">
-                <div className="hp-shop-brands-title-wrap">
-                  <span className="hp-shop-brands-mark" aria-hidden="true">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                      <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </span>
-                  <h2>
-                    <span className="hp-shop-brands-heading-dark">SHOP BY</span>{' '}
-                    <span className="hp-shop-brands-heading-green">BRANDS</span>
-                  </h2>
-                </div>
-                <p className="hp-shop-brands-subtitle">Top brands. Latest styles. Delivered in a blink.</p>
-              </div>
-              <button type="button" onClick={() => navigate('/shop')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+              title="Shop by"
+              accentWord="Brands"
+              subtitle="Top brands. Latest styles. Delivered in a blink."
+              onViewAll={() => navigate('/shop')}
+            />
 
-            <div className="hp-deals-wrap hp-shop-brands-carousel">
+            <div className="hp-deals-wrap hp-shop-brands-wrap">
               <button
                 type="button"
                 className="hp-deals-prev"
-                onClick={() => scrollBrands(-1)}
-                aria-disabled={!brandsScrollState.canLeft}
                 aria-label="Scroll brands left"
+                onClick={() => scrollRailByCards(shopBrandsRef.current, -1, 3)}
               >
                 <MdChevronLeft />
               </button>
 
-              <div className="hp-shop-brands-grid" ref={brandsCarouselRef}>
+              <div className="hp-shop-brands-grid" role="list" ref={shopBrandsRef}>
                 {topBrands.map((brand, idx) => {
-                const label = (brand.name || '').toString().trim();
-                const displayName = label || 'Brand';
-                const normalizedDisplayName = normalizeBrandName(displayName);
-                const logo = normalizedDisplayName === 'nike'
-                  ? NIKE_LOGO_URL
-                  : resolveImageUrl(brand.logo_url || brand.image);
-                const isFeatured = idx === 0;
+                  const label = (brand.name || '').toString().trim();
+                  const displayName = label || 'Brand';
+                  const normalizedDisplayName = normalizeBrandName(displayName);
+                  const logo = normalizedDisplayName === 'nike'
+                    ? NIKE_LOGO_URL
+                    : resolveImageUrl(brand.logo_url || brand.image);
+                  const isFeatured = idx === 0;
 
-                return (
-                  <article
-                    key={`${brand.id || displayName}-${idx}`}
-                    className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
-                  >
-                    <div className="hp-shop-brand-visual">
-                      {logo ? (
-                        <img
-                          src={logo}
-                          alt={displayName}
-                          loading="lazy"
-                          className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
-                        />
-                      ) : (
-                        <div className="hp-shop-brand-fallback" aria-label={displayName}>
-                          {displayName.slice(0, 5).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      className="hp-shop-brand-action"
-                      onClick={() => navigate(`/shop?search=${encodeURIComponent(displayName)}`)}
+                  return (
+                    <article
+                      key={`${brand.id || displayName}-${idx}`}
+                      className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
+                      role="listitem"
                     >
-                      Shop <MdChevronRight />
-                    </button>
-                  </article>
-                );
+                      <div className="hp-shop-brand-visual">
+                        {logo ? (
+                          <img
+                            src={logo}
+                            alt={displayName}
+                            loading="lazy"
+                            className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
+                          />
+                        ) : (
+                          <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                            {displayName.slice(0, 5).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        className="hp-shop-brand-action"
+                        onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
+                      >
+                        Shop <MdChevronRight />
+                      </button>
+                    </article>
+                  );
                 })}
               </div>
 
               <button
                 type="button"
                 className="hp-deals-next"
-                onClick={() => scrollBrands(1)}
-                aria-disabled={!brandsScrollState.canRight}
                 aria-label="Scroll brands right"
+                onClick={() => scrollRailByCards(shopBrandsRef.current, 1, 3)}
               >
                 <MdChevronRight />
               </button>
@@ -994,52 +959,52 @@ export default function Home() {
 
         {recommendedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>
-                {userGender?.toLowerCase() === 'women' ? "🎀 Picks for Her" : "👔 Picks for Him"}
-              </h2>
-              <button type="button" onClick={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdFavorite />}
+              title={userGender?.toLowerCase() === 'women' ? 'Picks for' : 'Picks for'}
+              accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
+              subtitle="Curated from what you tend to reach for."
+              onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
+            />
             <ProductRail items={recommendedProducts} keyPrefix="recommended" />
           </section>
         )}
 
         {recentlyViewedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>
-                <MdVisibility /> Recently Viewed
-              </h2>
-              <button type="button" onClick={() => navigate('/shop')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdVisibility />}
+              title="Recently"
+              accentWord="Viewed"
+              subtitle="Pick up right where you left off."
+              onViewAll={() => navigate('/shop')}
+            />
             <ProductRail items={recentlyViewedProducts} keyPrefix="recent" railRef={recentlyViewedRailRef} />
           </section>
         )}
 
         {newOnBlinkiefash.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>New on Blinkiefash</h2>
-              <button type="button" onClick={() => navigate('/shop?sort=newest')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdFiberNew />}
+              title="New on"
+              accentWord="Blinkiefash"
+              subtitle="Just landed, before everyone else finds it."
+              onViewAll={() => navigate('/shop?sort=newest')}
+            />
             <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
           </section>
         )}
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>MEN&apos;S COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/men')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdMale />}
+              title="Men's"
+              accentWord="Collection"
+              subtitle="Shirts, denim, footwear and more."
+              onViewAll={() => navigate('/men')}
+            />
             <CategoryChipsRail
               chips={mensCats}
               audienceLabel="Men"
@@ -1053,12 +1018,13 @@ export default function Home() {
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>WOMEN&apos;S COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/women')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdFemale />}
+              title="Women's"
+              accentWord="Collection"
+              subtitle="Ethnic, western and everything between."
+              onViewAll={() => navigate('/women')}
+            />
             <CategoryChipsRail
               chips={womensCats}
               audienceLabel="Women"
@@ -1072,12 +1038,13 @@ export default function Home() {
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>KIDS COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/kids')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdChildFriendly />}
+              title="Kids"
+              accentWord="Collection"
+              subtitle="Playful styles for the little ones."
+              onViewAll={() => navigate('/kids')}
+            />
             <CategoryChipsRail
               chips={kidsCats}
               audienceLabel="Kids"
@@ -1091,12 +1058,13 @@ export default function Home() {
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>ELECTRONICS COLLECTION</h2>
-              <button type="button" onClick={() => navigate('/electronics')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdDevices />}
+              title="Electronics"
+              accentWord="Collection"
+              subtitle="Gadgets and audio worth the upgrade."
+              onViewAll={() => navigate('/electronics')}
+            />
             <CategoryChipsRail
               chips={electronicsCats}
               audienceLabel="Electronics"
@@ -1110,12 +1078,13 @@ export default function Home() {
 
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>TRENDY SHOES</h2>
-              <button type="button" onClick={() => navigate('/footwear')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdDirectionsRun />}
+              title="Trendy"
+              accentWord="Shoes"
+              subtitle="Sneakers, sandals and everyday footwear."
+              onViewAll={() => navigate('/footwear')}
+            />
             <CategoryChipsRail
               chips={trendyShoesCats}
               audienceLabel="Trendy Shoes"
@@ -1129,36 +1098,43 @@ export default function Home() {
 
         {under999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>UNDER ₹999</h2>
-              <button type="button" onClick={() => navigate('/shop?max_price=999&sort=price_asc')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdSell />}
+              title="Under"
+              accentWord="₹999"
+              subtitle="Great styles that won't stretch the budget."
+              onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')}
+            />
             {under999Products.length > 0 ? <ProductRail items={under999Products} keyPrefix="under999" /> : null}
           </section>
         )}
 
         {under1999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>₹999 - ₹1999</h2>
-              <button type="button" onClick={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={<MdSell />}
+              title="₹999 –"
+              accentWord="₹1999"
+              subtitle="A little more room, a lot more choice."
+              onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}
+            />
             {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
           </section>
         )}
 
         {topBrands.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <div className="hp-section-head hp-feed-head">
-              <h2>TOP BRANDS</h2>
-              <button type="button" onClick={() => navigate('/shop')}>
-                View All <MdChevronRight />
-              </button>
-            </div>
+            <SectionHead
+              icon={
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              }
+              title="Top"
+              accentWord="Brands"
+              subtitle="The names people search for by name."
+              onViewAll={() => navigate('/shop')}
+            />
             <div className="hp-top-brands-rail">
               {topBrands.map((brand, idx) => {
                 const logo = resolveImageUrl(brand.logo_url || brand.image);
@@ -1176,7 +1152,7 @@ export default function Home() {
                     key={`${brand.id || label || 'brand'}-${idx}`}
                     type="button"
                     className="hp-top-brand-card"
-                    onClick={() => navigate(`/shop?search=${encodeURIComponent(label)}`)}
+                    onClick={() => navigate(`/brands/${encodeURIComponent(label)}`)}
                     aria-label={`Shop ${label}`}
                   >
                     <span className="hp-top-brand-logo" aria-hidden="true">
@@ -1202,12 +1178,13 @@ export default function Home() {
         )}
 
         <section className="section hp-feed-rail-section">
-          <div className="hp-section-head hp-feed-head">
-            <h2>MORE TO EXPLORE</h2>
-            <button type="button" onClick={() => navigate('/shop')}>
-              View All <MdChevronRight />
-            </button>
-          </div>
+          <SectionHead
+            icon={<MdExplore />}
+            title="More to"
+            accentWord="Explore"
+            subtitle="Browse the full catalogue by category."
+            onViewAll={() => navigate('/shop')}
+          />
           <div className="hp-explore-chips" role="list">
             {[{ id: '', name: 'All' }, ...categories].map((cat, idx) => {
               const selected = exploreCatChipIndex === idx;
