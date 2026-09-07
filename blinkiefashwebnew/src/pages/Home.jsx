@@ -125,13 +125,6 @@ const UNIVERSE_BRANDS = [
   }
 ];
 
-const KNOWN_BRANDS = [
-  'nike', 'adidas', 'puma', "levi's", 'levis', 'zara', 'h&m', 'reebok',
-  'tommy hilfiger', 'calvin klein', 'us polo', 'us polo assn', 'allen solly',
-  'peter england', 'van heusen', 'raymond', 'pepe jeans', 'wrangler',
-  'jack & jones', 'vero moda', 'biba', 'fabindia',
-];
-
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
 
 const CHIP_ICON_HINTS = [
@@ -483,12 +476,6 @@ export default function Home() {
           if (!brandCount.has(key)) brandCount.set(key, { name, count: 0 });
           brandCount.get(key).count += 1;
         });
-        const knownIndex = (name) => {
-          const normalized = normalizeBrandName(name);
-          const idx = KNOWN_BRANDS.findIndex((known) => known === normalized);
-          return idx === -1 ? KNOWN_BRANDS.length : idx;
-        };
-
         const dbBrands = (Array.isArray(brandsRes) ? brandsRes : [])
           .map((b) => ({
             id: b.id,
