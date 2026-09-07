@@ -223,11 +223,43 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
+  const [brandsScrollState, setBrandsScrollState] = useState({ canLeft: false, canRight: false });
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
+  const brandsCarouselRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
+
+  const updateBrandsScrollState = () => {
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return;
+    setBrandsScrollState({
+      canLeft: carousel.scrollLeft > 4,
+      canRight: carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 4,
+    });
+  };
+
+  useEffect(() => {
+    updateBrandsScrollState();
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return undefined;
+    carousel.addEventListener('scroll', updateBrandsScrollState, { passive: true });
+    window.addEventListener('resize', updateBrandsScrollState);
+    return () => {
+      carousel.removeEventListener('scroll', updateBrandsScrollState);
+      window.removeEventListener('resize', updateBrandsScrollState);
+    };
+  }, [topBrands.length]);
+
+  const scrollBrands = (direction) => {
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({
+      left: direction * Math.max(carousel.clientWidth * 0.72, 260),
+      behavior: 'smooth',
+    });
+  };
 
   useEffect(() => {
     const loadRecent = () => {
@@ -802,8 +834,19 @@ export default function Home() {
               </button>
             </div>
 
-            <div className="hp-shop-brands-grid">
-              {topBrands.map((brand, idx) => {
+            <div className="hp-deals-wrap hp-shop-brands-carousel">
+              <button
+                type="button"
+                className="hp-deals-prev"
+                onClick={() => scrollBrands(-1)}
+                aria-disabled={!brandsScrollState.canLeft}
+                aria-label="Scroll brands left"
+              >
+                <MdChevronLeft />
+              </button>
+
+              <div className="hp-shop-brands-grid" ref={brandsCarouselRef}>
+                {topBrands.map((brand, idx) => {
                 const label = (brand.name || '').toString().trim();
                 const displayName = label || 'Brand';
                 const normalizedDisplayName = normalizeBrandName(displayName);
@@ -840,7 +883,18 @@ export default function Home() {
                     </button>
                   </article>
                 );
-              })}
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="hp-deals-next"
+                onClick={() => scrollBrands(1)}
+                aria-disabled={!brandsScrollState.canRight}
+                aria-label="Scroll brands right"
+              >
+                <MdChevronRight />
+              </button>
             </div>
           </section>
         )}
