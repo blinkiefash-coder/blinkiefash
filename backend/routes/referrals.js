@@ -39,6 +39,23 @@ const ensureReferralCode = async (userId) => {
   return null;
 };
 
+// GET /api/referrals/validate/:code  → { valid, referrerId? }
+router.get("/validate/:code", async (req, res) => {
+  const code = String(req.params.code || "").trim().toUpperCase();
+  if (!code) return res.json({ valid: false });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name FROM users WHERE referral_code = $1 LIMIT 1`,
+      [code]
+    );
+    if (!rows.length) return res.json({ valid: false });
+    res.json({ valid: true, referrerId: rows[0].id, referrerName: rows[0].name });
+  } catch (err) {
+    console.error("Validate referral error:", err);
+    res.status(500).json({ valid: false, message: "Server error" });
+  }
+});
+
 // GET /api/referrals/:userId  → code, stats, available reward
 router.get("/:userId", async (req, res) => {
   const { userId } = req.params;
@@ -73,23 +90,6 @@ router.get("/:userId", async (req, res) => {
   } catch (err) {
     console.error("GET referrals error:", err);
     res.status(500).json({ success: false, message: "Server error" });
-  }
-});
-
-// GET /api/referrals/validate/:code  → { valid, referrerId? }
-router.get("/validate/:code", async (req, res) => {
-  const code = String(req.params.code || "").trim().toUpperCase();
-  if (!code) return res.json({ valid: false });
-  try {
-    const { rows } = await pool.query(
-      `SELECT id, name FROM users WHERE referral_code = $1 LIMIT 1`,
-      [code]
-    );
-    if (!rows.length) return res.json({ valid: false });
-    res.json({ valid: true, referrerId: rows[0].id, referrerName: rows[0].name });
-  } catch (err) {
-    console.error("Validate referral error:", err);
-    res.status(500).json({ valid: false, message: "Server error" });
   }
 });
 
