@@ -2780,20 +2780,6 @@ class _HomeScreenState extends State<HomeScreen>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category icon
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.shopping_bag_rounded,
-                  size: 24,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
-              const SizedBox(width: 12),
               // Title and subtitle
               Expanded(
                 child: Column(
@@ -2823,7 +2809,6 @@ class _HomeScreenState extends State<HomeScreen>
                         ],
                       ),
                     ),
-
                   ],
                 ),
               ),
