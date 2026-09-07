@@ -1817,18 +1817,37 @@
   margin-top: 8px;
 }
 
+.hp-shop-brands-wrap {
+  width: 100%;
+}
+
 .hp-shop-brands-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  grid-auto-flow: column;
+  grid-auto-columns: 200px;
   gap: 14px;
-  align-items: stretch;
   width: 100%;
-  margin: 0;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 4px 2px 10px;
+}
+
+.hp-shop-brands-grid::-webkit-scrollbar {
+  display: none;
 }
 
 .hp-shop-brand-card {
   width: 100%;
-  min-height: 270px;
+  min-height: 240px;
   border: 1px solid #e5e7eb;
   border-radius: 22px;
   overflow: hidden;
@@ -1839,6 +1858,7 @@
   justify-content: space-between;
   padding: 0;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  scroll-snap-align: start;
 }
 
 .hp-shop-brand-card:hover {
@@ -1936,7 +1956,7 @@
 
 @media (max-width: 1000px) {
   .hp-shop-brands-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: 170px;
   }
 
   .hp-shop-brand-visual {
@@ -1970,10 +1990,8 @@
   }
 
   .hp-shop-brands-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: 150px;
     gap: 10px;
-    overflow: visible;
   }
 
   .hp-shop-brand-card {
@@ -1998,7 +2016,7 @@
   }
 
   .hp-shop-brands-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-auto-columns: 170px;
   }
 
   .hp-shop-brand-visual {
@@ -2044,22 +2062,8 @@
   }
 
   .hp-shop-brands-grid {
-    grid-template-columns: none;
-    grid-template-rows: minmax(0, 1fr);
-    grid-auto-flow: column;
-    grid-auto-columns: calc((100% - 10px) / 2);
+    grid-auto-columns: 148px;
     gap: 10px;
-    overflow-x: auto;
-    overflow-y: hidden;
-    padding: 2px 2px 8px;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
-    touch-action: pan-x;
-  }
-
-  .hp-shop-brands-grid::-webkit-scrollbar {
-    display: none;
   }
 
   .hp-shop-brand-visual {
@@ -2068,7 +2072,6 @@
 
   .hp-shop-brand-card {
     min-width: 0;
-    scroll-snap-align: start;
   }
 
   .hp-shop-brand-action {
@@ -3499,7 +3502,7 @@ html, body, #root {
    and sits at the very end of the file so it is the single source of truth
    for how these three banners behave on phones/tablets — safe to tweak
    these numbers without hunting through the rest of the stylesheet.
-   ========================================================================= */
+   ========================================================= */
 
 @media (max-width: 768px) {
   /* ---------- 1. HERO CAROUSEL ---------- */
@@ -4102,4 +4105,272 @@ html, body, #root {
   object-fit: cover;
 
 }
+}
+
+/* =========================================================
+   SHOP BY BRANDS — 2-row horizontal carousel (mobile)
+   The desktop grid already scrolls via .hp-shop-brands-grid
+   using CSS grid-auto-flow: column with 2 rows. These rules
+   just tune card width per breakpoint and hide the old
+   wrapping-grid behaviour on small screens.
+   ========================================================= */
+@media (max-width: 768px) {
+  .hp-shop-brands-grid {
+    grid-auto-columns: 150px !important;
+    gap: 10px !important;
+    padding: 4px 2px 10px !important;
+  }
+
+  .hp-shop-brand-card {
+    min-height: 200px !important;
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 130px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-shop-brands-grid {
+    grid-auto-columns: 132px !important;
+  }
+
+  .hp-shop-brand-card {
+    min-height: 180px !important;
+  }
+}
+
+/* =========================================================================
+   REDESIGN PASS — unified section headers + minimal category chips
+   -------------------------------------------------------------------------
+   1) Every rail heading (Deals, Shop by Brands, Picks for You, Recently
+      Viewed, New on Blinkiefash, the five audience collections, both price
+      bands, Top Brands, More to Explore) now renders through one shared
+      <SectionHead> component and shares this single header treatment,
+      instead of the old mix of hp-section-head / hp-feed-head / the boxed
+      green "DEALS OF THE DAY" pill. Modeled on the original Shop by Brands
+      header, generalized, with the heavy green pill removed.
+   2) Category chips and subcategory chips lose the green active ring /
+      filled glow. Cards are now quiet, neutral, white-on-off-white with a
+      slim border; the only thing that changes on selection is a dark
+      1px ring and bolder label — no color swap.
+   Placed at the very end of the file so it wins the cascade over every
+   earlier pass, matching the convention already used throughout this file.
+   ========================================================================= */
+
+.hp-shead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.hp-shead-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.hp-shead-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.hp-shead-mark {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 11px;
+  background: #0f2419;
+  color: #eef9e4;
+}
+
+.hp-shead-mark svg {
+  width: 19px;
+  height: 19px;
+}
+
+.hp-shead-title {
+  margin: 0;
+  font-size: clamp(1.22rem, 1.7vw, 1.6rem);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  font-weight: 850;
+  color: #0b1d2d;
+  overflow-wrap: break-word;
+}
+
+.hp-shead-accent {
+  color: #159447;
+}
+
+.hp-shead-subtitle {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #838d97;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+.hp-shead-action {
+  flex: none;
+  border: none;
+  background: transparent;
+  color: #21a85d;
+  font-size: 0.85rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+  margin-top: 7px;
+  white-space: nowrap;
+  padding: 4px 2px;
+}
+
+.hp-shead-action svg {
+  font-size: 17px;
+}
+
+.hp-shead-action:hover {
+  color: #159447;
+}
+
+@media (max-width: 640px) {
+  .hp-shead {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .hp-shead-mark {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
+
+  .hp-shead-mark svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .hp-shead-title {
+    font-size: 1.05rem;
+  }
+
+  .hp-shead-subtitle {
+    display: none;
+  }
+
+  .hp-shead-action {
+    font-size: 0.76rem;
+    margin-top: 2px;
+  }
+}
+
+/* Shop by Brands section: subtitle stays visible longer since the rail
+   below is wide, so give it a touch more room before it hides. */
+@media (max-width: 480px) {
+  .hp-shop-brands-section .hp-shead-subtitle {
+    display: none;
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Minimal category chips (Men's/Women's/Kids/Electronics/Trendy Shoes)
+   --------------------------------------------------------------------- */
+
+.hp-collection-chip-group {
+  gap: 12px;
+}
+
+.hp-collection-chip {
+  min-width: 100px;
+  max-width: 144px;
+  padding: 13px 10px;
+  border: 1px solid #edeff2;
+  background: #fff;
+  border-radius: 18px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  gap: 9px;
+}
+
+.hp-collection-chip:hover {
+  border-color: #dfe3e8;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.07);
+}
+
+.hp-collection-chip:hover .hp-collection-chip-icon {
+  transform: none;
+}
+
+.hp-collection-chip.active {
+  border-color: #0f172a;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.hp-collection-chip-icon {
+  width: 54px;
+  height: 54px;
+  background: #f6f7f8;
+  border: 1px solid #edeff2;
+  box-shadow: none;
+}
+
+.hp-collection-chip.active .hp-collection-chip-icon {
+  border-color: #0f172a;
+  box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.07);
+}
+
+.hp-collection-chip-icon span {
+  font-size: 23px;
+}
+
+.hp-collection-chip-label {
+  font-size: 12.5px;
+  color: #4b5563;
+}
+
+.hp-collection-chip.active .hp-collection-chip-label {
+  color: #0f172a;
+  font-weight: 800;
+}
+
+.hp-subcat-chip {
+  border: 1px solid #edeff2;
+  box-shadow: none;
+}
+
+.hp-subcat-chip:hover {
+  border-color: #dfe3e8;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+  transform: translateY(-1px);
+}
+
+.hp-subcat-chip-icon {
+  background: #f6f7f8;
+  border: 1px solid #edeff2;
+}
+
+/* More to Explore chips: same neutral treatment, dark pill when active */
+.hp-explore-chip {
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  color: #4b5563;
+}
+
+.hp-explore-chip:hover {
+  border-color: #cbd0d6;
+  color: #0f172a;
+}
+
+.hp-explore-chip.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
 }
