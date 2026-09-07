@@ -776,8 +776,8 @@ class _HomeScreenState extends State<HomeScreen>
               });
         _allCategories = (cats).whereType<Map<String, dynamic>>().toList();
         _categoryMirrorRootIds = _buildCategoryMirrorRootIds(mirrorLinks);
+        // Show ALL brands, not just those with products in stock
         _brands = brs.whereType<Map<String, dynamic>>().toList()
-          ..retainWhere((b) => itemCountForBrand(b) > 0)
           ..sort((a, b) {
             final ac = itemCountForBrand(a);
             final bc = itemCountForBrand(b);
