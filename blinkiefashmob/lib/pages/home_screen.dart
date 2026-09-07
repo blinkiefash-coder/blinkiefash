@@ -3842,17 +3842,49 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // ── BRAND WITH RATING ───────────────────────────────
-                    Text(
-                      brand.toUpperCase(),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF1F2937),
-                        letterSpacing: 0.3,
-                      ),
+                    // ── BRAND LOGO & NAME ───────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Brand logo if available
+                        if (brand.isNotEmpty)
+                          Container(
+                            width: 20,
+                            height: 20,
+                            margin: const EdgeInsets.only(right: 4),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color: const Color(0xFFF3F4F6),
+                            ),
+                            child: Image.asset(
+                              'assets/logos/${brand.toLowerCase().replaceAll(' ', '_')}.png',
+                              fit: BoxFit.contain,
+                              errorBuilder: (_, __, ___) => Text(
+                                brand.isNotEmpty
+                                    ? brand[0].toUpperCase()
+                                    : '',
+                                style: const TextStyle(
+                                  fontSize: 8,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF1F2937),
+                                ),
+                              ),
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            brand.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F2937),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     // ── RATING & REVIEWS ────────────────────────────────
                     Row(
@@ -3901,13 +3933,13 @@ class _HomeScreenState extends State<HomeScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Sale price
+                        // Sale price - GREEN
                         Text(
                           '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFFDC2626),
+                            color: Color(0xFF16A34A),
                           ),
                         ),
                         // Discount % badge
@@ -3946,12 +3978,13 @@ class _HomeScreenState extends State<HomeScreen>
                             ],
                           ),
                           const SizedBox(height: 1),
+                          // "You save" in GREEN
                           Text(
                             'You save ₹$savings',
                             style: const TextStyle(
                               fontSize: 8,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFFDC2626),
+                              color: Color(0xFF16A34A),
                             ),
                           ),
                         ],
