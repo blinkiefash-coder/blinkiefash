@@ -1291,6 +1291,22 @@ class _HomeScreenState extends State<HomeScreen>
     return '$apiBaseUrl/$raw';
   }
 
+  String? _getBrandLogoUrl(String brandName) {
+    if (brandName.isEmpty) return null;
+    try {
+      final brandData = _brands.firstWhere(
+        (b) =>
+            (b['name']?.toString().toLowerCase() ?? '') ==
+            brandName.toLowerCase(),
+        orElse: () => {},
+      );
+      if (brandData.isEmpty) return null;
+      return _imgUrl(brandData['logo_url'] ?? brandData['image']);
+    } catch (e) {
+      return null;
+    }
+  }
+
   void _openProduct(Map<String, dynamic> item) {
     final id = item['id']?.toString() ?? '';
     if (id.isEmpty) return;
@@ -3677,6 +3693,9 @@ class _HomeScreenState extends State<HomeScreen>
         : 0;
     final savings = hasDiscount ? (mrp - price).toStringAsFixed(0) : '0';
 
+    // Get brand logo from _brands database
+    final brandLogo = _getBrandLogoUrl(brand);
+
     // Get rating and review info (if available)
     final rating = item['rating'] ?? 4.6;
     final reviewCount = item['review_count'] ?? '1.2K';
@@ -3846,7 +3865,7 @@ class _HomeScreenState extends State<HomeScreen>
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Brand initial badge
+                        // Brand logo from database
                         if (brand.isNotEmpty)
                           Container(
                             width: 22,
@@ -3856,15 +3875,43 @@ class _HomeScreenState extends State<HomeScreen>
                               borderRadius: BorderRadius.circular(3),
                               color: const Color(0xFF16A34A),
                             ),
-                            child: Center(
-                              child: Text(
-                                brand[0].toUpperCase(),
-                                style: const TextStyle(
-                                  fontSize: 9,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                ),
-                              ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: (brandLogo != null && brandLogo.isNotEmpty)
+                                  ? CachedNetworkImage(
+                                      imageUrl: brandLogo,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Center(
+                                        child: Text(
+                                          brand[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (_, __, ___) => Center(
+                                        child: Text(
+                                          brand[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        brand[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 9,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
                             ),
                           ),
                         Expanded(
