@@ -280,43 +280,12 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
-  const [brandsScrollState, setBrandsScrollState] = useState({ canLeft: false, canRight: false });
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
   const shopBrandsRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
-
-  const updateBrandsScrollState = () => {
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return;
-    setBrandsScrollState({
-      canLeft: carousel.scrollLeft > 4,
-      canRight: carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 4,
-    });
-  };
-
-  useEffect(() => {
-    updateBrandsScrollState();
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return undefined;
-    carousel.addEventListener('scroll', updateBrandsScrollState, { passive: true });
-    window.addEventListener('resize', updateBrandsScrollState);
-    return () => {
-      carousel.removeEventListener('scroll', updateBrandsScrollState);
-      window.removeEventListener('resize', updateBrandsScrollState);
-    };
-  }, [topBrands.length]);
-
-  const scrollBrands = (direction) => {
-    const carousel = brandsCarouselRef.current;
-    if (!carousel) return;
-    carousel.scrollBy({
-      left: direction * Math.max(carousel.clientWidth * 0.72, 260),
-      behavior: 'smooth',
-    });
-  };
 
   useEffect(() => {
     const loadRecent = () => {
@@ -556,15 +525,9 @@ export default function Home() {
         }));
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
-        // Known/major brands (Nike, Puma, Adidas, ...) surface first in their
-        // KNOWN_BRANDS order, then everything else falls back to A-Z so the
-        // "Shop by Brands" rail leads with recognizable names.
-        const brandsList = [...brandsSource].sort((a, b) => {
-          const ai = knownIndex(a.name);
-          const bi = knownIndex(b.name);
-          if (ai !== bi) return ai - bi;
-          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
-        });
+        const brandsList = [...brandsSource].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+        );
 
         if (cancelled) return;
 
