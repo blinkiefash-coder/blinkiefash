@@ -5853,12 +5853,14 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         SizedBox(
           height: 160,
-          child: ListView.builder(
-            controller: _brandScrollController,
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            itemCount: sortedBrands.length,
-            itemBuilder: (context, index) {
+          child: ScrollConfiguration(
+            behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
+            child: ListView.builder(
+              controller: _brandScrollController,
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              itemCount: sortedBrands.length,
+              itemBuilder: (context, index) {
               final brand = sortedBrands[index];
               final name = brand['name']?.toString() ?? 'Brand';
               final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
@@ -5977,6 +5979,7 @@ class _HomeScreenState extends State<HomeScreen>
               );
             },
           ),
+            ),
         ),
         // Scroll progress indicator
         _buildBrandScrollIndicator(sortedBrands),
