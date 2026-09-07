@@ -150,13 +150,6 @@ const UNIVERSE_BRANDS = [
   }
 ];
 
-const KNOWN_BRANDS = [
-  'nike', 'adidas', 'puma', "levi's", 'levis', 'zara', 'h&m', 'reebok',
-  'tommy hilfiger', 'calvin klein', 'us polo', 'us polo assn', 'allen solly',
-  'peter england', 'van heusen', 'raymond', 'pepe jeans', 'wrangler',
-  'jack & jones', 'vero moda', 'biba', 'fabindia',
-];
-
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
 
 const CHIP_ICON_HINTS = [
@@ -287,12 +280,43 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroIndex, setHeroIndex] = useState(0);
+  const [brandsScrollState, setBrandsScrollState] = useState({ canLeft: false, canRight: false });
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
   const shopBrandsRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
+
+  const updateBrandsScrollState = () => {
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return;
+    setBrandsScrollState({
+      canLeft: carousel.scrollLeft > 4,
+      canRight: carousel.scrollLeft + carousel.clientWidth < carousel.scrollWidth - 4,
+    });
+  };
+
+  useEffect(() => {
+    updateBrandsScrollState();
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return undefined;
+    carousel.addEventListener('scroll', updateBrandsScrollState, { passive: true });
+    window.addEventListener('resize', updateBrandsScrollState);
+    return () => {
+      carousel.removeEventListener('scroll', updateBrandsScrollState);
+      window.removeEventListener('resize', updateBrandsScrollState);
+    };
+  }, [topBrands.length]);
+
+  const scrollBrands = (direction) => {
+    const carousel = brandsCarouselRef.current;
+    if (!carousel) return;
+    carousel.scrollBy({
+      left: direction * Math.max(carousel.clientWidth * 0.72, 260),
+      behavior: 'smooth',
+    });
+  };
 
   useEffect(() => {
     const loadRecent = () => {
@@ -516,12 +540,6 @@ export default function Home() {
           if (!brandCount.has(key)) brandCount.set(key, { name, count: 0 });
           brandCount.get(key).count += 1;
         });
-        const knownIndex = (name) => {
-          const normalized = normalizeBrandName(name);
-          const idx = KNOWN_BRANDS.findIndex((known) => known === normalized);
-          return idx === -1 ? KNOWN_BRANDS.length : idx;
-        };
-
         const dbBrands = (Array.isArray(brandsRes) ? brandsRes : [])
           .map((b) => ({
             id: b.id,

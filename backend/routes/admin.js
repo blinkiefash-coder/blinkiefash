@@ -602,13 +602,12 @@ router.get("/orders/:orderId/vendor-bills", adminGuard, async (req, res) => {
       day: "2-digit", month: "short", year: "numeric"
     });
 
+    // Get the single global invoice number for this order
+    const globalInvoiceNumber = await getOrCreateInvoiceNumber(null, orderId);
+
     // Generate a packing slip for each vendor
     const vendorSections = [];
     for (const group of vendorGroups.values()) {
-      const invoiceNumber = group.vendorId
-        ? await getOrCreateInvoiceNumber(group.vendorId, orderId)
-        : `INV-${shortId}`;
-
       const itemRows = group.items.map(it => `
         <tr>
           <td style="padding:8px 6px;border-bottom:1px solid #f0f0f0">${it.product_name}
@@ -626,7 +625,7 @@ router.get("/orders/:orderId/vendor-bills", adminGuard, async (req, res) => {
       <div style="page-break-before:always;margin-bottom:40px;padding-bottom:40px;border-bottom:2px dashed #e2e8f0">
         <div style="background:#f0fdf4;padding:16px;border-radius:8px;margin-bottom:20px">
           <div style="font-size:13px;font-weight:700;color:#0f172a;margin-bottom:6px">🏪 ${group.storeName}</div>
-          <div style="font-size:12px;color:#6b7280">Invoice #${invoiceNumber} | Order #${shortId} | ${date}</div>
+          <div style="font-size:12px;color:#6b7280">Invoice #${globalInvoiceNumber} | Order #${shortId} | ${date}</div>
           ${group.ownerName ? `<div style="font-size:12px;color:#6b7280">Vendor: ${group.ownerName}</div>` : ""}
         </div>
         <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:16px">
