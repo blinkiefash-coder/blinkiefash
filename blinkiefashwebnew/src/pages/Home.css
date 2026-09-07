@@ -1779,13 +1779,28 @@
 }
 
 .hp-shop-brands-head h2 {
+  position: relative;
+  padding: 7px 12px 7px 16px;
   margin: 0;
-  font-size: clamp(1.9rem, 2.6vw, 3.2rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-  font-weight: 950;
-  color: #072d2e;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+  color: #0b5c3b;
+  background: #ecf8d9;
+  border-radius: 6px;
   white-space: nowrap;
+}
+
+.hp-shop-brands-head h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 5px;
+  border-radius: 3px;
+  background: #f59e0b;
 }
 
 .hp-shop-brands-heading-dark {
@@ -1962,7 +1977,7 @@
   }
 
   .hp-shop-brands-head h2 {
-    font-size: clamp(2.2rem, 9vw, 3.2rem);
+    font-size: 20px;
   }
 
   .hp-shop-brands-subtitle {
