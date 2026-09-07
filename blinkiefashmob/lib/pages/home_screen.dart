@@ -135,6 +135,10 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _heroAutoTimer;
   Timer? _startupLoaderTimer;
 
+  // Brand carousel auto-scroll
+  final ScrollController _brandScrollController = ScrollController();
+  Timer? _brandAutoScrollTimer;
+
   // Categories tab: index of selected root category
   int _catSelectedIndex = 0;
 
@@ -198,6 +202,7 @@ class _HomeScreenState extends State<HomeScreen>
     _initializeHome();
     _startHeroAutoSlide();
     _startDealsTimer();
+    _startBrandAutoScroll();
     _startupLoaderTimer = Timer(const Duration(seconds: 4), () {
       if (mounted && _isLoading) setState(() => _isLoading = false);
     });
@@ -271,6 +276,35 @@ class _HomeScreenState extends State<HomeScreen>
         _timerSeconds = seconds;
       });
     }
+  }
+
+  // Auto-scroll brand carousel every 3 seconds
+  void _startBrandAutoScroll() {
+    _brandAutoScrollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+      if (!mounted || !_brandScrollController.hasClients || _brands.isEmpty) {
+        return;
+      }
+
+      const scrollDistance = 130.0; // Width of brand card + spacing
+      final maxScroll = _brandScrollController.position.maxScrollExtent;
+      final currentScroll = _brandScrollController.offset;
+
+      if (currentScroll >= maxScroll - 10) {
+        // Loop back to start
+        _brandScrollController.animateTo(
+          0,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      } else {
+        // Scroll forward
+        _brandScrollController.animateTo(
+          currentScroll + scrollDistance,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOut,
+        );
+      }
+    });
   }
 
   Future<void> _initializeHome() async {
@@ -446,7 +480,9 @@ class _HomeScreenState extends State<HomeScreen>
     _heroAutoTimer?.cancel();
     _startupLoaderTimer?.cancel();
     _dealsTimer?.cancel();
+    _brandAutoScrollTimer?.cancel();
     _heroPageController.dispose();
+    _brandScrollController.dispose();
     _deliverLiveTimer?.cancel();
     _deliverPickupDebounce?.cancel();
     _deliverDropDebounce?.cancel();
@@ -5821,6 +5857,7 @@ class _HomeScreenState extends State<HomeScreen>
     return SizedBox(
       height: 160,
       child: ListView.builder(
+        controller: _brandScrollController,
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
         itemCount: sortedBrands.length,
