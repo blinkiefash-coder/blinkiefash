@@ -3696,9 +3696,6 @@ class _HomeScreenState extends State<HomeScreen>
     // Get brand logo from _brands database
     final brandLogo = _getBrandLogoUrl(brand);
 
-    // Get rating and review info (if available)
-    final rating = item['rating'] ?? 4.6;
-    final reviewCount = item['review_count'] ?? '1.2K';
     final isTryAndBuy = item['is_try_and_buy'] == true;
 
     final wishItem = WishlistItem(
@@ -3856,7 +3853,7 @@ class _HomeScreenState extends State<HomeScreen>
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 6, 10, 6),
+                padding: const EdgeInsets.fromLTRB(9, 6, 9, 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -3868,9 +3865,9 @@ class _HomeScreenState extends State<HomeScreen>
                         // Brand logo from database
                         if (brand.isNotEmpty)
                           Container(
-                            width: 22,
-                            height: 22,
-                            margin: const EdgeInsets.only(right: 6),
+                            width: 25,
+                            height: 25,
+                            margin: const EdgeInsets.only(right: 5),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(3),
                               color: const Color(0xFF16A34A),
@@ -3929,35 +3926,6 @@ class _HomeScreenState extends State<HomeScreen>
                         ),
                       ],
                     ),
-                    // ── RATING & REVIEWS ────────────────────────────────
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          size: 11,
-                          color: Color(0xFFFCA311),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '$rating',
-                          style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: Color(0xFF1F2937),
-                          ),
-                        ),
-                        const SizedBox(width: 2),
-                        Text(
-                          '($reviewCount)',
-                          style: const TextStyle(
-                            fontSize: 9,
-                            fontWeight: FontWeight.w500,
-                            color: Color(0xFF6B7280),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
                     // ── PRODUCT NAME ────────────────────────────────────
                     Text(
                       name,
@@ -3970,7 +3938,7 @@ class _HomeScreenState extends State<HomeScreen>
                         height: 1.1,
                       ),
                     ),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     // ── PRICE SECTION ───────────────────────────────────
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -3981,7 +3949,7 @@ class _HomeScreenState extends State<HomeScreen>
                           '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
                             fontSize: 13,
-                            fontWeight: FontWeight.w800,
+                            fontWeight: FontWeight.w900,
                             color: Color(0xFF16A34A),
                           ),
                         ),
@@ -3994,7 +3962,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 '₹${mrp.toStringAsFixed(0)}',
                                 style: const TextStyle(
                                   fontSize: 10,
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w700,
                                   color: Color(0xFF9CA3AF),
                                   decoration: TextDecoration.lineThrough,
                                 ),
