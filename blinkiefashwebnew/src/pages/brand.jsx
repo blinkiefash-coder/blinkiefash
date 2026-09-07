@@ -22,15 +22,6 @@ const SORT_OPTIONS = [
   { value: 'discount', label: 'Discount: High to Low' },
 ];
 
-const BRAND_BANNER_FALLBACKS = {
-  puma: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg',
-  'dhanista boutique': 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png',
-  fcuk: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png',
-  libas: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg',
-  mk: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg',
-  toys: 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca8.png',
-};
-
 function resolveImageUrl(raw) {
   const value = (raw ?? '').toString().trim();
   if (!value) return null;
@@ -162,13 +153,7 @@ export default function BrandPage() {
   const activeFilterCount =
     (appliedPriceRange.min || appliedPriceRange.max ? 1 : 0) + (selectedCategoryId ? 1 : 0);
 
-  const bannerUrl = resolveImageUrl(
-    brandInfo?.banner_url ||
-      brandInfo?.banner ||
-      brandInfo?.cover_image ||
-      BRAND_BANNER_FALLBACKS[normalizeBrandName(displayName)] ||
-      brandInfo?.logo_url
-  );
+  const bannerUrl = resolveImageUrl(brandInfo?.banner);
   const displayName = brandInfo?.name || brandName || 'Brand';
   const currentSortLabel =
     SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
