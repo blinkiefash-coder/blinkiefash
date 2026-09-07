@@ -3846,27 +3846,23 @@ class _HomeScreenState extends State<HomeScreen>
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Brand logo if available
+                        // Brand initial badge
                         if (brand.isNotEmpty)
                           Container(
-                            width: 20,
-                            height: 20,
-                            margin: const EdgeInsets.only(right: 4),
+                            width: 22,
+                            height: 22,
+                            margin: const EdgeInsets.only(right: 6),
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(3),
-                              color: const Color(0xFFF3F4F6),
+                              color: const Color(0xFF16A34A),
                             ),
-                            child: Image.asset(
-                              'assets/logos/${brand.toLowerCase().replaceAll(' ', '_')}.png',
-                              fit: BoxFit.contain,
-                              errorBuilder: (_, __, ___) => Text(
-                                brand.isNotEmpty
-                                    ? brand[0].toUpperCase()
-                                    : '',
+                            child: Center(
+                              child: Text(
+                                brand[0].toUpperCase(),
                                 style: const TextStyle(
-                                  fontSize: 8,
-                                  fontWeight: FontWeight.w700,
-                                  color: Color(0xFF1F2937),
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
