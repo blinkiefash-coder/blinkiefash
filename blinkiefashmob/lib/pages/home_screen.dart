@@ -278,9 +278,9 @@ class _HomeScreenState extends State<HomeScreen>
     }
   }
 
-  // Auto-scroll brand carousel every 3 seconds
+  // Auto-scroll brand carousel every 7 seconds
   void _startBrandAutoScroll() {
-    _brandAutoScrollTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _brandAutoScrollTimer = Timer.periodic(const Duration(seconds: 7), (_) {
       if (!mounted || !_brandScrollController.hasClients || _brands.isEmpty) {
         return;
       }
