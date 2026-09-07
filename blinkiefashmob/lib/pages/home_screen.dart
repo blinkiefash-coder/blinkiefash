@@ -148,6 +148,7 @@ class _HomeScreenState extends State<HomeScreen>
   int _timerMinutes = 0;
   int _timerSeconds = 0;
   DateTime? _lastDealsRefreshDate;
+  String _selectedDealsCategory = 'All'; // Track selected category filter in Deals of the Day
   // Drawer: expanded state per root category id
   final Map<String, bool> _drawerExpandedCats = {};
 
@@ -2918,6 +2919,21 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
           child: Row(
             children: [
+              // Flame icon
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF3C7),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Color(0xFFD97706),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: RichText(
                   text: const TextSpan(
@@ -2947,37 +2963,26 @@ class _HomeScreenState extends State<HomeScreen>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF16A34A),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: Color(0xFFA5A5A5),
+                    size: 16,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Ends in',
+                    'Ends in ${_timerHours.toString().padLeft(2, '0')} : ${_timerMinutes.toString().padLeft(2, '0')} : ${_timerSeconds.toString().padLeft(2, '0')}',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Color(0xFF6B7280),
+                      letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${_timerHours.toString().padLeft(2, '0')} : ${_timerMinutes.toString().padLeft(2, '0')} : ${_timerSeconds.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                      letterSpacing: 0.5,
-                    ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF9CA3AF),
+                    size: 18,
                   ),
                 ],
               ),
@@ -4062,7 +4067,60 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _dealsOfTheDayCategories() {
     final topDeals = _topDiscountedProducts();
     if (topDeals.isEmpty) return _stockOutBanner();
-    return _buildDiscountDealCards(topDeals);
+    
+    // Category options for filtering
+    const categories = ['All', 'Men', 'Women', 'Footwear', 'Accessories', 'Beauty'];
+    
+    return Column(
+      children: [
+        // Category filter tabs
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: Row(
+            children: categories.map((category) {
+              final isSelected = _selectedDealsCategory == category;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDealsCategory = category;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF16A34A) : Colors.transparent,
+                      border: isSelected
+                          ? null
+                          : Border.all(
+                              color: const Color(0xFFE5E7EB),
+                              width: 1,
+                            ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF6B7280),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        // Product cards
+        _buildDiscountDealCards(topDeals),
+      ],
+    );
   }
 
   // ── New & Trendy: Full-price products (no discount), newest first ─────────
