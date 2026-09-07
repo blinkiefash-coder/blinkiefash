@@ -1740,22 +1740,24 @@
 
 .hp-shop-brands-head {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  margin-bottom: 14px;
+  gap: 18px;
+  margin-bottom: 20px;
+  padding: 0 2px;
 }
 
 .hp-shop-brands-title-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
+  flex: 1;
 }
 
 .hp-shop-brands-title-wrap {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 11px;
 }
 
 .hp-shop-brands-mark {
@@ -1764,57 +1766,98 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 12px 12px 14px 14px;
-  background: #0a2d2d;
-  color: #d9f59d;
-  box-shadow: inset 0 0 0 2px rgba(255,255,255,0.14);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a4c 100%);
+  color: #15d35a;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.12), inset 0 1px 2px rgba(255,255,255,0.1);
   flex-shrink: 0;
-  transform: rotate(-12deg);
+  transform: rotate(-8deg);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hp-shop-brands-mark:hover {
+  transform: rotate(0deg) scale(1.04);
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.18), inset 0 1px 2px rgba(255,255,255,0.15);
 }
 
 .hp-shop-brands-mark svg {
-  width: 28px;
-  height: 28px;
-  transform: rotate(12deg);
+  width: 24px;
+  height: 24px;
+  transform: rotate(8deg);
 }
 
 .hp-shop-brands-head h2 {
+  position: relative;
+  padding: 7px 12px 7px 16px;
   margin: 0;
-  font-size: clamp(1.9rem, 2.6vw, 3.2rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-  font-weight: 950;
-  color: #072d2e;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
+  color: #0b5c3b;
+  background: #ecf8d9;
+  border-radius: 6px;
   white-space: nowrap;
+}
+
+.hp-shop-brands-head h2::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 7px;
+  bottom: 7px;
+  width: 5px;
+  border-radius: 3px;
+  background: #f59e0b;
 }
 
 .hp-shop-brands-heading-dark {
   color: #0b1d2d;
+  font-weight: 920;
 }
 
 .hp-shop-brands-heading-green {
-  color: #159447;
+  color: #15d35a;
+  font-weight: 920;
+  text-shadow: 0 1px 2px rgba(21, 211, 90, 0.08);
 }
 
 .hp-shop-brands-subtitle {
   margin: 0;
-  font-size: 0.94rem;
-  color: #7d8793;
-  font-weight: 500;
-  letter-spacing: -0.025em;
+  font-size: 0.92rem;
+  color: #64748b;
+  font-weight: 520;
+  letter-spacing: -0.015em;
+  line-height: 1.35;
 }
 
 .hp-shop-brands-head button {
-  border: none;
-  background: transparent;
-  color: #21a85d;
-  font-size: clamp(0.95rem, 1.2vw, 1.3rem);
-  font-weight: 800;
+  border: 1.5px solid #15d35a;
+  background: #15d35a;
+  color: #fff;
+  font-size: clamp(0.88rem, 1vw, 0.98rem);
+  font-weight: 720;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   cursor: pointer;
-  margin-top: 8px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 0;
+}
+
+.hp-shop-brands-head button:hover {
+  background: #0f9f4d;
+  border-color: #0f9f4d;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(21, 211, 90, 0.25);
+}
+
+.hp-shop-brands-carousel {
+  position: relative;
 }
 
 .hp-shop-brands-wrap {
@@ -1857,6 +1900,7 @@
   flex-direction: column;
   justify-content: space-between;
   padding: 0;
+  scroll-snap-align: start;
   transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   scroll-snap-align: start;
 }
@@ -1962,6 +2006,10 @@
   .hp-shop-brand-visual {
     min-height: 200px;
   }
+
+  .hp-shop-brand-card {
+    scroll-snap-align: start;
+  }
 }
 
 @media (max-width: 640px) {
@@ -1982,7 +2030,7 @@
   }
 
   .hp-shop-brands-head h2 {
-    font-size: clamp(2.2rem, 9vw, 3.2rem);
+    font-size: 20px;
   }
 
   .hp-shop-brands-subtitle {
@@ -1994,9 +2042,11 @@
     gap: 10px;
   }
 
+
   .hp-shop-brand-card {
-    min-width: 0;
     min-height: 190px;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
   }
 
   .hp-shop-brand-visual {
@@ -2020,7 +2070,7 @@
   }
 
   .hp-shop-brand-visual {
-    min-height: 260px;
+    min-height: 200px;
   }
 
   .hp-shop-brand-name-overlay {
@@ -2044,11 +2094,38 @@
   .hp-shop-brands-head {
     flex-direction: column;
     align-items: flex-start;
+    margin-bottom: 18px;
+    gap: 14px;
   }
 
   .hp-shop-brands-title-wrap {
     width: 100%;
     gap: 10px;
+  }
+
+  .hp-shop-brands-mark {
+    width: 38px;
+    height: 38px;
+  }
+
+  .hp-shop-brands-mark svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .hp-shop-brands-head h2 {
+    font-size: clamp(1.5rem, 7vw, 2.2rem);
+  }
+
+  .hp-shop-brands-subtitle {
+    font-size: 0.88rem;
+  }
+
+  .hp-shop-brands-head button {
+    width: 100%;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
 
   .hp-shop-brands-mark {
