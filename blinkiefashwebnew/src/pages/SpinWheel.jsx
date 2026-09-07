@@ -6,14 +6,16 @@ import './OfferFeature.css';
 import './SpinWheel.css';
 
 const PRIZES = [
-  { label: 'FREE\nSMARTWATCH', short: 'Smartwatch', icon: '🎧' },
-  { label: 'LOCK', short: 'Locked', icon: '🔒' },
-  { label: 'DISCOUNT', short: 'Discount', icon: '🏷️' },
+  { label: 'SORRY', short: 'Sorry', icon: '😔' },
+  { label: '1%\nDISCOUNT', short: '1% Off', icon: '🏷️' },
   { label: '5%\nDISCOUNT', short: '5% Off', icon: '💰' },
+  { label: 'SORRY', short: 'Sorry', icon: '😔' },
   { label: '2%\nDISCOUNT', short: '2% Off', icon: '🏷️' },
   { label: '10%\nDISCOUNT', short: '10% Off', icon: '⚡' },
-  { label: 'TRY\nAGAIN', short: 'Try Again', icon: '🔄' },
-  { label: 'FREE\nT-SHIRT', short: 'T-Shirt', icon: '👕' },
+  { label: 'SORRY', short: 'Sorry', icon: '😔' },
+  { label: 'FREE', short: 'Free', icon: '🎁' },
+  { label: 'FREE', short: 'Free', icon: '🎁' },
+  { label: 'CAR', short: 'Car', icon: '🚗' },
 ];
 
 export default function SpinWheel() {
