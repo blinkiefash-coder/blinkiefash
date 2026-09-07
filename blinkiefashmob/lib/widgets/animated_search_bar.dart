@@ -107,51 +107,6 @@ class _AnimatedSearchBarState extends State<AnimatedSearchBar> {
               ),
             ),
             const SizedBox(width: 4),
-            // Scan / camera icon
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('Scan feature coming soon!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-              },
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(
-                  Icons.camera_alt_rounded,
-                  color: Color(0xFF6B7280),
-                  size: 19,
-                ),
-              ),
-            ),
-            Container(width: 1, height: 14, color: const Color(0xFFE5E7EB)),
-            // Mic / voice search icon
-            GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onTap: () {
-                ScaffoldMessenger.of(context)
-                  ..removeCurrentSnackBar()
-                  ..showSnackBar(
-                    const SnackBar(
-                      content: Text('Voice search coming soon!'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-              },
-              child: const Padding(
-                padding: EdgeInsets.only(left: 8),
-                child: Icon(
-                  Icons.mic_none_rounded,
-                  color: Color(0xFF6B7280),
-                  size: 19,
-                ),
-              ),
-            ),
           ],
         ),
       ),
