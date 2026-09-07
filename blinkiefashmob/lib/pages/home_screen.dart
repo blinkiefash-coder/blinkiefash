@@ -148,7 +148,8 @@ class _HomeScreenState extends State<HomeScreen>
   int _timerMinutes = 0;
   int _timerSeconds = 0;
   DateTime? _lastDealsRefreshDate;
-  String _selectedDealsCategory = 'All'; // Track selected category filter in Deals of the Day
+  String _selectedDealsCategory =
+      'All'; // Track selected category filter in Deals of the Day
   // Drawer: expanded state per root category id
   final Map<String, bool> _drawerExpandedCats = {};
 
@@ -2924,12 +2925,12 @@ class _HomeScreenState extends State<HomeScreen>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF3C7),
+                  color: const Color(0xFFDC2626),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.local_fire_department_rounded,
-                  color: Color(0xFFD97706),
+                  color: Colors.white,
                   size: 20,
                 ),
               ),
@@ -2974,7 +2975,7 @@ class _HomeScreenState extends State<HomeScreen>
                     style: const TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B7280),
+                      color: Color(0xFFDC2626),
                       letterSpacing: 0.3,
                     ),
                   ),
@@ -4000,7 +4001,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
   // Shared discount-computation used by Deals of the Day.
-  List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount}) {
+  List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount, String? categoryFilter}) {
     // Premium/good brands to prioritize in deals section
     const premiumBrands = [
       'the soul store',
@@ -4020,8 +4021,44 @@ class _HomeScreenState extends State<HomeScreen>
       'fila',
     ];
 
+    var filteredProducts = _getTabFilteredProducts();
+
+    // Apply category filter if specified
+    if (categoryFilter != null && categoryFilter != 'All') {
+      List<Map<String, dynamic>> categoryProducts = const [];
+      if (categoryFilter == 'Men') {
+        categoryProducts = _mensProducts;
+      } else if (categoryFilter == 'Women') {
+        categoryProducts = _womensProducts;
+      } else if (categoryFilter == 'Footwear') {
+        // Filter for footwear from all products
+        categoryProducts = filteredProducts
+            .where((p) =>
+                (p['category']?.toString().toLowerCase().contains('footwear') ??
+                    false) ||
+                (p['product_type']?.toString().toLowerCase().contains('shoe') ??
+                    false))
+            .toList();
+      } else if (categoryFilter == 'Accessories') {
+        // Filter for accessories
+        categoryProducts = filteredProducts
+            .where((p) =>
+                (p['category']?.toString().toLowerCase().contains('accessories') ??
+                    false))
+            .toList();
+      } else if (categoryFilter == 'Beauty') {
+        // Filter for beauty
+        categoryProducts = filteredProducts
+            .where((p) =>
+                (p['category']?.toString().toLowerCase().contains('beauty') ??
+                    false))
+            .toList();
+      }
+      filteredProducts =
+          categoryProducts.isNotEmpty ? categoryProducts : filteredProducts;
+    }
+
     final dealsProducts = <Map<String, dynamic>>[];
-    final filteredProducts = _getTabFilteredProducts();
 
     for (final product in filteredProducts) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
@@ -4065,12 +4102,19 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Deals of the Day: Top products with maximum discounts ─────────────────
   Widget _dealsOfTheDayCategories() {
-    final topDeals = _topDiscountedProducts();
+    final topDeals = _topDiscountedProducts(categoryFilter: _selectedDealsCategory);
     if (topDeals.isEmpty) return _stockOutBanner();
-    
+
     // Category options for filtering
-    const categories = ['All', 'Men', 'Women', 'Footwear', 'Accessories', 'Beauty'];
-    
+    const categories = [
+      'All',
+      'Men',
+      'Women',
+      'Footwear',
+      'Accessories',
+      'Beauty',
+    ];
+
     return Column(
       children: [
         // Category filter tabs
@@ -4089,9 +4133,14 @@ class _HomeScreenState extends State<HomeScreen>
                     });
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF16A34A) : Colors.transparent,
+                      color: isSelected
+                          ? const Color(0xFF16A34A)
+                          : Colors.transparent,
                       border: isSelected
                           ? null
                           : Border.all(
