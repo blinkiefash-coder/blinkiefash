@@ -707,6 +707,30 @@ form.search-box.search-box {
     display: none !important;
   }
 
+
+@media (max-width: 480px) {
+  .navbar {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 4px;
+  }
+
+  .nav-left .logo-img {
+    max-width: 110px;
+  }
+
+  .nav-right {
+    gap: 0;
+  }
+
+  .nav-action-btn,
+  .profile-box {
+    min-width: 32px;
+    width: 32px;
+    padding-left: 4px;
+    padding-right: 4px;
+  }
+}
   /* Two-row layout: back button + centered logo on top, full-width
      search bar below. Equal-width outer grid columns (1fr / 1fr) around
      the auto-sized logo column keep the logo mathematically centered
