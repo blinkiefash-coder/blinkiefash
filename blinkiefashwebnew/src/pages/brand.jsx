@@ -9,6 +9,7 @@ import Navbar from '../components/Navbar';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
 import { getBrands, getProducts, getCategories } from '../api';
 import { API_BASE_URL } from '../apiBase';
+import { getBrandBanner } from '../utils/brandVisuals';
 
 import './brand.css';
 
@@ -153,7 +154,8 @@ export default function BrandPage() {
   const activeFilterCount =
     (appliedPriceRange.min || appliedPriceRange.max ? 1 : 0) + (selectedCategoryId ? 1 : 0);
 
-  const bannerUrl = resolveImageUrl(brandInfo?.banner);
+  const bannerUrl = resolveImageUrl(getBrandBanner(brandInfo) || brandInfo?.logo_url);
+
   const displayName = brandInfo?.name || brandName || 'Brand';
   const currentSortLabel =
     SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
