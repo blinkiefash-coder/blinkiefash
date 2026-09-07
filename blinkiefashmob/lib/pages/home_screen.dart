@@ -3667,15 +3667,22 @@ class _HomeScreenState extends State<HomeScreen>
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
     final variantData = _getCardVariant(item);
-    final price = _fmt(variantData['discount_price']);
-    final mrp = _fmt(variantData['price']);
-    final off = item['off']?.toString() ?? _offLabel(item);
+    final price = double.tryParse((variantData['discount_price'] ?? '').toString()) ?? 0;
+    final mrp = double.tryParse((variantData['price'] ?? '').toString()) ?? 0;
     final image = _imgUrl(variantData['image_url'] ?? item['image']);
-    final hasDiscount = mrp.isNotEmpty && mrp != price && mrp != '0';
+    final hasDiscount = mrp > 0 && price > 0 && mrp > price;
+    final discountPercent = hasDiscount ? ((mrp - price) / mrp * 100).round() : 0;
+    final savings = hasDiscount ? (mrp - price).toStringAsFixed(0) : '0';
+    
+    // Get rating and review info (if available)
+    final rating = item['rating'] ?? 4.6;
+    final reviewCount = item['review_count'] ?? '1.2K';
+    final isTryAndBuy = item['is_try_and_buy'] == true;
+    
     final wishItem = WishlistItem(
       productId: item['id']?.toString() ?? '',
       name: name,
-      price: price,
+      price: price.toStringAsFixed(0),
       imageUrl: image,
     );
 
@@ -3686,19 +3693,20 @@ class _HomeScreenState extends State<HomeScreen>
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2F3E8)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 0.5),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1A166534),
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── IMAGE SECTION WITH BADGES & BUTTONS ─────────────────────
             Expanded(
               flex: 3,
               child: Stack(
@@ -3706,11 +3714,11 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
+                      top: Radius.circular(12),
                     ),
                     child: image == null
                         ? Container(
-                            color: const Color(0xFFF7FAF8),
+                            color: const Color(0xFFF8FAFC),
                             child: const Icon(
                               Icons.checkroom_outlined,
                               color: Color(0xFFCBD5E1),
@@ -3719,43 +3727,73 @@ class _HomeScreenState extends State<HomeScreen>
                           )
                         : CachedNetworkImage(
                             imageUrl: image,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.center,
+                            fit: BoxFit.cover,
                             memCacheWidth: 480,
                             placeholder: (_, _) =>
-                                Container(color: const Color(0xFFF7FAF8)),
+                                Container(color: const Color(0xFFF8FAFC)),
                             errorWidget: (_, _, _) => Container(
-                              color: const Color(0xFFF7FAF8),
+                              color: const Color(0xFFF8FAFC),
                               child: const Icon(Icons.broken_image_outlined),
                             ),
                           ),
                   ),
-                  if (item['is_bestseller'] == true)
+                  // ── TRY & BUY BADGE (top-left) ──────────────────────
+                  if (isTryAndBuy)
                     Positioned(
                       top: 8,
                       left: 8,
-                      child: _collectionBadge('BESTSELLER'),
-                    )
-                  else if (item['is_try_and_buy'] == true)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _collectionBadge('TRY_AND_BUY'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF8C42),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.card_giftcard_rounded,
+                              color: Colors.white,
+                              size: 14,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Try & Buy',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
+                  // ── WISHLIST (top-right) ────────────────────────────
                   Positioned(
-                    top: 6,
-                    right: 6,
+                    top: 8,
+                    right: 8,
                     child: GestureDetector(
                       onTap: () {
                         WishlistManager.instance.toggle(wishItem);
                         setState(() {});
                       },
                       child: Container(
-                        width: 30,
-                        height: 30,
+                        width: 32,
+                        height: 32,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x18000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
                         ),
                         child: Icon(
                           WishlistManager.instance.isWishlisted(
@@ -3764,8 +3802,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ? Icons.favorite_rounded
                               : Icons.favorite_border_rounded,
                           size: 16,
-                          color:
-                              WishlistManager.instance.isWishlisted(
+                          color: WishlistManager.instance.isWishlisted(
                                 wishItem.productId,
                               )
                               ? const Color(0xFFE11D48)
@@ -3774,9 +3811,35 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ),
+                  // ── ADD TO CART BUTTON (bottom-right) ────────────────
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF16A34A),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x25000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.shopping_cart_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+            // ── PRODUCT INFO SECTION ────────────────────────────────────
             Expanded(
               flex: 2,
               child: Padding(
@@ -3784,70 +3847,126 @@ class _HomeScreenState extends State<HomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (brand.isNotEmpty)
-                      Text(
-                        brand.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                    // ── BRAND WITH RATING ───────────────────────────────
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            brand.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F2937),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: 2),
+                      ],
+                    ),
+                    // ── RATING & REVIEWS ────────────────────────────────
+                    Row(
+                      children: [
+                        const Icon(Icons.star_rounded, size: 12, color: Color(0xFFFCA311)),
+                        const SizedBox(width: 2),
+                        Text(
+                          '$rating',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                          ),
+                        ),
+                        const SizedBox(width: 2),
+                        Text(
+                          '($reviewCount)',
+                          style: const TextStyle(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF6B7280),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    // ── PRODUCT NAME ────────────────────────────────────
                     Text(
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
                         height: 1.2,
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasDiscount
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF166534),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        hasDiscount ? off : 'NEW',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
+                    // ── CATEGORY/TYPE ───────────────────────────────────
+                    Text(
+                      'Casual Shoes',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w400,
+                        color: Color(0xFF9CA3AF),
                       ),
                     ),
                     const SizedBox(height: 5),
-                    Row(
+                    // ── PRICE SECTION ───────────────────────────────────
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Sale price
                         Text(
-                          '₹$price',
+                          '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 15,
+                            fontSize: 14,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF15803D),
+                            color: Color(0xFFDC2626),
                           ),
                         ),
-                        if (hasDiscount) ...[
-                          const SizedBox(width: 4),
+                        // MRP strikethrough
+                        if (hasDiscount)
                           Text(
-                            '₹$mrp',
+                            '₹${mrp.toStringAsFixed(0)}',
                             style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF94A3B8),
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF9CA3AF),
                               decoration: TextDecoration.lineThrough,
+                            ),
+                          ),
+                        // Discount % badge
+                        if (hasDiscount) ...[
+                          const SizedBox(height: 3),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEE2E2),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              '$discountPercent% OFF',
+                              style: const TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFFDC2626),
+                              ),
+                            ),
+                          ),
+                          // You save
+                          const SizedBox(height: 2),
+                          Text(
+                            'You save ₹$savings',
+                            style: const TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFFDC2626),
                             ),
                           ),
                         ],
@@ -4001,7 +4120,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
   // Shared discount-computation used by Deals of the Day.
-  List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount, String? categoryFilter}) {
+  List<Map<String, dynamic>> _topDiscountedProducts({
+    int? minDiscount,
+    String? categoryFilter,
+  }) {
     // Premium/good brands to prioritize in deals section
     const premiumBrands = [
       'the soul store',
@@ -4033,29 +4155,42 @@ class _HomeScreenState extends State<HomeScreen>
       } else if (categoryFilter == 'Footwear') {
         // Filter for footwear from all products
         categoryProducts = filteredProducts
-            .where((p) =>
-                (p['category']?.toString().toLowerCase().contains('footwear') ??
-                    false) ||
-                (p['product_type']?.toString().toLowerCase().contains('shoe') ??
-                    false))
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains(
+                        'footwear',
+                      ) ??
+                      false) ||
+                  (p['product_type']?.toString().toLowerCase().contains(
+                        'shoe',
+                      ) ??
+                      false),
+            )
             .toList();
       } else if (categoryFilter == 'Accessories') {
         // Filter for accessories
         categoryProducts = filteredProducts
-            .where((p) =>
-                (p['category']?.toString().toLowerCase().contains('accessories') ??
-                    false))
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains(
+                    'accessories',
+                  ) ??
+                  false),
+            )
             .toList();
       } else if (categoryFilter == 'Beauty') {
         // Filter for beauty
         categoryProducts = filteredProducts
-            .where((p) =>
-                (p['category']?.toString().toLowerCase().contains('beauty') ??
-                    false))
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains('beauty') ??
+                  false),
+            )
             .toList();
       }
-      filteredProducts =
-          categoryProducts.isNotEmpty ? categoryProducts : filteredProducts;
+      filteredProducts = categoryProducts.isNotEmpty
+          ? categoryProducts
+          : filteredProducts;
     }
 
     final dealsProducts = <Map<String, dynamic>>[];
@@ -4102,7 +4237,9 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Deals of the Day: Top products with maximum discounts ─────────────────
   Widget _dealsOfTheDayCategories() {
-    final topDeals = _topDiscountedProducts(categoryFilter: _selectedDealsCategory);
+    final topDeals = _topDiscountedProducts(
+      categoryFilter: _selectedDealsCategory,
+    );
     if (topDeals.isEmpty) return _stockOutBanner();
 
     // Category options for filtering
