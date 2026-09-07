@@ -5830,16 +5830,14 @@ class _HomeScreenState extends State<HomeScreen>
       'forever 21',
     ];
 
-    // Sort brands by priority
+    // Sort brands by priority (matching web version logic)
     final sortedBrands = [..._brands].toList();
     sortedBrands.sort((a, b) {
       final aName = (a['name']?.toString() ?? '')
           .toLowerCase()
-          .replaceAll('.', '')
           .trim();
       final bName = (b['name']?.toString() ?? '')
           .toLowerCase()
-          .replaceAll('.', '')
           .trim();
       final aPriority = priorityBrands.indexOf(aName);
       final bPriority = priorityBrands.indexOf(bName);
@@ -5865,73 +5863,90 @@ class _HomeScreenState extends State<HomeScreen>
             padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
             itemCount: sortedBrands.length,
             itemBuilder: (context, index) {
-          final brand = sortedBrands[index];
-          final name = brand['name']?.toString() ?? 'Brand';
-          final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
+              final brand = sortedBrands[index];
+              final name = brand['name']?.toString() ?? 'Brand';
+              final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
 
-          return GestureDetector(
-            onTap: () {
-              if (brand['id'] != null) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => AllProductsScreen(
-                      brandId: brand['id']?.toString(),
-                      brandName: name,
-                    ),
-                  ),
-                );
-              } else {
-                Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
-                );
-              }
-            },
-            child: Container(
-              width: 110,
-              margin: const EdgeInsets.only(right: 12),
-              child: Column(
-                children: [
-                  // Brand box with rounded corners
-                  Container(
-                    width: 110,
-                    height: 110,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(14),
-                      color: const Color(0xFFF8FAFC),
-                      border: Border.all(
-                        color: const Color(0xFFE2E8F0),
-                        width: 1,
-                      ),
-                      boxShadow: const [
-                        BoxShadow(
-                          color: Color(0x0D000000),
-                          blurRadius: 4,
-                          offset: Offset(0, 2),
+              return GestureDetector(
+                onTap: () {
+                  if (brand['id'] != null) {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => AllProductsScreen(
+                          brandId: brand['id']?.toString(),
+                          brandName: name,
                         ),
-                      ],
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(13),
-                      child: imgUrl != null
-                          ? Padding(
-                              padding: const EdgeInsets.all(10),
-                              child: CachedNetworkImage(
-                                imageUrl: imgUrl,
-                                memCacheWidth:
-                                    (264 *
-                                            MediaQuery.of(
-                                              context,
-                                            ).devicePixelRatio)
-                                        .round(),
-                                fit: BoxFit.contain,
-                                placeholder: (ctx, u) => const Center(
-                                  child: Icon(
-                                    Icons.storefront_outlined,
-                                    color: Color(0xFFCBD5E1),
-                                    size: 28,
+                      ),
+                    );
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AllBrandsScreen(),
+                      ),
+                    );
+                  }
+                },
+                child: Container(
+                  width: 110,
+                  margin: const EdgeInsets.only(right: 12),
+                  child: Column(
+                    children: [
+                      // Brand box with rounded corners
+                      Container(
+                        width: 110,
+                        height: 110,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          color: const Color(0xFFF8FAFC),
+                          border: Border.all(
+                            color: const Color(0xFFE2E8F0),
+                            width: 1,
+                          ),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Color(0x0D000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(13),
+                          child: imgUrl != null
+                              ? Padding(
+                                  padding: const EdgeInsets.all(10),
+                                  child: CachedNetworkImage(
+                                    imageUrl: imgUrl,
+                                    memCacheWidth:
+                                        (264 *
+                                                MediaQuery.of(
+                                                  context,
+                                                ).devicePixelRatio)
+                                            .round(),
+                                    fit: BoxFit.contain,
+                                    placeholder: (ctx, u) => const Center(
+                                      child: Icon(
+                                        Icons.storefront_outlined,
+                                        color: Color(0xFFCBD5E1),
+                                        size: 28,
+                                      ),
+                                    ),
+                                    errorWidget: (ctx, u, e) => Center(
+                                      child: Text(
+                                        name.length > 4
+                                            ? name.substring(0, 4).toUpperCase()
+                                            : name.toUpperCase(),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 11,
+                                          color: Color(0xFF374151),
+                                        ),
+                                        textAlign: TextAlign.center,
+                                      ),
+                                    ),
                                   ),
-                                ),
-                                errorWidget: (ctx, u, e) => Center(
+                                )
+                              : Center(
                                   child: Text(
                                     name.length > 4
                                         ? name.substring(0, 4).toUpperCase()
@@ -5944,43 +5959,28 @@ class _HomeScreenState extends State<HomeScreen>
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
-                              ),
-                            )
-                          : Center(
-                              child: Text(
-                                name.length > 4
-                                    ? name.substring(0, 4).toUpperCase()
-                                    : name.toUpperCase(),
-                                style: const TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 11,
-                                  color: Color(0xFF374151),
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                    ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Brand name
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF1F2937),
+                          height: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 8),
-                  // Brand name
-                  Text(
-                    name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF1F2937),
-                      height: 1.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+                ),
+              );
+            },
+          ),
         ),
         // Scroll progress indicator
         _buildBrandScrollIndicator(sortedBrands),
