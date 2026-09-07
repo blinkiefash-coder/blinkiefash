@@ -6,6 +6,8 @@ import {
   MdAddShoppingCart,
   MdCheckroom,
   MdStar,
+  MdAdd,
+  MdRemove,
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
@@ -73,10 +75,13 @@ async function resolveAvailableVariantId(product) {
  */
 export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
   const navigate = useNavigate();
-  const { addToCart, getCartQty } = useCart();
+  // `updateQty` sets an absolute quantity — the context itself removes
+  // the line item once quantity hits 0, so that's all this card needs.
+  const { addToCart, getCartQty, updateQty } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [isUpdatingQty, setIsUpdatingQty] = useState(false);
   const [announcement, setAnnouncement] = useState("");
 
   const wishlisted = isWishlisted(product.id);
@@ -176,7 +181,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
     event.stopPropagation();
     event.preventDefault();
 
-    if (isAddingToCart || outOfStock) return;
+    if (isAddingToCart || isUpdatingQty || outOfStock) return;
 
     const { userId, token } = getAuth();
     if (!userId && !token) {
@@ -185,7 +190,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       return;
     }
 
-    setIsAddingToCart(true);
+    // First add uses the full loading state (spinner). Increments once
+    // it's already in the cart use the lighter isUpdatingQty state so
+    // the stepper doesn't flash a full spinner on every tap.
+    const alreadyInCart = cartQty > 0;
+    if (alreadyInCart) {
+      setIsUpdatingQty(true);
+    } else {
+      setIsAddingToCart(true);
+    }
 
     if (typeof addToCart === "function") {
       try {
@@ -199,10 +212,12 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
         window.dispatchEvent(new Event("cart:updated"));
         setAnnouncement(`${product.name} added to cart`);
         if (onCartAdded) onCartAdded();
-        setIsAddingToCart(false);
         return;
       } catch (err) {
         console.error("[ProductCard] context cart failed", err);
+      } finally {
+        setIsAddingToCart(false);
+        setIsUpdatingQty(false);
       }
     }
 
@@ -210,7 +225,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       const variantId = await resolveAvailableVariantId(product);
       if (!variantId) {
         alert("No available variant for this product");
-        setIsAddingToCart(false);
         return;
       }
 
@@ -241,6 +255,36 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       alert(`Unable to add to cart: ${err.message}`);
     } finally {
       setIsAddingToCart(false);
+      setIsUpdatingQty(false);
+    }
+  };
+
+  const handleDecrementCart = async (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+
+    if (isUpdatingQty || isAddingToCart) return;
+
+    const variantId = product.variant_id || product.variantId || product.id;
+    setIsUpdatingQty(true);
+
+    try {
+      if (typeof updateQty === "function") {
+        // updateQty sets an absolute quantity and removes the line item
+        // itself once it hits 0, so this one call covers both the
+        // 3 → 2 → 1 step-down and the final removal at 1 → 0.
+        await updateQty(variantId, cartQty - 1);
+      } else {
+        console.warn(
+          "[ProductCard] CartContext has no updateQty method — cannot decrement quantity."
+        );
+      }
+      window.dispatchEvent(new Event("cart:updated"));
+      setAnnouncement(`${product.name} quantity updated`);
+    } catch (err) {
+      console.error("[ProductCard] decrement failed", err);
+    } finally {
+      setIsUpdatingQty(false);
     }
   };
 
@@ -298,31 +342,50 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
         )}
 
         {/* Cart action lives on the image, so its position never
-            depends on whether rating/sold metadata exists below. */}
-        <button
-          type="button"
-          className={`pc-cart-fab${cartQty > 0 ? " in-cart" : ""}${
-            isAddingToCart ? " is-loading" : ""
-          }`}
-          onClick={handleAddToCart}
-          disabled={isAddingToCart || outOfStock}
-          aria-disabled={isAddingToCart || outOfStock}
-          aria-busy={isAddingToCart}
-          aria-label={
-            outOfStock
-              ? "Out of stock"
-              : cartQty > 0
-                ? `In cart, quantity ${cartQty}`
-                : "Add to cart"
-          }
-        >
-          {!isAddingToCart &&
-            (cartQty > 0 ? (
-              <span className="pc-cart-qty">{cartQty}</span>
-            ) : (
-              <MdAddShoppingCart />
-            ))}
-        </button>
+            depends on whether rating/sold metadata exists below.
+            Once an item is in the cart, the single "add" button is
+            replaced by a −/qty/+ stepper so the shopper can adjust
+            quantity right from the card. */}
+        {cartQty > 0 ? (
+          <div
+            className="pc-cart-stepper"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="pc-cart-step-btn minus"
+              onClick={handleDecrementCart}
+              disabled={isUpdatingQty}
+              aria-label="Decrease quantity"
+            >
+              <MdRemove />
+            </button>
+            <span className="pc-cart-step-qty" aria-live="polite">
+              {cartQty}
+            </span>
+            <button
+              type="button"
+              className="pc-cart-step-btn plus"
+              onClick={handleAddToCart}
+              disabled={isUpdatingQty || outOfStock}
+              aria-label="Increase quantity"
+            >
+              <MdAdd />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            className={`pc-cart-fab${isAddingToCart ? " is-loading" : ""}`}
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || outOfStock}
+            aria-disabled={isAddingToCart || outOfStock}
+            aria-busy={isAddingToCart}
+            aria-label={outOfStock ? "Out of stock" : "Add to cart"}
+          >
+            {!isAddingToCart && <MdAddShoppingCart />}
+          </button>
+        )}
       </div>
 
       <div className="pc-body">

@@ -1,6 +1,6 @@
 import "./Navbar.css";
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
@@ -10,6 +10,11 @@ import logo from "../assets/logo1.png";
 const IconChevronDown = ({ size = 14 }) => (
   <svg viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
     <path d="m6 9 6 6 6-6" strokeLinecap="round" strokeLinejoin="round" />
+  </svg>
+);
+const IconArrowLeft = () => (
+  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true">
+    <path d="M19 12H5M11 18l-6-6 6-6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 const IconSearch = () => (
@@ -80,8 +85,15 @@ export default function Navbar() {
   const closeHoverTimer = useRef(null);
 
   const navigate = useNavigate();
+  const location = useLocation();
   const moreRef = useRef(null);
   const profileRef = useRef(null);
+
+  /* Mobile "search-only" mode: on the shop/search page, mobile navbar shows
+     a back button, a compact logo, and the full search bar (no hamburger,
+     cart, wishlist, or profile). Desktop layout is unaffected — this only
+     applies inside the existing max-width: 900px media query in Navbar.css. */
+  const isSearchOnlyMobile = location.pathname.startsWith("/shop");
 
   useEffect(() => {
     const syncAuth = () => {
@@ -216,9 +228,32 @@ export default function Navbar() {
     navigate(q ? `/shop?search=${encodeURIComponent(q)}` : "/shop");
   };
 
+  /* Mobile search-only back button: use browser history when there is
+     somewhere to go back to, otherwise fall back to Home so it never
+     dead-ends someone who landed on /shop directly (e.g. from a link). */
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate("/");
+    }
+  };
+
   return (
     <>
-      <header className="navbar">
+      <header className={`navbar${isSearchOnlyMobile ? " navbar-search-only" : ""}`}>
+        {/* Mobile search-only mode only — lets someone leave the full-width
+            search bar view without needing the hamburger, which is hidden
+            in this mode. */}
+        <button
+          type="button"
+          className="nav-back-btn"
+          aria-label="Go back"
+          onClick={handleBack}
+        >
+          <IconArrowLeft />
+        </button>
+
         <button
           type="button"
           className="nav-hamburger"
@@ -333,6 +368,16 @@ export default function Navbar() {
 
         {/* RIGHT: search + actions */}
         <div className="nav-right">
+          {/* Mobile-only search icon — taps straight to the shop/search page */}
+          <button
+            type="button"
+            className="nav-mobile-search-btn"
+            aria-label="Search"
+            onClick={() => navigate("/shop")}
+          >
+            <IconSearch />
+          </button>
+
           <form className="search-box" onSubmit={handleSearch}>
             <span className="search-icon-leading" aria-hidden="true">
               <IconSearch />
@@ -508,7 +553,7 @@ export default function Navbar() {
 
               {isLoggedIn && (
                 <button type="button" className="nav-drawer-link nav-drawer-logout" onClick={requestLogout}>
-                  ⎋ Logout
+                  Logout
                 </button>
               )}
             </aside>
