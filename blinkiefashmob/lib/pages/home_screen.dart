@@ -818,7 +818,8 @@ class _HomeScreenState extends State<HomeScreen>
             if (apr != bpr) return apr.compareTo(bpr);
             return an.compareTo(bn);
           });
-        _brands = _brands.take(8).toList();
+        // Show all brands for carousel (not limited to 8)
+        // _brands = _brands.take(8).toList();
         _under999 = under999Final.whereType<Map<String, dynamic>>().toList();
         _under1999 = under1999Final.whereType<Map<String, dynamic>>().toList();
         _pumaBrandId = pumaBrandId;
@@ -5854,14 +5855,16 @@ class _HomeScreenState extends State<HomeScreen>
       return aName.compareTo(bName);
     });
 
-    return SizedBox(
-      height: 160,
-      child: ListView.builder(
-        controller: _brandScrollController,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-        itemCount: sortedBrands.length,
-        itemBuilder: (context, index) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 160,
+          child: ListView.builder(
+            controller: _brandScrollController,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            itemCount: sortedBrands.length,
+            itemBuilder: (context, index) {
           final brand = sortedBrands[index];
           final name = brand['name']?.toString() ?? 'Brand';
           final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
@@ -5977,6 +5980,51 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           );
         },
+      ),
+        ),
+        // Scroll progress indicator
+        _buildBrandScrollIndicator(sortedBrands),
+      ],
+    );
+  }
+
+  // Build visual scroll indicator for brand carousel
+  Widget _buildBrandScrollIndicator(List<Map<String, dynamic>> brands) {
+    if (!_brandScrollController.hasClients || brands.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final maxScroll = _brandScrollController.position.maxScrollExtent;
+    final currentScroll = _brandScrollController.offset;
+    final progress = maxScroll > 0 ? currentScroll / maxScroll : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress.clamp(0.0, 1.0),
+                minHeight: 3,
+                backgroundColor: const Color(0xFFE2E8F0),
+                valueColor: const AlwaysStoppedAnimation<Color>(
+                  Color(0xFF16A34A),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '${((progress * 100).toStringAsFixed(0))}%',
+            style: const TextStyle(
+              fontSize: 10,
+              color: Color(0xFF6B7280),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }
