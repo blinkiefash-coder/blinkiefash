@@ -3882,7 +3882,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         child: Text(
                                           brand[0].toUpperCase(),
                                           style: const TextStyle(
-                                            fontSize: 9,
+                                            fontSize: 10,
                                             fontWeight: FontWeight.w800,
                                             color: Colors.white,
                                           ),
@@ -3892,7 +3892,7 @@ class _HomeScreenState extends State<HomeScreen>
                                         child: Text(
                                           brand[0].toUpperCase(),
                                           style: const TextStyle(
-                                            fontSize: 9,
+                                            fontSize: 10,
                                             fontWeight: FontWeight.w800,
                                             color: Colors.white,
                                           ),
@@ -3903,7 +3903,7 @@ class _HomeScreenState extends State<HomeScreen>
                                       child: Text(
                                         brand[0].toUpperCase(),
                                         style: const TextStyle(
-                                          fontSize: 9,
+                                          fontSize: 10,
                                           fontWeight: FontWeight.w800,
                                           color: Colors.white,
                                         ),
@@ -3917,7 +3917,7 @@ class _HomeScreenState extends State<HomeScreen>
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
                               color: Color(0xFF1F2937),
                               letterSpacing: 0.3,
@@ -3932,7 +3932,7 @@ class _HomeScreenState extends State<HomeScreen>
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
                         height: 1.1,
@@ -3948,7 +3948,7 @@ class _HomeScreenState extends State<HomeScreen>
                         Text(
                           '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 14,
                             fontWeight: FontWeight.w900,
                             color: Color(0xFF16A34A),
                           ),
@@ -3961,7 +3961,7 @@ class _HomeScreenState extends State<HomeScreen>
                               Text(
                                 '₹${mrp.toStringAsFixed(0)}',
                                 style: const TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.w700,
                                   color: Color(0xFF9CA3AF),
                                   decoration: TextDecoration.lineThrough,
@@ -3980,7 +3980,7 @@ class _HomeScreenState extends State<HomeScreen>
                                 child: Text(
                                   '$discountPercent% OFF',
                                   style: const TextStyle(
-                                    fontSize: 9,
+                                    fontSize: 10,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFFDC2626),
                                   ),
@@ -3993,7 +3993,7 @@ class _HomeScreenState extends State<HomeScreen>
                           Text(
                             'You save ₹$savings',
                             style: const TextStyle(
-                              fontSize: 9,
+                              fontSize: 10,
                               fontWeight: FontWeight.w600,
                               color: Color(0xFF16A34A),
                             ),
