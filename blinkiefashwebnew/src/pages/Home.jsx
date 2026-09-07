@@ -883,6 +883,15 @@ export default function Home() {
                       key={`${brand.id || displayName}-${idx}`}
                       className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
                       role="listitem"
+                      tabIndex={0}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          navigate(`/brands/${encodeURIComponent(displayName)}`);
+                        }
+                      }}
                     >
                       <div className="hp-shop-brand-visual">
                         {logo ? (
@@ -898,13 +907,6 @@ export default function Home() {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        className="hp-shop-brand-action"
-                        onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
-                      >
-                        Shop <MdChevronRight />
-                      </button>
                     </article>
                   );
                 })}
@@ -1119,61 +1121,6 @@ export default function Home() {
               onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}
             />
             {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
-          </section>
-        )}
-
-        {topBrands.length > 0 && (
-          <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              }
-              title="Top"
-              accentWord="Brands"
-              subtitle="The names people search for by name."
-              onViewAll={() => navigate('/shop')}
-            />
-            <div className="hp-top-brands-rail">
-              {topBrands.map((brand, idx) => {
-                const logo = resolveImageUrl(brand.logo_url || brand.image);
-                const label = (brand.name || '').toString().trim();
-                const initials = label
-                  ? label
-                      .split(/\s+/)
-                      .map((part) => part[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase()
-                  : 'BR';
-                return (
-                  <button
-                    key={`${brand.id || label || 'brand'}-${idx}`}
-                    type="button"
-                    className="hp-top-brand-card"
-                    onClick={() => navigate(`/brands/${encodeURIComponent(label)}`)}
-                    aria-label={`Shop ${label}`}
-                  >
-                    <span className="hp-top-brand-logo" aria-hidden="true">
-                      {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials}</span>}
-                    </span>
-                    <span className="hp-top-brand-name">{label}</span>
-                  </button>
-                );
-              })}
-              <button
-                type="button"
-                className="hp-top-brand-card hp-top-brand-card-more"
-                onClick={() => navigate('/shop')}
-                aria-label="Browse more brands"
-              >
-                <span className="hp-top-brand-logo" aria-hidden="true">
-                  <span>+</span>
-                </span>
-                <span className="hp-top-brand-name">More</span>
-              </button>
-            </div>
           </section>
         )}
 
