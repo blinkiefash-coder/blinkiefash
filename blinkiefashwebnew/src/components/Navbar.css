@@ -14,6 +14,7 @@
   width: 100%;
   z-index: 200;
   box-sizing: border-box;
+  min-width: 0;
 }
 
 /* Reserves space for the fixed navbar so page content isn't hidden under it */
@@ -318,6 +319,7 @@
   gap: 20px;
   flex-shrink: 0;
   position: relative;
+  min-width: 0;
 }
 
 /* Mobile-only search icon trigger (hidden on desktop) */
@@ -345,7 +347,8 @@ form.search-box.search-box {
   align-items: center !important;
   gap: 8px !important;
 
-  width: 460px !important;
+  width: min(460px, 35vw) !important;
+  min-width: 0 !important;
   height: 42px !important;
   min-height: 42px !important;
   max-height: 42px !important;
@@ -368,7 +371,7 @@ form.search-box.search-box {
 }
 
 .nav-right form.search-box:focus-within {
-  width: 490px !important;
+  width: min(490px, 38vw) !important;
   background: #ffffff !important;
   border-color: #0e7d47 !important;
   box-shadow: 0 0 0 4px rgba(14, 125, 71, 0.12), 0 4px 14px rgba(15, 23, 42, 0.08) !important;
@@ -578,18 +581,20 @@ form.search-box.search-box {
   background: #f3f4f6;
 }
 
-/* Mobile search-only back button — hidden everywhere by default;
-   only shown inside .navbar-search-only at <=900px (see below), since
-   that's the one view where the hamburger/logo-link aren't available
-   to get back out of the full-width search bar. */
+/* Shared back button, positioned immediately before the logo. */
 .nav-back-btn {
-  display: none;
-  border: none;
-  background: transparent;
+  display: inline-flex;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
   padding: 8px;
   margin-right: 2px;
+  border-radius: 999px;
   cursor: pointer;
   color: #111827;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
@@ -597,6 +602,7 @@ form.search-box.search-box {
 
 .nav-back-btn:hover {
   color: #0e7d47;
+  border-color: #b8e6c8;
 }
 
 /* ================= RESPONSIVE ================= */
@@ -626,7 +632,7 @@ form.search-box.search-box {
   }
 
   .search-box {
-    width: 260px;
+    width: min(260px, 30vw);
     max-width: 30vw;
     padding-left: 16px;
   }
@@ -975,4 +981,17 @@ form.search-box.search-box {
 
 .bf-btn-primary:hover {
   background: #059669;
+}
+
+@media (max-width: 760px) {
+  .nav-left,
+  .nav-right,
+  .nav-logo-btn {
+    min-width: 0;
+  }
+
+  .nav-left .brand-block,
+  .nav-left .brand {
+    min-width: 0;
+  }
 }

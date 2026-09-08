@@ -397,18 +397,20 @@
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .men-cat-list {
   display: flex;
-  gap: 18px;
+  gap: clamp(14px, 2vw, 22px);
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-x pan-y;
   overscroll-behavior-x: contain;
   scrollbar-width: none;
-  padding: 6px 2px 12px;
+  padding: 6px 4px 12px;
+  scroll-padding-inline: 4px;
   width: 100%;
   max-width: 100%;
 }
@@ -427,6 +429,7 @@
   background: none;
   cursor: pointer;
   min-width: 96px;
+  flex: 0 0 96px;
   max-width: 110px;
   padding: 4px;
   transition: transform 0.15s ease;
@@ -1051,5 +1054,17 @@
   }
   .men-filter-list {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .men-cat-strip {
+    margin-inline: -4px;
+    width: calc(100% + 8px);
+  }
+
+  .men-cat-list {
+    gap: 14px;
+    padding-inline: 8px;
   }
 }

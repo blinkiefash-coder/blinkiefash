@@ -6,7 +6,11 @@ const router = express.Router();
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(
-      "SELECT id, name, logo_url, banner FROM brands WHERE is_active = true ORDER BY name ASC"
+      `SELECT id, name, logo_url,
+              COALESCE(NULLIF(banner, ''), NULLIF(banner_url, ''), NULLIF(logo_url, '')) AS banner_url
+       FROM brands
+       WHERE is_active = true
+       ORDER BY name ASC`
     );
     res.json(result.rows);
   } catch (err) {

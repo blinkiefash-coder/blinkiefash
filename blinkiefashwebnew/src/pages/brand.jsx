@@ -83,7 +83,11 @@ export default function BrandPage() {
       try {
         const [brandsRes, catRes] = await Promise.all([getBrands(), getCategories()]);
         if (cancelled) return;
-        const list = Array.isArray(brandsRes) ? brandsRes : [];
+        const list = Array.isArray(brandsRes)
+          ? brandsRes
+          : Array.isArray(brandsRes?.brands)
+            ? brandsRes.brands
+            : [];
         const needle = normalizeBrandName(brandName);
         const match = list.find((b) => normalizeBrandName(b.name) === needle);
         setBrandInfo(match || { name: brandName });

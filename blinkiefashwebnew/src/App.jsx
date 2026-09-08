@@ -56,7 +56,6 @@ import CreateVendor from './pages/CreateVendor';
 import ManageCategories from './pages/ManageCategories';
 import { useAuth } from './context/AuthContext';
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
-import { MdArrowBack } from 'react-icons/md';
 
 // NEW: Blinkiefash India / Local mode pages
 // import BlinkiefashIndia from './pages/BlinkifashIndia';
@@ -74,33 +73,6 @@ function RequireAdmin({ children }) {
     return children;
   }
   return <Navigate to="/vendor" replace />;
-}
-
-function BackButton({ pathname }) {
-  const navigate = useNavigate();
-  const hasOwnBackButton =
-    pathname === '/checkout' ||
-    pathname.startsWith('/product/') ||
-    pathname === '/spin-wheel' ||
-    pathname === '/play-and-win' ||
-    pathname === '/old-clothes' ||
-    pathname.startsWith('/orders/') ||
-    pathname === '/policies' ||
-    pathname === '/privacy-policy';
-
-  if (pathname === '/' || hasOwnBackButton) return null;
-
-  return (
-    <button
-      type="button"
-      className="app-back-button"
-      onClick={() => (window.history.length > 1 ? navigate(-1) : navigate('/'))}
-      aria-label="Go back"
-    >
-      <MdArrowBack aria-hidden="true" />
-      <span>Back</span>
-    </button>
-  );
 }
 
 export default function App() {
@@ -187,8 +159,6 @@ export default function App() {
       {routeLoading ? (
         <Loader overlay label="Loading page..." subtitle="Please wait" showLogo />
       ) : null}
-
-      <BackButton pathname={pathname} />
 
       <Routes>
         <Route path="/" element={<Home />} />

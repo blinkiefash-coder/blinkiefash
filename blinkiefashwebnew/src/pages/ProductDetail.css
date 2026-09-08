@@ -281,6 +281,14 @@
   column-gap: 28px;
   row-gap: 26px;
   align-items: stretch;
+  min-width: 0;
+}
+
+.pp-main-grid > *,
+.pp-gallery-col > *,
+.pp-info-col,
+.pp-sidebar {
+  min-width: 0;
 }
 
 /* ---------- Gallery ---------- */
@@ -938,7 +946,7 @@
 
 /* ---------- Tablet portrait ---------- */
 @media (max-width: 1024px) {
-  .pd-header { grid-template-columns: 160px 1fr auto; gap: 12px; padding: 10px 16px; }
+  .pd-header { grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) auto; gap: 12px; padding: 10px 16px; }
   .hp-header-search { padding: 7px 10px; }
   .hp-header-actions button span:not(.hp-icon-badge) { display: none; }
   .hp-header-actions button { min-width: 36px; justify-content: center; }

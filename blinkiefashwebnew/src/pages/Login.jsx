@@ -1,29 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import {
-  authLoginVendorWithEmailPassword,
-  authLoginWithEmailPassword,
-  authStart,
-  authVerify,
-} from '../api';
+import { authStart, authVerify } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
-import { clearVendorPasswordAuth, markVendorPasswordAuth } from '../utils/vendorSession';
+import { MdArrowForward, MdLock, MdPhoneAndroid, MdShield } from 'react-icons/md';
 import './Auth.css';
 
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useAuth();
-  const [method, setMethod] = useState('email');
   const [step, setStep] = useState('phone');
   const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [confirmationResult, setConfirmationResult] = useState(null);
+  const [serverOtpMode, setServerOtpMode] = useState(false);
+  const [serverOtp, setServerOtp] = useState('');
 
   const ensureRecaptcha = () => {
     if (typeof window === 'undefined') {
@@ -53,110 +47,6 @@ export default function Login() {
     return `+${trimmed}`;
   };
 
-  const handleEmailPasswordLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    try {
-      let customerError = '';
-
-      try {
-        const customerRes = await authLoginWithEmailPassword({
-          email,
-          password,
-          expectedRole: 'customer',
-        });
-
-        if (customerRes.success) {
-          clearVendorPasswordAuth();
-          localStorage.removeItem('vendor_id');
-          localStorage.removeItem('vendor_store_id');
-          localStorage.removeItem('store_name');
-          localStorage.removeItem('vendor_name');
-          
-          // Preserve gender if it exists in localStorage, or get from response
-          const storedGender = localStorage.getItem('bfw_gender');
-          const userWithGender = {
-            ...customerRes.user,
-            gender: customerRes.user?.gender || storedGender || 'other'
-          };
-          
-          login(userWithGender, customerRes.token);
-          navigate('/');
-          return;
-        }
-
-        customerError = customerRes.message || 'Invalid email or password';
-      } catch (customerErr) {
-        customerError = customerErr.message || 'Invalid email or password';
-      }
-
-      // Special handling for "No password set"
-      const lowerCustomerError = String(customerError).toLowerCase();
-      if (lowerCustomerError.includes('no password set')) {
-        setError(
-          'No password set for this account. Please use Phone OTP to log in, or set a password first.'
-        );
-        return;
-      }
-
-      const vendorRes = await authLoginVendorWithEmailPassword({ email, password });
-
-      if (!vendorRes.success) {
-        const vendorMessage = String(vendorRes.message || '').trim();
-        const lowerVendorMessage = vendorMessage.toLowerCase();
-        const vendorNotFound = lowerVendorMessage === 'vendor not found';
-
-        if (lowerVendorMessage.includes('no password set')) {
-          setError(
-            'No password set for this account. Please use Phone OTP to log in, or set a password first.'
-          );
-        } else if (customerError) {
-          setError(customerError);
-        } else if (vendorNotFound) {
-          setError('Email not found. Please check your email or create an account.');
-        } else {
-          setError(vendorMessage || 'Invalid email or password');
-        }
-        return;
-      }
-
-      if (vendorRes.vendor_id) localStorage.setItem('vendor_id', String(vendorRes.vendor_id));
-      if (vendorRes.user_id) localStorage.setItem('user_id', String(vendorRes.user_id));
-      if (vendorRes.dark_store_id)
-        localStorage.setItem('vendor_store_id', String(vendorRes.dark_store_id));
-      if (vendorRes.store_name) localStorage.setItem('store_name', String(vendorRes.store_name));
-      if (vendorRes.owner_name) localStorage.setItem('vendor_name', String(vendorRes.owner_name));
-      markVendorPasswordAuth();
-
-      const vendorUserId = vendorRes.user_id || vendorRes.vendor_id;
-      login(
-        {
-          id: vendorUserId,
-          name: vendorRes.owner_name || vendorRes.store_name || 'Vendor',
-          phone: '',
-          email: String(email || '').trim().toLowerCase(),
-          role: 'vendor',
-        },
-        `vendor_session_${vendorUserId || Date.now()}_${Date.now()}`
-      );
-
-      navigate('/');
-    } catch (err) {
-      const msg = String(err.message || '').toLowerCase();
-      if (msg.includes('no password set')) {
-        setError(
-          'No password set for this account. Please use Phone OTP to log in, or set a password first.'
-        );
-      } else {
-        setError(err.message || 'Login failed. Please try again.');
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleStart = async (e) => {
     e.preventDefault();
     setError('');
@@ -168,6 +58,17 @@ export default function Login() {
         setError(accountCheck.message || 'Mobile number not found');
         return;
       }
+
+      if (accountCheck.fallbackOtpMode && accountCheck.debugOtp) {
+        setServerOtpMode(true);
+        setServerOtp(String(accountCheck.debugOtp));
+        setConfirmationResult(null);
+        setStep('otp');
+        return;
+      }
+
+      setServerOtpMode(false);
+      setServerOtp('');
       const appVerifier = ensureRecaptcha();
       const confirmation = await signInWithPhoneNumber(auth, formattedPhone, appVerifier);
       setConfirmationResult(confirmation);
@@ -188,6 +89,26 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
+      if (serverOtpMode) {
+        const res = await authVerify({
+          phone: formatPhone(phone),
+          otp,
+          expectedRole: 'customer',
+        });
+        if (!res.success) {
+          setError(res.message || 'Invalid OTP');
+          return;
+        }
+
+        const storedGender = localStorage.getItem('bfw_gender');
+        login({
+          ...res.user,
+          gender: res.user?.gender || storedGender || 'other',
+        }, res.token);
+        navigate('/');
+        return;
+      }
+
       if (!confirmationResult) {
         setError('OTP flow not initialized. Please request a new OTP.');
         setStep('phone');
@@ -221,121 +142,55 @@ export default function Login() {
   };
 
   return (
-    <div className="page auth-page">
-      <h1>Log in</h1>
-      <p className="auth-subtitle">Log in with email and password or use mobile OTP.</p>
+    <div className="auth-screen">
+      <header className="auth-topbar">
+        <Link to="/" className="auth-logo">BLINKIE<span>FASH</span></Link>
+        <div className="auth-secure"><MdLock /> Secure Auth</div>
+      </header>
 
-      <div className="auth-method-switch" role="tablist" aria-label="Login method">
-        <button
-          type="button"
-          className={`auth-method-btn ${method === 'email' ? 'active' : ''}`}
-          onClick={() => {
-            setMethod('email');
-            setError('');
-          }}
-        >
-          Email + Password
-        </button>
-        <button
-          type="button"
-          className={`auth-method-btn ${method === 'otp' ? 'active' : ''}`}
-          onClick={() => {
-            setMethod('otp');
-            setError('');
-            setStep('phone');
-            setOtp('');
-          }}
-        >
-          Phone OTP
-        </button>
-      </div>
+      <main className="auth-main">
+        <section className="auth-card auth-login-card">
+          <div className="auth-card-heading">
+            <div>
+              <span className="auth-kicker">Fast-track entry</span>
+              <h1>Welcome to BlinkieFash</h1>
+              <p>Log in or sign up in seconds to access your saved bag, instant checkouts, and member drops.</p>
+            </div>
+            <span className="auth-ssl"><MdShield /> 256-Bit SSL</span>
+          </div>
 
-      {method === 'email' && (
-        <form className="auth-form" onSubmit={handleEmailPasswordLogin}>
-          <label htmlFor="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+          <div className="auth-tabs auth-tabs-single" aria-label="Login method">
+            <span className="is-active"><MdPhoneAndroid /> Mobile OTP <b>Fast</b></span>
+          </div>
 
-          <label htmlFor="password">Password</label>
-          <input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          
-          <p className="auth-forgot-link">
-            No password set? <Link to="/set-password">Forgot Password</Link>
-          </p>
+          {step === 'phone' && (
+            <form className="auth-form auth-modern-form" onSubmit={handleStart}>
+              <label htmlFor="phone">Mobile number</label>
+              <div className="auth-phone-field"><span>IN&nbsp; +91</span><input id="phone" type="tel" placeholder="Enter 10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
+              <div className="auth-field-meta"><small>OTP will be delivered via SMS</small><b>{phone.replace(/\D/g, '').slice(-10).length} / 10</b></div>
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" className="auth-primary" disabled={loading}>{loading ? 'Please wait...' : 'Get OTP & Continue'} <MdArrowForward /></button>
+            </form>
+          )}
 
-          {error && <p className="auth-error">{error}</p>}
+          {step === 'otp' && (
+            <form className="auth-form auth-modern-form" onSubmit={handleVerify}>
+              <div className="auth-otp-sent"><MdPhoneAndroid /><span>OTP sent to <strong>{formatPhone(phone)}</strong></span><button type="button" onClick={() => { setStep('phone'); setOtp(''); setError(''); }}>Edit</button></div>
+              <label htmlFor="otp">Enter 6-digit code</label>
+              {serverOtp && <p className="auth-hint">Development OTP: {serverOtp}</p>}
+              <input className="auth-otp-input" id="otp" type="text" inputMode="numeric" maxLength="6" placeholder="••••••" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required />
+              {error && <p className="auth-error">{error}</p>}
+              <button type="submit" className="auth-primary" disabled={loading}>{loading ? 'Verifying...' : 'Verify & Enter Portal'} <MdLock /></button>
+            </form>
+          )}
 
-          <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? 'Please wait...' : 'Log in'}
-          </button>
-        </form>
-      )}
-
-      {method === 'otp' && step === 'phone' && (
-        <form className="auth-form" onSubmit={handleStart}>
-          <label htmlFor="phone">Mobile number</label>
-          <input
-            id="phone"
-            type="tel"
-            placeholder="10-digit mobile number"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-          />
-          {error && <p className="auth-error">{error}</p>}
-          <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? 'Please wait...' : 'Send OTP'}
-          </button>
-        </form>
-      )}
-
-      {method === 'otp' && step === 'otp' && (
-        <form className="auth-form" onSubmit={handleVerify}>
-          <label htmlFor="otp">Enter OTP</label>
-          <input
-            id="otp"
-            type="text"
-            placeholder="6-digit OTP"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value)}
-            required
-          />
-          {error && <p className="auth-error">{error}</p>}
-          <button type="submit" className="primary-btn" disabled={loading}>
-            {loading ? 'Verifying...' : 'Verify & continue'}
-          </button>
-          <button
-            type="button"
-            className="secondary-btn"
-            onClick={() => {
-              setStep('phone');
-              setOtp('');
-              setError('');
-            }}
-          >
-            Change number
-          </button>
-        </form>
-      )}
-
+          <div className="auth-perk"><strong>New to Blinkie? Extra ₹300 OFF</strong><small>Auto-applied at checkout for verified accounts.</small></div>
+          <p className="auth-legal">By continuing, you agree to BlinkieFash's <Link to="/terms">Terms of Service</Link> &amp; <Link to="/privacy">Privacy Policy</Link>.</p>
+          <p className="auth-switch">New here? <Link to="/signup">Create an account</Link></p>
+        </section>
+      </main>
+      <footer className="auth-footer"><span>© 2025 BlinkieFash. Secure Verified Portal.</span><span><Link to="/privacy">Privacy Policy</Link> <Link to="/terms">Terms</Link> <Link to="/help-support">Help</Link></span></footer>
       <div id="recaptcha-container" />
-
-      <p className="auth-switch">
-        New here? <Link to="/signup">Create an account</Link>
-      </p>
     </div>
   );
 }

@@ -4,35 +4,11 @@ import { registerUser } from '../api';
 
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
+import { MdArrowForward, MdLock, MdMail, MdPerson, MdRedeem, MdShield } from 'react-icons/md';
 
 import './Auth.css';
 
 // Small inline icon set — no extra dependency required.
-const IconUser = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-    <circle cx="12" cy="7" r="4" />
-  </svg>
-);
-const IconMail = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="2" y="4" width="20" height="16" rx="2" />
-    <path d="m22 6-10 7L2 6" />
-  </svg>
-);
-const IconGift = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="8" width="18" height="4" />
-    <path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7" />
-    <path d="M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5" />
-  </svg>
-);
-const IconLock = () => (
-  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-    <rect x="3" y="11" width="18" height="11" rx="2" />
-    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </svg>
-);
 const IconEye = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z" />
@@ -125,13 +101,19 @@ export default function Signup() {
   };
 
   return (
-    <div className="page auth-page">
-      <h1>
-        Create your <span className="brand-accent">BlinkieFash</span> account
-      </h1>
-      <p className="auth-subtitle">Join BlinkieFash and explore the best in fashion.</p>
+    <div className="auth-screen">
+      <header className="auth-topbar">
+        <Link to="/" className="auth-logo">BLINKIE<span>FASH</span></Link>
+        <div className="auth-secure"><MdLock /> Secure Auth</div>
+      </header>
+      <main className="auth-main">
+        <section className="auth-card auth-signup-card">
+          <div className="auth-card-heading">
+            <div><span className="auth-kicker">Create your account</span><h1>Join BlinkieFash</h1><p>Save your bag, unlock member drops, and get ₹300 off your first verified order.</p></div>
+            <span className="auth-ssl"><MdShield /> 256-Bit SSL</span>
+          </div>
 
-      <form className="auth-form" onSubmit={handleSubmit}>
+      <form className="auth-form auth-modern-form" onSubmit={handleSubmit}>
         {/* Phone input with country code selector */}
         <div className="auth-input-wrap">
           <PhoneInput
@@ -143,8 +125,8 @@ export default function Signup() {
           />
         </div>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconUser /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdPerson className="auth-input-icon" />
           <input
             id="name"
             name="name"
@@ -155,8 +137,8 @@ export default function Signup() {
           />
         </div>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconUser /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdPerson className="auth-input-icon" />
           <select
             id="gender"
             name="gender"
@@ -172,8 +154,8 @@ export default function Signup() {
           </select>
         </div>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconMail /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdMail className="auth-input-icon" />
           <input
             id="email"
             name="email"
@@ -184,8 +166,8 @@ export default function Signup() {
           />
         </div>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconGift /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdRedeem className="auth-input-icon" />
           <input
             id="referralCode"
             name="referralCode"
@@ -195,8 +177,8 @@ export default function Signup() {
           />
         </div>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconLock /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdLock className="auth-input-icon" />
           <input
             id="password"
             name="password"
@@ -221,8 +203,8 @@ export default function Signup() {
           Use 6–16 characters with a mix of letters, numbers &amp; symbols.
         </p>
 
-        <div className="auth-input-wrap">
-          <span className="auth-input-icon"><IconLock /></span>
+        <div className="auth-input-wrap auth-icon-field">
+          <MdLock className="auth-input-icon" />
           <input
             id="confirmPassword"
             name="confirmPassword"
@@ -263,7 +245,7 @@ export default function Signup() {
 
         <button
           type="submit"
-          className="primary-btn auth-submit-btn"
+          className="auth-primary auth-submit-btn"
           disabled={loading || !agreedToTerms}
         >
           {loading ? (
@@ -275,14 +257,12 @@ export default function Signup() {
           )}
         </button>
       </form>
-
-      <div className="auth-divider">
-        <span>or sign up with</span>
-      </div>
-
-      <p className="auth-switch">
-        Already have an account? <Link to="/login">Log in</Link>
-      </p>
+          <div className="auth-social"><span>Already have an account?</span><div><Link className="auth-secondary-link" to="/login">Log in to your account <MdArrowForward /></Link></div></div>
+          <div className="auth-perk"><MdRedeem /><span><strong>New member perk: Extra ₹300 OFF</strong><small>Auto-applied at checkout for verified accounts.</small></span></div>
+          <p className="auth-legal">By continuing, you agree to BlinkieFash's <Link to="/terms">Terms of Service</Link> &amp; <Link to="/privacy">Privacy Policy</Link>.</p>
+        </section>
+      </main>
+      <footer className="auth-footer"><span>© 2025 BlinkieFash. Secure Verified Portal.</span><span><Link to="/privacy">Privacy Policy</Link> <Link to="/terms">Terms</Link> <Link to="/help-support">Help</Link></span></footer>
     </div>
   );
 }
