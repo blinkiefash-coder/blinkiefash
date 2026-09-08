@@ -578,7 +578,6 @@ export default function Kids() {
                     key={`kids-pick-${p.id}-${idx}`}
                     className="hp-deal-card-wrapper"
                     role="listitem"
-                    style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
                   >
                     <ProductCard product={p} />
                   </div>

@@ -885,8 +885,9 @@
 
 /* Product rail wrappers */
 .hp-deals-rail .hp-deal-card-wrapper {
-  min-width: 180px;
-  max-width: 220px;
+  min-width: 0;
+  width: 188px;
+  max-width: 188px;
   flex: 0 0 auto;
 }
 
@@ -917,8 +918,8 @@
   .kids-picks-section .hp-deal-card-wrapper {
     min-width: 0;
     max-width: none;
-    flex: none;
     width: 100%;
+    flex: none;
   }
 
   .kids-picks-section .pc-card {

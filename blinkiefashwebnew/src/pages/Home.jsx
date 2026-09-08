@@ -33,7 +33,6 @@ import mobilebanner5 from '../assets/mobilebanner5.png';
 import mobilebanner6 from '../assets/mobilebanner6.png';
 
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
-
 import couponImage from '../assets/coupon.png';
 
 import dealsOfTheDayIcon from '../assets/dealsoftheday.png';
@@ -64,33 +63,39 @@ function resolveImageUrl(raw) {
 
 const HERO_SLIDES = [
   {
+    id: 'hero-men-women',
     image: banner1,
     mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
   },
   {
+    id: 'hero-puma',
     image: banner2,
     mobileImage: mobilebanner2,
     brand: 'Puma',
     pos: 'center 20%',
   },
   {
+    id: 'hero-xinso',
     image: banner3,
     mobileImage: mobilebanner3,
     brand: 'Xinso',
   },
   {
+    id: 'hero-kids',
     image: banner4,
     mobileImage: mobilebanner4,
     to: '/kids',
   },
   {
+    id: 'hero-crimsone',
     image: banner5,
     mobileImage: mobilebanner5,
     brand: 'Crimsone Club',
   },
   {
+    id: 'hero-mk',
     image: banner6,
     mobileImage: mobilebanner6,
     brand: 'MK',
@@ -113,36 +118,36 @@ const NIKE_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_
 
 const UNIVERSE_BRANDS = [
   {
-    name: "Puma",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
-    to: "/brands/Puma",
+    name: 'Puma',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg',
+    to: '/brands/Puma',
   },
   {
-    name: "Dhanista Boutique",
-    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png",
-    to: "/brands/Dhanista%20Boutique",
+    name: 'Dhanista Boutique',
+    image: 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png',
+    to: '/brands/Dhanista%20Boutique',
   },
   {
-    name: "FCUK",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
-    to: "/brands/FCUK",
-    pos: "left center",
+    name: 'FCUK',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png',
+    to: '/brands/FCUK',
+    pos: 'left center',
   },
   {
-    name: "Libas",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
-    to: "/brands/Libas",
+    name: 'Libas',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg',
+    to: '/brands/Libas',
   },
   {
-    name: "MK",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
-    to: "/brands/MK",
+    name: 'MK',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg',
+    to: '/brands/MK',
   },
   {
-    name: "Toys",
-    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png",
-    to: "/shop?search=Toys",
-  }
+    name: 'Toys',
+    image: 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+    to: '/shop?search=Toys',
+  },
 ];
 
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
@@ -167,7 +172,7 @@ const CHIP_ICON_HINTS = [
   { re: /camera/i, icon: '📷' },
   { re: /accessor/i, icon: '🔌' },
   { re: /heel/i, icon: '👠' },
-  { re: /flat/i, icon: '🥿' },
+  { re: /flat/i, icon: 'Flat' },
   { re: /sandal/i, icon: '👡' },
 ];
 
@@ -251,6 +256,7 @@ function isFashionProduct(item) {
   return !NON_FASHION_KEYWORDS.some((keyword) => hay.includes(keyword));
 }
 
+
 function SectionHead({
   icon,
   iconAlt = '',
@@ -261,6 +267,8 @@ function SectionHead({
   iconClassName,
   trailing,
 }) {
+
+function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
   return (
     <div className="hp-shead">
       <div className="hp-shead-title-group">
@@ -297,6 +305,7 @@ export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, userGender } = useAuth();
   const c = _homeCache;
+
   const [categories, setCategories] = useState(() => c?.categories ?? []);
   const [deals, setDeals] = useState(() => c?.deals ?? []);
   const [newProducts, setNewProducts] = useState(() => c?.newProducts ?? []);
@@ -325,9 +334,7 @@ export default function Home() {
   const [error, setError] = useState('');
   const [heroPosition, setHeroPosition] = useState(0);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
-
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
-
   const [brandsPaused, setBrandsPaused] = useState(false);
 
   const heroTrackRef = useRef(null);
@@ -371,11 +378,8 @@ export default function Home() {
     } else {
       removeThemeVariables();
     }
-
     return () => {
-      if (!isLoggedIn) {
-        removeThemeVariables();
-      }
+      if (!isLoggedIn) removeThemeVariables();
     };
   }, [isLoggedIn, userGender]);
 
@@ -420,16 +424,12 @@ export default function Home() {
             discount_price: price,
           };
         });
-
         setRecentlyViewedProductsData(updated);
       } catch {
         // ignore
       }
     })();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [recentlyViewedProductsData]);
 
   useEffect(() => {
@@ -470,7 +470,6 @@ export default function Home() {
             .map((n) => (n || '').toString().toLowerCase().trim())
             .filter(Boolean);
           if (normalizedNeedles.length === 0) return null;
-
           const root =
             allCats.find((c) => {
               if (c.parent_id) return false;
@@ -484,14 +483,12 @@ export default function Home() {
                 (needle) => catName.includes(needle) || needle.includes(catName)
               );
             });
-
           return root?.id || null;
         };
 
         const childCatsFor = (rootNames) => {
           const rootId = rootIdForAny(rootNames);
           if (!rootId) return [];
-
           const subCatsFor = (categoryId) =>
             allCats
               .filter((c) => String(c.parent_id) === String(categoryId))
@@ -502,7 +499,6 @@ export default function Home() {
               }))
               .filter((c) => c.name)
               .slice(0, 6);
-
           return allCats
             .filter((c) => String(c.parent_id) === String(rootId))
             .map((c) => ({
@@ -545,9 +541,23 @@ export default function Home() {
           const fallback = await getProducts({ limit: 20 });
           dealList = fallback?.products || (Array.isArray(fallback) ? fallback : []);
         }
+
+
+        const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
+        const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
+        if (Array.isArray(dealsPool) && dealsPool.length > 0) {
+          const seen = new Set((Array.isArray(dealList) ? dealList : []).map((p) => String(p?.id)));
+          dealList = [...(Array.isArray(dealList) ? dealList : [])];
+          dealsPool.forEach((p) => {
+            const key = String(p?.id ?? '');
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            dealList.push(p);
+          });
+        }
+
         const latestList = Array.isArray(newestPool) ? newestPool : [];
         const palermoList = palermoRes?.products || (Array.isArray(palermoRes) ? palermoRes : []);
-
         const sourcePool = latestList.length > 0 ? latestList : Array.isArray(dealList) ? dealList : [];
 
         const pickByKeywords = (items, keywords) => {
@@ -579,6 +589,7 @@ export default function Home() {
           if (!brandCount.has(key)) brandCount.set(key, { name, count: 0 });
           brandCount.get(key).count += 1;
         });
+
         const dbBrands = (Array.isArray(brandsRes) ? brandsRes : [])
           .map((b) => ({
             id: b.id,
@@ -650,14 +661,12 @@ export default function Home() {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroPosition((position) => position + 1);
+      setHeroPosition((position) => (position + 1) % HERO_SLIDES.length);
     }, 15000);
     return () => clearInterval(timer);
   }, []);
@@ -665,8 +674,9 @@ export default function Home() {
   useEffect(() => {
     const track = heroTrackRef.current;
     if (!track) return;
-    const slide = track.querySelector('.hp-slide');
-    if (!slide) return;
+    const slides = track.querySelectorAll('.hp-slide');
+    if (!slides.length) return;
+    const active = slides[heroPosition % slides.length] || slides[0];
     const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
     const step = slide.getBoundingClientRect().width + gap;
     const left = heroPosition * step;
@@ -680,6 +690,9 @@ export default function Home() {
       return () => window.clearTimeout(resetTimer);
     }
 
+    const step = active.getBoundingClientRect().width + gap;
+    track.scrollTo({ left: heroPosition * step, behavior: 'smooth' });
+    setHeroIndex(heroPosition % HERO_SLIDES.length);
   }, [heroPosition]);
 
   useEffect(() => {
@@ -708,11 +721,8 @@ export default function Home() {
         if (!cancelled) setExploreLoading(false);
       }
     };
-
     loadExploreProducts();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [exploreCatId]);
 
   const loadMoreExploreProducts = async () => {
@@ -746,17 +756,7 @@ export default function Home() {
   };
 
   const goToSlide = (delta) => {
-    setHeroPosition((position) => {
-      if (delta > 0) {
-        return position >= HERO_SLIDES.length ? 0 : position + 1;
-      }
-
-      if (position <= 0) {
-        return HERO_SLIDES.length - 1;
-      }
-
-      return position - 1;
-    });
+    setHeroPosition((position) => (position + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
   };
 
   const handleCouponClick = () => {
@@ -766,7 +766,6 @@ export default function Home() {
   // ========== UPDATED topDeals memo ==========
   const topDeals = useMemo(() => {
     const fashionOnly = (Array.isArray(deals) ? deals : []).filter(isFashionProduct);
-
     const enriched = fashionOnly.map((item) => {
       const price = Number(item?.discount_price ?? item?.price ?? 0);
       const mrp = Number(item?.price ?? item?.original_price ?? price);
@@ -784,6 +783,7 @@ export default function Home() {
     // tied to today's date — the selection/order changes once every 24
     // hours (at local midnight) without needing a backend change.
     const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
+    const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
     const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
 
     // Shuffle the pool for daily rotation, then pull Souled Store items to
@@ -830,14 +830,9 @@ export default function Home() {
 
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
-    
     const normalizedGender = (userGender || '').toLowerCase().trim();
-    if (normalizedGender === 'women') {
-      return womensProducts.slice(0, 10);
-    }
-    if (normalizedGender === 'men') {
-      return mensProducts.slice(0, 10);
-    }
+    if (normalizedGender === 'women') return womensProducts.slice(0, 10);
+    if (normalizedGender === 'men') return mensProducts.slice(0, 10);
     return [];
   }, [isLoggedIn, userGender, womensProducts, mensProducts]);
 
@@ -848,21 +843,11 @@ export default function Home() {
         description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door in 60 minutes across Odisha."
         path="/"
       />
-      {loading ? (
-        <Loader overlay />
-      ) : null}
-
+      {loading ? <Loader overlay /> : null}
       <Navbar />
-
       <main className="hp-main">
-
         <section className="hp-coupon-section">
-          <button
-            type="button"
-            className="hp-coupon-banner"
-            onClick={handleCouponClick}
-            aria-label="Open Blinkiefash app on Play Store for exclusive coupon"
-          >
+          <button type="button" className="hp-coupon-banner" onClick={handleCouponClick} aria-label="Open Blinkiefash app on Play Store for exclusive coupon">
             <img src={couponImage} alt="Exclusive app coupon" className="hp-coupon-img" loading="lazy" />
           </button>
         </section>
@@ -872,54 +857,34 @@ export default function Home() {
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {[...HERO_SLIDES, HERO_SLIDES[0]].map((slide, index) => (
-              index % HERO_SLIDES.length === 0 ? (
-                <div type="button" key={`${slide.image}-${index}`} className="hp-slide hp-slide-first">
-                  <picture>
-                    {slide.mobileImage ? (
-                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
-                    ) : null}
-                    <img
-                      src={slide.image}
-                      alt=""
-                      className="hp-slide-img"
-                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                    />
-                  </picture>
-                  <button
-                    type="button"
-                    className="hp-hero-hotspot hp-hero-hotspot-men"
-                    onClick={() => navigate("/men")}
-                    aria-label="Shop men's fashion"
-                  />
-                  <button
-                    type="button"
-                    className="hp-hero-hotspot hp-hero-hotspot-women"
-                    onClick={() => navigate("/women")}
-                    aria-label="Shop women's fashion"
-                  />
-                </div>
-              ) : (
+            {HERO_SLIDES.map((slide, index) => {
+              const isFirst = index === 0;
+              const content = (
+                <picture>
+                  {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                  <img src={slide.image} alt="" className="hp-slide-img" style={slide.pos ? { objectPosition: slide.pos } : undefined} draggable={false} />
+                </picture>
+              );
+              if (isFirst) {
+                return (
+                  <div key={slide.id} className="hp-slide hp-slide-first">
+                    {content}
+                    <button type="button" className="hp-hero-hotspot hp-hero-hotspot-men" onClick={() => navigate('/men')} aria-label="Shop men's fashion" />
+                    <button type="button" className="hp-hero-hotspot hp-hero-hotspot-women" onClick={() => navigate('/women')} aria-label="Shop women's fashion" />
+                  </div>
+                );
+              }
+              return (
                 <button
                   type="button"
-                  key={`${slide.image}-${index}`}
+                  key={slide.id}
                   className="hp-slide"
                   onClick={() => navigate(slide.brand ? `/brands/${encodeURIComponent(slide.brand)}` : slide.to)}
                 >
-                  <picture>
-                    {slide.mobileImage ? (
-                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
-                    ) : null}
-                    <img
-                      src={slide.image}
-                      alt=""
-                      className="hp-slide-img"
-                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                    />
-                  </picture>
+                  {content}
                 </button>
-              )
-            ))}
+              );
+            })}
           </div>
           <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
             <MdChevronRight />
@@ -927,6 +892,7 @@ export default function Home() {
           <div className="hp-hero-dots">
             {HERO_SLIDES.map((slide, i) => (
               <span key={slide.image} className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`} />
+              <span key={slide.id} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} onClick={() => setHeroPosition(i)} />
             ))}
           </div>
         </section>
@@ -973,19 +939,8 @@ export default function Home() {
 
         {topBrands.length > 0 && (
           <section className="section hp-shop-brands-section" aria-label="Shop by brands">
-            <SectionHead
-              icon={shopByBrandIcon}
-              iconAlt="Shop by brands"
-              title="Shop by"
-              accentWord="Brands"
-              onViewAll={() => navigate('/shop')}
-            />
-
-            <div
-              className={`hp-shop-brands-wrap${brandsPaused ? ' is-paused' : ''}`}
-              onMouseEnter={pauseBrandCarousel}
-              onFocus={pauseBrandCarousel}
-            >
+            <SectionHead icon={shopByBrandIcon} iconAlt="Shop by brands" title="Shop by" accentWord="Brands" onViewAll={() => navigate('/shop')} />
+            <div className={`hp-shop-brands-wrap${brandsPaused ? ' is-paused' : ''}`} onMouseEnter={pauseBrandCarousel} onFocus={pauseBrandCarousel}>
               {brandRows.map((row, rowIndex) => {
                 const loopedRow = [...row, ...row];
                 return (
@@ -995,11 +950,8 @@ export default function Home() {
                         const label = (brand.name || '').toString().trim();
                         const displayName = label || 'Brand';
                         const normalizedDisplayName = normalizeBrandName(displayName);
-                        const logo = normalizedDisplayName === 'nike'
-                          ? NIKE_LOGO_URL
-                          : resolveImageUrl(brand.logo_url || brand.image);
+                        const logo = normalizedDisplayName === 'nike' ? NIKE_LOGO_URL : resolveImageUrl(brand.logo_url || brand.image);
                         const isFeatured = idx === 0;
-
                         return (
                           <article
                             key={`${brand.id || displayName}-${rowIndex}-${idx}`}
@@ -1017,16 +969,9 @@ export default function Home() {
                           >
                             <div className="hp-shop-brand-visual">
                               {logo ? (
-                                <img
-                                  src={logo}
-                                  alt={displayName}
-                                  loading="lazy"
-                                  className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
-                                />
+                                <img src={logo} alt={displayName} loading="lazy" className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`} />
                               ) : (
-                                <div className="hp-shop-brand-fallback" aria-label={displayName}>
-                                  {displayName.slice(0, 5).toUpperCase()}
-                                </div>
+                                <div className="hp-shop-brand-fallback" aria-label={displayName}>{displayName.slice(0, 5).toUpperCase()}</div>
                               )}
                             </div>
                           </article>
@@ -1057,19 +1002,8 @@ export default function Home() {
         <section className="section hp-brand-grid-section" aria-label="Universe brand banners">
           <div className="hp-brand-grid">
             {UNIVERSE_BRANDS.map((brand) => (
-              <button
-                key={brand.name}
-                type="button"
-                className="hp-brand-banner"
-                onClick={() => navigate(brand.to)}
-                aria-label={`Explore ${brand.name}`}
-              >
-                <img
-                  src={brand.image}
-                  alt={`${brand.name} banner`}
-                  loading="lazy"
-                  style={brand.pos ? { objectPosition: brand.pos } : undefined}
-                />
+              <button key={brand.name} type="button" className="hp-brand-banner" onClick={() => navigate(brand.to)} aria-label={`Explore ${brand.name}`}>
+                <img src={brand.image} alt={`${brand.name} banner`} loading="lazy" style={brand.pos ? { objectPosition: brand.pos } : undefined} />
               </button>
             ))}
           </div>
@@ -1078,8 +1012,7 @@ export default function Home() {
         {recommendedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              iconAlt="Picks for you"
-              title={userGender?.toLowerCase() === 'women' ? 'Picks for' : 'Picks for'}
+              title="Picks for"
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
             />
@@ -1089,164 +1022,74 @@ export default function Home() {
 
         {recentlyViewedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={recentlyViewedIcon}
-              iconAlt="Recently viewed"
-              title="Recently"
-              accentWord="Viewed"
-              onViewAll={() => navigate('/shop')}
-            />
+            <SectionHead icon={recentlyViewedIcon} iconAlt="Recently viewed" title="Recently" accentWord="Viewed" onViewAll={() => navigate('/shop')} />
             <ProductRail items={recentlyViewedProducts} keyPrefix="recent" railRef={recentlyViewedRailRef} />
           </section>
         )}
 
         {newOnBlinkiefash.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={newOnBlinkiefashIcon}
-              iconAlt="New on Blinkiefash"
-              title="New on"
-              accentWord="Blinkiefash"
-              onViewAll={() => navigate('/shop?sort=newest')}
-            />
+            <SectionHead icon={newOnBlinkiefashIcon} iconAlt="New on Blinkiefash" title="New on" accentWord="Blinkiefash" onViewAll={() => navigate('/shop?sort=newest')} />
             <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
           </section>
         )}
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={mensCollectionIcon}
-              iconAlt="Men's collection"
-              title="Men's"
-              accentWord="Collection"
-              onViewAll={() => navigate('/men')}
-            />
-            <CategoryChipsRail
-              chips={mensCats}
-              audienceLabel="Men"
-              activeId={activeCollectionCats.Men ?? mensCats[0]?.id}
-              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))}
-              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
-            />
+            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
+            <CategoryChipsRail chips={mensCats} audienceLabel="Men" activeId={activeCollectionCats.Men ?? mensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" /> : null}
           </section>
         )}
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={womensCollectionIcon}
-              iconAlt="Women's collection"
-              title="Women's"
-              accentWord="Collection"
-              onViewAll={() => navigate('/women')}
-            />
-            <CategoryChipsRail
-              chips={womensCats}
-              audienceLabel="Women"
-              activeId={activeCollectionCats.Women ?? womensCats[0]?.id}
-              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))}
-              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
-            />
+            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
+            <CategoryChipsRail chips={womensCats} audienceLabel="Women" activeId={activeCollectionCats.Women ?? womensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" /> : null}
           </section>
         )}
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={kidsCollectionIcon}
-              iconAlt="Kids collection"
-              title="Kids"
-              accentWord="Collection"
-              onViewAll={() => navigate('/kids')}
-            />
-            <CategoryChipsRail
-              chips={kidsCats}
-              audienceLabel="Kids"
-              activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id}
-              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))}
-              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
-            />
+            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
+            <CategoryChipsRail chips={kidsCats} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" /> : null}
           </section>
         )}
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={electronicsCollectionIcon}
-              iconAlt="Electronics collection"
-              title="Electronics"
-              accentWord="Collection"
-              onViewAll={() => navigate('/electronics')}
-            />
-            <CategoryChipsRail
-              chips={electronicsCats}
-              audienceLabel="Electronics"
-              activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id}
-              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))}
-              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
-            />
+            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
+            <CategoryChipsRail chips={electronicsCats} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" /> : null}
           </section>
         )}
 
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={trendyShoesIcon}
-              iconAlt="Trendy shoes"
-              title="Trendy"
-              accentWord="Shoes"
-              onViewAll={() => navigate('/footwear')}
-            />
-            <CategoryChipsRail
-              chips={trendyShoesCats}
-              audienceLabel="Trendy Shoes"
-              activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id}
-              onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))}
-              onSubSelect={(id) => navigate(`/shop?category_id=${id}`)}
-            />
+            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Trendy" accentWord="Shoes" onViewAll={() => navigate('/footwear')} />
+            <CategoryChipsRail chips={trendyShoesCats} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" /> : null}
           </section>
         )}
 
         {under999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={under999Icon}
-              iconAlt="Under ₹999"
-              title="Under"
-              accentWord="₹999"
-              onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')}
-            />
-            {under999Products.length > 0 ? <ProductRail items={under999Products} keyPrefix="under999" /> : null}
+            <SectionHead icon={under999Icon} iconAlt="Under ₹999" title="Under" accentWord="₹999" onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')} />
+            <ProductRail items={under999Products} keyPrefix="under999" />
           </section>
         )}
 
         {under1999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead
-              icon={priceRangeIcon}
-              iconAlt="₹999 to ₹1999"
-              title="₹999 –"
-              accentWord="₹1999"
-              onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}
-            />
-            {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
+            <SectionHead icon={priceRangeIcon} iconAlt="₹999 to ₹1999" title="₹999 –" accentWord="₹1999" onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')} />
+            <ProductRail items={under1999Products} keyPrefix="under1999" />
           </section>
         )}
 
         <section className="section hp-feed-rail-section">
-          <SectionHead
-            icon={moreToExploreIcon}
-            iconAlt="More to explore"
-            title="More to"
-            accentWord="Explore"
-            onViewAll={() => navigate('/shop')}
-          />
+          <SectionHead icon={moreToExploreIcon} iconAlt="More to explore" title="More to" accentWord="Explore" onViewAll={() => navigate('/shop')} />
           <div className="hp-explore-chips" role="list">
             {[{ id: '', name: 'All' }, ...categories].map((cat, idx) => {
               const selected = exploreCatChipIndex === idx;
@@ -1266,32 +1109,22 @@ export default function Home() {
               );
             })}
           </div>
-
           {exploreProducts.length > 0 ? (
             <div className="hp-explore-grid" role="list">
               {exploreProducts.map((p, idx) => (
                 <ProductCard key={`explore-${p.id}-${idx}`} product={p} />
               ))}
-              {exploreLoading
-                ? Array.from({ length: 3 }).map((_, idx) => (
-                    <ProductCardSkeleton key={`explore-skeleton-loading-${idx}`} />
-                  ))
-                : null}
+              {exploreLoading ? Array.from({ length: 3 }).map((_, idx) => <ProductCardSkeleton key={`explore-skeleton-loading-${idx}`} />) : null}
             </div>
           ) : !exploreLoading ? (
             <p className="hp-location-sheet-muted">No products in this category yet.</p>
           ) : (
             <div className="hp-explore-grid" role="list">
-              {Array.from({ length: 6 }).map((_, idx) => (
-                <ProductCardSkeleton key={`explore-skeleton-initial-${idx}`} />
-              ))}
+              {Array.from({ length: 6 }).map((_, idx) => <ProductCardSkeleton key={`explore-skeleton-initial-${idx}`} />)}
             </div>
           )}
-
           {!exploreLoading && exploreHasMore ? (
-            <button type="button" className="hp-explore-more" onClick={loadMoreExploreProducts}>
-              Show More Products
-            </button>
+            <button type="button" className="hp-explore-more" onClick={loadMoreExploreProducts}>Show More Products</button>
           ) : null}
         </section>
 
@@ -1305,10 +1138,7 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
   const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
-
-  const scrollBy = (dir) => {
-    scrollRailByCards(chipsRef.current, dir, 6);
-  };
+  const scrollBy = (dir) => scrollRailByCards(chipsRef.current, dir, 6);
 
   return (
     <div className="hp-collection-chip-group">
@@ -1316,20 +1146,13 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
         <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
           <MdChevronLeft />
         </button>
-
         <div className="hp-collection-chips" role="list" ref={chipsRef}>
           {chips.map((cat, idx) => {
             const icon = resolveImageUrl(cat.image);
             const fallback = chipFallbackIcon(cat.name, audienceLabel);
             const isActive = String(cat.id) === String(activeId);
             return (
-              <button
-                key={`${cat.id || cat.name || 'chip'}-${idx}`}
-                type="button"
-                className={`hp-collection-chip${isActive ? ' active' : ''}`}
-                role="listitem"
-                onClick={() => onChipSelect(cat.id)}
-              >
+              <button key={`${cat.id || cat.name || 'chip'}-${idx}`} type="button" className={`hp-collection-chip${isActive ? ' active' : ''}`} role="listitem" onClick={() => onChipSelect(cat.id)}>
                 <span className="hp-collection-chip-icon" aria-hidden="true">
                   {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
                 </span>
@@ -1338,25 +1161,17 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
             );
           })}
         </div>
-
         <button type="button" className="hp-deals-next" aria-label={`Scroll ${audienceLabel} categories right`} onClick={() => scrollBy(1)}>
           <MdChevronRight />
         </button>
       </div>
-
       {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
         <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
           {activeCat.subcategories.map((sub, subIdx) => {
             const subImg = resolveImageUrl(sub.image);
             const subFallback = chipFallbackIcon(sub.name, audienceLabel);
             return (
-              <button
-                key={`${sub.id || sub.name || 'sub'}-${subIdx}`}
-                type="button"
-                className="hp-subcat-chip"
-                role="listitem"
-                onClick={() => onSubSelect(sub.id)}
-              >
+              <button key={`${sub.id || sub.name || 'sub'}-${subIdx}`} type="button" className="hp-subcat-chip" role="listitem" onClick={() => onSubSelect(sub.id)}>
                 <span className="hp-subcat-chip-icon" aria-hidden="true">
                   {subImg ? <img src={subImg} alt="" loading="lazy" /> : <span>{subFallback}</span>}
                 </span>
@@ -1373,33 +1188,20 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
 function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
   const internalRef = useRef(null);
   const railRef = externalRef || internalRef;
-
   const list = (Array.isArray(items) ? items : []).slice(0, limit);
   if (list.length === 0) return null;
 
   return (
     <div className="hp-deals-wrap">
-      <button
-        type="button"
-        className="hp-deals-prev"
-        aria-label="Previous"
-        onClick={() => scrollRailByCards(railRef.current, -1, 6)}
-      >
+      <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRailByCards(railRef.current, -1, 6)}>
         <MdChevronLeft />
       </button>
-
-      <div className="hp-deals-rail" role="list" ref={railRef}>
+      <div className={`hp-deals-rail${keyPrefix === 'recent' ? ' is-recently-viewed' : ''}`} role="list" ref={railRef}>
         {list.map((p, idx) => (
-          <ProductCard key={`${keyPrefix}-${p.id}-${idx}`} product={p} />
+          <ProductCard key={`${keyPrefix}-${p.id}-${idx}`} product={p} isNew={keyPrefix === 'new'} />
         ))}
       </div>
-
-      <button
-        type="button"
-        className="hp-deals-next"
-        aria-label="Next"
-        onClick={() => scrollRailByCards(railRef.current, 1, 6)}
-      >
+      <button type="button" className="hp-deals-next" aria-label="Next" onClick={() => scrollRailByCards(railRef.current, 1, 6)}>
         <MdChevronRight />
       </button>
     </div>
