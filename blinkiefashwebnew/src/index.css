@@ -84,6 +84,7 @@ img {
   max-width: none;
   box-shadow: none;
   padding-bottom: 0;
+  width: 100%;
   background: transparent;
 }
 
@@ -120,6 +121,15 @@ img {
 .app-shell.is-parcel,
 .app-shell.is-offers,
 .app-shell.is-help-support {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  width: 100%;
+  background: transparent;
+}
+
+.app-shell.is-deals {
   max-width: none;
   margin: 0;
   box-shadow: none;
