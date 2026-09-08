@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
-import logo from "../assets/logo1.png";
+import logo from "../assets/logo.png";
 
 /* ---------- inline icons ---------- */
 const IconChevronDown = ({ size = 14 }) => (
@@ -273,6 +273,7 @@ export default function Navbar() {
         <div className="nav-left">
           <button type="button" className="nav-logo-btn" onClick={() => navigate("/")} aria-label="Home">
             <img src={logo} alt="Blinkiefash" className="logo-img" />
+            <span className="nav-wordmark"><b>BLINKIE</b><span>FASH</span></span>
           </button>
         </div>
 

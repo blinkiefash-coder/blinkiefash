@@ -45,12 +45,11 @@
 }
 
 .logo-img {
-  height: 52px;
-  width: auto;
-  max-width: 190px;
+  height: 42px;
+  width: 42px;
+  max-width: none;
   object-fit: contain;
   display: block;
-  mix-blend-mode: multiply;
   transition: transform 0.18s ease;
 }
 
@@ -994,4 +993,23 @@ form.search-box.search-box {
   .nav-left .brand {
     min-width: 0;
   }
+}
+
+.nav-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nav-wordmark b {
+  color: #111827;
+}
+
+.nav-wordmark span {
+  color: #16a34a;
+  margin-left: 3px;
 }

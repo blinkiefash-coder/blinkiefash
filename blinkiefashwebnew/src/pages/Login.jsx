@@ -5,6 +5,7 @@ import { authStart, authVerify } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
 import { MdArrowForward, MdLock, MdPhoneAndroid, MdShield } from 'react-icons/md';
+import logo from '../assets/logo.png';
 import './Auth.css';
 
 export default function Login() {
@@ -144,7 +145,10 @@ export default function Login() {
   return (
     <div className="auth-screen">
       <header className="auth-topbar">
-        <Link to="/" className="auth-logo">BLINKIE<span>FASH</span></Link>
+        <Link to="/" className="auth-logo">
+          <img src={logo} alt="Blinkiefash" className="auth-logo-mark" />
+          <span className="auth-logo-wordmark"><b>BLINKIE</b><span>FASH</span></span>
+        </Link>
         <div className="auth-secure"><MdLock /> Secure Auth</div>
       </header>
 
