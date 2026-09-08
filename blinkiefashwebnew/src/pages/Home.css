@@ -4218,7 +4218,7 @@ html, body, #root {
       1px ring and bolder label — no color swap.
    Placed at the very end of the file so it wins the cascade over every
    earlier pass, matching the convention already used throughout this file.
-   ========================================================================= */
+   ========================================================= */
 
 .hp-shead {
   display: flex;
@@ -4242,42 +4242,54 @@ html, body, #root {
 }
 
 .hp-shead-mark {
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   flex: none;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  border-radius: 11px;
-  background: #0f2419;
-  color: #eef9e4;
+  border-radius: 13px;
+  background: #f4f7f2;           /* was a dark green/black gradient */
+  border: 1px solid #e4ebe0;
+  color: #15803d;
+  box-shadow: 0 4px 10px rgba(15, 36, 25, 0.08);
+  overflow: hidden;
 }
 
 .hp-shead-mark svg {
-  width: 19px;
-  height: 19px;
+  width: 20px;
+  height: 20px;
+}
+
+.hp-shead-mark-img {
+  width: 72%;
+  height: 72%;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
 }
 
 .hp-shead-title {
   margin: 0;
-  font-size: clamp(1.22rem, 1.7vw, 1.6rem);
-  line-height: 1.12;
-  letter-spacing: -0.015em;
-  font-weight: 850;
+  font-size: clamp(1.4rem, 2.1vw, 1.85rem);
+  line-height: 1.14;
+  letter-spacing: -0.025em;
+  font-weight: 900;
   color: #0b1d2d;
   overflow-wrap: break-word;
 }
 
 .hp-shead-accent {
+  position: relative;
   color: #159447;
+  background: linear-gradient(90deg, #159447, #22c55e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .hp-shead-subtitle {
-  margin: 0;
-  font-size: 0.84rem;
-  color: #838d97;
-  font-weight: 500;
-  letter-spacing: -0.01em;
+  display: none;
 }
 
 .hp-shead-action {
@@ -4302,6 +4314,51 @@ html, body, #root {
 
 .hp-shead-action:hover {
   color: #159447;
+}
+
+/* ---------------------------------------------------------------------
+   DEALS OF THE DAY — 24-hour refresh countdown
+   --------------------------------------------------------------------- */
+.hp-deals-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: -6px 0 14px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #0f2419;
+  color: #eef9e4;
+  width: fit-content;
+}
+
+.hp-deals-timer-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: rgba(238, 249, 228, 0.75);
+  letter-spacing: 0.2px;
+}
+
+.hp-deals-timer-value {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  font-variant-numeric: tabular-nums;
+  color: #4ade80;
+}
+
+@media (max-width: 640px) {
+  .hp-deals-timer {
+    margin: -4px 0 10px;
+    padding: 6px 12px;
+  }
+
+  .hp-deals-timer-label {
+    font-size: 10px;
+  }
+
+  .hp-deals-timer-value {
+    font-size: 12px;
+  }
 }
 
 @media (max-width: 640px) {
