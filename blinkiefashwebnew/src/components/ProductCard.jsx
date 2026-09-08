@@ -9,7 +9,6 @@ import {
   MdAdd,
   MdRemove,
   MdLocalFireDepartment,
-  MdBolt,
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
@@ -64,18 +63,8 @@ async function resolveAvailableVariantId(product) {
   }
 }
 
-/**
- * Single reusable product card.
- *
- * Props:
- * - product
- * - onWishlistAdded?: () => void
- * - onCartAdded?: () => void
- */
 export default function ProductCard({ product, onWishlistAdded, onCartAdded, isNew = false }) {
   const navigate = useNavigate();
-  // `updateQty` sets an absolute quantity — the context itself removes
-  // the line item once quantity hits 0, so that's all this card needs.
   const { addToCart, getCartQty, updateQty } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
@@ -114,28 +103,26 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
   const isBestseller = product.is_bestseller === true;
   const isTryAndBuy = product.is_try_and_buy === true;
+
+  // Priority: NEW > BESTSELLER > % OFF > + 60 MIN
+  // Try & Buy is no longer a top badge — it is rendered as a bottom tag
   const badgeType = isNew
     ? "NEW"
     : isBestseller
     ? "BESTSELLER"
-    : isTryAndBuy
-      ? "Try & Buy"
-      : hasDiscount
-        ? `${offPercent}% OFF`
-        : "+ 60 MIN";
+    : hasDiscount
+    ? `${offPercent}% OFF`
+    : "+ 60 MIN";
+
   const badgeVariant = isNew
     ? "new"
     : isBestseller
     ? "bestseller"
-    : isTryAndBuy
-      ? "try-buy"
-      : hasDiscount
-        ? "discount"
-        : "fresh";
+    : hasDiscount
+    ? "discount"
+    : "fresh";
 
-  const image =
-    product.image || product.image_url || product.thumbnail || "";
-
+  const image = product.image || product.image_url || product.thumbnail || "";
   const rating = Number(product.rating || product.avg_rating || 0);
   const reviewCount = Number(product.review_count || product.reviews_count || 0);
   const soldCount = Number(product.sold_count || product.sales_count || 0);
@@ -145,10 +132,22 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     (variant) => Number(variant.available_stock ?? 1) > 0
   );
 
+  const handleCloseQuick = (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setIsQuickOpen(false);
+  };
+
   const handleQuickToggle = async (event) => {
     event.stopPropagation();
     event.preventDefault();
-    setIsQuickOpen((open) => !open);
+
+    if (isQuickOpen) {
+      setIsQuickOpen(false);
+      return;
+    }
+
+    setIsQuickOpen(true);
 
     if (variants.length || isLoadingVariants || !product.id) return;
 
@@ -185,7 +184,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       return;
     }
 
-    // Prefer shared context (same path as rest of the app)
     if (typeof toggleWishlist === "function") {
       try {
         await toggleWishlist({
@@ -203,7 +201,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       }
     }
 
-    // API fallback
     try {
       const variantId = await resolveAvailableVariantId(product);
       if (!variantId) {
@@ -247,9 +244,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       return;
     }
 
-    // First add uses the full loading state (spinner). Increments once
-    // it's already in the cart use the lighter isUpdatingQty state so
-    // the stepper doesn't flash a full spinner on every tap.
     const alreadyInCart = cartQty > 0;
     if (alreadyInCart) {
       setIsUpdatingQty(true);
@@ -327,14 +321,9 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
     try {
       if (typeof updateQty === "function") {
-        // updateQty sets an absolute quantity and removes the line item
-        // itself once it hits 0, so this one call covers both the
-        // 3 → 2 → 1 step-down and the final removal at 1 → 0.
         await updateQty(variantId, cartQty - 1);
       } else {
-        console.warn(
-          "[ProductCard] CartContext has no updateQty method — cannot decrement quantity."
-        );
+        console.warn("[ProductCard] CartContext has no updateQty method — cannot decrement quantity.");
       }
       window.dispatchEvent(new Event("cart:updated"));
       setAnnouncement(`${product.name} quantity updated`);
@@ -350,8 +339,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       className={`pc-card${outOfStock ? " is-out-of-stock" : ""}`}
       onClick={() => navigate(`/product/${product.id}`)}
     >
-      {/* Visually hidden live region so screen reader users hear
-          confirmation without relying on the icon-only button. */}
       <span className="pc-sr-only" aria-live="polite">
         {announcement}
       </span>
@@ -401,11 +388,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
           </div>
         )}
 
-        {/* Cart action lives on the image, so its position never
-            depends on whether rating/sold metadata exists below.
-            Once an item is in the cart, the single "add" button is
-            replaced by a −/qty/+ stepper so the shopper can adjust
-            quantity right from the card. */}
+        {/* Try & Buy floating tag — bottom-left */}
+        {isTryAndBuy && !outOfStock && (
+          <div className="pc-tag-tryandbuy">
+            <span className="pc-tag-dot" />
+            Try & Buy
+          </div>
+        )}
+
         {cartQty > 0 ? (
           <div
             className="pc-cart-stepper"
@@ -452,7 +442,11 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
         >
           <div className="pc-quick-heading">
             <span>Quick size</span>
-            <button type="button" onClick={handleQuickToggle} aria-label="Close quick size picker">
+            <button
+              type="button"
+              onClick={handleCloseQuick}
+              aria-label="Close quick size picker"
+            >
               ×
             </button>
           </div>
@@ -505,9 +499,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
         </div>
 
         <h3 className="pc-title">{product.name}</h3>
-        {/* Electronics/Footwear rows have no `color` most of the time —
-            fall back to the category/spec text instead of a misleading
-            "Multi color" label on, say, a pair of headphones. */}
         <p className="pc-sub">
           {product.color || product.category_name || product.category || "Multi color"}
         </p>
