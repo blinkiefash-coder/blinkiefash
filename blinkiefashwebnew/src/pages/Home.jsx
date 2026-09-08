@@ -1,19 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  MdVisibility,
   MdChevronRight,
   MdChevronLeft,
-  MdWhatshot,
-  MdFavorite,
-  MdFiberNew,
-  MdMale,
-  MdFemale,
-  MdChildFriendly,
-  MdDevices,
-  MdDirectionsRun,
-  MdSell,
-  MdExplore,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -52,6 +41,21 @@ import mobilebanner6 from '../assets/mobilebanner6.png';
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
 import couponImage from '../assets/coupon.png';
+
+// ---- Section heading icons (replace filenames below with your actual
+// asset names if they differ from this guess) ----
+import dealsOfTheDayIcon from '../assets/dealsoftheday.png';
+import shopByBrandIcon from '../assets/shopbybrand.png';
+import recentlyViewedIcon from '../assets/recentlyviewed.png';
+import newOnBlinkiefashIcon from '../assets/new.png';
+import mensCollectionIcon from '../assets/menicon.png';
+import womensCollectionIcon from '../assets/womanicon.png';
+import kidsCollectionIcon from '../assets/kidsicon.png';
+import electronicsCollectionIcon from '../assets/electronicsicon.png';
+import trendyShoesIcon from '../assets/shoeicon.png';
+import under999Icon from '../assets/prices.png';
+import priceRangeIcon from '../assets/prices.png';
+import moreToExploreIcon from '../assets/explore.png';
 
 import './Shop.css';
 import './Home.css';
@@ -211,20 +215,78 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
 }
 
 /**
+ * Deterministic "random" shuffle seeded by a number, so the same seed
+ * always produces the same order. Used to rotate Deals of the Day once
+ * per calendar day without needing any backend change.
+ */
+function seededShuffle(array, seed) {
+  const arr = [...array];
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  const next = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(next() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+/** Numeric seed that changes once every calendar day (YYYYMMDD). */
+function todaysSeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+/** Milliseconds remaining until local midnight (when deals rotate). */
+function getMsUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return Math.max(0, midnight.getTime() - now.getTime());
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+// Keywords that flag a product as NOT fashion, so Deals of the Day
+// stays clothing/footwear/accessories only.
+const NON_FASHION_KEYWORDS = [
+  'electronics', 'headphone', 'headphones', 'earbud', 'earbuds', 'speaker',
+  'mobile', 'phone', 'laptop', 'camera', 'gaming', 'game console',
+  'smartwatch', 'toy', 'toys', 'kitchen', 'appliance', 'furniture',
+  'home decor', 'stationery', 'grocery',
+];
+
+function isFashionProduct(item) {
+  const hay = `${item?.name || ''} ${item?.category_name || ''} ${item?.brand || ''}`.toLowerCase();
+  return !NON_FASHION_KEYWORDS.some((keyword) => hay.includes(keyword));
+}
+
+/**
  * Unified section heading, used by every rail on the home page (Deals,
  * Shop by Brands, Picks for You, Recently Viewed, New In, the audience
  * collections, price bands, Top Brands, More to Explore). Mirrors the
  * "Shop by Brands" heading style everywhere so the page reads as one
  * consistent system instead of a mix of header treatments.
+ *
+ * `icon` is expected to be an imported image (png/svg) — it's rendered
+ * inside the rounded `hp-shead-mark` badge via `hp-shead-mark-img`.
  */
-function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = 'View All', onViewAll }) {
+function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
   return (
     <div className="hp-shead">
       <div className="hp-shead-title-group">
         <div className="hp-shead-title-wrap">
           {icon ? (
-            <span className="hp-shead-mark" aria-hidden="true">
-              {icon}
+            <span className={`hp-shead-mark${iconClassName ? ` ${iconClassName}` : ''}`} aria-hidden="true">
+              <img src={icon} alt={iconAlt} className="hp-shead-mark-img" />
             </span>
           ) : null}
           <h2 className="hp-shead-title">
@@ -238,7 +300,6 @@ function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = 'View A
             )}
           </h2>
         </div>
-        {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
       </div>
       {onViewAll ? (
         <button type="button" className="hp-shead-action" onClick={onViewAll}>
@@ -282,7 +343,11 @@ export default function Home() {
   const [heroIndex, setHeroIndex] = useState(0);
   const [heroPosition, setHeroPosition] = useState(0);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
+
+  const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
+
   const [brandsPaused, setBrandsPaused] = useState(false);
+
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
   const brandsPauseTimerRef = useRef(null);
@@ -332,6 +397,14 @@ export default function Home() {
       }
     };
   }, [isLoggedIn, userGender]);
+
+  // Deals of the Day: countdown to the next daily refresh (local midnight).
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDealsCountdown(formatCountdown(getMsUntilMidnight()));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     if (!recentlyViewedProductsData || recentlyViewedProductsData.length === 0) return;
@@ -491,6 +564,20 @@ export default function Home() {
         if (!Array.isArray(dealList) || dealList.length === 0) {
           const fallback = await getProducts({ limit: 20 });
           dealList = fallback?.products || (Array.isArray(fallback) ? fallback : []);
+        }
+        // Deals of the Day pulls from a much larger pool so there is enough
+        // fashion inventory left after filtering to rotate 30 items daily.
+        const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
+        const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
+        if (Array.isArray(dealsPool) && dealsPool.length > 0) {
+          const seen = new Set((Array.isArray(dealList) ? dealList : []).map((p) => String(p?.id)));
+          dealList = [...(Array.isArray(dealList) ? dealList : [])];
+          dealsPool.forEach((p) => {
+            const key = String(p?.id ?? '');
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            dealList.push(p);
+          });
         }
         const latestList = Array.isArray(newestPool) ? newestPool : [];
         const palermoList = palermoRes?.products || (Array.isArray(palermoRes) ? palermoRes : []);
@@ -712,14 +799,23 @@ export default function Home() {
   };
 
   const topDeals = useMemo(() => {
-    const enriched = (Array.isArray(deals) ? deals : []).map((item) => {
+    const fashionOnly = (Array.isArray(deals) ? deals : []).filter(isFashionProduct);
+
+    const enriched = fashionOnly.map((item) => {
       const price = Number(item?.discount_price ?? item?.price ?? 0);
       const mrp = Number(item?.price ?? item?.original_price ?? price);
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
       return { ...item, _discount: discount };
     });
+
+    // Rank by discount first, then take a generous pool from the top so
+    // there's enough to rotate from, and reshuffle that pool using a seed
+    // tied to today's date — the selection/order changes once every 24
+    // hours (at local midnight) without needing a backend change.
     const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
-    return ranked.slice(0, 10);
+    const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+    const rotated = seededShuffle(pool, todaysSeed());
+    return rotated.slice(0, 30);
   }, [deals]);
 
   const recentlyViewedProducts = useMemo(() => {
@@ -860,6 +956,24 @@ export default function Home() {
         {error && <p className="state-msg">{error}</p>}
         {loading && <Loader label="Loading todays picks..." />}
 
+        {topDeals.length > 0 && (
+          <section className="section">
+            <SectionHead
+              icon={dealsOfTheDayIcon}
+              iconAlt="Deals of the day"
+              iconClassName="hp-shead-mark-deals"
+              title="Deals of the"
+              accentWord="Day"
+              onViewAll={() => navigate('/deals-of-the-day')}
+            />
+            <div className="hp-deals-timer" aria-live="polite">
+              <span className="hp-deals-timer-label">Fresh picks refresh in</span>
+              <span className="hp-deals-timer-value">{dealsCountdown}</span>
+            </div>
+            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
+          </section>
+        )}
+
         <section className="section hp-rewards-section">
           <div className="hp-rewards-grid">
             <button type="button" className="hp-reward-image-card" onClick={() => navigate('/spin-wheel')}>
@@ -877,30 +991,13 @@ export default function Home() {
           </div>
         </section>
 
-        {topDeals.length > 0 && (
-          <section className="section">
-            <SectionHead
-              icon={<MdWhatshot />}
-              title="Deals of the"
-              accentWord="Day"
-              subtitle="Steep price cuts, refreshed daily."
-              onViewAll={() => navigate('/shop?sort=bestseller')}
-            />
-            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} />
-          </section>
-        )}
-
         {topBrands.length > 0 && (
           <section className="section hp-shop-brands-section" aria-label="Shop by brands">
             <SectionHead
-              icon={
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M4 10.5V5.5a1 1 0 0 1 1-1h5.5L19 14.5l-4.5 4.5L4 10.5Zm3-3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              }
+              icon={shopByBrandIcon}
+              iconAlt="Shop by brands"
               title="Shop by"
               accentWord="Brands"
-              subtitle="Top brands. Latest styles. Delivered in a blink."
               onViewAll={() => navigate('/shop')}
             />
 
@@ -1001,10 +1098,9 @@ export default function Home() {
         {recommendedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdFavorite />}
+              iconAlt="Picks for you"
               title={userGender?.toLowerCase() === 'women' ? 'Picks for' : 'Picks for'}
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
-              subtitle="Curated from what you tend to reach for."
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
             />
             <ProductRail items={recommendedProducts} keyPrefix="recommended" />
@@ -1014,10 +1110,10 @@ export default function Home() {
         {recentlyViewedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdVisibility />}
+              icon={recentlyViewedIcon}
+              iconAlt="Recently viewed"
               title="Recently"
               accentWord="Viewed"
-              subtitle="Pick up right where you left off."
               onViewAll={() => navigate('/shop')}
             />
             <ProductRail items={recentlyViewedProducts} keyPrefix="recent" railRef={recentlyViewedRailRef} />
@@ -1027,10 +1123,10 @@ export default function Home() {
         {newOnBlinkiefash.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdFiberNew />}
+              icon={newOnBlinkiefashIcon}
+              iconAlt="New on Blinkiefash"
               title="New on"
               accentWord="Blinkiefash"
-              subtitle="Just landed, before everyone else finds it."
               onViewAll={() => navigate('/shop?sort=newest')}
             />
             <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
@@ -1040,10 +1136,10 @@ export default function Home() {
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdMale />}
+              icon={mensCollectionIcon}
+              iconAlt="Men's collection"
               title="Men's"
               accentWord="Collection"
-              subtitle="Shirts, denim, footwear and more."
               onViewAll={() => navigate('/men')}
             />
             <CategoryChipsRail
@@ -1060,10 +1156,10 @@ export default function Home() {
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdFemale />}
+              icon={womensCollectionIcon}
+              iconAlt="Women's collection"
               title="Women's"
               accentWord="Collection"
-              subtitle="Ethnic, western and everything between."
               onViewAll={() => navigate('/women')}
             />
             <CategoryChipsRail
@@ -1080,10 +1176,10 @@ export default function Home() {
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdChildFriendly />}
+              icon={kidsCollectionIcon}
+              iconAlt="Kids collection"
               title="Kids"
               accentWord="Collection"
-              subtitle="Playful styles for the little ones."
               onViewAll={() => navigate('/kids')}
             />
             <CategoryChipsRail
@@ -1100,10 +1196,10 @@ export default function Home() {
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdDevices />}
+              icon={electronicsCollectionIcon}
+              iconAlt="Electronics collection"
               title="Electronics"
               accentWord="Collection"
-              subtitle="Gadgets and audio worth the upgrade."
               onViewAll={() => navigate('/electronics')}
             />
             <CategoryChipsRail
@@ -1120,10 +1216,10 @@ export default function Home() {
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdDirectionsRun />}
+              icon={trendyShoesIcon}
+              iconAlt="Trendy shoes"
               title="Trendy"
               accentWord="Shoes"
-              subtitle="Sneakers, sandals and everyday footwear."
               onViewAll={() => navigate('/footwear')}
             />
             <CategoryChipsRail
@@ -1140,10 +1236,10 @@ export default function Home() {
         {under999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdSell />}
+              icon={under999Icon}
+              iconAlt="Under ₹999"
               title="Under"
               accentWord="₹999"
-              subtitle="Great styles that won't stretch the budget."
               onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')}
             />
             {under999Products.length > 0 ? <ProductRail items={under999Products} keyPrefix="under999" /> : null}
@@ -1153,10 +1249,10 @@ export default function Home() {
         {under1999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-              icon={<MdSell />}
+              icon={priceRangeIcon}
+              iconAlt="₹999 to ₹1999"
               title="₹999 –"
               accentWord="₹1999"
-              subtitle="A little more room, a lot more choice."
               onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}
             />
             {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
@@ -1165,10 +1261,10 @@ export default function Home() {
 
         <section className="section hp-feed-rail-section">
           <SectionHead
-            icon={<MdExplore />}
+            icon={moreToExploreIcon}
+            iconAlt="More to explore"
             title="More to"
             accentWord="Explore"
-            subtitle="Browse the full catalogue by category."
             onViewAll={() => navigate('/shop')}
           />
           <div className="hp-explore-chips" role="list">
@@ -1300,12 +1396,15 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
  * "Deals of the day / Recently viewed / New on Blinkiefash / Men's / Women's
  * / ..." row on the home page. Card rendering (image, badge, wishlist,
  * cart, price) now all comes from the shared ProductCard component.
+ * `limit` controls how many items are rendered into the scroll rail — the
+ * Deals of the Day rail passes 30 so its arrows/swipe reveal all 30 items
+ * (including on mobile); every other rail keeps the default of 10.
  */
-function ProductRail({ items, keyPrefix, railRef: externalRef }) {
+function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
   const internalRef = useRef(null);
   const railRef = externalRef || internalRef;
 
-  const list = (Array.isArray(items) ? items : []).slice(0, 10);
+  const list = (Array.isArray(items) ? items : []).slice(0, limit);
   if (list.length === 0) return null;
 
   return (
