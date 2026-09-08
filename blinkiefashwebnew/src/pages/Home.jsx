@@ -212,9 +212,6 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   el.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
 
-<<<<<<< HEAD
-function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = 'View All', onViewAll }) {
-=======
 /**
  * Deterministic "random" shuffle seeded by a number, so the same seed
  * always produces the same order. Used to rotate Deals of the Day once
@@ -281,7 +278,6 @@ function isFashionProduct(item) {
  * inside the rounded `hp-shead-mark` badge via `hp-shead-mark-img`.
  */
 function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
->>>>>>> 65dca3c3d7c9d5b0aed3c2c385a1ad74e35e9c34
   return (
     <div className="hp-shead">
       <div className="hp-shead-title-group">
@@ -839,7 +835,7 @@ export default function Home() {
 
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
-    
+
     const normalizedGender = (userGender || '').toLowerCase().trim();
     if (normalizedGender === 'women') {
       return womensProducts.slice(0, 10);
@@ -1102,13 +1098,7 @@ export default function Home() {
         {recommendedProducts.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead
-<<<<<<< HEAD
-              icon={<MdFavorite />}
               title="Picks for"
-=======
-              iconAlt="Picks for you"
-              title={userGender?.toLowerCase() === 'women' ? 'Picks for' : 'Picks for'}
->>>>>>> 65dca3c3d7c9d5b0aed3c2c385a1ad74e35e9c34
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
             />
@@ -1399,9 +1389,6 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   );
 }
 
-<<<<<<< HEAD
-function ProductRail({ items, keyPrefix, railRef: externalRef }) {
-=======
 /**
  * Horizontally scrollable rail of ProductCard tiles, reused across every
  * "Deals of the day / Recently viewed / New on Blinkiefash / Men's / Women's
@@ -1412,7 +1399,6 @@ function ProductRail({ items, keyPrefix, railRef: externalRef }) {
  * (including on mobile); every other rail keeps the default of 10.
  */
 function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
->>>>>>> 65dca3c3d7c9d5b0aed3c2c385a1ad74e35e9c34
   const internalRef = useRef(null);
   const railRef = externalRef || internalRef;
 
