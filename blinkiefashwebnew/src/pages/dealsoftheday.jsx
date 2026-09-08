@@ -91,22 +91,28 @@ export default function DealsOfTheDay() {
         const findRoot = buildRootCategoryMap(allCats);
 
         // Pull a large pool of products, paginated, then keep ONLY the
-        // ones that actually carry a real discount.
+        // ones that actually carry a real discount. Fetch from multiple batches
+        // and sorts to ensure brand diversity (not just Puma, but also The Souled Store, US Polo, etc.)
         const pool = [];
         const seen = new Set();
-        let offset = 0;
-        for (let i = 0; i < 8; i += 1) {
-          const res = await getProducts({ sort: 'newest', limit: 100, offset });
-          const batch = res?.products || (Array.isArray(res) ? res : []);
-          if (!Array.isArray(batch) || batch.length === 0) break;
-          batch.forEach((item) => {
-            const key = String(item?.id ?? '');
-            if (!key || seen.has(key)) return;
-            seen.add(key);
-            pool.push(item);
-          });
-          if (batch.length < 100) break;
-          offset += 100;
+        
+        // Try multiple sort options to get diverse brands
+        const sortOptions = ['newest', 'discount', 'price_asc'];
+        for (const sortBy of sortOptions) {
+          let offset = 0;
+          for (let i = 0; i < 8; i += 1) {
+            const res = await getProducts({ sort: sortBy, limit: 100, offset });
+            const batch = res?.products || (Array.isArray(res) ? res : []);
+            if (!Array.isArray(batch) || batch.length === 0) break;
+            batch.forEach((item) => {
+              const key = String(item?.id ?? '');
+              if (!key || seen.has(key)) return;
+              seen.add(key);
+              pool.push(item);
+            });
+            if (batch.length < 100) break;
+            offset += 100;
+          }
         }
 
         const discountedOnly = pool

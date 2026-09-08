@@ -567,9 +567,24 @@ export default function Home() {
         }
         // Deals of the Day pulls from a much larger pool so there is enough
         // fashion inventory left after filtering to rotate 30 items daily.
-        const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
-        const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
-        if (Array.isArray(dealsPool) && dealsPool.length > 0) {
+        // Fetch from multiple sort options to ensure brand diversity
+        // (e.g., The Souled Store, US Polo, not just Puma)
+        let dealsPool = [];
+        const dealsSeen = new Set();
+        const sortOptions = ['newest', 'discount', 'price_asc'];
+        for (const sortOption of sortOptions) {
+          const dealsPoolRes = await getProducts({ sort: sortOption, limit: 100 });
+          const poolBatch = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
+          if (Array.isArray(poolBatch)) {
+            poolBatch.forEach((p) => {
+              const key = String(p?.id ?? '');
+              if (!key || dealsSeen.has(key)) return;
+              dealsSeen.add(key);
+              dealsPool.push(p);
+            });
+          }
+        }
+        if (dealsPool.length > 0) {
           const seen = new Set((Array.isArray(dealList) ? dealList : []).map((p) => String(p?.id)));
           dealList = [...(Array.isArray(dealList) ? dealList : [])];
           dealsPool.forEach((p) => {

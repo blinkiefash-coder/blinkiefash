@@ -1,0 +1,1377 @@
+/* =========================================================
+   SPIN & WIN — CLEAN FINAL DESIGN
+   ========================================================= */
+
+.spin-page {
+  min-height: 100vh;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+
+  padding: 1.5rem 1.5rem 3rem;
+
+  color: #e2e8f0;
+
+  background:
+    radial-gradient(
+      circle at 20% 10%,
+      rgba(124, 58, 237, 0.16),
+      transparent 30%
+    ),
+    radial-gradient(
+      circle at 90% 30%,
+      rgba(219, 39, 119, 0.12),
+      transparent 28%
+    ),
+    linear-gradient(
+      160deg,
+      #0b1120 0%,
+      #171b3a 50%,
+      #0b1120 100%
+    );
+}
+
+.spin-page.page,
+.spin-page.offer-feature-page {
+  max-width: 100% !important;
+  width: 100% !important;
+  margin: 0 !important;
+}
+
+
+/* =========================================================
+   BREADCRUMB
+   ========================================================= */
+
+.spin-breadcrumb {
+  max-width: 1200px;
+  margin: 0 auto 1.4rem;
+
+  color: #8190ad;
+
+  font-size: 0.82rem;
+  font-weight: 500;
+
+  letter-spacing: 0.01em;
+}
+
+.spin-breadcrumb span {
+  margin: 0 0.3rem;
+  color: #64748b;
+}
+
+
+/* =========================================================
+   MAIN LAYOUT
+   ========================================================= */
+
+.spin-layout {
+  width: 100%;
+  max-width: 1200px;
+
+  margin: 0 auto;
+
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 400px;
+
+  gap: 2rem;
+
+  align-items: start;
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+.spin-title-block {
+  margin-bottom: 1.15rem;
+}
+
+.spin-title-block h1 {
+  margin: 0;
+
+  display: flex;
+  align-items: center;
+  gap: 0.12em;
+
+  color: #f8fafc;
+
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  font-weight: 850;
+
+  line-height: 1.05;
+  letter-spacing: -0.045em;
+}
+
+.spin-title-block .accent {
+  color: #4ade80;
+}
+
+.spin-title-block .sparkle {
+  display: inline-flex;
+  align-items: center;
+
+  margin-left: 0.18rem;
+
+  font-size: 1.35rem;
+
+  line-height: 1;
+
+  transform: translateY(-2px);
+}
+
+.spin-title-block p {
+  margin: 0.65rem 0 0;
+
+  color: #94a3b8;
+
+  font-size: 1rem;
+  line-height: 1.5;
+}
+
+
+/* =========================================================
+   MAIN WHEEL CARD
+   ========================================================= */
+
+.spin-card {
+  position: relative;
+
+  width: 100%;
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  padding: 2.15rem 1.5rem 2rem;
+
+  overflow: hidden;
+
+  border: 1px solid rgba(148, 163, 184, 0.09);
+  border-radius: 26px;
+
+  background:
+    linear-gradient(
+      150deg,
+      rgba(30, 41, 59, 0.98),
+      rgba(15, 23, 42, 0.98)
+    );
+
+  box-shadow:
+    0 25px 65px rgba(0, 0, 0, 0.42),
+    inset 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+
+.spin-card::before {
+  content: '';
+
+  position: absolute;
+  inset: 0;
+
+  pointer-events: none;
+
+  background-image:
+    radial-gradient(
+      circle at 13% 25%,
+      rgba(168, 85, 247, 0.7) 1.5px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 87% 15%,
+      rgba(236, 72, 153, 0.7) 1.5px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 78% 80%,
+      rgba(56, 189, 248, 0.65) 1.5px,
+      transparent 2px
+    ),
+    radial-gradient(
+      circle at 22% 82%,
+      rgba(245, 158, 11, 0.65) 1.5px,
+      transparent 2px
+    );
+
+  opacity: 0.35;
+}
+
+
+/* =========================================================
+   WHEEL WRAPPER
+   ========================================================= */
+
+.wheel-wrapper {
+  position: relative;
+
+  width: min(350px, 78vw);
+  aspect-ratio: 1;
+
+  margin: 0 auto 1.85rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* =========================================================
+   POINTER
+   ========================================================= */
+
+.spin-pointer {
+  position: absolute;
+
+  top: -7px;
+  left: 50%;
+
+  transform: translateX(-50%);
+
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+
+  pointer-events: none;
+}
+
+.pointer-triangle {
+  width: 0;
+  height: 0;
+
+  border-left: 16px solid transparent;
+  border-right: 16px solid transparent;
+  border-top: 29px solid #f8fafc;
+
+  filter:
+    drop-shadow(0 3px 4px rgba(0, 0, 0, 0.45));
+}
+
+.pointer-hub {
+  width: 38px;
+  height: 38px;
+
+  margin-top: -14px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: 4px solid #fbbf24;
+  border-radius: 50%;
+
+  background: linear-gradient(
+    145deg,
+    #ffffff,
+    #e2e8f0
+  );
+
+  color: #6d28d9;
+
+  font-size: 1rem;
+  font-weight: 900;
+
+  box-shadow:
+    0 5px 14px rgba(0, 0, 0, 0.42);
+}
+
+.pointer-hub span {
+  display: block;
+
+  line-height: 1;
+
+  transform: translateY(-1px);
+}
+
+
+/* =========================================================
+   OUTER GOLD WHEEL
+   ========================================================= */
+
+.wheel-outer {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  padding: 10px;
+
+  box-sizing: border-box;
+
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fde68a 0%,
+      #f59e0b 35%,
+      #d97706 58%,
+      #fbbf24 78%,
+      #b45309 100%
+    );
+
+  box-shadow:
+    0 0 0 5px #0b1120,
+    0 18px 45px rgba(0, 0, 0, 0.5),
+    inset 0 0 18px rgba(255, 255, 255, 0.2);
+}
+
+.wheel-outer::before {
+  content: '';
+
+  position: absolute;
+  inset: 4px;
+
+  border-radius: 50%;
+
+  border: 2px dotted rgba(255, 255, 255, 0.42);
+
+  pointer-events: none;
+
+  z-index: 10;
+}
+
+
+/* =========================================================
+   ACTUAL SPINNING WHEEL
+   ========================================================= */
+
+.spin-wheel {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+
+  overflow: hidden;
+
+  border-radius: 50%;
+
+  background:
+    conic-gradient(
+      from -22.5deg,
+
+      #7c3aed 0deg 45deg,
+      #4c1d95 45deg 90deg,
+      #f59e0b 90deg 135deg,
+      #0d9488 135deg 180deg,
+      #2563eb 180deg 225deg,
+      #ea580c 225deg 270deg,
+      #1e293b 270deg 315deg,
+      #db2777 315deg 360deg
+    );
+
+  box-shadow:
+    inset 0 0 0 2px rgba(255, 255, 255, 0.14),
+    inset 0 0 30px rgba(0, 0, 0, 0.22);
+
+  will-change: transform;
+}
+
+
+/* =========================================================
+   WHEEL LABEL POSITIONING
+   ========================================================= */
+
+.spin-label {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 0;
+  height: 0;
+
+  display: block;
+
+  transform:
+    rotate(var(--angle))
+    translateY(-108px);
+
+  transform-origin: center center;
+
+  z-index: 5;
+}
+
+
+/*
+   IMPORTANT:
+   The outer element positions the reward around the wheel.
+   The inner element rotates back so the text itself stays
+   horizontal and clean.
+*/
+
+.spin-label-inner {
+  position: absolute;
+
+  top: 0;
+  left: 0;
+
+  width: 74px;
+
+  transform:
+    translate(-50%, -50%)
+    rotate(calc(var(--angle) * -1));
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  text-align: center;
+
+  gap: 5px;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.segment-icon {
+  width: 30px;
+  height: 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 30px;
+
+  font-size: 1.15rem;
+
+  line-height: 1;
+
+  filter:
+    drop-shadow(0 2px 3px rgba(0, 0, 0, 0.55));
+}
+
+
+/* =========================================================
+   LABEL TEXT
+   ========================================================= */
+
+.segment-label {
+  width: 74px;
+  min-height: 20px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  color: #ffffff;
+
+  font-size: 0.55rem;
+  font-weight: 900;
+
+  line-height: 1.15;
+
+  letter-spacing: 0.015em;
+
+  text-align: center;
+
+  text-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.95),
+    0 2px 5px rgba(0, 0, 0, 0.6);
+}
+
+.segment-label span {
+  display: block;
+
+  width: 100%;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   CENTER HUB
+   ========================================================= */
+
+.wheel-center {
+  position: absolute;
+
+  top: 50%;
+  left: 50%;
+
+  width: 24%;
+  aspect-ratio: 1;
+
+  transform: translate(-50%, -50%);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 25;
+
+  border: 5px solid #fef3c7;
+  border-radius: 50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #fbbf24,
+      #d97706 55%,
+      #b45309
+    );
+
+  box-shadow:
+    0 7px 22px rgba(0, 0, 0, 0.52),
+    inset 0 2px 5px rgba(255, 255, 255, 0.22);
+}
+
+.wheel-center-inner {
+  width: 50%;
+  height: 50%;
+
+  border-radius: 50%;
+
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #182235,
+      #020617
+    );
+
+  box-shadow:
+    inset 0 4px 9px rgba(0, 0, 0, 0.75),
+    0 1px 2px rgba(255, 255, 255, 0.08);
+}
+
+
+/* =========================================================
+   CTA
+   ========================================================= */
+
+.spin-cta {
+  width: min(430px, 92%);
+
+  min-height: 60px;
+
+  padding: 0 1.5rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.65rem;
+
+  border: none;
+  border-radius: 999px;
+
+  background:
+    linear-gradient(
+      100deg,
+      #6d28d9 0%,
+      #9333ea 45%,
+      #db2777 100%
+    );
+
+  color: #ffffff;
+
+  font-size: 1.05rem;
+  font-weight: 900;
+
+  letter-spacing: 0.045em;
+
+  text-transform: uppercase;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 12px 30px rgba(124, 58, 237, 0.4);
+
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.2s ease;
+}
+
+.spin-cta:hover:not(:disabled) {
+  transform: translateY(-2px);
+
+  box-shadow:
+    0 16px 36px rgba(124, 58, 237, 0.52);
+}
+
+.spin-cta:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.spin-cta:disabled {
+  opacity: 0.7;
+
+  cursor: not-allowed;
+
+  box-shadow:
+    0 8px 22px rgba(124, 58, 237, 0.25);
+}
+
+.spin-cta .dice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 26px;
+  height: 26px;
+
+  font-size: 1.25rem;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   SECURE MESSAGE
+   ========================================================= */
+
+.spin-secure {
+  margin: 1rem 0 0;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.45rem;
+
+  color: #94a3b8;
+
+  font-size: 0.8rem;
+
+  line-height: 1.4;
+
+  text-align: center;
+}
+
+.secure-icon {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  font-size: 0.95rem;
+
+  line-height: 1;
+}
+
+.spin-secure b {
+  margin: 0 0.25rem;
+
+  color: #64748b;
+}
+
+
+/* =========================================================
+   RESULT
+   ========================================================= */
+
+.spin-result {
+  margin: 1rem 0 0;
+
+  font-size: 1rem;
+  font-weight: 800;
+
+  line-height: 1.4;
+
+  text-align: center;
+}
+
+.spin-result.win {
+  color: #4ade80;
+}
+
+.spin-result.sorry {
+  color: #fb7185;
+}
+
+.spin-reward-note {
+  margin: 0.55rem 0 0;
+
+  color: #a5b4fc;
+
+  font-size: 0.9rem;
+  font-weight: 600;
+
+  text-align: center;
+}
+
+.spin-reward-note strong {
+  color: #c4b5fd;
+}
+
+
+/* =========================================================
+   RIGHT BANNER
+   ========================================================= */
+
+.spin-banner {
+  min-height: 78px;
+
+  box-sizing: border-box;
+
+  margin-bottom: 1.15rem;
+  padding: 1rem 1.15rem;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.85rem;
+
+  border-radius: 18px;
+
+  background:
+    linear-gradient(
+      100deg,
+      #5b21b6,
+      #7c3aed 48%,
+      #db2777
+    );
+
+  box-shadow:
+    0 12px 32px rgba(124, 58, 237, 0.3);
+}
+
+.banner-icon {
+  width: 44px;
+  height: 44px;
+
+  flex: 0 0 44px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  background: rgba(255, 255, 255, 0.16);
+
+  font-size: 1.35rem;
+
+  line-height: 1;
+}
+
+.banner-content {
+  min-width: 0;
+}
+
+.spin-banner strong {
+  display: block;
+
+  color: #ffffff;
+
+  font-size: 0.92rem;
+  font-weight: 800;
+
+  line-height: 1.3;
+}
+
+.spin-banner p {
+  margin: 0.25rem 0 0;
+
+  color: rgba(255, 255, 255, 0.82);
+
+  font-size: 0.76rem;
+
+  line-height: 1.35;
+}
+
+.banner-gifts {
+  margin-left: auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.25rem;
+
+  flex-shrink: 0;
+
+  font-size: 1.25rem;
+}
+
+.banner-gifts span {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   REWARDS PANEL
+   ========================================================= */
+
+.rewards-panel {
+  padding: 1.4rem;
+
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 22px;
+
+  background:
+    linear-gradient(
+      145deg,
+      #1e293b,
+      #162033
+    );
+
+  box-shadow:
+    0 18px 45px rgba(0, 0, 0, 0.22);
+}
+
+.rewards-panel h3 {
+  margin: 0 0 1.05rem;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.6rem;
+
+  color: #f1f5f9;
+
+  font-size: 1.05rem;
+  font-weight: 800;
+
+  line-height: 1.2;
+}
+
+.reward-title-icon {
+  width: 30px;
+  height: 30px;
+
+  flex: 0 0 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  background: rgba(236, 72, 153, 0.16);
+
+  font-size: 0.95rem;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   REWARD GRID
+   ========================================================= */
+
+.rewards-grid {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 0.65rem;
+}
+
+.reward-card {
+  min-height: 112px;
+
+  padding: 0.9rem 0.55rem;
+
+  box-sizing: border-box;
+
+  display: flex;
+  flex-direction: column;
+
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.55rem;
+
+  border: 1px solid rgba(148, 163, 184, 0.1);
+  border-radius: 14px;
+
+  background: #0f172a;
+
+  color: #e2e8f0;
+
+  font-size: 0.78rem;
+  font-weight: 700;
+
+  line-height: 1.25;
+
+  text-align: center;
+
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease;
+}
+
+.reward-card:hover {
+  transform: translateY(-3px);
+
+  border-color: rgba(255, 255, 255, 0.18);
+}
+
+.r-icon {
+  width: 46px;
+  height: 46px;
+
+  flex: 0 0 46px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 13px;
+
+  font-size: 1.35rem;
+
+  line-height: 1;
+}
+
+
+/* =========================================================
+   REWARD COLORS
+   ========================================================= */
+
+.reward-card:nth-child(1) {
+  border-color: rgba(234, 179, 8, 0.3);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(234, 179, 8, 0.08),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(1) .r-icon {
+  background: rgba(234, 179, 8, 0.18);
+}
+
+.reward-card:nth-child(1) span:last-child {
+  color: #facc15;
+}
+
+
+.reward-card:nth-child(2) {
+  border-color: rgba(59, 130, 246, 0.3);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(59, 130, 246, 0.08),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(2) .r-icon {
+  background: rgba(59, 130, 246, 0.18);
+}
+
+.reward-card:nth-child(2) span:last-child {
+  color: #60a5fa;
+}
+
+
+.reward-card:nth-child(3) {
+  border-color: rgba(34, 197, 94, 0.3);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(34, 197, 94, 0.08),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(3) .r-icon {
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.reward-card:nth-child(3) span:last-child {
+  color: #4ade80;
+}
+
+
+.reward-card:nth-child(4) {
+  border-color: rgba(249, 115, 22, 0.35);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(249, 115, 22, 0.1),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(4) .r-icon {
+  background: rgba(249, 115, 22, 0.18);
+}
+
+.reward-card:nth-child(4) span:last-child {
+  color: #fb923c;
+}
+
+
+.reward-card:nth-child(5) {
+  border-color: rgba(236, 72, 153, 0.3);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(236, 72, 153, 0.08),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(5) .r-icon {
+  background: rgba(236, 72, 153, 0.18);
+}
+
+.reward-card:nth-child(5) span:last-child {
+  color: #f472b6;
+}
+
+
+.reward-card:nth-child(6) {
+  border-color: rgba(168, 85, 247, 0.3);
+
+  background:
+    linear-gradient(
+      160deg,
+      rgba(168, 85, 247, 0.08),
+      #0f172a 65%
+    );
+}
+
+.reward-card:nth-child(6) .r-icon {
+  background: rgba(168, 85, 247, 0.18);
+}
+
+.reward-card:nth-child(6) span:last-child {
+  color: #c084fc;
+}
+
+
+/* =========================================================
+   LOCKED ROW
+   ========================================================= */
+
+.locked-row {
+  margin-top: 0.7rem;
+
+  display: grid;
+
+  grid-template-columns: 1fr 1fr;
+
+  gap: 0.65rem;
+}
+
+.locked-item {
+  min-height: 46px;
+
+  padding: 0.65rem 0.5rem;
+
+  box-sizing: border-box;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: 0.4rem;
+
+  border: 1px solid rgba(148, 163, 184, 0.07);
+  border-radius: 12px;
+
+  background: #0f172a;
+
+  color: #94a3b8;
+
+  font-size: 0.72rem;
+  font-weight: 600;
+
+  line-height: 1.2;
+
+  text-align: center;
+}
+
+.locked-item > span:first-child {
+  display: inline-flex;
+
+  align-items: center;
+  justify-content: center;
+
+  flex: 0 0 auto;
+
+  font-size: 0.95rem;
+
+  line-height: 1;
+}
+
+.locked-item.locked {
+  opacity: 0.62;
+}
+
+
+/* =========================================================
+   TRUST BAR
+   ========================================================= */
+
+.spin-trust {
+  width: 100%;
+  max-width: 1200px;
+
+  box-sizing: border-box;
+
+  margin: 2.4rem auto 0;
+
+  padding: 1.2rem 1.25rem;
+
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 1rem;
+
+  border: 1px solid rgba(148, 163, 184, 0.09);
+  border-radius: 18px;
+
+  background: #1e293b;
+}
+
+.trust-item {
+  min-width: 0;
+
+  display: flex;
+  align-items: center;
+
+  gap: 0.65rem;
+}
+
+.trust-icon {
+  width: 38px;
+  height: 38px;
+
+  flex: 0 0 38px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+
+  background: rgba(74, 222, 128, 0.13);
+
+  font-size: 1.1rem;
+
+  line-height: 1;
+}
+
+.spin-trust strong {
+  display: block;
+
+  color: #f1f5f9;
+
+  font-size: 0.82rem;
+  font-weight: 800;
+
+  line-height: 1.25;
+}
+
+.spin-trust p {
+  margin: 0.2rem 0 0;
+
+  color: #94a3b8;
+
+  font-size: 0.7rem;
+
+  line-height: 1.3;
+}
+
+
+/* =========================================================
+   LOADING
+   ========================================================= */
+
+.state-msg {
+  margin: 0;
+
+  padding: 3rem 0;
+
+  color: #94a3b8;
+
+  font-size: 1rem;
+}
+
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1000px) {
+
+  .spin-layout {
+    grid-template-columns: 1fr;
+
+    max-width: 620px;
+  }
+
+  .spin-right {
+    width: 100%;
+  }
+
+  .spin-trust {
+    max-width: 620px;
+
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+
+  .spin-page {
+    padding: 1rem 0.8rem 2.5rem;
+  }
+
+  .spin-layout {
+    gap: 1.25rem;
+  }
+
+  .spin-title-block h1 {
+    font-size: 2rem;
+  }
+
+  .spin-title-block p {
+    font-size: 0.9rem;
+  }
+
+  .spin-card {
+    padding: 1.75rem 0.85rem 1.6rem;
+
+    border-radius: 22px;
+  }
+
+  .wheel-wrapper {
+    width: min(330px, 88vw);
+
+    margin-bottom: 1.6rem;
+  }
+
+  .spin-label-inner {
+    width: 68px;
+  }
+
+  .segment-label {
+    width: 68px;
+
+    font-size: 0.5rem;
+  }
+
+  .segment-icon {
+    width: 28px;
+    height: 28px;
+
+    flex-basis: 28px;
+
+    font-size: 1.05rem;
+  }
+
+  .spin-cta {
+    width: 94%;
+
+    min-height: 56px;
+
+    font-size: 0.92rem;
+  }
+
+  .spin-banner {
+    padding: 0.9rem;
+  }
+
+  .banner-gifts {
+    display: none;
+  }
+
+  .rewards-panel {
+    padding: 1.15rem;
+  }
+
+  .rewards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .reward-card {
+    min-height: 105px;
+  }
+
+  .spin-trust {
+    grid-template-columns: 1fr 1fr;
+
+    padding: 1rem;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .spin-page {
+    padding-left: 0.6rem;
+    padding-right: 0.6rem;
+  }
+
+  .wheel-wrapper {
+    width: min(285px, 84vw);
+  }
+
+  .spin-label {
+    transform:
+      rotate(var(--angle))
+      translateY(-88px);
+  }
+
+  .spin-label-inner {
+    width: 60px;
+  }
+
+  .segment-label {
+    width: 60px;
+
+    font-size: 0.45rem;
+  }
+
+  .segment-icon {
+    width: 25px;
+    height: 25px;
+
+    flex-basis: 25px;
+
+    font-size: 0.9rem;
+  }
+
+  .spin-cta {
+    min-height: 52px;
+
+    font-size: 0.82rem;
+  }
+
+  .spin-secure {
+    font-size: 0.7rem;
+  }
+
+  .spin-trust {
+    grid-template-columns: 1fr;
+  }
+}
