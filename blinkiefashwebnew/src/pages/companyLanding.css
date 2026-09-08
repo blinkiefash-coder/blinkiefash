@@ -5,7 +5,7 @@
 /* NAV */
 .lp-nav{position:sticky;top:0;z-index:50;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:16px;padding:12px 28px;background:#fff;border-bottom:1px solid #ddeade;box-shadow:0 1px 6px rgba(0,0,0,.05);overflow:hidden}
 .lp-brand{display:inline-flex;align-items:center;gap:8px;border:none;background:transparent;cursor:pointer;padding:0;min-width:0;flex-shrink:0}
-.lp-brand img{width:36px;height:36px;object-fit:contain;flex-shrink:0}
+.lp-brand img{width:180px;height:36px;object-fit:contain;flex-shrink:0}
 .lp-brand span{font-size:22px;font-weight:900;color:#0f1f12;letter-spacing:.01em;white-space:nowrap}
 .lp-brand b{color:#129b47;font-weight:900}
 .lp-nav nav{display:flex;justify-content:center;gap:2px;min-width:0}

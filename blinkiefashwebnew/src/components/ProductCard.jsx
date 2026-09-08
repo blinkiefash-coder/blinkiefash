@@ -72,7 +72,7 @@ async function resolveAvailableVariantId(product) {
  * - onWishlistAdded?: () => void
  * - onCartAdded?: () => void
  */
-export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
+export default function ProductCard({ product, onWishlistAdded, onCartAdded, isNew = false }) {
   const navigate = useNavigate();
   // `updateQty` sets an absolute quantity — the context itself removes
   // the line item once quantity hits 0, so that's all this card needs.
@@ -114,14 +114,18 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
 
   const isBestseller = product.is_bestseller === true;
   const isTryAndBuy = product.is_try_and_buy === true;
-  const badgeType = isBestseller
+  const badgeType = isNew
+    ? "NEW"
+    : isBestseller
     ? "BESTSELLER"
     : isTryAndBuy
       ? "Try & Buy"
       : hasDiscount
         ? `${offPercent}% OFF`
         : "+ 60 MIN";
-  const badgeVariant = isBestseller
+  const badgeVariant = isNew
+    ? "new"
+    : isBestseller
     ? "bestseller"
     : isTryAndBuy
       ? "try-buy"
@@ -390,14 +394,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
         >
           {wishlisted ? <MdFavorite /> : <MdFavoriteBorder />}
         </button>
-
-        {isTryAndBuy && (
-          <div className="pc-tag-tryandbuy">
-            <span className="pc-tag-dot" />
-            <MdBolt className="pc-tag-icon" />
-            <span>Try &amp; Buy</span>
-          </div>
-        )}
 
         {outOfStock && (
           <div className="pc-oos-overlay">

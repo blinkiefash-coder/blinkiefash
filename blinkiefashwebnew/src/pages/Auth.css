@@ -328,8 +328,9 @@
 }
 
 .auth-logo-mark {
-  width: 34px;
-  height: 34px;
+  width: 180px;
+  max-width: 55vw;
+  height: auto;
   object-fit: contain;
 }
 

@@ -64,7 +64,7 @@ html, body, #root {
   padding: 12px 40px;
 }
 .acct-logo { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.acct-logo-img { height: 30px; width: auto; display: block; }
+.acct-logo-img { height: 34px; width: 170px; object-fit: contain; display: block; }
 .acct-logo-text-wrap { display: flex; flex-direction: column; line-height: 1.15; }
 .acct-logo-text { font-weight: 800; font-size: 17px; letter-spacing: -0.3px; color: var(--ink); }
 .acct-logo-text .fash { color: var(--green-bright); }
@@ -430,7 +430,7 @@ html, body, #root {
 @media (max-width: 600px) {
   .acct-logo-text { font-size: 16px; }
   .acct-logo-sub { font-size: 8px; letter-spacing: 1.2px; }
-  .acct-logo-img { height: 28px; }
+  .acct-logo-img { height: 30px; width: 150px; }
 
   .acct-profile-banner { border-radius: 18px; padding: 20px 16px; gap: 14px; }
   .acct-avatar-wrap, .acct-avatar { width: 64px; height: 64px; }

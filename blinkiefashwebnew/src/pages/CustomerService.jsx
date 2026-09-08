@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo1.png";
 import "./staticInfoPages.css";
 
 export default function CustomerService() {
@@ -9,7 +9,6 @@ export default function CustomerService() {
     <div className="info-page customer-service-page">
       <header className="info-header" onClick={() => navigate("/home")} style={{ cursor: "pointer" }}>
         <img src={logo} alt="Blinkiefash" />
-        <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
       </header>
 
       <main className="info-body">

@@ -5,7 +5,7 @@ import { registerUser } from '../api';
 import PhoneInput, { isValidPhoneNumber } from 'react-phone-number-input';
 import 'react-phone-number-input/style.css';
 import { MdArrowForward, MdLock, MdMail, MdPerson, MdRedeem, MdShield } from 'react-icons/md';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo1.png';
 
 import './Auth.css';
 
@@ -106,7 +106,6 @@ export default function Signup() {
       <header className="auth-topbar">
         <Link to="/" className="auth-logo">
           <img src={logo} alt="Blinkiefash" className="auth-logo-mark" />
-          <span className="auth-logo-wordmark"><b>BLINKIE</b><span>FASH</span></span>
         </Link>
         <div className="auth-secure"><MdLock /> Secure Auth</div>
       </header>

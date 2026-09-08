@@ -25,11 +25,6 @@ import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 
-// import { detectCurrentCity } from '../utils/location';
-// import { hasVendorPasswordAuth } from '../utils/vendorSession';
-
-// import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
-
 import banner1 from '../assets/banner1.png';
 import banner2 from '../assets/banner2.png';
 import banner3 from '../assets/banner3.png';
@@ -41,7 +36,6 @@ import spinAndWinImage from '../assets/spin&win.png';
 import referAndEarnImage from '../assets/refer&earn.png';
 import freeDeliveryImage from '../assets/freedelivery.png';
 
-// Mobile-cropped versions of the hero banners (shown < 768px via <picture>)
 import mobilebanner1 from '../assets/mobilebanner1.png';
 import mobilebanner2 from '../assets/mobilebanner2.png';
 import mobilebanner3 from '../assets/mobilebanner3.png';
@@ -50,13 +44,11 @@ import mobilebanner5 from '../assets/mobilebanner5.png';
 import mobilebanner6 from '../assets/mobilebanner6.png';
 
 import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
-
 import couponImage from '../assets/coupon.png';
 
 import './Shop.css';
 import './Home.css';
 
-// TODO: replace with your real Play Store listing URL
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.blinkiefash.app';
 
 function resolveImageUrl(raw) {
@@ -69,40 +61,46 @@ function resolveImageUrl(raw) {
 
 const HERO_SLIDES = [
   {
+    id: 'hero-men-women',
     image: banner1,
     mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
   },
   {
+    id: 'hero-puma',
     image: banner2,
     mobileImage: mobilebanner2,
     brand: 'Puma',
     pos: 'center 20%',
   },
   {
+    id: 'hero-xinso',
     image: banner3,
     mobileImage: mobilebanner3,
     brand: 'Xinso',
   },
   {
+    id: 'hero-kids',
     image: banner4,
     mobileImage: mobilebanner4,
     to: '/kids',
   },
   {
+    id: 'hero-crimsone',
     image: banner5,
     mobileImage: mobilebanner5,
     brand: 'Crimsone Club',
   },
   {
+    id: 'hero-mk',
     image: banner6,
     mobileImage: mobilebanner6,
     brand: 'MK',
   },
 ];
 
-const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, beauty: 4 };
+const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, lifestyle: 4 };
 function sortCategories(list) {
   return [...list].sort((a, b) => {
     const an = (a.name || '').toLowerCase();
@@ -118,36 +116,36 @@ const NIKE_LOGO_URL = 'https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_
 
 const UNIVERSE_BRANDS = [
   {
-    name: "Puma",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg",
-    to: "/brands/Puma",
+    name: 'Puma',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438409/Pumabanner_cd8wwz.jpg',
+    to: '/brands/Puma',
   },
   {
-    name: "Dhanista Boutique",
-    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png",
-    to: "/brands/Dhanista%20Boutique",
+    name: 'Dhanista Boutique',
+    image: 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787657759/file_00000000eae882079e6b5c085825a239.png',
+    to: '/brands/Dhanista%20Boutique',
   },
   {
-    name: "FCUK",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png",
-    to: "/brands/FCUK",
-    pos: "left center",
+    name: 'FCUK',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438315/FcukandFrenchconnection_a8ovf0.png',
+    to: '/brands/FCUK',
+    pos: 'left center',
   },
   {
-    name: "Libas",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg",
-    to: "/brands/Libas",
+    name: 'Libas',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438322/libasbanner_gtuogs.jpg',
+    to: '/brands/Libas',
   },
   {
-    name: "MK",
-    image: "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg",
-    to: "/brands/MK",
+    name: 'MK',
+    image: 'https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438329/mkbanner_habbh6.jpg',
+    to: '/brands/MK',
   },
   {
-    name: "Toys",
-    image: "https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png",
-    to: "/shop?search=Toys",
-  }
+    name: 'Toys',
+    image: 'https://res.cloudinary.com/vu2qpoeq/image/upload/v1787574337/file_00000000ba04820ba8d817a1a5912ca2.png',
+    to: '/shop?search=Toys',
+  },
 ];
 
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
@@ -172,7 +170,7 @@ const CHIP_ICON_HINTS = [
   { re: /camera/i, icon: '📷' },
   { re: /accessor/i, icon: '🔌' },
   { re: /heel/i, icon: '👠' },
-  { re: /flat/i, icon: '🥿' },
+  { re: /flat/i, icon: 'Flat' },
   { re: /sandal/i, icon: '👡' },
 ];
 
@@ -210,13 +208,6 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   el.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
 
-/**
- * Unified section heading, used by every rail on the home page (Deals,
- * Shop by Brands, Picks for You, Recently Viewed, New In, the audience
- * collections, price bands, Top Brands, More to Explore). Mirrors the
- * "Shop by Brands" heading style everywhere so the page reads as one
- * consistent system instead of a mix of header treatments.
- */
 function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = 'View All', onViewAll }) {
   return (
     <div className="hp-shead">
@@ -318,7 +309,6 @@ export default function Home() {
     return () => window.removeEventListener('focus', loadRecent);
   }, []);
 
-  // Apply gender-based theme
   useEffect(() => {
     if (isLoggedIn && userGender) {
       applyThemeVariables(userGender);
@@ -604,33 +594,28 @@ export default function Home() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroPosition((position) => position + 1);
+      setHeroPosition((position) => (position + 1) % HERO_SLIDES.length);
     }, 15000);
     return () => clearInterval(timer);
   }, []);
 
+  // Fixed scroll calculation – measures the active slide instead of always the first one
   useEffect(() => {
     const track = heroTrackRef.current;
     if (!track) return;
-    const slide = track.querySelector('.hp-slide');
-    if (!slide) return;
+
+    const slides = track.querySelectorAll('.hp-slide');
+    if (!slides.length) return;
+
+    const active = slides[heroPosition % slides.length] || slides[0];
     const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
-    const step = slide.getBoundingClientRect().width + gap;
-    const left = heroPosition * step;
-    track.scrollTo({ left, behavior: 'smooth' });
+    const step = active.getBoundingClientRect().width + gap;
 
-    if (heroPosition === HERO_SLIDES.length) {
-      const resetTimer = window.setTimeout(() => {
-        track.scrollTo({ left: 0, behavior: 'auto' });
-        setHeroPosition(0);
-      }, 750);
-      return () => window.clearTimeout(resetTimer);
-    }
-
+    track.scrollTo({ left: heroPosition * step, behavior: 'smooth' });
     setHeroIndex(heroPosition % HERO_SLIDES.length);
   }, [heroPosition]);
 
-    useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     const loadExploreProducts = async () => {
       setExploreLoading(true);
@@ -663,7 +648,7 @@ export default function Home() {
     };
   }, [exploreCatId]);
 
-    const loadMoreExploreProducts = async () => {
+  const loadMoreExploreProducts = async () => {
     if (exploreLoading || !exploreHasMore) return;
     setExploreLoading(true);
     try {
@@ -695,15 +680,7 @@ export default function Home() {
 
   const goToSlide = (delta) => {
     setHeroPosition((position) => {
-      if (delta > 0) {
-        return position >= HERO_SLIDES.length ? 0 : position + 1;
-      }
-
-      if (position <= 0) {
-        return HERO_SLIDES.length - 1;
-      }
-
-      return position - 1;
+      return (position + delta + HERO_SLIDES.length) % HERO_SLIDES.length;
     });
   };
 
@@ -753,7 +730,6 @@ export default function Home() {
     return pinned ? [pinned, ...rest] : rest;
   }, [newProducts, pinnedNewProduct]);
 
-  // Gender-based recommended products
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     
@@ -797,62 +773,79 @@ export default function Home() {
           <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
             <MdChevronLeft />
           </button>
+
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {[...HERO_SLIDES, HERO_SLIDES[0]].map((slide, index) => (
-              index % HERO_SLIDES.length === 0 ? (
-                <div type="button" key={`${slide.image}-${index}`} className="hp-slide hp-slide-first">
-                  <picture>
-                    {slide.mobileImage ? (
-                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
-                    ) : null}
-                    <img
-                      src={slide.image}
-                      alt=""
-                      className="hp-slide-img"
-                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+            {HERO_SLIDES.map((slide, index) => {
+              const isFirst = index === 0;
+
+              const content = (
+                <picture>
+                  {slide.mobileImage ? (
+                    <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+                  ) : null}
+                  <img
+                    src={slide.image}
+                    alt=""
+                    className="hp-slide-img"
+                    style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                    draggable={false}
+                  />
+                </picture>
+              );
+
+              if (isFirst) {
+                return (
+                  <div
+                    key={slide.id}
+                    className="hp-slide hp-slide-first"
+                  >
+                    {content}
+                    <button
+                      type="button"
+                      className="hp-hero-hotspot hp-hero-hotspot-men"
+                      onClick={() => navigate('/men')}
+                      aria-label="Shop men's fashion"
                     />
-                  </picture>
-                  <button
-                    type="button"
-                    className="hp-hero-hotspot hp-hero-hotspot-men"
-                    onClick={() => navigate("/men")}
-                    aria-label="Shop men's fashion"
-                  />
-                  <button
-                    type="button"
-                    className="hp-hero-hotspot hp-hero-hotspot-women"
-                    onClick={() => navigate("/women")}
-                    aria-label="Shop women's fashion"
-                  />
-                </div>
-              ) : (
+                    <button
+                      type="button"
+                      className="hp-hero-hotspot hp-hero-hotspot-women"
+                      onClick={() => navigate('/women')}
+                      aria-label="Shop women's fashion"
+                    />
+                  </div>
+                );
+              }
+
+              return (
                 <button
                   type="button"
-                  key={`${slide.image}-${index}`}
+                  key={slide.id}
                   className="hp-slide"
-                  onClick={() => navigate(slide.brand ? `/brands/${encodeURIComponent(slide.brand)}` : slide.to)}
+                  onClick={() =>
+                    navigate(
+                      slide.brand
+                        ? `/brands/${encodeURIComponent(slide.brand)}`
+                        : slide.to
+                    )
+                  }
                 >
-                  <picture>
-                    {slide.mobileImage ? (
-                      <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
-                    ) : null}
-                    <img
-                      src={slide.image}
-                      alt=""
-                      className="hp-slide-img"
-                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
-                    />
-                  </picture>
+                  {content}
                 </button>
-              )
-            ))}
+              );
+            })}
           </div>
+
           <button type="button" className="hp-hero-arrow right" onClick={() => goToSlide(1)} aria-label="Next">
             <MdChevronRight />
           </button>
+
           <div className="hp-hero-dots">
             {HERO_SLIDES.map((slide, i) => (
-              <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
+              <span
+                key={slide.id}
+                className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`}
+                onClick={() => setHeroPosition(i)}
+              />
             ))}
           </div>
         </section>
@@ -1002,7 +995,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead
               icon={<MdFavorite />}
-              title={userGender?.toLowerCase() === 'women' ? 'Picks for' : 'Picks for'}
+              title="Picks for"
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
               subtitle="Curated from what you tend to reach for."
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
@@ -1146,7 +1139,7 @@ export default function Home() {
               subtitle="Great styles that won't stretch the budget."
               onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')}
             />
-            {under999Products.length > 0 ? <ProductRail items={under999Products} keyPrefix="under999" /> : null}
+            <ProductRail items={under999Products} keyPrefix="under999" />
           </section>
         )}
 
@@ -1159,7 +1152,7 @@ export default function Home() {
               subtitle="A little more room, a lot more choice."
               onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')}
             />
-            {under1999Products.length > 0 ? <ProductRail items={under1999Products} keyPrefix="under1999" /> : null}
+            <ProductRail items={under1999Products} keyPrefix="under1999" />
           </section>
         )}
 
@@ -1225,7 +1218,6 @@ export default function Home() {
   );
 }
 
-// Helper components (keep these)
 function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
@@ -1295,12 +1287,6 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   );
 }
 
-/**
- * Horizontally scrollable rail of ProductCard tiles, reused across every
- * "Deals of the day / Recently viewed / New on Blinkiefash / Men's / Women's
- * / ..." row on the home page. Card rendering (image, badge, wishlist,
- * cart, price) now all comes from the shared ProductCard component.
- */
 function ProductRail({ items, keyPrefix, railRef: externalRef }) {
   const internalRef = useRef(null);
   const railRef = externalRef || internalRef;
@@ -1319,9 +1305,17 @@ function ProductRail({ items, keyPrefix, railRef: externalRef }) {
         <MdChevronLeft />
       </button>
 
-      <div className="hp-deals-rail" role="list" ref={railRef}>
+      <div
+        className={`hp-deals-rail${keyPrefix === 'recent' ? ' is-recently-viewed' : ''}`}
+        role="list"
+        ref={railRef}
+      >
         {list.map((p, idx) => (
-          <ProductCard key={`${keyPrefix}-${p.id}-${idx}`} product={p} />
+          <ProductCard
+            key={`${keyPrefix}-${p.id}-${idx}`}
+            product={p}
+            isNew={keyPrefix === 'new'}
+          />
         ))}
       </div>
 

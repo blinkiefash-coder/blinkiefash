@@ -14,7 +14,7 @@
 }
 
 .info-header img {
-  width: 40px;
+  width: 180px;
   height: 40px;
   object-fit: contain;
 }
@@ -468,7 +468,7 @@
   }
 
   .info-header img {
-    width: 36px;
+    width: 150px;
     height: 36px;
   }
 
@@ -672,7 +672,7 @@
   }
 
   .info-header img {
-    width: 32px;
+    width: 140px;
     height: 32px;
   }
 
@@ -823,7 +823,7 @@
   }
 
   .info-header img {
-    width: 28px;
+    width: 130px;
     height: 28px;
   }
 
