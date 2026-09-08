@@ -146,6 +146,10 @@
   background: var(--pc-primary);
 }
 
+.pc-badge--new {
+  background: #0f9f52;
+}
+
 /* ── Wishlist (top-right) ── */
 .pc-wishlist {
   position: absolute;
@@ -703,6 +707,21 @@
 }
 
 @media (max-width: 640px) {
+  .pc-body {
+    align-items: center;
+    text-align: center;
+  }
+
+  .pc-body-top,
+  .pc-price-main,
+  .pc-meta-row {
+    justify-content: center;
+  }
+
+  .pc-quick-toggle {
+    align-self: center;
+  }
+
   .pc-title {
     min-height: 38px;
     font-size: 14px;

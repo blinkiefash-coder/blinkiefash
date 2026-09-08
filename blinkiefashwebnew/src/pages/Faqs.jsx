@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo1.png";
 import "./companyLanding.css";
 
 const allFaqs = [
@@ -56,7 +56,6 @@ export default function Faqs() {
       <header className="lp-nav">
         <button className="lp-brand" onClick={() => navigate("/")}>
           <img src={logo} alt="BlinkieFash" />
-          <span>BLINKIE<b>FASH</b></span>
         </button>
         <nav>
           <button onClick={() => navigate("/")}>Home</button>
