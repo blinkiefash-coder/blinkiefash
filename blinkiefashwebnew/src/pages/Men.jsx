@@ -17,7 +17,6 @@ import {
   MdWaterDrop,
   MdLocalOffer,
   MdBolt,
-  MdFlashOn,
   MdAutorenew,
   MdVerifiedUser,
   MdSecurity,
@@ -41,6 +40,12 @@ import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
 import menBanner2 from "../assets/men-banner-2.png";
 import menBanner3 from "../assets/men-banner-3.png";
+import playAndWinImage from "../assets/play&win.png";
+import spinAndWinImage from "../assets/spin&win.png";
+import referAndEarnImage from "../assets/refer&earn.png";
+import freeDeliveryImage from "../assets/freedelivery.png";
+import dealsOfTheDayIcon from "../assets/dealsoftheday.png";
+import shopByBrandIcon from "../assets/shopbybrand.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Men.css";
@@ -61,6 +66,8 @@ const COLORS = [
 
 const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
+const NIKE_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg";
+
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
   if (!value) return null;
@@ -76,8 +83,6 @@ function extractProducts(payload) {
   return [];
 }
 
-// Finds the exact "Men" root category (never matches "Women", which contains
-// "men" as a substring).
 function rootIdForAny(allCats, names) {
   const needles = (Array.isArray(names) ? names : [names])
     .map((n) => (n || "").toString().toLowerCase().trim())
@@ -109,6 +114,58 @@ function childCatsFor(allCats, rootId) {
       image: c.category_url || c.image || "",
     }))
     .filter((c) => c.name);
+}
+
+function normalizeBrandName(value) {
+  return (value || "").toString().toLowerCase().replace(/\./g, "").trim();
+}
+
+function seededShuffle(array, seed) {
+  const arr = [...array];
+  let s = seed % 2147483647;
+  if (s <= 0) s += 2147483646;
+  const next = () => {
+    s = (s * 16807) % 2147483647;
+    return (s - 1) / 2147483646;
+  };
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(next() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function todaysSeed() {
+  const d = new Date();
+  return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+}
+
+function getMsUntilMidnight() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+  return Math.max(0, midnight.getTime() - now.getTime());
+}
+
+function formatCountdown(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const h = Math.floor(totalSeconds / 3600);
+  const m = Math.floor((totalSeconds % 3600) / 60);
+  const s = totalSeconds % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+}
+
+function scrollRailByCards(el, direction = 1, cardsPerPage = 3) {
+  if (!el) return;
+  const dir = direction < 0 ? -1 : 1;
+  const card = el.querySelector(".hp-shop-brand-card, .pc-card, .hp-deal-card");
+  let step = Math.round(el.clientWidth * 0.95);
+  if (card) {
+    const styles = window.getComputedStyle(el);
+    const gap = parseFloat(styles.columnGap || styles.gap || "14") || 14;
+    const cardW = card.getBoundingClientRect().width;
+    step = Math.round((cardW + gap) * cardsPerPage);
+  }
+  el.scrollBy({ left: dir * step, behavior: "smooth" });
 }
 
 const MEN_CATEGORY_FALLBACK = [
@@ -188,53 +245,12 @@ function normalizeProduct(p) {
   };
 }
 
-function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = "View All", onViewAll }) {
-  return (
-    <div className="hp-shead">
-      <div className="hp-shead-title-group">
-        <div className="hp-shead-title-wrap">
-          {icon ? <span className="hp-shead-mark" aria-hidden="true">{icon}</span> : null}
-          <h2 className="hp-shead-title">
-            {accentWord ? (
-              <>
-                <span>{title} </span>
-                <span className="hp-shead-accent">{accentWord}</span>
-              </>
-            ) : (
-              <span>{title}</span>
-            )}
-          </h2>
-        </div>
-        {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
-      </div>
-      {onViewAll ? (
-        <button type="button" className="hp-shead-action" onClick={onViewAll}>
-          {viewAllLabel} <MdChevronRight />
-        </button>
-      ) : null}
-    </div>
-  );
-}
-
-function ProductRail({ list, items, railRef, keyPrefix }) {
+function ProductRail({ list, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
-    const el = railRef?.current;
+    const el = railRef.current;
     if (!el) return;
-    const card = el.querySelector(".pc-card");
-    let step = Math.round(el.clientWidth * 0.95);
-    if (card) {
-      const styles = window.getComputedStyle(el);
-      const gap = parseFloat(styles.columnGap || styles.gap || "14") || 14;
-      const cardW = card.getBoundingClientRect().width;
-      step = Math.round((cardW + gap) * 6);
-    }
-    el.scrollBy({ left: dir * step, behavior: "smooth" });
+    el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
-
-  const safeItems = Array.isArray(items) ? items : Array.isArray(list) ? list : [];
-  const visibleItems = safeItems.slice(0, 10);
-
-  if (!visibleItems.length) return null;
 
   return (
     <div className="hp-deals-wrap">
@@ -243,8 +259,13 @@ function ProductRail({ list, items, railRef, keyPrefix }) {
       </button>
 
       <div className="hp-deals-rail" role="list" ref={railRef}>
-        {visibleItems.map((p, idx) => (
-          <div key={`${keyPrefix}-${p.id}-${idx}`} className="hp-deal-card-wrapper" role="listitem">
+        {list.map((p, idx) => (
+          <div
+            key={`${keyPrefix}-${p.id}-${idx}`}
+            className="hp-deal-card-wrapper"
+            role="listitem"
+            style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
+          >
             <ProductCard product={p} />
           </div>
         ))}
@@ -284,18 +305,16 @@ export default function Men() {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [brandSearch, setBrandSearch] = useState("");
 
+  const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
+
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
   const toggleBrandFilter = (name) => {
-    setActiveBrand((prev) =>
-      prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
-    );
+    setActiveBrand((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
   };
 
   const toggleColorFilter = (name) => {
-    setActiveColor((prev) =>
-      prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]
-    );
+    setActiveColor((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
   };
 
   const selectMinDiscount = (value) => {
@@ -318,22 +337,8 @@ export default function Men() {
     setBrandSearch("");
   };
 
-  const visibleBrands = brands.filter((b) =>
-    normalizeText(b.name).includes(normalizeText(brandSearch))
-  );
+  const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
 
-  const pageBrandNames = useMemo(() => {
-    const names = [...products, ...newArrivals]
-      .map((product) => normalizeText(product.brand || product.brand_name))
-      .filter(Boolean);
-    return new Set(names);
-  }, [products, newArrivals]);
-
-  const audienceBrands = brands.filter((brand) =>
-    pageBrandNames.has(normalizeText(brand.name))
-  );
-
-  // Shared filter predicate, applied to any product list on this page
   const applyProductFilters = useCallback(
     (list) =>
       (list || []).filter((p) => {
@@ -357,10 +362,15 @@ export default function Men() {
   const trendingRef = useRef(null);
   const arrivalsRef = useRef(null);
   const dealsRef = useRef(null);
+  const shopBrandsRef = useRef(null);
 
-  // Resolve the real "Men" category from the DB category tree first — every
-  // link and product fetch on this page is scoped to that subtree so this
-  // page only ever shows men's items, never women's/kids'/other sections'.
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDealsCountdown(formatCountdown(getMsUntilMidnight()));
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
 
@@ -412,7 +422,6 @@ export default function Men() {
     };
   }, []);
 
-  // Main product pool + deals
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -436,8 +445,6 @@ export default function Men() {
       }
 
       if (!found.length && menRootId) {
-        // Some backends only tag leaf-level products, not the root — retry
-        // against each direct subcategory and merge until we have enough.
         try {
           const perSub = await Promise.all(
             menSubcats.slice(0, 6).map((sub) =>
@@ -482,13 +489,9 @@ export default function Men() {
 
       if (!cancelled) {
         const normalized = found.map(normalizeProduct);
-        const normalizedDeals = dealList.map(normalizeProduct).slice(0, 12);
-        const dealIds = new Set(normalizedDeals.map((product) => String(product.id)));
-        const picks = normalized.filter((product) => !dealIds.has(String(product.id)));
-
-        setProducts(picks.slice(0, 20));
+        setProducts(normalized.slice(0, 20));
         setNewArrivals(normalized.slice(0, 10));
-        setDeals(normalizedDeals);
+        setDeals(dealList.map(normalizeProduct).slice(0, 12));
         setProductsLoading(false);
       }
     })();
@@ -505,7 +508,6 @@ export default function Men() {
     return () => clearInterval(id);
   }, []);
 
-  // More to Explore
   useEffect(() => {
     if (!menResolved) return;
     let cancelled = false;
@@ -644,20 +646,63 @@ export default function Men() {
     });
   }, [menSubcats, menScopedShopUrl, findMenSubcatByLabel]);
 
-  const exploreChips = useMemo(
-    () => [{ id: "", name: "All" }, ...menSubcats],
-    [menSubcats]
-  );
+  const exploreChips = useMemo(() => [{ id: "", name: "All" }, ...menSubcats], [menSubcats]);
 
+  // Deals of the Day — same ranking + daily rotation as Home
   const topDeals = useMemo(() => {
-    const enriched = (Array.isArray(deals) ? deals : []).map((item) => {
+    const list = Array.isArray(deals) ? deals : [];
+    const enriched = list.map((item) => {
       const price = Number(item?.discount_price ?? item?.price ?? item?._price ?? 0);
       const mrp = Number(item?.price ?? item?._mrp ?? item?.original_price ?? price);
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      return { ...item, _discount: discount };
+      const brand = (item?.brand || "").toString().trim().toLowerCase();
+      const isSouledStore = brand === "the souled store" || brand === "souled store";
+      return { ...item, _discount: discount, _isSouledStore: isSouledStore };
     });
-    return [...enriched].sort((a, b) => b._discount - a._discount).slice(0, 10);
+
+    const discountedOnly = enriched.filter((item) => item._discount > 0);
+    const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
+    const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+    const rotated = seededShuffle(pool, todaysSeed());
+    const souledFirst = rotated.filter((item) => item._isSouledStore);
+    const others = rotated.filter((item) => !item._isSouledStore);
+    return [...souledFirst, ...others].slice(0, 30);
   }, [deals]);
+
+  // Only brands that appear on men's products
+  const menBrands = useMemo(() => {
+    const fromProducts = new Map();
+    const push = (list) => {
+      (list || []).forEach((p) => {
+        const name = (p?.brand || "").toString().trim();
+        if (!name) return;
+        const key = normalizeBrandName(name);
+        if (!fromProducts.has(key)) fromProducts.set(key, name);
+      });
+    };
+    push(products);
+    push(deals);
+    push(newArrivals);
+    push(exploreProducts);
+
+    if (fromProducts.size === 0) {
+      return (brands || []).slice(0, 14);
+    }
+
+    const logoByName = new Map();
+    (brands || []).forEach((b) => {
+      const key = normalizeBrandName(b.name);
+      if (key) logoByName.set(key, b.logo_url || "");
+    });
+
+    return [...fromProducts.entries()]
+      .map(([key, name]) => ({
+        id: null,
+        name,
+        logo_url: logoByName.get(key) || "",
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [products, deals, newArrivals, exploreProducts, brands]);
 
   const slide = HERO_SLIDES[heroIndex];
 
@@ -720,134 +765,255 @@ export default function Men() {
           </div>
         </section>
 
-        {/* Filters */}
-        <div className="men-filter-bar">
-          <button
-            type="button"
-            className={`men-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
-            onClick={() => setFilterOpen((o) => !o)}
-          >
-            <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
-          </button>
+        <section className="section hp-rewards-section" aria-label="Offers & rewards">
+          <div className="hp-rewards-grid">
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
+              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/play-and-win")}>
+              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/refer-earn")}>
+              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
+            </button>
+            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/shop")}>
+              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
+            </button>
+          </div>
+        </section>
 
-          {filterOpen && (
-            <section className="men-filters-panel" role="dialog" aria-label="Men filters">
-              <div className="men-filters-panel-header">
-                <h3>Filters</h3>
-                {activeFilterCount > 0 ? (
-                  <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
-                    Clear All
-                  </button>
-                ) : null}
-              </div>
-
-              <div className="men-filter-col">
-                <h4>Brand</h4>
-                <input
-                  className="men-filter-search"
-                  value={brandSearch}
-                  onChange={(e) => setBrandSearch(e.target.value)}
-                  placeholder="Search brand"
-                />
-                <div className="men-filter-list">
-                  {visibleBrands.slice(0, 15).map((brand) => (
-                    <label key={brand.id || brand.name}>
-                      <input
-                        type="checkbox"
-                        checked={activeBrand.includes(brand.name)}
-                        onChange={() => toggleBrandFilter(brand.name)}
-                      />
-                      <span>{brand.name}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="men-filter-col">
-                <h4>Color</h4>
-                <div className="men-filter-list men-filter-swatches">
-                  {COLORS.map(([name, hex]) => {
-                    const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
-                    return (
-                      <label key={name} className={`men-swatch-label${checked ? " checked" : ""}`}>
-                        <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
-                        <span className="men-swatch-dot" style={{ background: hex }} />
-                        <span>{name}</span>
-                      </label>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="men-filter-col">
-                <h4>Price</h4>
-                <input
-                  type="range"
-                  min="500"
-                  max="12000"
-                  step="100"
-                  value={maxPrice}
-                  onChange={(e) => setMaxPrice(Number(e.target.value))}
-                />
-                <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
-              </div>
-
-              <div className="men-filter-col">
-                <h4>Discount Range</h4>
-                <div className="men-filter-chips">
-                  {DISCOUNT_BUCKETS.map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`men-filter-chip-item${minDiscount === value ? " active" : ""}`}
-                      onClick={() => selectMinDiscount(value)}
-                    >
-                      {value}% and above
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="men-filter-col">
-                <h4>Availability</h4>
-                <div className="men-filter-list">
-                  <label>
-                    <input type="checkbox" checked={inStockOnly} onChange={(e) => setInStockOnly(e.target.checked)} />
-                    <span>In stock only</span>
-                  </label>
-                </div>
-              </div>
-            </section>
-          )}
-        </div>
-
-        {/* Deals of the Day */}
+        {/* ========== DEALS OF THE DAY (Home-style + timer) ========== */}
         {topDeals.length > 0 && (
           <section className="section men-picks-section">
-            <SectionHead
-              icon={<MdFlashOn />}
-              title="Deals of the"
-              accentWord="Day"
-              subtitle="Steep price cuts, refreshed daily."
-              onViewAll={() => navigate(menScopedShopUrl())}
-            />
-            <ProductRail items={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="men-deal" />
+            <div className="hp-shead">
+              <div className="hp-shead-title-group">
+                <div className="hp-shead-title-wrap">
+                  <span className="hp-shead-mark hp-shead-mark-deals" aria-hidden="true">
+                    <img src={dealsOfTheDayIcon} alt="" className="hp-shead-mark-img" />
+                  </span>
+                  <h2 className="hp-shead-title">
+                    <span>Deals of the </span>
+                    <span className="hp-shead-accent">Day</span>
+                  </h2>
+                  <div className="hp-deals-timer" aria-live="polite">
+                    <span className="hp-deals-timer-label">Deal Ends in</span>
+                    <span className="hp-deals-timer-value">{dealsCountdown}</span>
+                  </div>
+                </div>
+              </div>
+              <div className="men-section-actions">
+                <button type="button" className="hp-shead-action" onClick={() => navigate(menScopedShopUrl())}>
+                  View All <MdChevronRight />
+                </button>
+                <button
+                  type="button"
+                  className={`men-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
+                  onClick={() => setFilterOpen((o) => !o)}
+                >
+                  <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+                </button>
+              </div>
+            </div>
+
+            {filterOpen && (
+              <section className="men-filters-panel" role="dialog" aria-label="Men filters">
+                <div className="men-filters-panel-header">
+                  <h3>Filters</h3>
+                  {activeFilterCount > 0 ? (
+                    <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
+                      Clear All
+                    </button>
+                  ) : null}
+                </div>
+
+                <div className="men-filter-col">
+                  <h4>Brand</h4>
+                  <input
+                    className="men-filter-search"
+                    value={brandSearch}
+                    onChange={(e) => setBrandSearch(e.target.value)}
+                    placeholder="Search brand"
+                  />
+                  <div className="men-filter-list">
+                    {visibleBrands.slice(0, 15).map((brand) => (
+                      <label key={brand.id || brand.name}>
+                        <input
+                          type="checkbox"
+                          checked={activeBrand.includes(brand.name)}
+                          onChange={() => toggleBrandFilter(brand.name)}
+                        />
+                        <span>{brand.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="men-filter-col">
+                  <h4>Color</h4>
+                  <div className="men-filter-list men-filter-swatches">
+                    {COLORS.map(([name, hex]) => {
+                      const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                      return (
+                        <label key={name} className={`men-swatch-label${checked ? " checked" : ""}`}>
+                          <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
+                          <span className="men-swatch-dot" style={{ background: hex }} />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="men-filter-col">
+                  <h4>Price</h4>
+                  <input
+                    type="range"
+                    min="500"
+                    max="12000"
+                    step="100"
+                    value={maxPrice}
+                    onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  />
+                  <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
+                </div>
+
+                <div className="men-filter-col">
+                  <h4>Discount Range</h4>
+                  <div className="men-filter-chips">
+                    {DISCOUNT_BUCKETS.map((value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`men-filter-chip-item${minDiscount === value ? " active" : ""}`}
+                        onClick={() => selectMinDiscount(value)}
+                      >
+                        {value}% and above
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="men-filter-col">
+                  <h4>Availability</h4>
+                  <div className="men-filter-list">
+                    <label>
+                      <input
+                        type="checkbox"
+                        checked={inStockOnly}
+                        onChange={(e) => setInStockOnly(e.target.checked)}
+                      />
+                      <span>In stock only</span>
+                    </label>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="men-deal" />
+          </section>
+        )}
+
+        {/* ========== BRANDS YOU WILL LOVE (under Deals, men-only brands, 1 row) ========== */}
+        {menBrands.length > 0 && (
+          <section className="section hp-shop-brands-section men-brands-section" aria-label="Brands you will love">
+            <div className="hp-shead">
+              <div className="hp-shead-title-group">
+                <div className="hp-shead-title-wrap">
+                  <span className="hp-shead-mark" aria-hidden="true">
+                    <img src={shopByBrandIcon} alt="" className="hp-shead-mark-img" />
+                  </span>
+                  <h2 className="hp-shead-title">
+                    <span>Brands You </span>
+                    <span className="hp-shead-accent">Will Love</span>
+                  </h2>
+                </div>
+              </div>
+              <button type="button" className="hp-shead-action" onClick={() => navigate(menScopedShopUrl())}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+
+            <div className="hp-deals-wrap hp-shop-brands-wrap">
+              <button
+                type="button"
+                className="hp-deals-prev"
+                aria-label="Scroll brands left"
+                onClick={() => scrollRailByCards(shopBrandsRef.current, -1, 3)}
+              >
+                <MdChevronLeft />
+              </button>
+
+              <div className="hp-shop-brands-grid" role="list" ref={shopBrandsRef}>
+                {menBrands.map((brand, idx) => {
+                  const label = (brand.name || "").toString().trim();
+                  const displayName = label || "Brand";
+                  const normalizedDisplayName = normalizeBrandName(displayName);
+                  const logo =
+                    normalizedDisplayName === "nike"
+                      ? NIKE_LOGO_URL
+                      : resolveImageUrl(brand.logo_url || brand.image);
+                  const isFeatured = idx === 0;
+
+                  return (
+                    <article
+                      key={`${brand.id || displayName}-${idx}`}
+                      className={`hp-shop-brand-card${isFeatured ? " featured" : ""}`}
+                      role="listitem"
+                      tabIndex={0}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => navigate(menScopedShopUrl({ search: displayName }))}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          navigate(menScopedShopUrl({ search: displayName }));
+                        }
+                      }}
+                    >
+                      <div className="hp-shop-brand-visual">
+                        {logo ? (
+                          <img
+                            src={logo}
+                            alt={displayName}
+                            loading="lazy"
+                            className={`hp-shop-brand-logo${
+                              normalizedDisplayName === "nike" ? " hp-shop-brand-nike-logo" : ""
+                            }`}
+                          />
+                        ) : (
+                          <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                            {displayName.slice(0, 5).toUpperCase()}
+                          </div>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <button
+                type="button"
+                className="hp-deals-next"
+                aria-label="Scroll brands right"
+                onClick={() => scrollRailByCards(shopBrandsRef.current, 1, 3)}
+              >
+                <MdChevronRight />
+              </button>
+            </div>
           </section>
         )}
 
         {/* All Men's Picks */}
         <section className="section men-picks-section">
-          <SectionHead
-            icon={<MdCheckroom />}
-            title="All Men's"
-            accentWord="Picks"
-            subtitle="Handpicked for the everyday grind."
-            onViewAll={() => navigate(menScopedShopUrl())}
-          />
+          <div className="hp-section-head">
+            <h2>ALL MEN&apos;S PICKS 👔</h2>
+            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
+              View All <MdChevronRight />
+            </button>
+          </div>
           {productsLoading ? (
             <Loader />
           ) : products.length ? (
-            <ProductRail items={applyProductFilters(products)} railRef={trendingRef} keyPrefix="men-all" />
+            <ProductRail list={applyProductFilters(products)} railRef={trendingRef} keyPrefix="men-all" />
           ) : (
             <p className="men-empty-state">New men&apos;s styles are landing soon.</p>
           )}
@@ -923,53 +1089,19 @@ export default function Men() {
 
         {/* New arrivals */}
         <section className="section men-picks-section">
-          <SectionHead
-            icon={<MdBolt />}
-            title="New"
-            accentWord="Arrivals"
-            subtitle="Fresh fits before the rest of the city catches on."
-            onViewAll={() => navigate(menScopedShopUrl())}
-          />
+          <div className="hp-section-head">
+            <h2>NEW ARRIVALS ✨</h2>
+            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
+              View All <MdChevronRight />
+            </button>
+          </div>
           {productsLoading ? (
             <Loader />
           ) : newArrivals.length ? (
-            <ProductRail items={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" />
+            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" />
           ) : (
             <p className="men-empty-state">Fresh styles coming soon.</p>
           )}
-        </section>
-
-        {/* Brands */}
-        <section className="men-brands-section" aria-label="Top brands">
-          <div className="hp-section-head">
-            <h2>Top Brands You Love</h2>
-          </div>
-          <div className="hp-top-brands-rail">
-            {audienceBrands.slice(0, 14).map((brand, idx) => {
-              const logo = resolveImageUrl(brand.logo_url);
-              const initials = brand.name
-                .split(/\s+/)
-                .map((part) => part[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase();
-
-              return (
-                <button
-                  key={`${brand.id || brand.name}-${idx}`}
-                  type="button"
-                  className="hp-top-brand-card"
-                  onClick={() => navigate(menScopedShopUrl({ search: brand.name }))}
-                  aria-label={`Shop ${brand.name}`}
-                >
-                  <span className="hp-top-brand-logo">
-                    {logo ? <img src={logo} alt="" loading="lazy" /> : <span>{initials || "BR"}</span>}
-                  </span>
-                  <span className="hp-top-brand-name">{brand.name}</span>
-                </button>
-              );
-            })}
-          </div>
         </section>
 
         {/* More to Explore */}

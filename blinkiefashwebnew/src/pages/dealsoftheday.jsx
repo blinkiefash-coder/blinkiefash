@@ -19,6 +19,22 @@ const SORT_OPTIONS = [
   { id: 'price_desc', label: 'Price: High to Low' },
 ];
 
+// Desired display order for top-level category chips.
+const CATEGORY_ORDER = [
+  'MEN',
+  'WOMEN',
+  'KIDS',
+  'FOOTWEAR',
+  'ELECTRONICS',
+  'TRAVEL AND BACKPACK',
+];
+
+function getCategoryRank(name) {
+  const normalized = String(name || '').trim().toUpperCase();
+  const idx = CATEGORY_ORDER.indexOf(normalized);
+  return idx === -1 ? CATEGORY_ORDER.length : idx;
+}
+
 function withDiscount(item) {
   const price = Number(item?.discount_price ?? item?.price ?? 0);
   const mrp = Number(item?.price ?? item?.original_price ?? price);
@@ -131,10 +147,19 @@ export default function DealsOfTheDay() {
     };
   }, []);
 
-  // Only show category chips that actually have at least one discounted item.
+  // Only show category chips that actually have at least one discounted item,
+  // ordered per CATEGORY_ORDER (MEN, WOMEN, KIDS, FOOTWEAR, ELECTRONICS, TRAVEL AND BACKPACK).
   const categoriesWithDeals = useMemo(() => {
     const idsPresent = new Set(allDeals.map((p) => String(p._rootCategoryId)));
-    return categories.filter((c) => idsPresent.has(String(c.id)));
+    return categories
+      .filter((c) => idsPresent.has(String(c.id)))
+      .sort((a, b) => {
+        const rankA = getCategoryRank(a.name);
+        const rankB = getCategoryRank(b.name);
+        if (rankA !== rankB) return rankA - rankB;
+        // Fallback for categories not in the priority list (or ties): alphabetical.
+        return String(a.name).localeCompare(String(b.name));
+      });
   }, [categories, allDeals]);
 
   const filteredDeals = useMemo(() => {

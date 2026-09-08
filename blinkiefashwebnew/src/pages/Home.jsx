@@ -256,6 +256,18 @@ function isFashionProduct(item) {
   return !NON_FASHION_KEYWORDS.some((keyword) => hay.includes(keyword));
 }
 
+
+function SectionHead({
+  icon,
+  iconAlt = '',
+  title,
+  accentWord,
+  viewAllLabel = 'View All',
+  onViewAll,
+  iconClassName,
+  trailing,
+}) {
+
 function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
   return (
     <div className="hp-shead">
@@ -276,8 +288,10 @@ function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'Vi
               <span>{title}</span>
             )}
           </h2>
+          {trailing}
         </div>
       </div>
+
       {onViewAll ? (
         <button type="button" className="hp-shead-action" onClick={onViewAll}>
           {viewAllLabel} <MdChevronRight />
@@ -318,7 +332,6 @@ export default function Home() {
   const [exploreLoading, setExploreLoading] = useState(false);
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
-  const [heroIndex, setHeroIndex] = useState(0);
   const [heroPosition, setHeroPosition] = useState(0);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
@@ -529,6 +542,7 @@ export default function Home() {
           dealList = fallback?.products || (Array.isArray(fallback) ? fallback : []);
         }
 
+
         const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
         const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
         if (Array.isArray(dealsPool) && dealsPool.length > 0) {
@@ -664,6 +678,18 @@ export default function Home() {
     if (!slides.length) return;
     const active = slides[heroPosition % slides.length] || slides[0];
     const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
+    const step = slide.getBoundingClientRect().width + gap;
+    const left = heroPosition * step;
+    track.scrollTo({ left, behavior: 'smooth' });
+
+    if (heroPosition === HERO_SLIDES.length) {
+      const resetTimer = window.setTimeout(() => {
+        track.scrollTo({ left: 0, behavior: 'auto' });
+        setHeroPosition(0);
+      }, 750);
+      return () => window.clearTimeout(resetTimer);
+    }
+
     const step = active.getBoundingClientRect().width + gap;
     track.scrollTo({ left: heroPosition * step, behavior: 'smooth' });
     setHeroIndex(heroPosition % HERO_SLIDES.length);
@@ -737,19 +763,39 @@ export default function Home() {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
   };
 
+  // ========== UPDATED topDeals memo ==========
   const topDeals = useMemo(() => {
     const fashionOnly = (Array.isArray(deals) ? deals : []).filter(isFashionProduct);
     const enriched = fashionOnly.map((item) => {
       const price = Number(item?.discount_price ?? item?.price ?? 0);
       const mrp = Number(item?.price ?? item?.original_price ?? price);
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      return { ...item, _discount: discount };
+      const brand = (item?.brand || '').toString().trim().toLowerCase();
+      const isSouledStore = brand === 'the souled store' || brand === 'souled store';
+      return { ...item, _discount: discount, _isSouledStore: isSouledStore };
     });
+
+    // Only discounted products belong on this rail.
+    const discountedOnly = enriched.filter((item) => item._discount > 0);
+
+    // Rank by discount first, then take a generous pool from the top so
+    // there's enough to rotate from, and reshuffle that pool using a seed
+    // tied to today's date — the selection/order changes once every 24
+    // hours (at local midnight) without needing a backend change.
+    const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
     const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
     const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+
+    // Shuffle the pool for daily rotation, then pull Souled Store items to
+    // the very front so they always lead the rail, while the rest of the
+    // rotation order (including the relative order of the remaining items)
+    // stays untouched.
     const rotated = seededShuffle(pool, todaysSeed());
-    return rotated.slice(0, 30);
+    const souledFirst = rotated.filter((item) => item._isSouledStore);
+    const others = rotated.filter((item) => !item._isSouledStore);
+    return [...souledFirst, ...others].slice(0, 30);
   }, [deals]);
+  // ========== END UPDATED topDeals ==========
 
   const recentlyViewedProducts = useMemo(() => {
     return recentlyViewedProductsData
@@ -845,6 +891,7 @@ export default function Home() {
           </button>
           <div className="hp-hero-dots">
             {HERO_SLIDES.map((slide, i) => (
+              <span key={slide.image} className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`} />
               <span key={slide.id} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} onClick={() => setHeroPosition(i)} />
             ))}
           </div>
@@ -862,11 +909,13 @@ export default function Home() {
               title="Deals of the"
               accentWord="Day"
               onViewAll={() => navigate('/deals-of-the-day')}
+              trailing={
+                <div className="hp-deals-timer" aria-live="polite">
+                  <span className="hp-deals-timer-label">Deal Ends in</span>
+                  <span className="hp-deals-timer-value">{dealsCountdown}</span>
+                </div>
+              }
             />
-            <div className="hp-deals-timer" aria-live="polite">
-              <span className="hp-deals-timer-label">Fresh picks refresh in</span>
-              <span className="hp-deals-timer-value">{dealsCountdown}</span>
-            </div>
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
           </section>
         )}
