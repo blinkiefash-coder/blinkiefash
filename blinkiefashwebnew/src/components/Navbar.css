@@ -45,12 +45,11 @@
 }
 
 .logo-img {
-  height: 52px;
-  width: auto;
+  height: 42px;
+  width: 180px;
   max-width: 190px;
   object-fit: contain;
   display: block;
-  mix-blend-mode: multiply;
   transition: transform 0.18s ease;
 }
 
@@ -669,6 +668,7 @@ form.search-box.search-box {
 
   .nav-left .logo-img {
     height: 40px;
+    width: 148px;
     max-width: 148px;
   }
 
@@ -722,6 +722,7 @@ form.search-box.search-box {
   }
 
   .nav-left .logo-img {
+    width: 110px;
     max-width: 110px;
   }
 
@@ -756,6 +757,7 @@ form.search-box.search-box {
 
   .navbar-search-only .logo-img {
     height: 30px !important;
+    width: 108px !important;
     max-width: 108px !important;
   }
 
@@ -838,6 +840,16 @@ form.search-box.search-box {
   animation: bf-fade-in 0.18s ease;
 }
 
+@keyframes bf-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes bf-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
 .nav-drawer {
   position: fixed;
   top: 0;
@@ -853,16 +865,6 @@ form.search-box.search-box {
   animation: bf-slide-in 0.22s ease;
   display: flex;
   flex-direction: column;
-}
-
-@keyframes bf-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes bf-slide-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
 }
 
 .nav-drawer-header {
@@ -994,4 +996,23 @@ form.search-box.search-box {
   .nav-left .brand {
     min-width: 0;
   }
+}
+
+.nav-wordmark {
+  display: inline-flex;
+  align-items: baseline;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.nav-wordmark b {
+  color: #111827;
+}
+
+.nav-wordmark span {
+  color: #16a34a;
+  margin-left: 3px;
 }

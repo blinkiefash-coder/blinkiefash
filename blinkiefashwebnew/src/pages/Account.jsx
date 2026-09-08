@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { updateUserProfile } from '../api';
-import logo from '../assets/logo.png';
+import logo from '../assets/logo1.png';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useLogoutConfirm } from '../hooks/useLogoutConfirm';
 import './Account.css';
@@ -257,9 +257,6 @@ export default function AccountPage() {
           <div className="acct-logo">
             <img src={logo} alt="BlinkieFash" className="acct-logo-img" />
             <div className="acct-logo-text-wrap">
-              <span className="acct-logo-text">
-                BLINKIE<span className="fash">FASH</span>
-              </span>
               <span className="acct-logo-sub">DELIVERED IN 60 MIN</span>
             </div>
           </div>

@@ -1760,7 +1760,9 @@
   width: max-content;
   gap: 14px;
   will-change: transform;
-  animation: hp-brands-loop 34s linear infinite;
+  animation-duration: 50s;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
 }
 
 .hp-shop-brands-track.move-right {
@@ -1776,13 +1778,13 @@
 }
 
 @keyframes hp-brands-loop-right {
-  from { transform: translateX(calc(-50% - 7px)); }
-  to { transform: translateX(0); }
+  from { transform: translate3d(calc(-50% - 7px), 0, 0); }
+  to { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes hp-brands-loop-left {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(-50% - 7px)); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(calc(-50% - 7px), 0, 0); }
 }
 
 .hp-shop-brands-grid {
@@ -3782,9 +3784,13 @@ html, body, #root {
   }
 
   .hp-deals-rail {
-    grid-auto-columns: minmax(132px, 42vw) !important;
+    grid-auto-columns: calc((100% - 10px) / 2) !important;
     gap: 10px !important;
     padding-top: 2px;
+  }
+
+  .hp-deals-rail.is-recently-viewed {
+    grid-auto-columns: calc((100% - 10px) / 2) !important;
   }
 
   .hp-deals-rail .pc-image-wrap {
@@ -4464,4 +4470,36 @@ html, body, #root {
   background: #0f172a;
   border-color: #0f172a;
   color: #fff;
+}
+
+/* =========================================================
+   FIX: Kids (and other) hero banner appearing twice on mobile
+   ========================================================= */
+@media (max-width: 767px) {
+  .hp-hero-carousel {
+    overflow: hidden !important;
+  }
+
+  .hp-hero-track {
+    gap: 0 !important;
+    scroll-padding: 0 !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  .hp-slide {
+    flex: 0 0 100% !important;
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
+    scroll-snap-align: start !important;
+    scroll-snap-stop: always !important;
+    box-sizing: border-box !important;
+  }
+
+  .hp-slide-first {
+    display: block !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+  }
 }
