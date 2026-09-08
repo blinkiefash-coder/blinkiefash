@@ -3301,15 +3301,6 @@ html, body, #root {
   }
 }
 
-/* =========================================================
-   NEW EDITS REQUESTED:
-   1. Remove prev/next arrows from the category chip rails
-      (Men's/Women's/Kids/Electronics/Trendy Shoes chip rows).
-   2. Make the Universe brand banner grid horizontally
-      scrollable on mobile instead of stacking as a grid.
-   Placed at the very end so these rules win the cascade.
-   ========================================================= */
-
 /* 1. Remove arrows from category chip rails */
 .hp-collection-chip-group .hp-deals-prev,
 .hp-collection-chip-group .hp-deals-next {
@@ -3801,20 +3792,7 @@ html, body, #root {
   background: transparent !important;
 }
 
-/* =========================================================
-   TRUE FIX — hero banner was bleeding asymmetrically (flush
-   left, gap on right) because two different rules computed
-   the negative-margin bleed against two different assumed
-   parent-padding values (10px vs 12px), and depending on
-   cascade order the math didn't match on both sides.
 
-   Switching to the viewport-centering bleed technique below:
-   it bleeds to the true viewport edge regardless of what
-   padding .hp-main happens to have, so it can never go
-   lopsided again. Also adds a small explicit gap between the
-   coupon banner and the hero carousel, as requested.
-   Placed at the very end so it is the single source of truth.
-   ========================================================= */
 
 @media (max-width: 768px) {
   .hp-coupon-section,
@@ -4123,25 +4101,15 @@ html, body, #root {
 
 /* =========================================================================
    REDESIGN PASS — unified section headers + minimal category chips
-   -------------------------------------------------------------------------
-   1) Every rail heading (Deals, Shop by Brands, Picks for You, Recently
-      Viewed, New on Blinkiefash, the five audience collections, both price
-      bands, Top Brands, More to Explore) now renders through one shared
-      <SectionHead> component and shares this single header treatment,
-      instead of the old mix of hp-section-head / hp-feed-head / the boxed
-      green "DEALS OF THE DAY" pill. Modeled on the original Shop by Brands
-      header, generalized, with the heavy green pill removed.
-   2) Category chips and subcategory chips lose the green active ring /
-      filled glow. Cards are now quiet, neutral, white-on-off-white with a
-      slim border; the only thing that changes on selection is a dark
-      1px ring and bolder label — no color swap.
-   Placed at the very end of the file so it wins the cascade over every
-   earlier pass, matching the convention already used throughout this file.
-   ========================================================= */
+   (Updated version: refined timer pill styling, orange accent for the
+   Deals of the Day heading, and simplified header layout — this block
+   supersedes the earlier REDESIGN PASS block and is the single source
+   of truth for these rules.)
+   ========================================================================= */
 
 .hp-shead {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 16px;
@@ -4150,14 +4118,16 @@ html, body, #root {
 .hp-shead-title-group {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 0;
   min-width: 0;
+  flex: 1;
 }
 
 .hp-shead-title-wrap {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;                 /* space between title and timer */
+  flex-wrap: wrap;
 }
 
 .hp-shead-mark {
@@ -4168,7 +4138,7 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   border-radius: 13px;
-  background: #f4f7f2;           /* was a dark green/black gradient */
+  background: #f4f7f2;
   border: 1px solid #e4ebe0;
   color: #15803d;
   box-shadow: 0 4px 10px rgba(15, 36, 25, 0.08);
@@ -4195,13 +4165,23 @@ html, body, #root {
   letter-spacing: -0.025em;
   font-weight: 900;
   color: #0b1d2d;
-  overflow-wrap: break-word;
+  white-space: nowrap;
 }
 
+/* Default accent (green) for all other headings */
 .hp-shead-accent {
-  position: relative;
   color: #159447;
   background: linear-gradient(90deg, #159447, #22c55e);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Deals of the Day — orange → red accent only */
+.hp-shead-mark-deals + .hp-shead-title .hp-shead-accent,
+.section:has(.hp-shead-mark-deals) .hp-shead-accent {
+  color: #ea580c;
+  background: linear-gradient(90deg, #ea580c 0%, #ef4444 55%, #dc2626 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -4211,6 +4191,7 @@ html, body, #root {
   display: none;
 }
 
+/* View All on the far right (same as every other heading) */
 .hp-shead-action {
   flex: none;
   border: none;
@@ -4222,9 +4203,9 @@ html, body, #root {
   align-items: center;
   gap: 2px;
   cursor: pointer;
-  margin-top: 7px;
   white-space: nowrap;
   padding: 4px 2px;
+  margin: 0;
 }
 
 .hp-shead-action svg {
@@ -4235,51 +4216,41 @@ html, body, #root {
   color: #159447;
 }
 
-/* ---------------------------------------------------------------------
-   DEALS OF THE DAY — 24-hour refresh countdown
-   --------------------------------------------------------------------- */
+/* ===== Attractive timer pill (sits beside the title) ===== */
 .hp-deals-timer {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  margin: -6px 0 14px;
-  padding: 7px 14px;
+  gap: 6px;
+  margin-top: 0.25rem;
+  padding: 5px 12px 5px 10px;
   border-radius: 999px;
-  background: #0f2419;
-  color: #eef9e4;
+  background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
+  color: #fff7ed;
   width: fit-content;
+  white-space: nowrap;
+  line-height: 1;
+  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.25);
+  border: 1px solid rgba(249, 115, 22, 0.35);
 }
 
 .hp-deals-timer-label {
-  font-size: 11.5px;
+  font-size: 10.5px;
   font-weight: 700;
-  color: rgba(238, 249, 228, 0.75);
-  letter-spacing: 0.2px;
+  color: rgba(255, 247, 237, 0.7);
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
 }
 
 .hp-deals-timer-value {
   font-size: 13px;
   font-weight: 900;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
   font-variant-numeric: tabular-nums;
-  color: #4ade80;
+  color: #fb923c;
+  text-shadow: 0 0 14px rgba(251, 146, 60, 0.45);
 }
 
-@media (max-width: 640px) {
-  .hp-deals-timer {
-    margin: -4px 0 10px;
-    padding: 6px 12px;
-  }
-
-  .hp-deals-timer-label {
-    font-size: 10px;
-  }
-
-  .hp-deals-timer-value {
-    font-size: 12px;
-  }
-}
-
+/* Mobile */
 @media (max-width: 640px) {
   .hp-shead {
     gap: 10px;
@@ -4301,18 +4272,27 @@ html, body, #root {
     font-size: 1.05rem;
   }
 
-  .hp-shead-subtitle {
-    display: none;
+  .hp-shead-title-wrap {
+    gap: 10px;
+  }
+
+  .hp-deals-timer {
+    padding: 4px 10px 4px 8px;
+  }
+
+  .hp-deals-timer-label {
+    font-size: 9.5px;
+  }
+
+  .hp-deals-timer-value {
+    font-size: 11.5px;
   }
 
   .hp-shead-action {
     font-size: 0.76rem;
-    margin-top: 2px;
   }
 }
 
-/* Shop by Brands section: subtitle stays visible longer since the rail
-   below is wide, so give it a touch more room before it hides. */
 @media (max-width: 480px) {
   .hp-shop-brands-section .hp-shead-subtitle {
     display: none;
@@ -4320,9 +4300,8 @@ html, body, #root {
 }
 
 /* ---------------------------------------------------------------------
-   Minimal category chips (Men's/Women's/Kids/Electronics/Trendy Shoes)
+   Minimal category chips
    --------------------------------------------------------------------- */
-
 .hp-collection-chip-group {
   gap: 12px;
 }
@@ -4395,7 +4374,6 @@ html, body, #root {
   border: 1px solid #edeff2;
 }
 
-/* More to Explore chips: same neutral treatment, dark pill when active */
 .hp-explore-chip {
   border: 1px solid #e3e6ea;
   background: #fff;

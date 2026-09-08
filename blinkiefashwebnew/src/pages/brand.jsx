@@ -52,6 +52,12 @@ export default function BrandPage() {
   const [products, setProducts] = useState([]);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  // The backend's `total` field is unreliable — it reports the size of the
+  // current page (capped at PAGE_SIZE), not the true number of matching
+  // products. We can't fix that without touching the backend, so instead we
+  // infer "is there more" client-side: a full page suggests more products
+  // might exist; a short page means we've hit the real end.
+  const [hasMore, setHasMore] = useState(true);
   const [sort, setSort] = useState('newest');
   const [sortOpen, setSortOpen] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -75,7 +81,7 @@ export default function BrandPage() {
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
 
-  // Look up this brand's banner/logo once from the brands list.
+  // Look up this brand's banner/logo/id once from the brands list.
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -103,7 +109,11 @@ export default function BrandPage() {
       setError('');
       try {
         const res = await getProducts({
-          search: brandName,
+          // Prefer the exact brand_id filter once we've resolved it from the
+          // brands list; fall back to the fuzzy text search only until then
+          // (or if the brand couldn't be matched at all).
+          brand_id: brandInfo?.id || undefined,
+          search: brandInfo?.id ? undefined : brandName,
           category_id: selectedCategoryId || undefined,
           min_price: appliedPriceRange.min || undefined,
           max_price: appliedPriceRange.max || undefined,
@@ -112,21 +122,32 @@ export default function BrandPage() {
           offset: nextOffset,
         });
         const items = res?.products || (Array.isArray(res) ? res : []);
-        const totalCount = Number.isFinite(res?.total) ? res.total : nextOffset + items.length;
+
         setProducts((prev) => (append ? [...prev, ...items] : items));
-        setTotal(totalCount);
         setOffset(nextOffset + items.length);
+
+        // A full page means there may be more; a short page means this is
+        // the last one. Don't trust res.total for this decision.
+        setHasMore(items.length === PAGE_SIZE);
+
+        // Running count of everything loaded so far. This is only a lower
+        // bound on the real total until the backend reports an accurate
+        // count, but it's honest about what's actually on screen.
+        setTotal((prev) => (append ? prev + items.length : items.length));
       } catch (err) {
         setError(err.message || 'Could not load products for this brand.');
-        if (!append) setProducts([]);
+        if (!append) {
+          setProducts([]);
+          setHasMore(false);
+        }
       } finally {
         append ? setLoadingMore(false) : setLoading(false);
       }
     },
-    [brandName, sort, selectedCategoryId, appliedPriceRange]
+    [brandName, brandInfo, sort, selectedCategoryId, appliedPriceRange]
   );
 
-  // Re-fetch from the top whenever brand, sort, or filters change.
+  // Re-fetch from the top whenever brand, brand info, sort, or filters change.
   // Routed through setTimeout so the setState calls inside fetchPage are an
   // indirect, callback-triggered update rather than a synchronous call from
   // the effect body itself (see react-hooks/set-state-in-effect).
@@ -136,7 +157,7 @@ export default function BrandPage() {
     }, 0);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [brandName, sort, selectedCategoryId, appliedPriceRange]);
+  }, [brandName, brandInfo, sort, selectedCategoryId, appliedPriceRange]);
 
   const handleApplyFilters = () => {
     setAppliedPriceRange({ min: priceRange.min, max: priceRange.max });
@@ -159,7 +180,6 @@ export default function BrandPage() {
     SORT_OPTIONS.find((o) => o.value === sort)?.label || 'Sort';
   const showingFrom = products.length > 0 ? 1 : 0;
   const showingTo = products.length;
-  const hasMore = offset < total;
 
   return (
     <div className="bp">
@@ -193,7 +213,7 @@ export default function BrandPage() {
               {loading
                 ? 'Loading products…'
                 : total > 0
-                ? `Showing ${showingFrom} - ${showingTo} of ${total} products`
+                ? `Showing ${showingFrom} - ${showingTo}${hasMore ? '+' : ''} products`
                 : 'No products found'}
             </p>
           </div>

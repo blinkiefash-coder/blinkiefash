@@ -14,11 +14,6 @@ import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
 
-// import { detectCurrentCity } from '../utils/location';
-// import { hasVendorPasswordAuth } from '../utils/vendorSession';
-
-// import { productImageUrlContain, productImageSrcSetContain } from '../utils/cloudinaryImage';
-
 import banner1 from '../assets/banner1.png';
 import banner2 from '../assets/banner2.png';
 import banner3 from '../assets/banner3.png';
@@ -30,7 +25,6 @@ import spinAndWinImage from '../assets/spin&win.png';
 import referAndEarnImage from '../assets/refer&earn.png';
 import freeDeliveryImage from '../assets/freedelivery.png';
 
-// Mobile-cropped versions of the hero banners (shown < 768px via <picture>)
 import mobilebanner1 from '../assets/mobilebanner1.png';
 import mobilebanner2 from '../assets/mobilebanner2.png';
 import mobilebanner3 from '../assets/mobilebanner3.png';
@@ -42,8 +36,6 @@ import { applyThemeVariables, removeThemeVariables } from '../utils/themeUtils';
 
 import couponImage from '../assets/coupon.png';
 
-// ---- Section heading icons (replace filenames below with your actual
-// asset names if they differ from this guess) ----
 import dealsOfTheDayIcon from '../assets/dealsoftheday.png';
 import shopByBrandIcon from '../assets/shopbybrand.png';
 import recentlyViewedIcon from '../assets/recentlyviewed.png';
@@ -60,7 +52,6 @@ import moreToExploreIcon from '../assets/explore.png';
 import './Shop.css';
 import './Home.css';
 
-// TODO: replace with your real Play Store listing URL
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.blinkiefash.app';
 
 function resolveImageUrl(raw) {
@@ -106,7 +97,7 @@ const HERO_SLIDES = [
   },
 ];
 
-const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, beauty: 4 };
+const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, lifestyle: 4 };
 function sortCategories(list) {
   return [...list].sort((a, b) => {
     const an = (a.name || '').toLowerCase();
@@ -214,11 +205,6 @@ function scrollRailByCards(el, direction = 1, cardsPerPage = 6) {
   el.scrollBy({ left: dir * step, behavior: 'smooth' });
 }
 
-/**
- * Deterministic "random" shuffle seeded by a number, so the same seed
- * always produces the same order. Used to rotate Deals of the Day once
- * per calendar day without needing any backend change.
- */
 function seededShuffle(array, seed) {
   const arr = [...array];
   let s = seed % 2147483647;
@@ -234,13 +220,11 @@ function seededShuffle(array, seed) {
   return arr;
 }
 
-/** Numeric seed that changes once every calendar day (YYYYMMDD). */
 function todaysSeed() {
   const d = new Date();
   return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
 }
 
-/** Milliseconds remaining until local midnight (when deals rotate). */
 function getMsUntilMidnight() {
   const now = new Date();
   const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
@@ -255,8 +239,6 @@ function formatCountdown(ms) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
-// Keywords that flag a product as NOT fashion, so Deals of the Day
-// stays clothing/footwear/accessories only.
 const NON_FASHION_KEYWORDS = [
   'electronics', 'headphone', 'headphones', 'earbud', 'earbuds', 'speaker',
   'mobile', 'phone', 'laptop', 'camera', 'gaming', 'game console',
@@ -269,17 +251,16 @@ function isFashionProduct(item) {
   return !NON_FASHION_KEYWORDS.some((keyword) => hay.includes(keyword));
 }
 
-/**
- * Unified section heading, used by every rail on the home page (Deals,
- * Shop by Brands, Picks for You, Recently Viewed, New In, the audience
- * collections, price bands, Top Brands, More to Explore). Mirrors the
- * "Shop by Brands" heading style everywhere so the page reads as one
- * consistent system instead of a mix of header treatments.
- *
- * `icon` is expected to be an imported image (png/svg) — it's rendered
- * inside the rounded `hp-shead-mark` badge via `hp-shead-mark-img`.
- */
-function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
+function SectionHead({
+  icon,
+  iconAlt = '',
+  title,
+  accentWord,
+  viewAllLabel = 'View All',
+  onViewAll,
+  iconClassName,
+  trailing,
+}) {
   return (
     <div className="hp-shead">
       <div className="hp-shead-title-group">
@@ -299,8 +280,10 @@ function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'Vi
               <span>{title}</span>
             )}
           </h2>
+          {trailing}
         </div>
       </div>
+
       {onViewAll ? (
         <button type="button" className="hp-shead-action" onClick={onViewAll}>
           {viewAllLabel} <MdChevronRight />
@@ -363,7 +346,6 @@ export default function Home() {
     return () => window.removeEventListener('focus', loadRecent);
   }, []);
 
-  // Apply gender-based theme
   useEffect(() => {
     if (isLoggedIn && userGender) {
       applyThemeVariables(userGender);
@@ -378,7 +360,6 @@ export default function Home() {
     };
   }, [isLoggedIn, userGender]);
 
-  // Deals of the Day: countdown to the next daily refresh (local midnight).
   useEffect(() => {
     const interval = setInterval(() => {
       setDealsCountdown(formatCountdown(getMsUntilMidnight()));
@@ -545,20 +526,6 @@ export default function Home() {
           const fallback = await getProducts({ limit: 20 });
           dealList = fallback?.products || (Array.isArray(fallback) ? fallback : []);
         }
-        // Deals of the Day pulls from a much larger pool so there is enough
-        // fashion inventory left after filtering to rotate 30 items daily.
-        const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
-        const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
-        if (Array.isArray(dealsPool) && dealsPool.length > 0) {
-          const seen = new Set((Array.isArray(dealList) ? dealList : []).map((p) => String(p?.id)));
-          dealList = [...(Array.isArray(dealList) ? dealList : [])];
-          dealsPool.forEach((p) => {
-            const key = String(p?.id ?? '');
-            if (!key || seen.has(key)) return;
-            seen.add(key);
-            dealList.push(p);
-          });
-        }
         const latestList = Array.isArray(newestPool) ? newestPool : [];
         const palermoList = palermoRes?.products || (Array.isArray(palermoRes) ? palermoRes : []);
 
@@ -683,7 +650,7 @@ export default function Home() {
     track.scrollTo({ left, behavior: 'smooth' });
   }, [heroIndex]);
 
-    useEffect(() => {
+  useEffect(() => {
     let cancelled = false;
     const loadExploreProducts = async () => {
       setExploreLoading(true);
@@ -716,7 +683,7 @@ export default function Home() {
     };
   }, [exploreCatId]);
 
-    const loadMoreExploreProducts = async () => {
+  const loadMoreExploreProducts = async () => {
     if (exploreLoading || !exploreHasMore) return;
     setExploreLoading(true);
     try {
@@ -754,6 +721,7 @@ export default function Home() {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
   };
 
+  // ========== UPDATED topDeals memo ==========
   const topDeals = useMemo(() => {
     const fashionOnly = (Array.isArray(deals) ? deals : []).filter(isFashionProduct);
 
@@ -761,18 +729,31 @@ export default function Home() {
       const price = Number(item?.discount_price ?? item?.price ?? 0);
       const mrp = Number(item?.price ?? item?.original_price ?? price);
       const discount = mrp > price && mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
-      return { ...item, _discount: discount };
+      const brand = (item?.brand || '').toString().trim().toLowerCase();
+      const isSouledStore = brand === 'the souled store' || brand === 'souled store';
+      return { ...item, _discount: discount, _isSouledStore: isSouledStore };
     });
+
+    // Only discounted products belong on this rail.
+    const discountedOnly = enriched.filter((item) => item._discount > 0);
 
     // Rank by discount first, then take a generous pool from the top so
     // there's enough to rotate from, and reshuffle that pool using a seed
     // tied to today's date — the selection/order changes once every 24
     // hours (at local midnight) without needing a backend change.
-    const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
+    const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
     const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+
+    // Shuffle the pool for daily rotation, then pull Souled Store items to
+    // the very front so they always lead the rail, while the rest of the
+    // rotation order (including the relative order of the remaining items)
+    // stays untouched.
     const rotated = seededShuffle(pool, todaysSeed());
-    return rotated.slice(0, 30);
+    const souledFirst = rotated.filter((item) => item._isSouledStore);
+    const others = rotated.filter((item) => !item._isSouledStore);
+    return [...souledFirst, ...others].slice(0, 30);
   }, [deals]);
+  // ========== END UPDATED topDeals ==========
 
   const recentlyViewedProducts = useMemo(() => {
     return recentlyViewedProductsData
@@ -805,7 +786,6 @@ export default function Home() {
     return pinned ? [pinned, ...rest] : rest;
   }, [newProducts, pinnedNewProduct]);
 
-  // Gender-based recommended products
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     
@@ -916,11 +896,13 @@ export default function Home() {
               title="Deals of the"
               accentWord="Day"
               onViewAll={() => navigate('/deals-of-the-day')}
+              trailing={
+                <div className="hp-deals-timer" aria-live="polite">
+                  <span className="hp-deals-timer-label">Deal Ends in</span>
+                  <span className="hp-deals-timer-value">{dealsCountdown}</span>
+                </div>
+              }
             />
-            <div className="hp-deals-timer" aria-live="polite">
-              <span className="hp-deals-timer-label">Fresh picks refresh in</span>
-              <span className="hp-deals-timer-value">{dealsCountdown}</span>
-            </div>
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
           </section>
         )}
@@ -1279,7 +1261,6 @@ export default function Home() {
   );
 }
 
-// Helper components (keep these)
 function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
@@ -1349,15 +1330,6 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
   );
 }
 
-/**
- * Horizontally scrollable rail of ProductCard tiles, reused across every
- * "Deals of the day / Recently viewed / New on Blinkiefash / Men's / Women's
- * / ..." row on the home page. Card rendering (image, badge, wishlist,
- * cart, price) now all comes from the shared ProductCard component.
- * `limit` controls how many items are rendered into the scroll rail — the
- * Deals of the Day rail passes 30 so its arrows/swipe reveal all 30 items
- * (including on mobile); every other rail keeps the default of 10.
- */
 function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
   const internalRef = useRef(null);
   const railRef = externalRef || internalRef;
