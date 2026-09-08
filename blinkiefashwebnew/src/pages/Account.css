@@ -27,12 +27,12 @@ html, body, #root {
   min-height: 100vh;
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
   color: var(--ink);
-  width: 100vw;
+  width: 100%;
   position: relative;
-  left: 50%;
-  right: 50%;
-  margin-left: -50vw;
-  margin-right: -50vw;
+  left: auto;
+  right: auto;
+  margin-left: 0;
+  margin-right: 0;
   overflow-x: hidden;
 }
 

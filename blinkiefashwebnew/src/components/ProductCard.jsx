@@ -8,14 +8,13 @@ import {
   MdStar,
   MdAdd,
   MdRemove,
+  MdLocalFireDepartment,
+  MdBolt,
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import {
-  productImageUrlContain,
-  productImageSrcSetContain,
-} from "../utils/cloudinaryImage";
+import { productImageUrl } from "../utils/cloudinaryImage";
 import "./ProductCard.css";
 
 const API_BASE = API_API_BASE_URL;
@@ -82,10 +81,22 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isUpdatingQty, setIsUpdatingQty] = useState(false);
+  const [isQuickOpen, setIsQuickOpen] = useState(false);
+  const [isLoadingVariants, setIsLoadingVariants] = useState(false);
+  const [variants, setVariants] = useState(() =>
+    Array.isArray(product.variants) ? product.variants : []
+  );
+  const [selectedVariantId, setSelectedVariantId] = useState(
+    product.variant_id || product.variantId || product.variants?.[0]?.id || ""
+  );
   const [announcement, setAnnouncement] = useState("");
 
   const wishlisted = isWishlisted(product.id);
-  const cartQty = getCartQty(product.variant_id || product.id);
+  const selectedVariant = variants.find(
+    (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
+  );
+  const activeVariantId = selectedVariant?.id || selectedVariant?.variant_id;
+  const cartQty = getCartQty(activeVariantId || product.variant_id || product.id);
 
   const originalPrice = Number(product.price || product._mrp || 0);
   const salePrice =
@@ -96,6 +107,10 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
   const offPercent = hasDiscount
     ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
     : 0;
+  const savedAmount = hasDiscount ? originalPrice - salePrice : 0;
+  const activeSalePrice = selectedVariant
+    ? Number(selectedVariant.discount_price ?? selectedVariant.price ?? salePrice)
+    : salePrice;
 
   const isBestseller = product.is_bestseller === true;
   const isTryAndBuy = product.is_try_and_buy === true;
@@ -106,6 +121,13 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       : hasDiscount
         ? `${offPercent}% OFF`
         : "+ 60 MIN";
+  const badgeVariant = isBestseller
+    ? "bestseller"
+    : isTryAndBuy
+      ? "try-buy"
+      : hasDiscount
+        ? "discount"
+        : "fresh";
 
   const image =
     product.image || product.image_url || product.thumbnail || "";
@@ -114,8 +136,39 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
   const reviewCount = Number(product.review_count || product.reviews_count || 0);
   const soldCount = Number(product.sold_count || product.sales_count || 0);
   const soldLabel = soldCount > 0 ? `${soldCount.toLocaleString("en-IN")} sold` : "";
-  const hasMeta = rating > 0 || Boolean(soldLabel);
   const outOfStock = product.in_stock === false || product.available === false;
+  const availableVariants = variants.filter(
+    (variant) => Number(variant.available_stock ?? 1) > 0
+  );
+
+  const handleQuickToggle = async (event) => {
+    event.stopPropagation();
+    event.preventDefault();
+    setIsQuickOpen((open) => !open);
+
+    if (variants.length || isLoadingVariants || !product.id) return;
+
+    setIsLoadingVariants(true);
+    try {
+      const { token } = getAuth();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const response = await fetch(`${API_BASE}/products/${product.id}`, { headers });
+      if (!response.ok) throw new Error(`Variant lookup failed (${response.status})`);
+      const detail = await response.json();
+      const nextVariants = Array.isArray(detail?.variants) ? detail.variants : [];
+      setVariants(nextVariants);
+      const firstAvailable = nextVariants.find(
+        (variant) => Number(variant.available_stock ?? 1) > 0
+      );
+      if (firstAvailable) {
+        setSelectedVariantId(firstAvailable.id || firstAvailable.variant_id);
+      }
+    } catch (err) {
+      console.error("[ProductCard] variant lookup failed", err);
+    } finally {
+      setIsLoadingVariants(false);
+    }
+  };
 
   const handleAddToWishlist = async (event) => {
     event.stopPropagation();
@@ -135,8 +188,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
           productId: product.id,
           name: product.name,
           image,
-          price: salePrice,
-          variantId: product.variant_id || product.variantId,
+          price: activeSalePrice,
+          variantId: activeVariantId || product.variant_id || product.variantId,
         });
         window.dispatchEvent(new Event("wishlist:updated"));
         if (onWishlistAdded) onWishlistAdded();
@@ -204,10 +257,10 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
       try {
         await addToCart({
           productId: product.id,
-          variantId: product.variant_id || product.variantId || product.id,
+          variantId: activeVariantId || product.variant_id || product.variantId || product.id,
           name: product.name,
           image,
-          price: salePrice,
+          price: activeSalePrice,
         });
         window.dispatchEvent(new Event("cart:updated"));
         setAnnouncement(`${product.name} added to cart`);
@@ -290,7 +343,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
 
   return (
     <article
-      className="pc-card"
+      className={`pc-card${outOfStock ? " is-out-of-stock" : ""}`}
       onClick={() => navigate(`/product/${product.id}`)}
     >
       {/* Visually hidden live region so screen reader users hear
@@ -299,45 +352,56 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
         {announcement}
       </span>
 
-      <div className="pc-top">
-        <span
-          className={`pc-badge ${
-            isBestseller
-              ? "bestseller"
-              : isTryAndBuy
-                ? "try-buy"
-                : hasDiscount
-                  ? "discount"
-                  : "fresh"
-          }`}
-        >
-          {badgeType}
-        </span>
+      <div className="pc-image-wrap">
+        {image ? (
+          <img
+            className="pc-image"
+            src={productImageUrl(image, 400, 500)}
+            srcSet={[240, 320, 400, 600]
+              .map((w) => `${productImageUrl(image, w, Math.round(w * (5 / 4)))} ${w}w`)
+              .join(", ")}
+            sizes="(max-width: 420px) 45vw, (max-width: 760px) 46vw, (max-width: 900px) 31vw, (max-width: 1200px) 23vw, (max-width: 1400px) 18vw, 15vw"
+            alt={product.name}
+            loading="lazy"
+            width="400"
+            height="500"
+          />
+        ) : (
+          <div className="pc-no-image">
+            <MdCheckroom />
+          </div>
+        )}
+
+        <div className="pc-badges-top">
+          <span className={`pc-badge pc-badge--${badgeVariant}`}>
+            {badgeVariant === "bestseller" && (
+              <MdLocalFireDepartment className="pc-badge-icon" />
+            )}
+            {badgeType}
+          </span>
+        </div>
+
         <button
           type="button"
-          className={`pc-wishlist${wishlisted ? " active" : ""}`}
+          className={`pc-wishlist${wishlisted ? " is-active" : ""}`}
           onClick={handleAddToWishlist}
           aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
           aria-pressed={wishlisted}
         >
           {wishlisted ? <MdFavorite /> : <MdFavoriteBorder />}
         </button>
-      </div>
 
-      <div className="pc-image-wrap">
-        {image ? (
-          <img
-            src={productImageUrlContain(image, 400, 533)}
-            srcSet={productImageSrcSetContain(image)}
-            sizes="(max-width: 420px) 45vw, (max-width: 760px) 46vw, (max-width: 900px) 31vw, (max-width: 1200px) 23vw, (max-width: 1400px) 18vw, 15vw"
-            alt={product.name}
-            loading="lazy"
-            width="400"
-            height="533"
-          />
-        ) : (
-          <div className="pc-no-image">
-            <MdCheckroom />
+        {isTryAndBuy && (
+          <div className="pc-tag-tryandbuy">
+            <span className="pc-tag-dot" />
+            <MdBolt className="pc-tag-icon" />
+            <span>Try &amp; Buy</span>
+          </div>
+        )}
+
+        {outOfStock && (
+          <div className="pc-oos-overlay">
+            <span className="pc-oos-pill">Out of Stock</span>
           </div>
         )}
 
@@ -386,11 +450,65 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
             {!isAddingToCart && <MdAddShoppingCart />}
           </button>
         )}
+
+        <div
+          className={`pc-quick-drawer${isQuickOpen ? " is-open" : ""}${variants.length ? " has-variants" : ""}`}
+        >
+          <div className="pc-quick-heading">
+            <span>Quick size</span>
+            <button type="button" onClick={handleQuickToggle} aria-label="Close quick size picker">
+              ×
+            </button>
+          </div>
+          {isLoadingVariants ? (
+            <span className="pc-quick-status">Checking sizes...</span>
+          ) : availableVariants.length ? (
+            <div className="pc-size-pills" role="group" aria-label="Available sizes">
+              {availableVariants.map((variant) => {
+                const variantId = variant.id || variant.variant_id;
+                const label = variant.size || variant.color || variant.variant_code || "One size";
+                const isSelected = String(selectedVariantId) === String(variantId);
+                return (
+                  <button
+                    type="button"
+                    key={variantId}
+                    className={isSelected ? "is-selected" : ""}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setSelectedVariantId(variantId);
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            <span className="pc-quick-status">Size selection unavailable</span>
+          )}
+          <button
+            type="button"
+            className="pc-quick-add"
+            onClick={handleAddToCart}
+            disabled={isAddingToCart || isUpdatingQty || !availableVariants.length}
+          >
+            {isAddingToCart ? "Adding..." : "Add selected size"}
+          </button>
+        </div>
       </div>
 
       <div className="pc-body">
-        <small>{product.brand || "Brand"}</small>
-        <h3>{product.name}</h3>
+        <div className="pc-body-top">
+          <span className="pc-brand">{product.brand || "Brand"}</span>
+          {rating > 0 && (
+            <span className="pc-rating-pill">
+              <MdStar aria-hidden="true" />
+              {rating.toFixed(1)}
+            </span>
+          )}
+        </div>
+
+        <h3 className="pc-title">{product.name}</h3>
         {/* Electronics/Footwear rows have no `color` most of the time —
             fall back to the category/spec text instead of a misleading
             "Multi color" label on, say, a pair of headphones. */}
@@ -398,21 +516,28 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded }) {
           {product.color || product.category_name || product.category || "Multi color"}
         </p>
 
+        <button type="button" className="pc-quick-toggle" onClick={handleQuickToggle}>
+          <MdCheckroom aria-hidden="true" />
+          Choose size for quick add
+        </button>
+
         <div className="pc-price-row">
-          <strong>{formatPrice(salePrice)}</strong>
-          {hasDiscount ? <span>{formatPrice(originalPrice)}</span> : null}
-          {hasDiscount ? <em className="pc-off-inline">{offPercent}% OFF</em> : null}
+          <div className="pc-price-main">
+            <strong>{formatPrice(salePrice)}</strong>
+            {hasDiscount && <span className="pc-price-strike">{formatPrice(originalPrice)}</span>}
+          </div>
+          {hasDiscount && (
+            <span className="pc-save-line">
+              <span className="pc-save-dot" />
+              You save {formatPrice(savedAmount)}
+            </span>
+          )}
         </div>
 
-        {hasMeta && (
+        {(reviewCount > 0 || soldLabel) && (
           <div className="pc-meta-row">
-            {rating > 0 && (
-              <span className="pc-rating">
-                <MdStar aria-hidden="true" /> {rating.toFixed(1)}
-                {reviewCount > 0 && <span className="pc-review-count"> ({reviewCount})</span>}
-              </span>
-            )}
-            {rating > 0 && soldLabel && <span className="pc-meta-sep">|</span>}
+            {reviewCount > 0 && <span className="pc-review-count">({reviewCount} reviews)</span>}
+            {reviewCount > 0 && soldLabel && <span className="pc-meta-sep">|</span>}
             {soldLabel && <span className="pc-sold">{soldLabel}</span>}
           </div>
         )}

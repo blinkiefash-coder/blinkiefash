@@ -92,6 +92,8 @@ function normalizeProduct(p, sectionLabel) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
   const originalPrice = Number(p.price ?? p.original_price ?? salePrice);
   const image = resolveImageUrl(p.image || p.image_url || p.thumbnail);
+  const hasStockSignal =
+    p.available_stock != null || p.stock != null || p.in_stock != null;
   const stock = Number(p.available_stock ?? p.stock ?? 0);
 
   return {
@@ -108,7 +110,9 @@ function normalizeProduct(p, sectionLabel) {
     rating: Number(p.rating ?? p.avg_rating ?? 0), // backend doesn't return this yet — see migration notes
     review_count: Number(p.review_count ?? 0),
     stock,
-    in_stock: p.in_stock ?? stock > 0,
+    // Older list endpoints do not expose inventory. Unknown is different
+    // from zero stock; the product detail endpoint remains authoritative.
+    in_stock: p.in_stock ?? (hasStockSignal ? stock > 0 : true),
     subcategory: (p.category_name || "").toString().trim(),
   };
 }

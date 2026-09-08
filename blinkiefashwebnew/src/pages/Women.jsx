@@ -12,6 +12,7 @@ import {
   MdNightlight,
   MdLocalOffer,
   MdBolt,
+  MdFlashOn,
   MdAutorenew,
   MdVerifiedUser,
   MdSecurity,
@@ -36,10 +37,6 @@ import { API_BASE_URL } from "../apiBase";
 import womenBanner1 from "../assets/women-banner-1.png";
 import womenBanner2 from "../assets/women-banner-2.png";
 import womenBanner3 from "../assets/women-banner-3.png";
-import playAndWinImage from "../assets/play&win.png";
-import spinAndWinImage from "../assets/spin&win.png";
-import referAndEarnImage from "../assets/refer&earn.png";
-import freeDeliveryImage from "../assets/freedelivery.png";
 import "./Shop.css";
 import "./Home.css";
 import "./Women.css";
@@ -196,12 +193,53 @@ function normalizeProduct(p) {
   };
 }
 
-function ProductRail({ list, railRef, keyPrefix }) {
+function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = "View All", onViewAll }) {
+  return (
+    <div className="hp-shead">
+      <div className="hp-shead-title-group">
+        <div className="hp-shead-title-wrap">
+          {icon ? <span className="hp-shead-mark" aria-hidden="true">{icon}</span> : null}
+          <h2 className="hp-shead-title">
+            {accentWord ? (
+              <>
+                <span>{title} </span>
+                <span className="hp-shead-accent">{accentWord}</span>
+              </>
+            ) : (
+              <span>{title}</span>
+            )}
+          </h2>
+        </div>
+        {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
+      </div>
+      {onViewAll ? (
+        <button type="button" className="hp-shead-action" onClick={onViewAll}>
+          {viewAllLabel} <MdChevronRight />
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+function ProductRail({ list, items, railRef, keyPrefix }) {
   const scrollRail = (dir) => {
-    const el = railRef.current;
+    const el = railRef?.current;
     if (!el) return;
-    el.scrollBy({ left: dir * 320, behavior: "smooth" });
+    const card = el.querySelector(".pc-card");
+    let step = Math.round(el.clientWidth * 0.95);
+    if (card) {
+      const styles = window.getComputedStyle(el);
+      const gap = parseFloat(styles.columnGap || styles.gap || "14") || 14;
+      const cardW = card.getBoundingClientRect().width;
+      step = Math.round((cardW + gap) * 6);
+    }
+    el.scrollBy({ left: dir * step, behavior: "smooth" });
   };
+
+  const safeItems = Array.isArray(items) ? items : Array.isArray(list) ? list : [];
+  const visibleItems = safeItems.slice(0, 10);
+
+  if (!visibleItems.length) return null;
 
   return (
     <div className="hp-deals-wrap">
@@ -210,13 +248,8 @@ function ProductRail({ list, railRef, keyPrefix }) {
       </button>
 
       <div className="hp-deals-rail" role="list" ref={railRef}>
-        {list.map((p, idx) => (
-          <div
-            key={`${keyPrefix}-${p.id}-${idx}`}
-            className="hp-deal-card-wrapper"
-            role="listitem"
-            style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
-          >
+        {visibleItems.map((p, idx) => (
+          <div key={`${keyPrefix}-${p.id}-${idx}`} className="hp-deal-card-wrapper" role="listitem">
             <ProductCard product={p} />
           </div>
         ))}
@@ -292,6 +325,17 @@ const clearAllFilters = () => {
 
 const visibleBrands = brands.filter((b) =>
   normalizeText(b.name).includes(normalizeText(brandSearch))
+);
+
+const pageBrandNames = useMemo(() => {
+  const names = [...products, ...newArrivals]
+    .map((product) => normalizeText(product.brand || product.brand_name))
+    .filter(Boolean);
+  return new Set(names);
+}, [products, newArrivals]);
+
+const audienceBrands = brands.filter((brand) =>
+  pageBrandNames.has(normalizeText(brand.name))
 );
 
 // Shared filter predicate, applied to any product list on this page
@@ -438,9 +482,13 @@ const applyProductFilters = useCallback(
 
       if (!cancelled) {
         const normalized = found.map(normalizeProduct);
-        setProducts(normalized.slice(0, 20));
+        const normalizedDeals = dealList.map(normalizeProduct).slice(0, 12);
+        const dealIds = new Set(normalizedDeals.map((product) => String(product.id)));
+        const picks = normalized.filter((product) => !dealIds.has(String(product.id)));
+
+        setProducts(picks.slice(0, 20));
         setNewArrivals(normalized.slice(0, 10));
-        setDeals(dealList.map(normalizeProduct).slice(0, 12));
+        setDeals(normalizedDeals);
         setProductsLoading(false);
       }
     })();
@@ -672,23 +720,6 @@ const applyProductFilters = useCallback(
           </div>
         </section>
 
-        <section className="section hp-rewards-section" aria-label="Offers & rewards">
-          <div className="hp-rewards-grid">
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
-              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/play-and-win")}>
-              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/refer-earn")}>
-              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/shop")}>
-              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
-            </button>
-          </div>
-        </section>
-
         {/* Filters */}
           <div className="women-filter-bar">
             <button
@@ -793,28 +824,30 @@ const applyProductFilters = useCallback(
         {/* Deals of the Day */}
         {topDeals.length > 0 && (
           <section className="section women-picks-section">
-            <div className="hp-section-head hp-deals-section-head">
-              <h2 className="hp-deals-title">DEALS OF THE DAY</h2>
-              <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
-                View All <MdChevronRight />
-              </button>
-            </div>
-            <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="women-deal" />
+            <SectionHead
+              icon={<MdFlashOn />}
+              title="Deals of the"
+              accentWord="Day"
+              subtitle="Steep price cuts, refreshed daily."
+              onViewAll={() => navigate(womenScopedShopUrl())}
+            />
+            <ProductRail items={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="women-deal" />
           </section>
         )}
 
         {/* All Women's Picks */}
         <section className="section women-picks-section">
-          <div className="hp-section-head">
-            <h2>ALL WOMEN&apos;S PICKS ✨</h2>
-            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
-              View All <MdChevronRight />
-            </button>
-          </div>
+          <SectionHead
+            icon={<MdCheckroom />}
+            title="All Women's"
+            accentWord="Picks"
+            subtitle="A wardrobe reset, made effortless."
+            onViewAll={() => navigate(womenScopedShopUrl())}
+          />
           {productsLoading ? (
             <Loader />
           ) : products.length ? (
-            <ProductRail list={applyProductFilters(products)} railRef={trendingRef} keyPrefix="women-all" />
+            <ProductRail items={applyProductFilters(products)} railRef={trendingRef} keyPrefix="women-all" />
           ) : (
             <p className="women-empty-state">New women&apos;s styles are landing soon.</p>
           )}
@@ -890,16 +923,17 @@ const applyProductFilters = useCallback(
 
         {/* New arrivals */}
         <section className="section women-picks-section">
-          <div className="hp-section-head">
-            <h2>NEW ARRIVALS ✨</h2>
-            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
-              View All <MdChevronRight />
-            </button>
-          </div>
+          <SectionHead
+            icon={<MdBolt />}
+            title="New"
+            accentWord="Arrivals"
+            subtitle="Fresh drops that are too good to wait on."
+            onViewAll={() => navigate(womenScopedShopUrl())}
+          />
           {productsLoading ? (
             <Loader />
           ) : newArrivals.length ? (
-            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="women-new" />
+            <ProductRail items={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="women-new" />
           ) : (
             <p className="women-empty-state">Fresh styles coming soon.</p>
           )}
@@ -911,7 +945,7 @@ const applyProductFilters = useCallback(
             <h2>Top Brands You&apos;ll Love</h2>
           </div>
           <div className="hp-top-brands-rail">
-            {brands.slice(0, 14).map((brand, idx) => {
+            {audienceBrands.slice(0, 14).map((brand, idx) => {
               const logo = resolveImageUrl(brand.logo_url);
               const initials = brand.name
                 .split(/\s+/)

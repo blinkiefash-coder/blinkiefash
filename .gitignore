@@ -39,3 +39,4 @@ dist-ssr
 **/macos/Pods/
 **/*.hprof
 blinkiefash-rider-backend/
+*.zip

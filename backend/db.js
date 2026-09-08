@@ -18,6 +18,9 @@ export const pool = new Pool({
 
 export const ensureDatabaseTables = async () => {
   try {
+  // Brand detail pages use this field for production-managed banners.
+  await pool.query(`ALTER TABLE brands ADD COLUMN IF NOT EXISTS banner_url TEXT`).catch(() => {});
+
   // Data-driven mirrored category navigation (e.g., Men <-> Footwear)
   await pool.query(`
     CREATE TABLE IF NOT EXISTS category_mirror_links (

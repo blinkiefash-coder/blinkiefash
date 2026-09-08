@@ -142,6 +142,45 @@ img {
   padding: 14px 16px 24px;
 }
 
+.app-back-button {
+  position: fixed;
+  top: 76px;
+  left: max(16px, calc((100vw - 1950px) / 2 + 16px));
+  z-index: 40;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 38px;
+  padding: 8px 12px 8px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--brand-dark);
+  box-shadow: var(--shadow-soft);
+  font-size: 13px;
+  font-weight: 800;
+  transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.app-back-button svg {
+  font-size: 19px;
+}
+
+.app-back-button:hover,
+.app-back-button:focus-visible {
+  background: var(--brand-green);
+  border-color: var(--brand-green);
+  color: #fff;
+  transform: translateX(-2px);
+}
+
+@media (max-width: 719px) {
+  .app-back-button {
+    top: 64px;
+    left: 12px;
+  }
+}
+
 .loader-overlay {
   position: fixed;
   top: 0;
