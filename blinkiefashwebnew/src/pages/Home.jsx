@@ -256,7 +256,6 @@ function isFashionProduct(item) {
   return !NON_FASHION_KEYWORDS.some((keyword) => hay.includes(keyword));
 }
 
-
 function SectionHead({
   icon,
   iconAlt = '',
@@ -267,8 +266,6 @@ function SectionHead({
   iconClassName,
   trailing,
 }) {
-
-function SectionHead({ icon, iconAlt = '', title, accentWord, viewAllLabel = 'View All', onViewAll, iconClassName }) {
   return (
     <div className="hp-shead">
       <div className="hp-shead-title-group">
@@ -542,7 +539,6 @@ export default function Home() {
           dealList = fallback?.products || (Array.isArray(fallback) ? fallback : []);
         }
 
-
         const dealsPoolRes = await getProducts({ sort: 'newest', limit: 100 });
         const dealsPool = dealsPoolRes?.products || (Array.isArray(dealsPoolRes) ? dealsPoolRes : []);
         if (Array.isArray(dealsPool) && dealsPool.length > 0) {
@@ -678,21 +674,8 @@ export default function Home() {
     if (!slides.length) return;
     const active = slides[heroPosition % slides.length] || slides[0];
     const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
-    const step = slide.getBoundingClientRect().width + gap;
-    const left = heroPosition * step;
-    track.scrollTo({ left, behavior: 'smooth' });
-
-    if (heroPosition === HERO_SLIDES.length) {
-      const resetTimer = window.setTimeout(() => {
-        track.scrollTo({ left: 0, behavior: 'auto' });
-        setHeroPosition(0);
-      }, 750);
-      return () => window.clearTimeout(resetTimer);
-    }
-
     const step = active.getBoundingClientRect().width + gap;
     track.scrollTo({ left: heroPosition * step, behavior: 'smooth' });
-    setHeroIndex(heroPosition % HERO_SLIDES.length);
   }, [heroPosition]);
 
   useEffect(() => {
@@ -763,7 +746,6 @@ export default function Home() {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
   };
 
-  // ========== UPDATED topDeals memo ==========
   const topDeals = useMemo(() => {
     const fashionOnly = (Array.isArray(deals) ? deals : []).filter(isFashionProduct);
     const enriched = fashionOnly.map((item) => {
@@ -783,7 +765,6 @@ export default function Home() {
     // tied to today's date — the selection/order changes once every 24
     // hours (at local midnight) without needing a backend change.
     const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
-    const ranked = [...enriched].sort((a, b) => b._discount - a._discount);
     const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
 
     // Shuffle the pool for daily rotation, then pull Souled Store items to
@@ -795,7 +776,6 @@ export default function Home() {
     const others = rotated.filter((item) => !item._isSouledStore);
     return [...souledFirst, ...others].slice(0, 30);
   }, [deals]);
-  // ========== END UPDATED topDeals ==========
 
   const recentlyViewedProducts = useMemo(() => {
     return recentlyViewedProductsData
@@ -891,8 +871,11 @@ export default function Home() {
           </button>
           <div className="hp-hero-dots">
             {HERO_SLIDES.map((slide, i) => (
-              <span key={slide.image} className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`} />
-              <span key={slide.id} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} onClick={() => setHeroPosition(i)} />
+              <span
+                key={slide.id}
+                className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`}
+                onClick={() => setHeroPosition(i)}
+              />
             ))}
           </div>
         </section>
