@@ -1745,6 +1745,44 @@
 
 .hp-shop-brands-wrap {
   width: 100%;
+  display: grid;
+  gap: 14px;
+  overflow: hidden;
+}
+
+.hp-shop-brands-row {
+  width: 100%;
+  overflow: hidden;
+}
+
+.hp-shop-brands-track {
+  display: flex;
+  width: max-content;
+  gap: 14px;
+  will-change: transform;
+  animation: hp-brands-loop 34s linear infinite;
+}
+
+.hp-shop-brands-track.move-right {
+  animation-name: hp-brands-loop-right;
+}
+
+.hp-shop-brands-track.move-left {
+  animation-name: hp-brands-loop-left;
+}
+
+.hp-shop-brands-wrap.is-paused .hp-shop-brands-track {
+  animation-play-state: paused;
+}
+
+@keyframes hp-brands-loop-right {
+  from { transform: translateX(calc(-50% - 7px)); }
+  to { transform: translateX(0); }
+}
+
+@keyframes hp-brands-loop-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-50% - 7px)); }
 }
 
 .hp-shop-brands-grid {
@@ -1773,6 +1811,7 @@
 
 /* ---------- Card ---------- */
 .hp-shop-brand-card {
+  flex: 0 0 180px;
   width: 100%;
   min-height: 210px;
   border: 1px solid #e8ecf0;
@@ -1979,6 +2018,42 @@
 
   .hp-shop-brand-name {
     font-size: 12px;
+  }
+}
+
+@media (max-width: 1000px) {
+  .hp-shop-brands-track {
+    gap: 12px;
+  }
+
+  .hp-shop-brand-card {
+    flex-basis: 160px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hp-shop-brands-wrap {
+    gap: 10px;
+  }
+
+  .hp-shop-brands-track {
+    gap: 10px;
+  }
+
+  .hp-shop-brand-card {
+    flex-basis: 148px;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-shop-brand-card {
+    flex-basis: 132px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hp-shop-brands-track {
+    animation: none;
   }
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VendorLayout from '../components/VendorLayout';
 import { isAdmin, adminHeaders } from '../utils/adminSession';
@@ -8,10 +8,6 @@ import './manageCategories.css';
 const ManageCategories = () => {
   const navigate = useNavigate();
   const adminMode = isAdmin();
-
-  if (!adminMode) {
-    return <div style={{ padding: '20px' }}>Access Denied. Admin only.</div>;
-  }
 
   const [tab, setTab] = useState('categories'); // categories, subcategories, brands
   const [loading, setLoading] = useState(false);
@@ -40,8 +36,12 @@ const ManageCategories = () => {
     fetchBrands();
   }, []);
 
+  if (!adminMode) {
+    return <div style={{ padding: '20px' }}>Access Denied. Admin only.</div>;
+  }
+
   // ===================== CATEGORIES =====================
-  const fetchCategories = async () => {
+  async function fetchCategories() {
     try {
       setLoading(true);
       const response = await fetch(`${API_API_BASE_URL}/categories`, {
@@ -49,7 +49,7 @@ const ManageCategories = () => {
       });
       const data = await response.json();
       setCategories(data.categories || data || []);
-    } catch (err) {
+    } catch {
       setError('Failed to fetch categories');
     } finally {
       setLoading(false);
@@ -128,14 +128,14 @@ const ManageCategories = () => {
   };
 
   // ===================== SUBCATEGORIES =====================
-  const fetchSubcategories = async () => {
+  async function fetchSubcategories() {
     try {
       const response = await fetch(`${API_API_BASE_URL}/subcategories`, {
         headers: adminHeaders(),
       });
       const data = await response.json();
       setSubcategories(data.subcategories || data || []);
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch subcategories');
     }
   };
@@ -212,14 +212,14 @@ const ManageCategories = () => {
   };
 
   // ===================== BRANDS =====================
-  const fetchBrands = async () => {
+  async function fetchBrands() {
     try {
       const response = await fetch(`${API_API_BASE_URL}/brands`, {
         headers: adminHeaders(),
       });
       const data = await response.json();
       setBrands(data.brands || data || []);
-    } catch (err) {
+    } catch {
       console.error('Failed to fetch brands');
     }
   };

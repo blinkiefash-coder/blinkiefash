@@ -148,6 +148,8 @@ class _HomeScreenState extends State<HomeScreen>
   int _timerMinutes = 0;
   int _timerSeconds = 0;
   DateTime? _lastDealsRefreshDate;
+  String _selectedDealsCategory =
+      'All'; // Track selected category filter in Deals of the Day
   // Drawer: expanded state per root category id
   final Map<String, bool> _drawerExpandedCats = {};
 
@@ -1287,6 +1289,22 @@ class _HomeScreenState extends State<HomeScreen>
     if (raw.startsWith('http')) return raw;
     if (raw.startsWith('/')) return '$apiBaseUrl$raw';
     return '$apiBaseUrl/$raw';
+  }
+
+  String? _getBrandLogoUrl(String brandName) {
+    if (brandName.isEmpty) return null;
+    try {
+      final brandData = _brands.firstWhere(
+        (b) =>
+            (b['name']?.toString().toLowerCase() ?? '') ==
+            brandName.toLowerCase(),
+        orElse: () => {},
+      );
+      if (brandData.isEmpty) return null;
+      return _imgUrl(brandData['logo_url'] ?? brandData['image']);
+    } catch (e) {
+      return null;
+    }
   }
 
   void _openProduct(Map<String, dynamic> item) {
@@ -2780,20 +2798,6 @@ class _HomeScreenState extends State<HomeScreen>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Category icon
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF0FDF4),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(
-                  Icons.grid_3x3_rounded,
-                  size: 24,
-                  color: Color(0xFF16A34A),
-                ),
-              ),
-              const SizedBox(width: 12),
               // Title and subtitle
               Expanded(
                 child: Column(
@@ -2821,16 +2825,6 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                         ],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Browse our curated collection by category.',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w400,
-                        color: Color(0xFF6B7280),
-                        height: 1.4,
                       ),
                     ),
                   ],
@@ -2942,6 +2936,21 @@ class _HomeScreenState extends State<HomeScreen>
           padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
           child: Row(
             children: [
+              // Flame icon
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDC2626),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  Icons.local_fire_department_rounded,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
               Expanded(
                 child: RichText(
                   text: const TextSpan(
@@ -2971,37 +2980,26 @@ class _HomeScreenState extends State<HomeScreen>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 22,
-                    height: 22,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF16A34A),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.check_rounded,
-                      color: Colors.white,
-                      size: 14,
-                    ),
+                  const Icon(
+                    Icons.schedule_rounded,
+                    color: Color(0xFFA5A5A5),
+                    size: 16,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Ends in',
+                    'Ends in ${_timerHours.toString().padLeft(2, '0')} : ${_timerMinutes.toString().padLeft(2, '0')} : ${_timerSeconds.toString().padLeft(2, '0')}',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF6B7280),
+                      color: Color(0xFFDC2626),
+                      letterSpacing: 0.3,
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${_timerHours.toString().padLeft(2, '0')} : ${_timerMinutes.toString().padLeft(2, '0')} : ${_timerSeconds.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Color(0xFF111827),
-                      letterSpacing: 0.5,
-                    ),
+                  const SizedBox(width: 8),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Color(0xFF9CA3AF),
+                    size: 18,
                   ),
                 ],
               ),
@@ -3685,15 +3683,25 @@ class _HomeScreenState extends State<HomeScreen>
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
     final variantData = _getCardVariant(item);
-    final price = _fmt(variantData['discount_price']);
-    final mrp = _fmt(variantData['price']);
-    final off = item['off']?.toString() ?? _offLabel(item);
+    final price =
+        double.tryParse((variantData['discount_price'] ?? '').toString()) ?? 0;
+    final mrp = double.tryParse((variantData['price'] ?? '').toString()) ?? 0;
     final image = _imgUrl(variantData['image_url'] ?? item['image']);
-    final hasDiscount = mrp.isNotEmpty && mrp != price && mrp != '0';
+    final hasDiscount = mrp > 0 && price > 0 && mrp > price;
+    final discountPercent = hasDiscount
+        ? ((mrp - price) / mrp * 100).round()
+        : 0;
+    final savings = hasDiscount ? (mrp - price).toStringAsFixed(0) : '0';
+
+    // Get brand logo from _brands database
+    final brandLogo = _getBrandLogoUrl(brand);
+
+    final isTryAndBuy = item['is_try_and_buy'] == true;
+
     final wishItem = WishlistItem(
       productId: item['id']?.toString() ?? '',
       name: name,
-      price: price,
+      price: price.toStringAsFixed(0),
       imageUrl: image,
     );
 
@@ -3704,19 +3712,20 @@ class _HomeScreenState extends State<HomeScreen>
         margin: const EdgeInsets.only(right: 12),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2F3E8)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 0.5),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x1A166534),
-              blurRadius: 12,
-              offset: Offset(0, 4),
+              color: Color(0x0A000000),
+              blurRadius: 8,
+              offset: Offset(0, 2),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── IMAGE SECTION WITH BADGES & BUTTONS ─────────────────────
             Expanded(
               flex: 3,
               child: Stack(
@@ -3724,11 +3733,11 @@ class _HomeScreenState extends State<HomeScreen>
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
+                      top: Radius.circular(12),
                     ),
                     child: image == null
                         ? Container(
-                            color: const Color(0xFFF7FAF8),
+                            color: const Color(0xFFF8FAFC),
                             child: const Icon(
                               Icons.checkroom_outlined,
                               color: Color(0xFFCBD5E1),
@@ -3737,43 +3746,63 @@ class _HomeScreenState extends State<HomeScreen>
                           )
                         : CachedNetworkImage(
                             imageUrl: image,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.center,
+                            fit: BoxFit.cover,
                             memCacheWidth: 480,
                             placeholder: (_, _) =>
-                                Container(color: const Color(0xFFF7FAF8)),
+                                Container(color: const Color(0xFFF8FAFC)),
                             errorWidget: (_, _, _) => Container(
-                              color: const Color(0xFFF7FAF8),
+                              color: const Color(0xFFF8FAFC),
                               child: const Icon(Icons.broken_image_outlined),
                             ),
                           ),
                   ),
-                  if (item['is_bestseller'] == true)
+                  // ── TRY & BUY BADGE (top-left) ──────────────────────
+                  if (isTryAndBuy)
                     Positioned(
                       top: 8,
                       left: 8,
-                      child: _collectionBadge('BESTSELLER'),
-                    )
-                  else if (item['is_try_and_buy'] == true)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: _collectionBadge('TRY_AND_BUY'),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF8C42),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'TRY & BUY',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 9,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ),
                     ),
+                  // ── WISHLIST (top-right) ────────────────────────────
                   Positioned(
-                    top: 6,
-                    right: 6,
+                    top: 8,
+                    right: 8,
                     child: GestureDetector(
                       onTap: () {
                         WishlistManager.instance.toggle(wishItem);
                         setState(() {});
                       },
                       child: Container(
-                        width: 30,
-                        height: 30,
+                        width: 32,
+                        height: 32,
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color(0x18000000),
+                              blurRadius: 4,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
                         ),
                         child: Icon(
                           WishlistManager.instance.isWishlisted(
@@ -3792,80 +3821,181 @@ class _HomeScreenState extends State<HomeScreen>
                       ),
                     ),
                   ),
+                  // ── ADD TO CART BUTTON (bottom-right) ────────────────
+                  Positioned(
+                    bottom: 8,
+                    right: 8,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFF16A34A),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(0x25000000),
+                            blurRadius: 6,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.shopping_cart_rounded,
+                        color: Colors.white,
+                        size: 18,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ),
+            // ── PRODUCT INFO SECTION ────────────────────────────────────
             Expanded(
               flex: 2,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
+                padding: const EdgeInsets.fromLTRB(9, 6, 9, 6),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    if (brand.isNotEmpty)
-                      Text(
-                        brand.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
+                    // ── BRAND LOGO & NAME ───────────────────────────────
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Brand logo from database
+                        if (brand.isNotEmpty)
+                          Container(
+                            width: 25,
+                            height: 25,
+                            margin: const EdgeInsets.only(right: 5),
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(3),
+                              color: const Color(0xFF16A34A),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(2),
+                              child: (brandLogo != null && brandLogo.isNotEmpty)
+                                  ? CachedNetworkImage(
+                                      imageUrl: brandLogo,
+                                      fit: BoxFit.cover,
+                                      placeholder: (_, __) => Center(
+                                        child: Text(
+                                          brand[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                      errorWidget: (_, __, ___) => Center(
+                                        child: Text(
+                                          brand[0].toUpperCase(),
+                                          style: const TextStyle(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w800,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Center(
+                                      child: Text(
+                                        brand[0].toUpperCase(),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                            ),
+                          ),
+                        Expanded(
+                          child: Text(
+                            brand.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Color(0xFF1F2937),
+                              letterSpacing: 0.3,
+                            ),
+                          ),
                         ),
-                      ),
-                    const SizedBox(height: 2),
+                      ],
+                    ),
+                    // ── PRODUCT NAME ────────────────────────────────────
                     Text(
                       name,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                        height: 1.2,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF1F2937),
+                        height: 1.1,
                       ),
                     ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasDiscount
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF166534),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        hasDiscount ? off : 'NEW',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
+                    const SizedBox(height: 1),
+                    // ── PRICE SECTION ───────────────────────────────────
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Sale price - GREEN
                         Text(
-                          '₹$price',
+                          '₹${price.toStringAsFixed(0)}',
                           style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF15803D),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w900,
+                            color: Color(0xFF16A34A),
                           ),
                         ),
+                        // Discount % badge
                         if (hasDiscount) ...[
-                          const SizedBox(width: 4),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              Text(
+                                '₹${mrp.toStringAsFixed(0)}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF9CA3AF),
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEE2E2),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  '$discountPercent% OFF',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 1),
+                          // "You save" in GREEN
                           Text(
-                            '₹$mrp',
+                            'You save ₹$savings',
                             style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF94A3B8),
-                              decoration: TextDecoration.lineThrough,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF16A34A),
                             ),
                           ),
                         ],
@@ -4019,7 +4149,10 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Trending Grid ─────────────────────────────────────────────────────────
   // Shared discount-computation used by Deals of the Day.
-  List<Map<String, dynamic>> _topDiscountedProducts({int? minDiscount}) {
+  List<Map<String, dynamic>> _topDiscountedProducts({
+    int? minDiscount,
+    String? categoryFilter,
+  }) {
     // Premium/good brands to prioritize in deals section
     const premiumBrands = [
       'the soul store',
@@ -4039,8 +4172,57 @@ class _HomeScreenState extends State<HomeScreen>
       'fila',
     ];
 
+    var filteredProducts = _getTabFilteredProducts();
+
+    // Apply category filter if specified
+    if (categoryFilter != null && categoryFilter != 'All') {
+      List<Map<String, dynamic>> categoryProducts = const [];
+      if (categoryFilter == 'Men') {
+        categoryProducts = _mensProducts;
+      } else if (categoryFilter == 'Women') {
+        categoryProducts = _womensProducts;
+      } else if (categoryFilter == 'Footwear') {
+        // Filter for footwear from all products
+        categoryProducts = filteredProducts
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains(
+                        'footwear',
+                      ) ??
+                      false) ||
+                  (p['product_type']?.toString().toLowerCase().contains(
+                        'shoe',
+                      ) ??
+                      false),
+            )
+            .toList();
+      } else if (categoryFilter == 'Accessories') {
+        // Filter for accessories
+        categoryProducts = filteredProducts
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains(
+                    'accessories',
+                  ) ??
+                  false),
+            )
+            .toList();
+      } else if (categoryFilter == 'Beauty') {
+        // Filter for beauty
+        categoryProducts = filteredProducts
+            .where(
+              (p) =>
+                  (p['category']?.toString().toLowerCase().contains('beauty') ??
+                  false),
+            )
+            .toList();
+      }
+      filteredProducts = categoryProducts.isNotEmpty
+          ? categoryProducts
+          : filteredProducts;
+    }
+
     final dealsProducts = <Map<String, dynamic>>[];
-    final filteredProducts = _getTabFilteredProducts();
 
     for (final product in filteredProducts) {
       final price = double.tryParse((product['price'] ?? '').toString()) ?? 0;
@@ -4084,9 +4266,76 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Deals of the Day: Top products with maximum discounts ─────────────────
   Widget _dealsOfTheDayCategories() {
-    final topDeals = _topDiscountedProducts();
+    final topDeals = _topDiscountedProducts(
+      categoryFilter: _selectedDealsCategory,
+    );
     if (topDeals.isEmpty) return _stockOutBanner();
-    return _buildDiscountDealCards(topDeals);
+
+    // Category options for filtering
+    const categories = [
+      'All',
+      'Men',
+      'Women',
+      'Footwear',
+      'Accessories',
+      'Beauty',
+    ];
+
+    return Column(
+      children: [
+        // Category filter tabs
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: Row(
+            children: categories.map((category) {
+              final isSelected = _selectedDealsCategory == category;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedDealsCategory = category;
+                    });
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isSelected
+                          ? const Color(0xFF16A34A)
+                          : Colors.transparent,
+                      border: isSelected
+                          ? null
+                          : Border.all(
+                              color: const Color(0xFFE5E7EB),
+                              width: 1,
+                            ),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      category,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: isSelected
+                            ? Colors.white
+                            : const Color(0xFF6B7280),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+        // Product cards
+        _buildDiscountDealCards(topDeals),
+      ],
+    );
   }
 
   // ── New & Trendy: Full-price products (no discount), newest first ─────────
@@ -5864,125 +6113,127 @@ class _HomeScreenState extends State<HomeScreen>
               padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
               itemCount: sortedBrands.length,
               itemBuilder: (context, index) {
-              final brand = sortedBrands[index];
-              final name = brand['name']?.toString() ?? 'Brand';
-              final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
+                final brand = sortedBrands[index];
+                final name = brand['name']?.toString() ?? 'Brand';
+                final imgUrl = _imgUrl(brand['logo_url'] ?? brand['image']);
 
-              return GestureDetector(
-                onTap: () {
-                  if (brand['id'] != null) {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => AllProductsScreen(
-                          brandId: brand['id']?.toString(),
-                          brandName: name,
-                        ),
-                      ),
-                    );
-                  } else {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const AllBrandsScreen(),
-                      ),
-                    );
-                  }
-                },
-                child: Container(
-                  width: 110,
-                  margin: const EdgeInsets.only(right: 12),
-                  child: Column(
-                    children: [
-                      // Brand box with rounded corners
-                      Container(
-                        width: 110,
-                        height: 110,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(14),
-                          color: const Color(0xFFF8FAFC),
-                          border: Border.all(
-                            color: const Color(0xFFE2E8F0),
-                            width: 1,
+                return GestureDetector(
+                  onTap: () {
+                    if (brand['id'] != null) {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => AllProductsScreen(
+                            brandId: brand['id']?.toString(),
+                            brandName: name,
                           ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x0D000000),
-                              blurRadius: 4,
-                              offset: Offset(0, 2),
+                        ),
+                      );
+                    } else {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => const AllBrandsScreen(),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    width: 110,
+                    margin: const EdgeInsets.only(right: 12),
+                    child: Column(
+                      children: [
+                        // Brand box with rounded corners
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(14),
+                            color: const Color(0xFFF8FAFC),
+                            border: Border.all(
+                              color: const Color(0xFFE2E8F0),
+                              width: 1,
                             ),
-                          ],
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(13),
-                          child: imgUrl != null
-                              ? Padding(
-                                  padding: const EdgeInsets.all(6),
-                                  child: CachedNetworkImage(
-                                    imageUrl: imgUrl,
-                                    memCacheWidth:
-                                        (264 *
-                                                MediaQuery.of(
-                                                  context,
-                                                ).devicePixelRatio)
-                                            .round(),
-                                    fit: BoxFit.scaleDown,
-                                    placeholder: (ctx, u) => const Center(
-                                      child: Icon(
-                                        Icons.storefront_outlined,
-                                        color: Color(0xFFCBD5E1),
-                                        size: 28,
-                                      ),
-                                    ),
-                                    errorWidget: (ctx, u, e) => Center(
-                                      child: Text(
-                                        name.length > 4
-                                            ? name.substring(0, 4).toUpperCase()
-                                            : name.toUpperCase(),
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 11,
-                                          color: Color(0xFF374151),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Color(0x0D000000),
+                                blurRadius: 4,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(13),
+                            child: imgUrl != null
+                                ? Padding(
+                                    padding: const EdgeInsets.all(6),
+                                    child: CachedNetworkImage(
+                                      imageUrl: imgUrl,
+                                      memCacheWidth:
+                                          (264 *
+                                                  MediaQuery.of(
+                                                    context,
+                                                  ).devicePixelRatio)
+                                              .round(),
+                                      fit: BoxFit.scaleDown,
+                                      placeholder: (ctx, u) => const Center(
+                                        child: Icon(
+                                          Icons.storefront_outlined,
+                                          color: Color(0xFFCBD5E1),
+                                          size: 28,
                                         ),
-                                        textAlign: TextAlign.center,
+                                      ),
+                                      errorWidget: (ctx, u, e) => Center(
+                                        child: Text(
+                                          name.length > 4
+                                              ? name
+                                                    .substring(0, 4)
+                                                    .toUpperCase()
+                                              : name.toUpperCase(),
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 11,
+                                            color: Color(0xFF374151),
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
                                       ),
                                     ),
-                                  ),
-                                )
-                              : Center(
-                                  child: Text(
-                                    name.length > 4
-                                        ? name.substring(0, 4).toUpperCase()
-                                        : name.toUpperCase(),
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 11,
-                                      color: Color(0xFF374151),
+                                  )
+                                : Center(
+                                    child: Text(
+                                      name.length > 4
+                                          ? name.substring(0, 4).toUpperCase()
+                                          : name.toUpperCase(),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 11,
+                                        color: Color(0xFF374151),
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
-                                    textAlign: TextAlign.center,
                                   ),
-                                ),
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      // Brand name
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1F2937),
-                          height: 1.2,
+                        const SizedBox(height: 8),
+                        // Brand name
+                        Text(
+                          name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF1F2937),
+                            height: 1.2,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
-              );
-            },
-          ),
+                );
+              },
             ),
+          ),
         ),
         // Scroll progress indicator
         _buildBrandScrollIndicator(sortedBrands),

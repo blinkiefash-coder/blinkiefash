@@ -72,28 +72,28 @@ const HERO_SLIDES = [
   {
     image: banner2,
     mobileImage: mobilebanner2,
-    to: '/shop?search=Puma',
+    brand: 'Puma',
     pos: 'center 20%',
   },
   {
     image: banner3,
     mobileImage: mobilebanner3,
-    to: '/shop?search=Xinso',
+    brand: 'Xinso',
   },
   {
     image: banner4,
     mobileImage: mobilebanner4,
-    to: '/shop?search=kids',
+    to: '/kids',
   },
   {
     image: banner5,
     mobileImage: mobilebanner5,
-    to: '/shop?search=men',
+    brand: 'Crimsone Club',
   },
   {
     image: banner6,
     mobileImage: mobilebanner6,
-    to: '/shop?search=mk',
+    brand: 'MK',
   },
 ];
 
@@ -323,14 +323,33 @@ export default function Home() {
   const [exploreLoading, setExploreLoading] = useState(false);
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
-  const [heroIndex, setHeroIndex] = useState(0);
+  const [heroPosition, setHeroPosition] = useState(0);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
+
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
+
+  const [brandsPaused, setBrandsPaused] = useState(false);
+
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
-  const shopBrandsRef = useRef(null);
+  const brandsPauseTimerRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
+
+  const brandRows = useMemo(() => [
+    topBrands.filter((_, index) => index % 2 === 0),
+    topBrands.filter((_, index) => index % 2 === 1),
+  ], [topBrands]);
+
+  const pauseBrandCarousel = () => {
+    setBrandsPaused(true);
+    window.clearTimeout(brandsPauseTimerRef.current);
+    brandsPauseTimerRef.current = window.setTimeout(() => {
+      setBrandsPaused(false);
+    }, 5000);
+  };
+
+  useEffect(() => () => window.clearTimeout(brandsPauseTimerRef.current), []);
 
   useEffect(() => {
     const loadRecent = () => {
@@ -638,7 +657,7 @@ export default function Home() {
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+      setHeroPosition((position) => position + 1);
     }, 15000);
     return () => clearInterval(timer);
   }, []);
@@ -646,9 +665,22 @@ export default function Home() {
   useEffect(() => {
     const track = heroTrackRef.current;
     if (!track) return;
-    const left = heroIndex * track.clientWidth;
+    const slide = track.querySelector('.hp-slide');
+    if (!slide) return;
+    const gap = parseFloat(window.getComputedStyle(track).gap || '0') || 0;
+    const step = slide.getBoundingClientRect().width + gap;
+    const left = heroPosition * step;
     track.scrollTo({ left, behavior: 'smooth' });
-  }, [heroIndex]);
+
+    if (heroPosition === HERO_SLIDES.length) {
+      const resetTimer = window.setTimeout(() => {
+        track.scrollTo({ left: 0, behavior: 'auto' });
+        setHeroPosition(0);
+      }, 750);
+      return () => window.clearTimeout(resetTimer);
+    }
+
+  }, [heroPosition]);
 
   useEffect(() => {
     let cancelled = false;
@@ -714,7 +746,17 @@ export default function Home() {
   };
 
   const goToSlide = (delta) => {
-    setHeroIndex((i) => (i + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setHeroPosition((position) => {
+      if (delta > 0) {
+        return position >= HERO_SLIDES.length ? 0 : position + 1;
+      }
+
+      if (position <= 0) {
+        return HERO_SLIDES.length - 1;
+      }
+
+      return position - 1;
+    });
   };
 
   const handleCouponClick = () => {
@@ -830,9 +872,9 @@ export default function Home() {
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide, index) => (
-              index === 0 ? (
-                <div type="button" key={slide.image} className="hp-slide hp-slide-first">
+            {[...HERO_SLIDES, HERO_SLIDES[0]].map((slide, index) => (
+              index % HERO_SLIDES.length === 0 ? (
+                <div type="button" key={`${slide.image}-${index}`} className="hp-slide hp-slide-first">
                   <picture>
                     {slide.mobileImage ? (
                       <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
@@ -858,7 +900,12 @@ export default function Home() {
                   />
                 </div>
               ) : (
-                <button type="button" key={slide.image} className="hp-slide" onClick={() => navigate(slide.to)}>
+                <button
+                  type="button"
+                  key={`${slide.image}-${index}`}
+                  className="hp-slide"
+                  onClick={() => navigate(slide.brand ? `/brands/${encodeURIComponent(slide.brand)}` : slide.to)}
+                >
                   <picture>
                     {slide.mobileImage ? (
                       <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
@@ -879,7 +926,7 @@ export default function Home() {
           </button>
           <div className="hp-hero-dots">
             {HERO_SLIDES.map((slide, i) => (
-              <span key={slide.image} className={`hp-hero-dot${i === heroIndex ? ' active' : ''}`} />
+              <span key={slide.image} className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`} />
             ))}
           </div>
         </section>
@@ -934,68 +981,61 @@ export default function Home() {
               onViewAll={() => navigate('/shop')}
             />
 
-            <div className="hp-deals-wrap hp-shop-brands-wrap">
-              <button
-                type="button"
-                className="hp-deals-prev"
-                aria-label="Scroll brands left"
-                onClick={() => scrollRailByCards(shopBrandsRef.current, -1, 3)}
-              >
-                <MdChevronLeft />
-              </button>
+            <div
+              className={`hp-shop-brands-wrap${brandsPaused ? ' is-paused' : ''}`}
+              onMouseEnter={pauseBrandCarousel}
+              onFocus={pauseBrandCarousel}
+            >
+              {brandRows.map((row, rowIndex) => {
+                const loopedRow = [...row, ...row];
+                return (
+                  <div className="hp-shop-brands-row" key={`brand-row-${rowIndex}`} role="list">
+                    <div className={`hp-shop-brands-track ${rowIndex === 0 ? 'move-right' : 'move-left'}`}>
+                      {loopedRow.map((brand, idx) => {
+                        const label = (brand.name || '').toString().trim();
+                        const displayName = label || 'Brand';
+                        const normalizedDisplayName = normalizeBrandName(displayName);
+                        const logo = normalizedDisplayName === 'nike'
+                          ? NIKE_LOGO_URL
+                          : resolveImageUrl(brand.logo_url || brand.image);
+                        const isFeatured = idx === 0;
 
-              <div className="hp-shop-brands-grid" role="list" ref={shopBrandsRef}>
-                {topBrands.map((brand, idx) => {
-                  const label = (brand.name || '').toString().trim();
-                  const displayName = label || 'Brand';
-                  const normalizedDisplayName = normalizeBrandName(displayName);
-                  const logo = normalizedDisplayName === 'nike'
-                    ? NIKE_LOGO_URL
-                    : resolveImageUrl(brand.logo_url || brand.image);
-                  const isFeatured = idx === 0;
-
-                  return (
-                    <article
-                      key={`${brand.id || displayName}-${idx}`}
-                      className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
-                      role="listitem"
-                      tabIndex={0}
-                      style={{ cursor: 'pointer' }}
-                      onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          e.preventDefault();
-                          navigate(`/brands/${encodeURIComponent(displayName)}`);
-                        }
-                      }}
-                    >
-                      <div className="hp-shop-brand-visual">
-                        {logo ? (
-                          <img
-                            src={logo}
-                            alt={displayName}
-                            loading="lazy"
-                            className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
-                          />
-                        ) : (
-                          <div className="hp-shop-brand-fallback" aria-label={displayName}>
-                            {displayName.slice(0, 5).toUpperCase()}
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-              <button
-                type="button"
-                className="hp-deals-next"
-                aria-label="Scroll brands right"
-                onClick={() => scrollRailByCards(shopBrandsRef.current, 1, 3)}
-              >
-                <MdChevronRight />
-              </button>
+                        return (
+                          <article
+                            key={`${brand.id || displayName}-${rowIndex}-${idx}`}
+                            className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
+                            role="listitem"
+                            tabIndex={0}
+                            style={{ cursor: 'pointer' }}
+                            onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
+                                navigate(`/brands/${encodeURIComponent(displayName)}`);
+                              }
+                            }}
+                          >
+                            <div className="hp-shop-brand-visual">
+                              {logo ? (
+                                <img
+                                  src={logo}
+                                  alt={displayName}
+                                  loading="lazy"
+                                  className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`}
+                                />
+                              ) : (
+                                <div className="hp-shop-brand-fallback" aria-label={displayName}>
+                                  {displayName.slice(0, 5).toUpperCase()}
+                                </div>
+                              )}
+                            </div>
+                          </article>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}

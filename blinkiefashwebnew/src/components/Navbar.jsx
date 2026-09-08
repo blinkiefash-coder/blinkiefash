@@ -94,6 +94,7 @@ export default function Navbar() {
      cart, wishlist, or profile). Desktop layout is unaffected — this only
      applies inside the existing max-width: 900px media query in Navbar.css. */
   const isSearchOnlyMobile = location.pathname.startsWith("/shop");
+  const showBackButton = location.pathname !== "/";
 
   useEffect(() => {
     const syncAuth = () => {
@@ -247,15 +248,6 @@ export default function Navbar() {
             in this mode. */}
         <button
           type="button"
-          className="nav-back-btn"
-          aria-label="Go back"
-          onClick={handleBack}
-        >
-          <IconArrowLeft />
-        </button>
-
-        <button
-          type="button"
           className="nav-hamburger"
           aria-label="Open menu"
           onClick={() => setDrawerOpen(true)}
@@ -264,6 +256,18 @@ export default function Navbar() {
             <path d="M3 6h18M3 12h18M3 18h18" />
           </svg>
         </button>
+
+        {showBackButton && (
+          <button
+            type="button"
+            className="nav-back-btn"
+            aria-label="Go back"
+            onClick={handleBack}
+          >
+            <IconArrowLeft />
+            <span>Back</span>
+          </button>
+        )}
 
         {/* LEFT: logo + brand + address */}
         <div className="nav-left">

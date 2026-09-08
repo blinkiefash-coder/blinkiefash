@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import VendorLayout from '../components/VendorLayout';
 import { isAdmin, adminHeaders } from '../utils/adminSession';
@@ -8,10 +8,6 @@ import './createVendor.css';
 const CreateVendor = () => {
   const navigate = useNavigate();
   const adminMode = isAdmin();
-
-  if (!adminMode) {
-    return <div style={{ padding: '20px' }}>Access Denied. Admin only.</div>;
-  }
 
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -40,6 +36,10 @@ const CreateVendor = () => {
     dark_store_id: '',
     store_name: 'Dark Store',
   });
+
+  if (!adminMode) {
+    return <div style={{ padding: '20px' }}>Access Denied. Admin only.</div>;
+  }
 
   const handleVendorChange = (e) => {
     const { name, value } = e.target;
