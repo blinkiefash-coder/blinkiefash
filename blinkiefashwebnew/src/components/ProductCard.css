@@ -838,3 +838,12 @@
     font-size: 10px;
   }
 }
+
+/* Desktop hover still works */
+@media (hover: hover) and (pointer: fine) {
+  .pc-card:hover .pc-quick-drawer.has-variants {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
