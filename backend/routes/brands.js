@@ -18,8 +18,7 @@ function adminGuard(req, res, next) {
 router.get("/", async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, name, logo_url,
-              COALESCE(NULLIF(banner, ''), NULLIF(banner_url, ''), NULLIF(logo_url, '')) AS banner_url
+      `SELECT id, name, logo_url, banner, banner_url, is_active, created_at
        FROM brands
        WHERE is_active = true
        ORDER BY name ASC`
