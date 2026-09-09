@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { getOldClothes, requestClothesPickup, getAddresses } from '../api';
 import './OfferFeature.css';
 
 export default function OldClothes() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
 
   // Start as true only when we actually need to fetch
@@ -120,7 +122,7 @@ export default function OldClothes() {
         <div className="offer-feature-card">
           <h1>Donate Old Clothes</h1>
           <p>Log in to schedule a pickup and earn up to 5% off.</p>
-          <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+          <button type="button" className="primary-btn" onClick={() => openAuthModal('login')}>
             Log in
           </button>
         </div>

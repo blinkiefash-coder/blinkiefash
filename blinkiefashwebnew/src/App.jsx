@@ -1,7 +1,9 @@
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import BottomNav from './components/BottomNav';
 import Loader from './components/Loader';
+import AuthModal from './components/AuthModal';
+import { useAuthModal } from './context/AuthModalContext';
 import Home from './pages/Home';
 import Shop from './pages/Shop';
 import Men from './pages/Men';
@@ -24,8 +26,6 @@ import ReferEarn from './pages/ReferEarn';
 import OldClothes from './pages/OldClothes';
 import SpinWheel from './pages/SpinWheel';
 import FashionQuest from './pages/FashionQuest';
-import Login from './pages/Login';
-import Signup from './pages/Signup';
 import SetPassword from './pages/SetPassword';
 import ComingSoon from './pages/ComingSoon';
 import VendorAuth from './pages/VendorAuth';
@@ -74,6 +74,25 @@ function RequireAdmin({ children }) {
     return children;
   }
   return <Navigate to="/vendor" replace />;
+}
+
+// Anyone who lands on /login or /signup directly (bookmark, shared link,
+// typed URL) gets sent back to where they meant to go, with the auth
+// popup opened on top of it — so there's only ever one login/signup UI,
+// and it's always the popup.
+function AuthModalRoute({ view }) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { openAuthModal } = useAuthModal();
+
+  useEffect(() => {
+    const destination = location.state?.from || '/';
+    openAuthModal(view);
+    navigate(destination, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
 }
 
 export default function App() {
@@ -188,8 +207,8 @@ export default function App() {
         <Route path="/old-clothes" element={<OldClothes />} />
         <Route path="/spin-wheel" element={<SpinWheel />} />
         <Route path="/play-and-win" element={<FashionQuest />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
+        <Route path="/login" element={<AuthModalRoute view="login" />} />
+        <Route path="/signup" element={<AuthModalRoute view="signup" />} />
         <Route path="/set-password" element={<SetPassword />} />
         <Route
           path="/notifications"
@@ -306,6 +325,8 @@ export default function App() {
         !isOffersPage &&
         !isHelpSupportPage && 
         !isDeals && <BottomNav />}
+
+      <AuthModal />
     </div>
   );
 }

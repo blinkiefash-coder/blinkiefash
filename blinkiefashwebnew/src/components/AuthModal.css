@@ -1,0 +1,517 @@
+/* Auth popup — used everywhere "Login" / "Create account" is triggered. */
+
+.am-backdrop {
+  --am-green: #0a6b34;
+  --am-green-bright: #12893f;
+  --am-green-soft: #e6f9ec;
+  --am-green-soft-border: #bdeed0;
+  --am-ink: #12151c;
+  --am-muted: #6b7280;
+  --am-border: #e6e8f0;
+  --am-red: #dc2626;
+
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 5vh 16px;
+  overflow-y: auto;
+  background: rgba(12, 16, 24, 0.55);
+  backdrop-filter: blur(4px);
+  animation: am-fade-in 0.15s ease;
+}
+
+@keyframes am-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.am-modal {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  background: #fff;
+  border-radius: 24px;
+  padding: 26px 24px 24px;
+  box-shadow: 0 30px 70px rgba(10, 15, 25, 0.35);
+  font-family: Inter, sans-serif;
+  color: var(--am-ink);
+  animation: am-pop-in 0.18s ease;
+}
+
+@keyframes am-pop-in {
+  from { opacity: 0; transform: translateY(10px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.am-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: none;
+  border-radius: 50%;
+  background: #f0f1f6;
+  color: var(--am-muted);
+  cursor: pointer;
+  font-size: 18px;
+}
+
+.am-close:hover {
+  background: #e4e6ee;
+  color: var(--am-ink);
+}
+
+/* ---- banner ---- */
+.am-banner {
+  background: linear-gradient(135deg, #eafcf1 0%, #e2f8ea 100%);
+  border: 1px solid var(--am-green-soft-border);
+  border-radius: 18px;
+  padding: 20px 22px;
+  margin: 6px 0 20px;
+}
+
+.am-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--am-green);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.09em;
+  margin-bottom: 8px;
+}
+
+.am-kicker svg {
+  font-size: 13px;
+}
+
+.am-banner h2 {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  font-weight: 800;
+}
+
+.am-accent {
+  color: var(--am-green);
+}
+
+.am-banner p {
+  margin: 8px 0 0;
+  color: #3f4859;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.am-perks-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  margin-top: 12px;
+  font-style: italic;
+  color: #4a5568;
+  font-size: 12px;
+}
+
+.am-perks-row span:not(:last-child)::after {
+  content: '•';
+  margin-left: 10px;
+  color: #9fd9b3;
+  font-style: normal;
+}
+
+/* ---- method tab ---- */
+.am-method {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  margin-bottom: 18px;
+  border: 1px solid var(--am-border);
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.am-method svg {
+  color: var(--am-green);
+  font-size: 18px;
+}
+
+.am-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #b6fbc7;
+  color: #04350f;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ---- form fields (shared by login + signup) ---- */
+.am-form {
+  display: grid;
+  gap: 0;
+}
+
+.am-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--am-muted);
+  margin-bottom: 8px;
+}
+
+.am-field {
+  margin-bottom: 16px;
+}
+
+.am-field:last-of-type {
+  margin-bottom: 0;
+}
+
+.am-phone-row {
+  display: flex;
+  align-items: center;
+  background: #f3f4f9;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 4px 14px;
+}
+
+.am-phone-row:focus-within {
+  border-color: var(--am-green);
+}
+
+.am-country {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 800;
+  font-size: 14px;
+  padding-right: 12px;
+  margin-right: 12px;
+  border-right: 1px solid #dadde8;
+  flex-shrink: 0;
+}
+
+.am-country svg {
+  font-size: 17px;
+  color: var(--am-muted);
+}
+
+.am-phone-row input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 14px 0;
+  font-size: 15px;
+  color: var(--am-ink);
+  min-width: 0;
+}
+
+.am-phone-row input::placeholder {
+  color: #9aa0b1;
+}
+
+.am-input-plain {
+  width: 100%;
+  box-sizing: border-box;
+  background: #f3f4f9;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 14px 16px;
+  font-size: 14.5px;
+  color: var(--am-ink);
+  outline: none;
+}
+
+.am-input-plain:focus {
+  border-color: var(--am-green);
+}
+
+.am-input-plain::placeholder {
+  color: #9aa0b1;
+}
+
+.am-input-icon-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.am-input-icon-row input {
+  padding-right: 44px;
+}
+
+.am-input-icon-row button {
+  position: absolute;
+  right: 12px;
+  border: none;
+  background: transparent;
+  color: var(--am-muted);
+  display: flex;
+  cursor: pointer;
+}
+
+.am-otp-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  background: #f3f4f9;
+  border-radius: 14px;
+  padding: 16px;
+  text-align: center;
+  font-size: 24px;
+  letter-spacing: 0.4em;
+  outline: none;
+}
+
+.am-otp-input:focus {
+  border-color: var(--am-green);
+}
+
+.am-helper-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 8px 2px 0;
+  font-size: 12px;
+  color: var(--am-muted);
+}
+
+.am-helper-row b {
+  color: var(--am-green);
+  font-weight: 800;
+}
+
+.am-otp-sent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--am-green-soft);
+  color: #375243;
+  font-size: 12.5px;
+  margin-bottom: 14px;
+}
+
+.am-otp-sent svg {
+  color: var(--am-green);
+  flex-shrink: 0;
+}
+
+.am-otp-sent strong {
+  color: var(--am-ink);
+}
+
+.am-otp-sent button {
+  margin-left: auto;
+  border: none;
+  background: transparent;
+  color: var(--am-green);
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.am-error {
+  margin: 10px 2px 0;
+  color: var(--am-red);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.am-hint {
+  margin: 10px 2px 0;
+  color: var(--am-green);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.am-checkbox {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--am-muted);
+  cursor: pointer;
+}
+
+.am-checkbox input {
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+  accent-color: var(--am-green);
+  cursor: pointer;
+}
+
+.am-submit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+  padding: 16px;
+  border: none;
+  border-radius: 14px;
+  background: var(--am-green);
+  color: #fff;
+  font-weight: 800;
+  font-size: 15px;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(10, 107, 52, 0.22);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.am-submit:hover:not(:disabled) {
+  background: var(--am-green-bright);
+  transform: translateY(-1px);
+}
+
+.am-submit:disabled {
+  opacity: 0.65;
+  cursor: wait;
+  transform: none;
+}
+
+.am-submit svg {
+  font-size: 18px;
+}
+
+/* ---- perk box (login only) ---- */
+.am-perk {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--am-green-soft);
+}
+
+.am-perk-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #d3f5de;
+  font-size: 18px;
+}
+
+.am-perk-text {
+  font-size: 13px;
+  color: var(--am-ink);
+}
+
+.am-perk-text b {
+  color: var(--am-green);
+}
+
+.am-perk-text span {
+  display: block;
+  margin-top: 2px;
+  color: var(--am-muted);
+  font-size: 11.5px;
+}
+
+/* ---- legal + switch ---- */
+.am-legal {
+  margin: 18px 0 0;
+  text-align: center;
+  color: var(--am-muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.am-switch {
+  margin: 10px 0 0;
+  text-align: center;
+  color: var(--am-muted);
+  font-size: 13px;
+}
+
+.am-switch button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  color: var(--am-ink);
+  font-weight: 800;
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ---- react-phone-number-input inside the modal ---- */
+.am-modal .PhoneInput {
+  display: flex;
+  align-items: center;
+  background: #f3f4f9;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 4px 14px;
+}
+
+.am-modal .PhoneInput:focus-within {
+  border-color: var(--am-green);
+}
+
+.am-modal .PhoneInputInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 14px 0;
+  font-size: 14.5px;
+  color: var(--am-ink);
+}
+
+.am-modal .PhoneInputCountry {
+  margin-right: 10px;
+  padding-right: 10px;
+  border-right: 1px solid #dadde8;
+}
+
+/* ---- responsive ---- */
+@media (max-width: 480px) {
+  .am-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .am-modal {
+    max-width: 100%;
+    max-height: 92vh;
+    overflow-y: auto;
+    border-radius: 22px 22px 0 0;
+    padding: 22px 18px 20px;
+  }
+
+  .am-modal input,
+  .am-otp-input,
+  .am-input-plain,
+  .am-modal .PhoneInputInput {
+    font-size: 16px; /* avoid iOS zoom on focus */
+  }
+
+  .am-banner h2 {
+    font-size: 21px;
+  }
+}

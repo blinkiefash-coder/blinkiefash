@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { getReferralInfo, applyReferralCode } from '../api';
 import './ReferEarn.css';
 
 export default function ReferEarn() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(() => Boolean(isLoggedIn && user?.id));
   const [code, setCode] = useState('');
@@ -114,7 +116,7 @@ export default function ReferEarn() {
         <div className="re-login-card">
           <h1>Refer &amp; Earn</h1>
           <p>Log in to get your referral code and earn rewards.</p>
-          <button type="button" className="re-btn-primary" onClick={() => navigate('/login')}>
+          <button type="button" className="re-btn-primary" onClick={() => openAuthModal('login')}>
             Log in
           </button>
         </div>
