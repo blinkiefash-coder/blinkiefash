@@ -1760,7 +1760,7 @@
   width: max-content;
   gap: 14px;
   will-change: transform;
-  animation-duration: 50s;
+  animation-duration: 85s;
   animation-timing-function: linear;
   animation-iteration-count: infinite;
 }
@@ -1967,6 +1967,9 @@
 }
 
 @media (max-width: 768px) {
+  .hp-shop-brands-track {
+    animation-duration: 100s;
+  }
   .hp-shop-brands-grid {
     grid-auto-columns: 148px !important;
     gap: 10px !important;
