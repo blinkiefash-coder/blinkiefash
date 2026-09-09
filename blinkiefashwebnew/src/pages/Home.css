@@ -1743,7 +1743,55 @@
   max-width: 100%;
 }
 
+.hp-shop-brands-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.hp-brands-scroll-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #b8e6c8 0%, #7dd3a3 100%);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  z-index: 10;
+}
+
+.hp-brands-scroll-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
+  background: linear-gradient(135deg, #a3deb8 0%, #6ec999 100%);
+}
+
+.hp-brands-scroll-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .hp-brands-scroll-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hp-brands-scroll-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 .hp-shop-brands-wrap {
+  flex: 1;
   width: 100%;
   display: grid;
   gap: 14px;

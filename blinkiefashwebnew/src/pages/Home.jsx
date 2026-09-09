@@ -337,6 +337,7 @@ export default function Home() {
   const heroTrackRef = useRef(null);
   const dealsRef = useRef(null);
   const brandsPauseTimerRef = useRef(null);
+  const brandsWrapRef = useRef(null);
   const recentlyViewedRailRef = useRef(null);
   const newOnBlinkiefashRailRef = useRef(null);
 
@@ -351,6 +352,29 @@ export default function Home() {
     brandsPauseTimerRef.current = window.setTimeout(() => {
       setBrandsPaused(false);
     }, 5000);
+  };
+
+  const scrollBrandsLeft = () => {
+    if (brandsWrapRef.current) {
+      const currentScrollLeft = brandsWrapRef.current.scrollLeft;
+      brandsWrapRef.current.scrollTo({
+        left: Math.max(0, currentScrollLeft - 300),
+        behavior: 'smooth',
+      });
+      pauseBrandCarousel();
+    }
+  };
+
+  const scrollBrandsRight = () => {
+    if (brandsWrapRef.current) {
+      const currentScrollLeft = brandsWrapRef.current.scrollLeft;
+      const maxScroll = brandsWrapRef.current.scrollWidth - brandsWrapRef.current.clientWidth;
+      brandsWrapRef.current.scrollTo({
+        left: Math.min(maxScroll, currentScrollLeft + 300),
+        behavior: 'smooth',
+      });
+      pauseBrandCarousel();
+    }
   };
 
   useEffect(() => () => window.clearTimeout(brandsPauseTimerRef.current), []);
@@ -939,47 +963,65 @@ export default function Home() {
         {topBrands.length > 0 && (
           <section className="section hp-shop-brands-section" aria-label="Shop by brands">
             <SectionHead icon={shopByBrandIcon} iconAlt="Shop by brands" title="Shop by" accentWord="Brands" onViewAll={() => navigate('/shop')} />
-            <div className={`hp-shop-brands-wrap${brandsPaused ? ' is-paused' : ''}`} onMouseEnter={pauseBrandCarousel} onFocus={pauseBrandCarousel}>
-              {brandRows.map((row, rowIndex) => {
-                const loopedRow = [...row, ...row];
-                return (
-                  <div className="hp-shop-brands-row" key={`brand-row-${rowIndex}`} role="list">
-                    <div className={`hp-shop-brands-track ${rowIndex === 0 ? 'move-right' : 'move-left'}`}>
-                      {loopedRow.map((brand, idx) => {
-                        const label = (brand.name || '').toString().trim();
-                        const displayName = label || 'Brand';
-                        const normalizedDisplayName = normalizeBrandName(displayName);
-                        const logo = normalizedDisplayName === 'nike' ? NIKE_LOGO_URL : resolveImageUrl(brand.logo_url || brand.image);
-                        const isFeatured = idx === 0;
-                        return (
-                          <article
-                            key={`${brand.id || displayName}-${rowIndex}-${idx}`}
-                            className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
-                            role="listitem"
-                            tabIndex={0}
-                            style={{ cursor: 'pointer' }}
-                            onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
-                                navigate(`/brands/${encodeURIComponent(displayName)}`);
-                              }
-                            }}
-                          >
-                            <div className="hp-shop-brand-visual">
-                              {logo ? (
-                                <img src={logo} alt={displayName} loading="lazy" className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`} />
-                              ) : (
-                                <div className="hp-shop-brand-fallback" aria-label={displayName}>{displayName.slice(0, 5).toUpperCase()}</div>
-                              )}
-                            </div>
-                          </article>
-                        );
-                      })}
+            <div className="hp-shop-brands-container">
+              <button
+                className="hp-brands-scroll-btn hp-brands-scroll-left"
+                onClick={scrollBrandsLeft}
+                aria-label="Scroll brands left"
+                type="button"
+              >
+                <MdChevronLeft size={24} />
+              </button>
+              <div className={`hp-shop-brands-wrap${brandsPaused ? ' is-paused' : ''}`} ref={brandsWrapRef} onMouseEnter={pauseBrandCarousel} onFocus={pauseBrandCarousel}>
+                {brandRows.map((row, rowIndex) => {
+                  const loopedRow = [...row, ...row];
+                  return (
+                    <div className="hp-shop-brands-row" key={`brand-row-${rowIndex}`} role="list">
+                      <div className={`hp-shop-brands-track ${rowIndex === 0 ? 'move-right' : 'move-left'}`}>
+                        {loopedRow.map((brand, idx) => {
+                          const label = (brand.name || '').toString().trim();
+                          const displayName = label || 'Brand';
+                          const normalizedDisplayName = normalizeBrandName(displayName);
+                          const logo = normalizedDisplayName === 'nike' ? NIKE_LOGO_URL : resolveImageUrl(brand.logo_url || brand.image);
+                          const isFeatured = idx === 0;
+                          return (
+                            <article
+                              key={`${brand.id || displayName}-${rowIndex}-${idx}`}
+                              className={`hp-shop-brand-card${isFeatured ? ' featured' : ''}`}
+                              role="listitem"
+                              tabIndex={0}
+                              style={{ cursor: 'pointer' }}
+                              onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  navigate(`/brands/${encodeURIComponent(displayName)}`);
+                                }
+                              }}
+                            >
+                              <div className="hp-shop-brand-visual">
+                                {logo ? (
+                                  <img src={logo} alt={displayName} loading="lazy" className={`hp-shop-brand-logo${normalizedDisplayName === 'nike' ? ' hp-shop-brand-nike-logo' : ''}`} />
+                                ) : (
+                                  <div className="hp-shop-brand-fallback" aria-label={displayName}>{displayName.slice(0, 5).toUpperCase()}</div>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+              <button
+                className="hp-brands-scroll-btn hp-brands-scroll-right"
+                onClick={scrollBrandsRight}
+                aria-label="Scroll brands right"
+                type="button"
+              >
+                <MdChevronRight size={24} />
+              </button>
             </div>
           </section>
         )}
