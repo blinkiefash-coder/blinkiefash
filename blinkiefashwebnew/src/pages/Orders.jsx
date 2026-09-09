@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { getOrders } from '../api';
 import Loader from '../components/Loader';
 import './Orders.css';
@@ -92,6 +93,7 @@ function formatAmount(value) {
 
 export default function Orders() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +120,7 @@ export default function Orders() {
             <div className="orders-empty-icon"><IconEmptyBag /></div>
             <h1 className="orders-title">Your orders</h1>
             <p className="orders-state-msg">Log in to view your orders.</p>
-            <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+            <button type="button" className="primary-btn" onClick={() => openAuthModal('login')}>
               Log in
             </button>
           </div>

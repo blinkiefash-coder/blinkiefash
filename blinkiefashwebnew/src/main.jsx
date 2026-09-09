@@ -6,6 +6,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import './index.css';
 import App from './App.jsx';
 import { AuthProvider } from './context/AuthContext.jsx';
+import { AuthModalProvider } from './context/AuthModalContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { WishlistProvider } from './context/WishlistContext.jsx';
 
@@ -15,11 +16,13 @@ createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <ScrollToTop />
         <AuthProvider>
-          <CartProvider>
-            <WishlistProvider>
-              <App />
-            </WishlistProvider>
-          </CartProvider>
+          <AuthModalProvider>
+            <CartProvider>
+              <WishlistProvider>
+                <App />
+              </WishlistProvider>
+            </CartProvider>
+          </AuthModalProvider>
         </AuthProvider>
       </BrowserRouter>
     </HelmetProvider>

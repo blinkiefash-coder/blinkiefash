@@ -25,7 +25,7 @@ export default function AdminPinGate({ onSuccess }) {
       <section className="admin-gate-card">
         <div className="admin-gate-brand-row">
           <img src={logo} alt="Blinkiefash" className="admin-gate-logo" />
-          <span className="admin-gate-brand-line">60 minutes Ecom || Book and Take || Try and Buy</span>
+          <span className="admin-gate-brand-line">60 minutes Ecom || Book and Take</span>
         </div>
 
         <h1>Private Launch Access</h1>

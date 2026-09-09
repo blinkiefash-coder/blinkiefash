@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { updateUserProfile } from '../api';
 import logo from '../assets/logo1.png';
 import ConfirmDialog from '../components/ConfirmDialog';
@@ -161,6 +162,7 @@ const SECTIONS = [
 
 export default function AccountPage() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn, logout, updateUser } = useAuth();
 
   const [profileOpen, setProfileOpen] = useState(false);
@@ -235,10 +237,10 @@ export default function AccountPage() {
           <h1>My Account</h1>
           <p>Log in to manage your orders, wishlist and addresses.</p>
           <div className="acct-guest-actions">
-            <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+            <button type="button" className="primary-btn" onClick={() => openAuthModal('login')}>
               Log in
             </button>
-            <button type="button" className="secondary-btn" onClick={() => navigate('/signup')}>
+            <button type="button" className="secondary-btn" onClick={() => openAuthModal('signup')}>
               Create account
             </button>
           </div>

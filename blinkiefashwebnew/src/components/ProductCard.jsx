@@ -12,6 +12,7 @@ import {
 } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { useCart } from "../context/CartContext";
+import { useAuthModal } from "../context/AuthModalContext";
 import { useWishlist } from "../context/WishlistContext";
 import { productImageUrl } from "../utils/cloudinaryImage";
 import "./ProductCard.css";
@@ -65,6 +66,7 @@ async function resolveAvailableVariantId(product) {
 
 export default function ProductCard({ product, onWishlistAdded, onCartAdded, isNew = false }) {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { addToCart, getCartQty, updateQty } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
@@ -111,7 +113,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     ? "BESTSELLER"
     : hasDiscount
     ? `${offPercent}% OFF`
-    : null;
+    : "+ 60 MIN";
 
   const badgeVariant = showNewBadge
     ? "new"
@@ -178,8 +180,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
     const { userId, token } = getAuth();
     if (!userId && !token) {
-      alert("Please login to add items to wishlist");
-      navigate("/login");
+      openAuthModal("login");
       return;
     }
 
@@ -238,8 +239,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
     const { userId, token } = getAuth();
     if (!userId && !token) {
-      alert("Please login to add items to cart");
-      navigate("/login");
+      openAuthModal("login");
       return;
     }
 
@@ -362,16 +362,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
           </div>
         )}
 
-        {badgeType && (
-          <div className="pc-badges-top">
-            <span className={`pc-badge pc-badge--${badgeVariant}`}>
-              {badgeVariant === "bestseller" && (
-                <MdLocalFireDepartment className="pc-badge-icon" />
-              )}
-              {badgeType}
-            </span>
-          </div>
-        )}
+        <div className="pc-badges-top">
+          <span className={`pc-badge pc-badge--${badgeVariant}`}>
+            {badgeVariant === "bestseller" && (
+              <MdLocalFireDepartment className="pc-badge-icon" />
+            )}
+            {badgeType}
+          </span>
+        </div>
 
         <button
           type="button"

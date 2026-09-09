@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { estimateParcel, createParcelRequest } from '../api';
 import AppHeader from '../components/AppHeader';
 import './Parcel.css';
 
 export default function Parcel() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
 
   const [pickup, setPickup] = useState({
@@ -101,7 +103,7 @@ export default function Parcel() {
     }
 
     if (!isLoggedIn) {
-      navigate('/login', { state: { from: '/parcel' } });
+      openAuthModal('login', { onSuccess: () => handleContinue() });
       return;
     }
 
