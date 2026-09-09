@@ -1002,11 +1002,11 @@ export default function Women() {
                       role="listitem"
                       tabIndex={0}
                       style={{ cursor: "pointer" }}
-                      onClick={() => navigate(womenScopedShopUrl({ search: displayName }))}
+                      onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          navigate(womenScopedShopUrl({ search: displayName }));
+                          navigate(`/brands/${encodeURIComponent(displayName)}`);
                         }
                       }}
                     >

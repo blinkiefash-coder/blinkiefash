@@ -26,7 +26,7 @@
   max-width: none;
   margin: 0;
   display: grid;
-  grid-template-columns: 190px 1fr auto;
+  grid-template-columns: auto 190px 1fr auto;
   gap: 16px;
   align-items: center;
   padding: 10px 20px;
@@ -34,6 +34,23 @@
   border-bottom: 1px solid #e8edf3;
   box-shadow: 0 1px 0 rgba(15, 23, 42, 0.03);
 }
+
+.pd-header-back {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1px solid #dbe3ec;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 12px;
+  color: #1e293b;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.pd-header-back:hover { border-color: #159a4c; color: #0b6b34; }
 
 .pd-brand-logo {
   justify-content: flex-start;
@@ -47,7 +64,7 @@
 }
 .hp-logo { height: 34px; }
 .hp-brand-text { display: flex; flex-direction: column; text-align: left; }
-.hp-brand-name { font-weight: 800; font-size: 16px; color: #0f172a; }
+.hp-brand-name { font-weight: 800; font-size: 16px; color: #0f172a; white-space: nowrap; }
 .hp-brand-accent { color: #159a4c; }
 .hp-tagline { font-size: 9px; letter-spacing: 0.5px; color: #64748b; }
 
@@ -946,7 +963,7 @@
 
 /* ---------- Tablet portrait ---------- */
 @media (max-width: 1024px) {
-  .pd-header { grid-template-columns: minmax(120px, 160px) minmax(0, 1fr) auto; gap: 12px; padding: 10px 16px; }
+  .pd-header { grid-template-columns: auto minmax(120px, 160px) minmax(0, 1fr) auto; gap: 12px; padding: 10px 16px; }
   .hp-header-search { padding: 7px 10px; }
   .hp-header-actions button span:not(.hp-icon-badge) { display: none; }
   .hp-header-actions button { min-width: 36px; justify-content: center; }
@@ -987,12 +1004,18 @@
     top: 0;
     z-index: 80;
   }
+  .pd-header-back {
+    order: 0;
+    flex: none;
+    padding: 7px 10px;
+  }
   .pd-brand-logo {
     min-width: 0;
     order: 1;
-    width: 100%;
+    flex: 1 1 auto;
+    width: auto;
     justify-content: center;
-    margin-bottom: 6px;
+    margin-bottom: 0;
   }
   .pd-brand-logo .hp-brand-name { max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .pd-header .hp-header-search { order: 2; flex: 1 1 auto; min-width: 0; }
@@ -1089,6 +1112,8 @@
 /* ---------- Small phones ---------- */
 @media (max-width: 480px) {
   .pd-header { padding: 8px 10px; }
+  .pd-header-back span { display: none; }
+  .pd-header-back { padding: 8px; border-radius: 999px; }
   .pd-brand-logo .hp-brand-name { max-width: 110px; }
   .hp-logo { height: 28px; }
   .pp-page { padding: 12px 12px 84px; font-size: 13px; }

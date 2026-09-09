@@ -807,15 +807,20 @@ export default function Shop() {
             </div>
 
             <div className="catalog-filter-col">
-              <h4>Brand</h4>
+              <h4>
+                Brand
+                {brands.length > 0 ? (
+                  <span className="catalog-filter-col-count"> ({brands.length})</span>
+                ) : null}
+              </h4>
               <input
                 className="catalog-filter-search"
                 value={brandSearch}
                 onChange={(e) => setBrandSearch(e.target.value)}
                 placeholder="Search brand"
               />
-              <div className="catalog-filter-list">
-                {visibleBrands.slice(0, 15).map((brand) => (
+              <div className="catalog-filter-list catalog-filter-list-brands">
+                {visibleBrands.map((brand) => (
                   <label key={brand.id}>
                     <input
                       type="checkbox"
@@ -825,6 +830,9 @@ export default function Shop() {
                     <span>{brand.name}</span>
                   </label>
                 ))}
+                {visibleBrands.length === 0 ? (
+                  <p className="catalog-filter-empty">No brands match "{brandSearch}"</p>
+                ) : null}
               </div>
             </div>
 
