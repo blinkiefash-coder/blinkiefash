@@ -310,7 +310,7 @@ export default function App() {
         <Route path="/account/addresses" element={<SavedAddresses />} />
         <Route path="/deals-of-the-day" element={<DealsOfTheDay />}
         />
-
+        /* hi */
         {/* NEW: Blinkiefash India / Local mode pages */}
         {/* <Route path="/blinkiefash-india" element={<BlinkiefashIndia />} /> */}
         {/* <Route path="/blinkiefash-local" element={<BlinkiefashLocal />} /> */}

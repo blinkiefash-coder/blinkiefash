@@ -42,6 +42,8 @@ export function AuthModalProvider({ children }) {
   return <AuthModalContext.Provider value={value}>{children}</AuthModalContext.Provider>;
 }
 
+// hi
+
 // eslint-disable-next-line react-refresh/only-export-components
 export function useAuthModal() {
   const ctx = useContext(AuthModalContext);

@@ -9,6 +9,7 @@ import { AuthProvider } from './context/AuthContext.jsx';
 import { AuthModalProvider } from './context/AuthModalContext.jsx';
 import { CartProvider } from './context/CartContext.jsx';
 import { WishlistProvider } from './context/WishlistContext.jsx';
+// hi
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
