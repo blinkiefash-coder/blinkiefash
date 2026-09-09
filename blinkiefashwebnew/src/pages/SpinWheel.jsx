@@ -36,13 +36,6 @@ export default function SpinWheel() {
   // Navigate back to whichever page the user came from.
   // Falls back to /offers if there's no history to go back to
   // (e.g. user landed here directly via a shared link).
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/offers');
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -130,17 +123,10 @@ export default function SpinWheel() {
     return (
       <>
         <Navbar />
+          <main className="page offer-feature-page spin-page">
+            <div className="offer-feature-card">
 
-        <main className="page offer-feature-page spin-page">
-          <button
-            type="button"
-            className="offer-back"
-            onClick={goBack}
-          >
-            ← Back
-          </button>
 
-          <div className="offer-feature-card">
             <h1>Spin &amp; Win</h1>
 
             <p>
@@ -165,14 +151,6 @@ export default function SpinWheel() {
       <Navbar />
 
       <main className="page offer-feature-page spin-page">
-
-        <button
-          type="button"
-          className="offer-back"
-          onClick={goBack}
-        >
-          ← Back
-        </button>
 
         <div className="spin-breadcrumb">
           Home <span>›</span> Spin &amp; Win
