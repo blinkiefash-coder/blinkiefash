@@ -20,7 +20,6 @@ export default function HeroCardsManager() {
   // Fetch hero cards
   const fetchHeroCards = async () => {
     try {
-      setLoading(true);
       const response = await fetch(`${API_BASE_URL}/api/hero-cards/admin/all`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
@@ -43,7 +42,11 @@ export default function HeroCardsManager() {
   };
 
   useEffect(() => {
-    fetchHeroCards();
+    const loadTask = window.setTimeout(() => {
+      void fetchHeroCards();
+    }, 0);
+
+    return () => window.clearTimeout(loadTask);
   }, []);
 
   // Handle form input change
