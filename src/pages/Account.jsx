@@ -15,6 +15,8 @@ export default function Account() {
   const navigate = useNavigate();
   const { user, isLoggedIn, logout } = useAuth();
 
+  // hi
+
   if (!isLoggedIn) {
     return (
       <div className="page account-page">

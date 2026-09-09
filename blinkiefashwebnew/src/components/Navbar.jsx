@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
+import { useAuthModal } from "../context/AuthModalContext";
 import logo from "../assets/logo1.png";
 
 /* ---------- inline icons ---------- */
@@ -85,6 +86,7 @@ export default function Navbar() {
   const closeHoverTimer = useRef(null);
 
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const location = useLocation();
   const moreRef = useRef(null);
   const profileRef = useRef(null);
@@ -454,7 +456,7 @@ export default function Navbar() {
               )}
             </div>
           ) : (
-            <button type="button" className="nav-action-btn" onClick={() => navigate("/login")}>
+            <button type="button" className="nav-action-btn" onClick={() => openAuthModal("login")}>
               <span className="nav-action-icon">
                 <IconUser />
               </span>

@@ -19,6 +19,7 @@ import {
   MdShoppingBag,
 } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { useCart } from '../context/CartContext';
 import { getAddresses, addAddress, getDeliveryFee, placeOrder } from '../api';
 import './Checkout.css';
@@ -32,6 +33,7 @@ const AVAILABLE_COUPONS = {};
 
 export default function Checkout() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const goBack = useSmartBack('/cart');
   const { user, isLoggedIn } = useAuth();
   const cartCtx = useCart();
@@ -311,7 +313,7 @@ export default function Checkout() {
 
   const handlePlaceOrder = async () => {
     if (!isLoggedIn) {
-      navigate('/login', { state: { from: '/checkout' } });
+      openAuthModal('login', { onSuccess: () => handlePlaceOrder() });
       return;
     }
     if (!selectedAddressId) {
@@ -436,7 +438,7 @@ export default function Checkout() {
           <button
             type="button"
             className="ckt-login-banner-btn"
-            onClick={() => navigate('/login', { state: { from: '/checkout' } })}
+            onClick={() => openAuthModal('login')}
           >
             <MdLogin /> Log in
           </button>
@@ -589,7 +591,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   className="ckt-login-prompt-btn"
-                  onClick={() => navigate('/login', { state: { from: '/checkout' } })}
+                  onClick={() => openAuthModal('login')}
                 >
                   <MdLogin /> Log in to continue
                 </button>

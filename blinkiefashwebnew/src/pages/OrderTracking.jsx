@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { getOrderById, cancelOrder } from '../api';
 import Loader from '../components/Loader';
 import { estimateDeliveryFromDistance } from '../utils/deliveryEstimate';
@@ -17,6 +18,7 @@ const STEPS = [
 export default function OrderTracking() {
   const { orderId } = useParams();
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const location = useLocation();
   const { isLoggedIn } = useAuth();
 
@@ -114,7 +116,7 @@ export default function OrderTracking() {
       <div className="ot-page">
         <div className="ot-empty">
           <p>Log in to track this order.</p>
-          <button className="ot-btn primary" onClick={() => navigate('/login')}>Log in</button>
+          <button className="ot-btn primary" onClick={() => openAuthModal('login')}>Log in</button>
         </div>
       </div>
     );

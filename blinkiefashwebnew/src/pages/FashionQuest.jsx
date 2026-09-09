@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useAuthModal } from '../context/AuthModalContext';
 import { getGamificationState, completeQuestLevel } from '../api';
 import Navbar from '../components/Navbar';
 import './OfferFeature.css';
@@ -33,6 +34,7 @@ function buildBoard(pairCount = 5) {
 
 export default function FashionQuest() {
   const navigate = useNavigate();
+  const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
   const [loading, setLoading] = useState(true);
   const [level, setLevel] = useState(14);
@@ -50,6 +52,13 @@ export default function FashionQuest() {
 
   // Navigate back to whichever page the user came from.
   // Falls back to /offers if there's no history to go back to.
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/offers');
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -164,10 +173,13 @@ export default function FashionQuest() {
         <Navbar />
 
         <main className="page offer-feature-page fashion-quest-page">
+          <button type="button" className="offer-back" onClick={goBack}>
+            ← Back
+          </button>
           <div className="offer-feature-card">
             <h1>Fashion Quest</h1>
             <p>Log in to play memory match and earn daily discounts.</p>
-            <button type="button" className="primary-btn" onClick={() => navigate('/login')}>
+            <button type="button" className="primary-btn" onClick={() => openAuthModal('login')}>
               Log in
             </button>
           </div>
@@ -183,6 +195,9 @@ export default function FashionQuest() {
       <Navbar />
 
       <main className="page offer-feature-page fashion-quest-page">
+        <button type="button" className="offer-back" onClick={goBack}>
+          ← Back
+        </button>
 
         <div className="fq-breadcrumb">Home &nbsp;›&nbsp; Fashion Quest</div>
 

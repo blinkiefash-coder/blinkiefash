@@ -963,11 +963,11 @@ export default function Men() {
                       role="listitem"
                       tabIndex={0}
                       style={{ cursor: "pointer" }}
-                      onClick={() => navigate(menScopedShopUrl({ search: displayName }))}
+                      onClick={() => navigate(`/brands/${encodeURIComponent(displayName)}`)}
                       onKeyDown={(e) => {
                         if (e.key === "Enter" || e.key === " ") {
                           e.preventDefault();
-                          navigate(menScopedShopUrl({ search: displayName }));
+                          navigate(`/brands/${encodeURIComponent(displayName)}`);
                         }
                       }}
                     >

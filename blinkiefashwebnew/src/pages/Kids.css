@@ -932,3 +932,204 @@
     gap: 8px;
   }
 }
+/* =========================================================
+   FILTERS — matches Men/Women filter panel pattern
+   ========================================================= */
+
+.kids-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.kids-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #bbf7d0;
+  background: #fff;
+  color: #15803d;
+  font-weight: 800;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.kids-filter-btn.is-active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+.kids-filters-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 24px;
+  border: 1px solid #d1fae5;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(21, 128, 61, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.kids-filters-panel-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #ecfdf5;
+}
+.kids-filters-panel-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #111827;
+}
+.kids-filters-clear {
+  border: 0;
+  background: transparent;
+  color: #15803d;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-family: inherit;
+}
+.kids-filters-clear:hover {
+  text-decoration: underline;
+}
+
+.kids-filter-col h4 {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #166534;
+}
+
+.kids-filter-search {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.kids-filter-search:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.kids-filter-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.kids-filter-list label {
+  font-size: 12.5px;
+  color: #3c4453;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.kids-filter-list input[type="checkbox"] {
+  accent-color: #16a34a;
+  width: 14px;
+  height: 14px;
+}
+
+.kids-filter-swatches {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.kids-swatch-label {
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.kids-swatch-label.checked {
+  background: #f0fdf4;
+}
+.kids-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  flex: none;
+}
+
+.kids-filter-col > input[type="range"] {
+  width: 100%;
+  accent-color: #16a34a;
+}
+.kids-filter-col p {
+  margin: 10px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #15803d;
+}
+
+.kids-filter-discount-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+.kids-filter-chip-item {
+  border: 1px solid #bbf7d0;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4453;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+.kids-filter-chip-item:hover {
+  border-color: #16a34a;
+  color: #15803d;
+}
+.kids-filter-chip-item.active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+}
+
+@media (max-width: 760px) {
+  .kids-filters-panel {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .kids-filter-list {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .kids-section-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+}

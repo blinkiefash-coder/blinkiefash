@@ -100,7 +100,7 @@ export default function PrivacyPolicy() {
               <li>Detect and prevent fraud, misuse, and security incidents.</li>
               <li>Conduct analytics to improve app performance, catalogue, and user experience.</li>
               <li>Comply with legal and regulatory obligations.</li>
-              <li>Administer our Refer &amp; Earn, Spin &amp; Win, and Try &amp; Buy programmes.</li>
+              <li>Administer our Refer &amp; Earn, Spin &amp; Win,</li>
             </ul>
           </article>
 

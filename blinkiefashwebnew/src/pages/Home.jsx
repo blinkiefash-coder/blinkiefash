@@ -307,7 +307,7 @@ export default function Home() {
   const [categories, setCategories] = useState(() => c?.categories ?? []);
   const [deals, setDeals] = useState(() => c?.deals ?? []);
   const [newProducts, setNewProducts] = useState(() => c?.newProducts ?? []);
-  const [pinnedNewProduct, setPinnedNewProduct] = useState(() => c?.pinnedNewProduct ?? null);
+  const [, setPinnedNewProduct] = useState(() => c?.pinnedNewProduct ?? null);
   const [mensProducts, setMensProducts] = useState(() => c?.mensProducts ?? []);
   const [womensProducts, setWomensProducts] = useState(() => c?.womensProducts ?? []);
   const [kidsProducts, setKidsProducts] = useState(() => c?.kidsProducts ?? []);
