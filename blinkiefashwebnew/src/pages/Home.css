@@ -4185,13 +4185,16 @@ html, body, #root {
 
 /* =========================================================
    Mobile-only hero aspect ratio — matches mobilebanner1-6.png
-   (1950x800). Deliberately scoped to phones only (<=767px) so
+   Updated: height increased from the source 1950x800 (2.44:1)
+   to a 16:9 ratio for a taller mobile banner. If you re-export
+   the mobile banner art, use 1950x1097 to match this ratio
+   exactly with no cropping. Scoped to phones only (<=767px) so
    tablets (iPad = 768px+ portrait width) and desktop keep the
    3.4/1 desktop banner ratio untouched.
    ========================================================= */
 @media (max-width: 767px) {
   .hp-slide {
-    aspect-ratio: 1950 / 800 !important;
+    aspect-ratio: 16 / 9 !important;
   }
 
 .hp-reward-image-card {
@@ -4576,4 +4579,4 @@ html, body, #root {
     border: none !important;
     background: transparent !important;
   }
-}
+} 
