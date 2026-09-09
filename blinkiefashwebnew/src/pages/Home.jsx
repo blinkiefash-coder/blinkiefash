@@ -1101,7 +1101,7 @@ export default function Home() {
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="SHOP FOR" accentWord="MEN" subtitle="Trendy styles. Top brands. Great prices." onViewAll={() => navigate('/men')} />
-            <CategoryChipsRail chips={mensCats} audienceLabel="Men" activeId={activeCollectionCats.Men ?? mensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <CategoryChipsRail chips={[{ id: 'all-men', name: 'All' }, ...mensCats]} audienceLabel="Men" activeId={activeCollectionCats.Men ?? 'all-men'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
           </section>
         )}
@@ -1109,7 +1109,7 @@ export default function Home() {
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
-            <CategoryChipsRail chips={womensCats} audienceLabel="Women" activeId={activeCollectionCats.Women ?? womensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
           </section>
         )}
