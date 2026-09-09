@@ -4,7 +4,14 @@ import { useAuth } from '../context/AuthContext';
 import { authStart, authVerify } from '../api';
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 import { auth } from '../firebase.js';
-import { MdArrowForward, MdLock, MdPhoneAndroid, MdShield } from 'react-icons/md';
+import {
+  MdLock,
+  MdSmartphone,
+  MdKeyboardArrowDown,
+  MdArrowForward,
+  MdAutoAwesome,
+  MdCardGiftcard,
+} from 'react-icons/md';
 import logo from '../assets/logo1.png';
 import './Auth.css';
 
@@ -19,6 +26,8 @@ export default function Login() {
   const [confirmationResult, setConfirmationResult] = useState(null);
   const [serverOtpMode, setServerOtpMode] = useState(false);
   const [serverOtp, setServerOtp] = useState('');
+
+  const digitCount = phone.replace(/\D/g, '').length;
 
   const ensureRecaptcha = () => {
     if (typeof window === 'undefined') {
@@ -143,56 +152,144 @@ export default function Login() {
   };
 
   return (
-    <div className="auth-screen">
-      <header className="auth-topbar">
-        <Link to="/" className="auth-logo">
-          <img src={logo} alt="Blinkiefash" className="auth-logo-mark" />
+    <div className="ft-page">
+      <div className="ft-topbar">
+        <Link to="/" className="ft-logo">
+          <img src={logo} alt="Blinkiefash" />
         </Link>
-        <div className="auth-secure"><MdLock /> Secure Auth</div>
-      </header>
+        <span className="ft-secure-badge">
+          <MdLock /> Secure Auth
+        </span>
+      </div>
 
-      <main className="auth-main">
-        <section className="auth-card auth-login-card">
-          <div className="auth-card-heading">
+      <main className="ft-main">
+        <div className="ft-card">
+          <section className="ft-banner">
             <div>
-              <span className="auth-kicker">Fast-track entry</span>
-              <h1>Welcome to BlinkieFash</h1>
-              <p>Log in or sign up in seconds to access your saved bag, instant checkouts, and member drops.</p>
+              <span className="ft-banner-kicker">
+                <MdAutoAwesome />
+                {step === 'phone' ? 'Fast-track entry' : 'Almost there'}
+              </span>
+              <h1>
+                {step === 'phone' ? (
+                  <>Welcome to <span className="ft-accent">BLINKIEFASH</span></>
+                ) : (
+                  <>Enter your <span className="ft-accent">code</span></>
+                )}
+              </h1>
+              <p>
+                {step === 'phone'
+                  ? 'Log in or sign up in seconds to access your saved bag, instant checkouts, and member drops.'
+                  : `We've sent a 6-digit code to ${formatPhone(phone)}. Enter it below to continue.`}
+              </p>
             </div>
-            <span className="auth-ssl"><MdShield /> 256-Bit SSL</span>
-          </div>
 
-          <div className="auth-tabs auth-tabs-single" aria-label="Login method">
-            <span className="is-active"><MdPhoneAndroid /> Mobile OTP <b>Fast</b></span>
+            <div className="ft-banner-right">
+              <div className="ft-sparkles">
+                <MdAutoAwesome />
+                <MdAutoAwesome />
+              </div>
+              <div className="ft-banner-divider" />
+              <ul className="ft-banner-list">
+                <li>Trendy Fashion</li>
+                <li>Faster Delivery</li>
+                <li>Happier You</li>
+              </ul>
+            </div>
+          </section>
+
+          <div className="ft-method">
+            <div className="ft-method-tab">
+              <MdSmartphone />
+              Mobile OTP
+              <span className="ft-method-badge">Fast</span>
+            </div>
           </div>
 
           {step === 'phone' && (
-            <form className="auth-form auth-modern-form" onSubmit={handleStart}>
-              <label htmlFor="phone">Mobile number</label>
-              <div className="auth-phone-field"><span>IN&nbsp; +91</span><input id="phone" type="tel" placeholder="Enter 10-digit mobile number" value={phone} onChange={(e) => setPhone(e.target.value)} required /></div>
-              <div className="auth-field-meta"><small>OTP will be delivered via SMS</small><b>{phone.replace(/\D/g, '').slice(-10).length} / 10</b></div>
-              {error && <p className="auth-error">{error}</p>}
-              <button type="submit" className="auth-primary" disabled={loading}>{loading ? 'Please wait...' : 'Get OTP & Continue'} <MdArrowForward /></button>
+            <form className="ft-form" onSubmit={handleStart}>
+              <label className="ft-label" htmlFor="phone">Mobile number</label>
+              <div className="ft-phone-row">
+                <span className="ft-country">
+                  IN +91 <MdKeyboardArrowDown />
+                </span>
+                <input
+                  id="phone"
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Enter 10-digit mobile number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="ft-helper-row">
+                <span>OTP will be delivered via SMS</span>
+                <b>{digitCount}/10</b>
+              </div>
+
+              {error && <p className="ft-error">{error}</p>}
+
+              <button type="submit" className="ft-submit" disabled={loading}>
+                {loading ? 'Sending code…' : 'Get OTP & Continue'} <MdArrowForward />
+              </button>
+
+              <div className="ft-perk">
+                <span className="ft-perk-icon">
+                  <MdCardGiftcard color="#0a6b34" />
+                </span>
+                <p className="ft-perk-text">
+                  New to BlinkieFash? <b>Extra ₹300 OFF</b>
+                  <span>Auto-applied at checkout for verified accounts.</span>
+                </p>
+              </div>
             </form>
           )}
 
           {step === 'otp' && (
-            <form className="auth-form auth-modern-form" onSubmit={handleVerify}>
-              <div className="auth-otp-sent"><MdPhoneAndroid /><span>OTP sent to <strong>{formatPhone(phone)}</strong></span><button type="button" onClick={() => { setStep('phone'); setOtp(''); setError(''); }}>Edit</button></div>
-              <label htmlFor="otp">Enter 6-digit code</label>
-              {serverOtp && <p className="auth-hint">Development OTP: {serverOtp}</p>}
-              <input className="auth-otp-input" id="otp" type="text" inputMode="numeric" maxLength="6" placeholder="••••••" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))} required />
-              {error && <p className="auth-error">{error}</p>}
-              <button type="submit" className="auth-primary" disabled={loading}>{loading ? 'Verifying...' : 'Verify & Enter Portal'} <MdLock /></button>
+            <form className="ft-form" onSubmit={handleVerify}>
+              <div className="ft-otp-sent">
+                <MdSmartphone />
+                <span>Code sent to <strong>{formatPhone(phone)}</strong></span>
+                <button type="button" onClick={() => { setStep('phone'); setOtp(''); setError(''); }}>
+                  Change
+                </button>
+              </div>
+
+              <label className="ft-label" htmlFor="otp">6-digit code</label>
+              <input
+                className="ft-otp-input"
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                maxLength="6"
+                placeholder="------"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                required
+              />
+
+              {serverOtp && <p className="ft-hint">Development code: {serverOtp}</p>}
+              {error && <p className="ft-error">{error}</p>}
+
+              <button type="submit" className="ft-submit" disabled={loading}>
+                {loading ? 'Verifying…' : 'Log in'} <MdLock />
+              </button>
             </form>
           )}
 
-          <div className="auth-perk"><strong>New to Blinkie? Extra ₹300 OFF</strong><small>Auto-applied at checkout for verified accounts.</small></div>
-          <p className="auth-legal">By continuing, you agree to BlinkieFash's <Link to="/terms">Terms of Service</Link> &amp; <Link to="/privacy">Privacy Policy</Link>.</p>
-          <p className="auth-switch">New here? <Link to="/signup">Create an account</Link></p>
-        </section>
+          <p className="ft-legal">
+            By continuing, you agree to BlinkieFash's{' '}
+            <Link to="/terms">Terms of Service</Link> &amp; <Link to="/privacy">Privacy Policy</Link>.
+          </p>
+
+          <p className="ft-switch">
+            New here? <Link to="/signup">Create an account</Link>
+          </p>
+        </div>
       </main>
-      <footer className="auth-footer"><span>© 2025 BlinkieFash. Secure Verified Portal.</span><span><Link to="/privacy">Privacy Policy</Link> <Link to="/terms">Terms</Link> <Link to="/help-support">Help</Link></span></footer>
+
       <div id="recaptcha-container" />
     </div>
   );
