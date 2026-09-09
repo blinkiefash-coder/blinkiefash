@@ -1,12 +1,16 @@
 import "./Shop.css";
-import { useState, useEffect, useMemo, useRef, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
 import Navbar from "../components/Navbar";
-import Categorydrawer from "../components/Categorydrawer";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
 
-import { MdGridView, MdKeyboardArrowDown, MdTune } from "react-icons/md";
+import {
+  MdGridView,
+  MdKeyboardArrowDown,
+  MdTune,
+  MdChevronRight,
+} from "react-icons/md";
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
 import "./Home.css";
@@ -24,6 +28,22 @@ const COLORS = [
 ];
 
 const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
+
+// Desired display order for top-level ("root") category chips.
+const CATEGORY_ORDER = [
+  "MEN",
+  "WOMEN",
+  "KIDS",
+  "FOOTWEAR",
+  "ELECTRONICS",
+  "TRAVEL AND BACKPACK",
+];
+
+function getCategoryRank(name) {
+  const normalized = String(name || "").trim().toUpperCase();
+  const idx = CATEGORY_ORDER.indexOf(normalized);
+  return idx === -1 ? CATEGORY_ORDER.length : idx;
+}
 
 const API_BASE = API_API_BASE_URL;
 
@@ -77,9 +97,10 @@ export default function Shop() {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [loading, setLoading] = useState(true);
 
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [drawerParent, setDrawerParent] = useState(null);
-  const activeCategoryTriggerRef = useRef(null);
+  // Explicit user expand/collapse action on the category tree (replaces the
+  // old side drawer). `null` means "no manual override yet" — in that case
+  // the tree falls back to whatever activeCategoryId implies (see below).
+  const [manualExpand, setManualExpand] = useState(null);
 
   const getChildren = useCallback(
     (parentId) => {
@@ -178,6 +199,9 @@ export default function Shop() {
       setSearchTerm(nextSearch);
       setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
       setVisibleCount(24);
+      // A fresh navigation should clear any manual expand/collapse override
+      // so the tree re-derives itself from the new activeCategoryId.
+      setManualExpand(null);
     }, 0);
 
     return () => clearTimeout(id);
@@ -300,6 +324,39 @@ export default function Shop() {
       isCancelled = true;
     };
   }, [products]);
+
+  // Where the currently active category sits in the tree — derived purely
+  // from render-time data (no effect/setState needed). This is the
+  // "default" expand state whenever the user hasn't manually toggled a row.
+  const derivedExpand = useMemo(() => {
+    if (!activeCategoryId || categories.length === 0) {
+      return { rootId: null, subId: null };
+    }
+    const current = categoryById[String(activeCategoryId)];
+    if (!current) return { rootId: null, subId: null };
+
+    if (!current.parent_id) {
+      // Selected category is itself a root (Men/Women/Kids/etc).
+      return { rootId: current.id, subId: null };
+    }
+
+    const parent = categoryById[String(current.parent_id)];
+    if (parent && !parent.parent_id) {
+      // Selected category is a sub-category directly under a root.
+      return { rootId: parent.id, subId: current.id };
+    }
+
+    if (parent && parent.parent_id) {
+      // Selected category is a sub-sub-category.
+      const grandparent = categoryById[String(parent.parent_id)];
+      return { rootId: grandparent ? grandparent.id : null, subId: parent.id };
+    }
+
+    return { rootId: null, subId: null };
+  }, [activeCategoryId, categoryById, categories.length]);
+
+  const expandedRootId = manualExpand ? manualExpand.rootId : derivedExpand.rootId;
+  const expandedSubId = manualExpand ? manualExpand.subId : derivedExpand.subId;
 
   const selectedCategoryIds = activeCategoryId
     ? new Set(getDescendantCategoryIds(activeCategoryId))
@@ -457,10 +514,30 @@ export default function Shop() {
     return Array.from(seen.values()).sort();
   }, [products, resolveProductGender]);
 
+  // Root category chips ordered per CATEGORY_ORDER
+  // (Men, Women, Kids, Footwear, Electronics, Travel and Backpack),
+  // with "All" pinned first and any unmatched categories at the end.
   const topCategoryStrip = useMemo(() => {
-    const roots = getChildren("ROOT");
+    const roots = [...getChildren("ROOT")].sort((a, b) => {
+      const rankA = getCategoryRank(a.name);
+      const rankB = getCategoryRank(b.name);
+      if (rankA !== rankB) return rankA - rankB;
+      return String(a.name).localeCompare(String(b.name));
+    });
     return [{ id: null, name: "All" }, ...roots];
   }, [getChildren]);
+
+  // Sub-categories of whichever root category is currently expanded.
+  const rootSubcategories = useMemo(
+    () => (expandedRootId ? getChildren(expandedRootId) : []),
+    [expandedRootId, getChildren]
+  );
+
+  // Sub-sub-categories of whichever sub-category is currently expanded.
+  const subSubcategories = useMemo(
+    () => (expandedSubId ? getChildren(expandedSubId) : []),
+    [expandedSubId, getChildren]
+  );
 
   const navigateWithFilters = ({
     nextSearch = searchTerm,
@@ -522,33 +599,40 @@ export default function Shop() {
     setBrandSearch("");
   };
 
-  // --- Category drawer handlers ---
-  const openCategoryDrawer = (category, triggerEl) => {
-    activeCategoryTriggerRef.current = triggerEl;
-    setDrawerParent(category);
-    setDrawerOpen(true);
-  };
+  // --- Inline category tree handlers (replaces the old side drawer) ---
 
-  const closeCategoryDrawer = () => setDrawerOpen(false);
-
-  const handleCategoryTap = (event, category) => {
-    const children = category.id ? getChildren(category.id) : [];
-    if (children.length > 0) {
-      openCategoryDrawer(category, event.currentTarget);
-    } else {
-      navigateWithFilters({ nextCategoryId: category.id || null });
+  const handleRootCategoryClick = (category) => {
+    if (!category.id) {
+      // "All" chip clears everything.
+      setManualExpand({ rootId: null, subId: null });
+      setActiveCategoryId(null);
+      navigateWithFilters({ nextCategoryId: null });
+      return;
     }
+
+    setActiveCategoryId(String(category.id));
+    navigateWithFilters({ nextCategoryId: category.id });
+
+    // Toggle the sub-category row open/closed when tapping the same root again.
+    const isSameExpanded = toCategoryKey(expandedRootId) === toCategoryKey(category.id);
+    setManualExpand({ rootId: isSameExpanded ? null : category.id, subId: null });
   };
 
-  const handleDrawerSelect = (category) => {
-    setDrawerOpen(false);
-    setActiveCategoryId(category?.id ? String(category.id) : null);
-    navigateWithFilters({ nextCategoryId: category?.id || null });
+  const handleSubCategoryClick = (category) => {
+    setActiveCategoryId(String(category.id));
+    navigateWithFilters({ nextCategoryId: category.id });
+
+    const isSameExpanded = toCategoryKey(expandedSubId) === toCategoryKey(category.id);
+    setManualExpand({
+      rootId: expandedRootId,
+      subId: isSameExpanded ? null : category.id,
+    });
   };
 
-  const drawerSubcategories = drawerParent?.id
-    ? getChildren(drawerParent.id)
-    : [];
+  const handleSubSubCategoryClick = (category) => {
+    setActiveCategoryId(String(category.id));
+    navigateWithFilters({ nextCategoryId: category.id });
+  };
 
   return (
     <div className="catalog-page">
@@ -608,21 +692,17 @@ export default function Shop() {
               const hasChildren = category.id
                 ? getChildren(category.id).length > 0
                 : false;
+              const isExpanded =
+                category.id &&
+                toCategoryKey(expandedRootId) === toCategoryKey(category.id);
 
               return (
                 <button
                   key={category.id || "all-round"}
                   type="button"
                   className={`catalog-round-item ${isActive ? "active" : ""}`}
-                  aria-haspopup={hasChildren ? "dialog" : undefined}
-                  aria-expanded={
-                    hasChildren
-                      ? drawerOpen &&
-                        toCategoryKey(drawerParent?.id) ===
-                          toCategoryKey(category.id)
-                      : undefined
-                  }
-                  onClick={(event) => handleCategoryTap(event, category)}
+                  aria-expanded={hasChildren ? isExpanded : undefined}
+                  onClick={() => handleRootCategoryClick(category)}
                 >
                   <span className="catalog-round-image-wrap">
                     {hasImage ? (
@@ -652,6 +732,63 @@ export default function Shop() {
               );
             })}
           </div>
+
+          {expandedRootId && rootSubcategories.length > 0 ? (
+            <div className="catalog-subtree">
+              <div className="catalog-subcat-row" role="list">
+                {rootSubcategories.map((sub) => {
+                  const isActive =
+                    toCategoryKey(sub.id) === toCategoryKey(activeCategoryId);
+                  const isExpanded =
+                    toCategoryKey(expandedSubId) === toCategoryKey(sub.id);
+                  const hasChildren = getChildren(sub.id).length > 0;
+
+                  return (
+                    <button
+                      key={sub.id}
+                      type="button"
+                      role="listitem"
+                      className={`catalog-subcat-chip ${isActive ? "active" : ""}`}
+                      aria-expanded={hasChildren ? isExpanded : undefined}
+                      onClick={() => handleSubCategoryClick(sub)}
+                    >
+                      {sub.name}
+                      {hasChildren ? (
+                        <MdChevronRight
+                          className={`catalog-subcat-caret ${
+                            isExpanded ? "open" : ""
+                          }`}
+                        />
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {expandedSubId && subSubcategories.length > 0 ? (
+                <div className="catalog-subsubcat-row" role="list">
+                  {subSubcategories.map((subsub) => {
+                    const isActive =
+                      toCategoryKey(subsub.id) === toCategoryKey(activeCategoryId);
+
+                    return (
+                      <button
+                        key={subsub.id}
+                        type="button"
+                        role="listitem"
+                        className={`catalog-subsubcat-chip ${
+                          isActive ? "active" : ""
+                        }`}
+                        onClick={() => handleSubSubCategoryClick(subsub)}
+                      >
+                        {subsub.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
 
         {showFilters ? (
@@ -812,15 +949,6 @@ export default function Shop() {
           ) : null}
         </div>
       </main>
-
-      <Categorydrawer
-        open={drawerOpen}
-        parentCategory={drawerParent}
-        subcategories={drawerSubcategories}
-        onClose={closeCategoryDrawer}
-        onSelect={handleDrawerSelect}
-        triggerRef={activeCategoryTriggerRef}
-      />
     </div>
   );
 }

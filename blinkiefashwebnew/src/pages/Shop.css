@@ -280,25 +280,17 @@
 /* ---------- Category strip ---------- */
 
 .catalog-category-strip {
-  width: 100%;
-  margin: 0 0 18px;
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  padding: 0 4px 4px;
-  box-sizing: border-box;
+  margin-bottom: 18px;
+  padding-bottom: 4px;
   border-bottom: 1px solid #eef1f5;
 }
 
 .catalog-round-list {
-  flex: 1 1 auto;
-  min-width: 0;
   display: flex;
-  gap: clamp(14px, 2vw, 22px);
+  gap: 22px;
   align-items: center;
   overflow-x: auto;
-  padding: 4px 4px 12px;
-  scroll-padding-inline: 4px;
+  padding: 4px 2px 12px;
   scrollbar-width: none;
 }
 
@@ -314,7 +306,6 @@
   align-items: center;
   gap: 8px;
   min-width: 68px;
-  flex: 0 0 68px;
   cursor: pointer;
   color: #475569;
   font-size: 11.5px;
@@ -368,6 +359,122 @@
 .catalog-round-item.active .catalog-round-image-wrap {
   border-color: #16a34a;
   box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.14);
+}
+
+/* ---------- Inline sub-category / sub-sub-category tree ---------- */
+/* Replaces the old side drawer: expands directly under the strip. */
+
+.catalog-subtree {
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 2px;
+  padding: 14px 4px 6px;
+  background: linear-gradient(180deg, #fbfdfc 0%, #ffffff 100%);
+  border-radius: 0 0 14px 14px;
+  animation: catalogSubtreeIn 0.18s ease;
+}
+
+@keyframes catalogSubtreeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.catalog-subcat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.catalog-subcat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.catalog-subcat-chip:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.1);
+}
+
+.catalog-subcat-chip.active {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #fff;
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.24);
+}
+
+.catalog-subcat-caret {
+  font-size: 15px;
+  margin-left: 2px;
+  transition: transform 0.15s ease;
+  opacity: 0.7;
+}
+
+.catalog-subcat-caret.open {
+  transform: rotate(90deg);
+}
+
+.catalog-subsubcat-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px 0 2px 18px;
+  border-top: 1px dotted #e7ecf2;
+  position: relative;
+}
+
+.catalog-subsubcat-row::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 12px;
+  bottom: 2px;
+  width: 2px;
+  background: #dcfce7;
+  border-radius: 2px;
+}
+
+.catalog-subsubcat-chip {
+  border: 1px solid #e2e8f0;
+  background: #f8fafc;
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+}
+
+.catalog-subsubcat-chip:hover {
+  border-color: #16a34a;
+  color: #16a34a;
+  background: #fff;
+}
+
+.catalog-subsubcat-chip.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
 }
 
 /* ---------- Filters panel ---------- */
@@ -973,6 +1080,25 @@
     height: 54px;
   }
 
+  .catalog-subtree {
+    padding: 12px 2px 4px;
+  }
+
+  .catalog-subcat-row,
+  .catalog-subsubcat-row {
+    gap: 6px;
+  }
+
+  .catalog-subcat-chip,
+  .catalog-subsubcat-chip {
+    padding: 7px 11px;
+    font-size: 11px;
+  }
+
+  .catalog-subsubcat-row {
+    padding-left: 12px;
+  }
+
   .catalog-filter-toggle {
     margin-top: 8px;
   }
@@ -1057,17 +1183,5 @@
   .catalog-location-pill {
     font-size: 11px;
     padding: 8px 10px;
-  }
-}
-
-@media (max-width: 640px) {
-  .catalog-category-strip {
-    margin-inline: -4px;
-    width: calc(100% + 8px);
-    padding-inline: 8px;
-  }
-
-  .catalog-round-list {
-    gap: 14px;
   }
 }

@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "../assets/logo1.png";
 import "./staticInfoPages.css";
 
 export default function PrivacyPolicy() {
@@ -9,7 +9,6 @@ export default function PrivacyPolicy() {
     <div className="info-page policies-page">
       <header className="info-header" onClick={() => navigate("/")} style={{ cursor: "pointer" }}>
         <img src={logo} alt="Blinkiefash" />
-        <h1 className="info-brand">BLINKIE<span>FASH</span></h1>
       </header>
 
       <main className="info-body">

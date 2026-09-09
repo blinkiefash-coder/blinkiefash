@@ -319,13 +319,37 @@
 }
 
 .auth-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   font-family: 'Plus Jakarta Sans', sans-serif;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.auth-logo-mark {
+  width: 180px;
+  max-width: 55vw;
+  height: auto;
+  object-fit: contain;
+}
+
+.auth-logo-wordmark {
+  display: inline-flex;
+  align-items: baseline;
   font-size: 20px;
   font-weight: 800;
   letter-spacing: -0.04em;
 }
 
-.auth-logo span { color: var(--auth-green); margin-left: 3px; }
+.auth-logo-wordmark b {
+  color: var(--auth-ink);
+}
+
+.auth-logo-wordmark span {
+  color: var(--auth-green);
+  margin-left: 3px;
+}
 
 .auth-secure, .auth-ssl {
   display: inline-flex;

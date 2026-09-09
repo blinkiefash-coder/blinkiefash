@@ -1,8 +1,6 @@
 import { useNavigate } from "react-router-dom";
+import logo from "../assets/logo1.png";
 import "./Footer.css";
-
-const LOGO_URL =
-  "https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg";
 
 const PLAY_STORE_URL =
   "https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share";
@@ -24,10 +22,7 @@ export default function Footer() {
       <div className="footer-main">
         <div className="footer-brand-col">
           <div className="footer-brand" onClick={() => go("/")} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') go('/'); }} style={{ cursor: 'pointer' }}>
-            <img src={LOGO_URL} alt="Blinkiefash Logo" className="footer-logo-img" />
-            <h1 className="footer-logo-text">
-              BLINKIE<span>FASH</span>
-            </h1>
+            <img src={logo} alt="Blinkiefash Logo" className="footer-logo-img" />
           </div>
           <p className="footer-copyright">© 2024 BlinkieFash. All rights reserved.</p>
         </div>

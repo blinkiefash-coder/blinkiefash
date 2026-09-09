@@ -142,8 +142,8 @@
   background: var(--pc-secondary);
 }
 
-.pc-badge--fresh {
-  background: var(--pc-primary);
+.pc-badge--new {
+  background: #0f9f52;
 }
 
 /* ── Wishlist (top-right) ── */
@@ -703,6 +703,21 @@
 }
 
 @media (max-width: 640px) {
+  .pc-body {
+    align-items: center;
+    text-align: center;
+  }
+
+  .pc-body-top,
+  .pc-price-main,
+  .pc-meta-row {
+    justify-content: center;
+  }
+
+  .pc-quick-toggle {
+    align-self: center;
+  }
+
   .pc-title {
     min-height: 38px;
     font-size: 14px;
@@ -817,5 +832,14 @@
   .pc-meta-row {
     justify-content: center;
     font-size: 10px;
+  }
+}
+
+/* Desktop hover still works */
+@media (hover: hover) and (pointer: fine) {
+  .pc-card:hover .pc-quick-drawer.has-variants {
+    transform: translateY(0);
+    opacity: 1;
+    pointer-events: auto;
   }
 }
