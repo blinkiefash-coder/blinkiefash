@@ -262,6 +262,7 @@ function SectionHead({
   iconAlt = '',
   title,
   accentWord,
+  subtitle = '',
   viewAllLabel = 'View All',
   onViewAll,
   iconClassName,
@@ -276,16 +277,19 @@ function SectionHead({
               <img src={icon} alt={iconAlt} className="hp-shead-mark-img" />
             </span>
           ) : null}
-          <h2 className="hp-shead-title">
-            {accentWord ? (
-              <>
-                <span>{title} </span>
-                <span className="hp-shead-accent">{accentWord}</span>
-              </>
-            ) : (
-              <span>{title}</span>
-            )}
-          </h2>
+          <div className="hp-shead-text-block">
+            <h2 className="hp-shead-title">
+              {accentWord ? (
+                <>
+                  <span>{title} </span>
+                  <span className="hp-shead-accent">{accentWord}</span>
+                </>
+              ) : (
+                <span>{title}</span>
+              )}
+            </h2>
+            {subtitle && <p className="hp-shead-subtitle">{subtitle}</p>}
+          </div>
           {trailing}
         </div>
       </div>
@@ -1096,7 +1100,7 @@ export default function Home() {
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
+            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="SHOP FOR" accentWord="MEN" subtitle="Trendy styles. Top brands. Great prices." onViewAll={() => navigate('/men')} />
             <CategoryChipsRail chips={mensCats} audienceLabel="Men" activeId={activeCollectionCats.Men ?? mensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
             {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
           </section>

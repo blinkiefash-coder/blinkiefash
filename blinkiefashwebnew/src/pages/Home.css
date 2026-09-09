@@ -4043,8 +4043,19 @@ html, body, #root {
   -webkit-text-fill-color: transparent;
 }
 
+.hp-shead-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .hp-shead-subtitle {
-  display: none;
+  display: block;
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.3px;
 }
 
 /* View All on the far right (same as every other heading) */
