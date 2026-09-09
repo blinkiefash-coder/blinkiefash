@@ -25,6 +25,8 @@ export default function Parcel() {
   const [loading, setLoading] = useState(false);
   const [geoLoading, setGeoLoading] = useState(false);
 
+  //parcel
+
   const canContinue =
     Boolean(pickup.text) &&
     Boolean(drop.text) &&

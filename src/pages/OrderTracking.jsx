@@ -481,6 +481,8 @@ function ProductsCard({ items }) {
   );
 }
 
+//hi 
+
 function CancelDialog({ onConfirm, onDismiss, busy, error }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={onDismiss}>

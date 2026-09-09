@@ -41,6 +41,9 @@ export default function Checkout() {
     );
   }
 
+
+  // hii
+
   if (!isLoggedIn) {
     return (
       <div className="page">
