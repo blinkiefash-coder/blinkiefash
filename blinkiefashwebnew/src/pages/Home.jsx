@@ -1101,7 +1101,7 @@ export default function Home() {
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="SHOP FOR" accentWord="MEN" subtitle="Trendy styles. Top brands. Great prices." onViewAll={() => navigate('/men')} />
-            <CategoryChipsRail chips={[{ id: 'all-men', name: 'All' }, ...mensCats]} audienceLabel="Men" activeId={activeCollectionCats.Men ?? 'all-men'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <CategoryChipsRail chips={[{ id: 'all-men', name: 'All' }, ...mensCats]} audienceLabel="Men" activeId={activeCollectionCats.Men ?? 'all-men'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
           </section>
         )}
@@ -1109,7 +1109,7 @@ export default function Home() {
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
-            <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
           </section>
         )}
@@ -1198,7 +1198,7 @@ export default function Home() {
   );
 }
 
-function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
+function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect, textOnly = false }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
   const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
@@ -1210,16 +1210,18 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
         <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
           <MdChevronLeft />
         </button>
-        <div className="hp-collection-chips" role="list" ref={chipsRef}>
+        <div className={`hp-collection-chips${textOnly ? ' text-only' : ''}`} role="list" ref={chipsRef}>
           {chips.map((cat, idx) => {
             const icon = resolveImageUrl(cat.image);
             const fallback = chipFallbackIcon(cat.name, audienceLabel);
             const isActive = String(cat.id) === String(activeId);
             return (
               <button key={`${cat.id || cat.name || 'chip'}-${idx}`} type="button" className={`hp-collection-chip${isActive ? ' active' : ''}`} role="listitem" onClick={() => onChipSelect(cat.id)}>
-                <span className="hp-collection-chip-icon" aria-hidden="true">
-                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
-                </span>
+                {!textOnly && (
+                  <span className="hp-collection-chip-icon" aria-hidden="true">
+                    {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
+                  </span>
+                )}
                 <span className="hp-collection-chip-label">{cat.name}</span>
               </button>
             );
@@ -1229,7 +1231,7 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
           <MdChevronRight />
         </button>
       </div>
-      {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
+      {!textOnly && Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
         <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
           {activeCat.subcategories.map((sub, subIdx) => {
             const subImg = resolveImageUrl(sub.image);

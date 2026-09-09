@@ -1572,6 +1572,35 @@
   word-break: break-word;
 }
 
+/* Text-only chips mode (for Men's, Women's collections) */
+.hp-collection-chips.text-only .hp-collection-chip {
+  flex: none;
+  min-width: auto;
+  max-width: none;
+  padding: 10px 20px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  gap: 0;
+  box-shadow: none;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip:hover {
+  background: #efefef;
+  border-color: #d0d0d0;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip.active {
+  background: var(--theme-primary, #159447);
+  border-color: var(--theme-primary, #159447);
+  color: #fff;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
+}
+
 .hp-subcat-rail {
   display: flex;
   gap: 12px;
