@@ -1864,6 +1864,7 @@
   flex: 0 0 180px;
   width: 100%;
   min-height: 210px;
+  min-width: 180px;
   border: 1px solid #e8ecf0;
   border-radius: 20px;
   overflow: hidden;
@@ -2017,7 +2018,9 @@
 @media (max-width: 768px) {
   .hp-shop-brands-track {
     animation-duration: 100s;
+    gap: 10px;
   }
+
   .hp-shop-brands-grid {
     grid-auto-columns: 148px !important;
     gap: 10px !important;
@@ -2025,17 +2028,22 @@
   }
 
   .hp-shop-brand-card {
+    flex: 0 0 140px;
     min-height: 185px !important;
     border-radius: 16px;
   }
 
   .hp-shop-brand-visual {
-    min-height: 120px !important;
+    min-height: 130px !important;
     padding: 16px 12px 10px;
+    overflow: visible;
   }
 
   .hp-shop-brand-logo {
-    max-height: 90px;
+    max-width: 90%;
+    max-height: 100px;
+    width: auto;
+    height: auto;
   }
 
   .hp-shop-brand-footer {
@@ -2053,24 +2061,32 @@
 }
 
 @media (max-width: 420px) {
-  .hp-shop-brands-grid {
-    grid-auto-columns: 132px !important;
+  .hp-shop-brands-track {
+    gap: 8px;
   }
 
   .hp-shop-brand-card {
-    min-height: 170px !important;
+    flex: 0 0 120px;
+    min-height: 160px !important;
+    border-radius: 12px;
+    min-width: 120px;
   }
 
   .hp-shop-brand-visual {
-    min-height: 108px !important;
+    min-height: 110px !important;
+    padding: 12px 8px 8px;
+    overflow: visible;
   }
 
   .hp-shop-brand-logo {
-    max-height: 78px;
+    max-width: 92%;
+    max-height: 75px;
+    width: auto;
+    height: auto;
   }
 
   .hp-shop-brand-name {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
