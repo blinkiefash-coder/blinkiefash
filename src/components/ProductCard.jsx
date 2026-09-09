@@ -10,6 +10,8 @@ export default function ProductCard({ product }) {
   const mrp = Number(product.price ?? product.original_price ?? price);
   const hasDiscount = mrp > price;
 
+  //hi
+
   return (
     <div className="product-card" onClick={() => navigate(`/product/${product.id}`)}>
       <div className="pc-media">

@@ -283,6 +283,8 @@ export default function Navbar({ active }) {
         )}
       </div>
 
+      //hii
+
       {/* ===== Mobile drawer (visible <= 900px) ===== */}
       {drawerOpen && (
         <>
