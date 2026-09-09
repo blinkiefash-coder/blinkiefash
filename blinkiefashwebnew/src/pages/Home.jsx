@@ -1108,7 +1108,7 @@ export default function Home() {
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
+            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="SHOP FOR" accentWord="WOMEN" subtitle="Latest trends. Premium brands. Best deals." onViewAll={() => navigate('/women')} />
             <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
           </section>
@@ -1116,24 +1116,24 @@ export default function Home() {
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
-            <CategoryChipsRail chips={kidsCats} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="SHOP FOR" accentWord="KIDS" subtitle="Fun styles. Comfort fit. Durable quality." onViewAll={() => navigate('/kids')} />
+            <CategoryChipsRail chips={[{ id: 'all-kids', name: 'All' }, ...kidsCats]} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? 'all-kids'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" limit={40} /> : null}
           </section>
         )}
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
-            <CategoryChipsRail chips={electronicsCats} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="EXPLORE" accentWord="ELECTRONICS" subtitle="Latest gadgets. Smart devices. Tech essentials." onViewAll={() => navigate('/electronics')} />
+            <CategoryChipsRail chips={[{ id: 'all-electronics', name: 'All' }, ...electronicsCats]} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? 'all-electronics'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" limit={40} /> : null}
           </section>
         )}
 
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Trendy" accentWord="Shoes" onViewAll={() => navigate('/footwear')} />
-            <CategoryChipsRail chips={trendyShoesCats} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
+            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="SHOP FOR" accentWord="FOOTWEAR" subtitle="Comfort. Style. Every step matters." onViewAll={() => navigate('/footwear')} />
+            <CategoryChipsRail chips={[{ id: 'all-shoes', name: 'All' }, ...trendyShoesCats]} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? 'all-shoes'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
             {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" limit={40} /> : null}
           </section>
         )}
