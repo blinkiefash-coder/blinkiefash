@@ -1945,7 +1945,8 @@ class _HomeScreenState extends State<HomeScreen>
               _universeSection(),
               _brandBannersGrid(),
               _sectionHeader(
-                'MEN\'S COLLECTION',
+                'SHOP FOR MEN',
+                subtitle: 'Trendy styles. Top brands. Great prices.',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1960,7 +1961,8 @@ class _HomeScreenState extends State<HomeScreen>
                   ? _mensCreativeSection()
                   : _stockOutBanner(),
               _sectionHeader(
-                'WOMEN\'S COLLECTION',
+                'SHOP FOR WOMEN',
+                subtitle: 'Latest trends. Premium brands. Best deals.',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1979,7 +1981,8 @@ class _HomeScreenState extends State<HomeScreen>
                     )
                   : _stockOutBanner(),
               _sectionHeader(
-                'KIDS COLLECTION',
+                'SHOP FOR KIDS',
+                subtitle: 'Fun styles. Comfort fit. Durable quality.',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -1998,7 +2001,8 @@ class _HomeScreenState extends State<HomeScreen>
                     )
                   : _stockOutBanner(),
               _sectionHeader(
-                'ELECTRONICS COLLECTION',
+                'EXPLORE ELECTRONICS',
+                subtitle: 'Latest gadgets. Smart devices. Tech essentials.',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -2017,7 +2021,8 @@ class _HomeScreenState extends State<HomeScreen>
                     )
                   : _stockOutBanner(),
               _sectionHeader(
-                'TRENDY SHOES',
+                'SHOP FOR FOOTWEAR',
+                subtitle: 'Comfort. Style. Every step matters.',
                 actionLabel: 'View All',
                 onAction: () => Navigator.of(context).push(
                   MaterialPageRoute(
@@ -3017,12 +3022,17 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _sectionHeader(
     String title, {
     String? actionLabel,
+    String? subtitle,
     VoidCallback? onAction,
   }) {
     if (title.toUpperCase() == 'SHOP BY CATEGORY' ||
         title.toUpperCase() == 'DEALS OF THE DAY' ||
         title.toUpperCase() == 'NEW & TRENDY' ||
-        title.toUpperCase() == 'MEN\'S COLLECTION') {
+        title.toUpperCase() == 'SHOP FOR MEN' ||
+        title.toUpperCase() == 'SHOP FOR WOMEN' ||
+        title.toUpperCase() == 'SHOP FOR KIDS' ||
+        title.toUpperCase() == 'EXPLORE ELECTRONICS' ||
+        title.toUpperCase() == 'SHOP FOR FOOTWEAR') {
       // Create split-color title for more elegance
       List<String> words = title.split(' ');
       final isLastWordHighlight = words.length > 1;
@@ -3071,6 +3081,18 @@ class _HomeScreenState extends State<HomeScreen>
                       ],
                     ),
                   ),
+                  if (subtitle != null) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Color(0xFF64748B),
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -3384,63 +3406,60 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // ── Rounded category icon chips ───────────────────────────────
+        // ── Text-only category chips ───────────────────────────────
         SizedBox(
-          height: 86,
+          height: 50,
           child: ListView.builder(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-            itemCount: categoryChips.length,
+            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+            itemCount: categoryChips.length + 1,
             itemBuilder: (_, i) {
-              final cat = categoryChips[i];
-              final label = cat['label'] ?? '';
-              final query = audienceLabel == 'Electronics'
-                  ? label
-                  : audienceLabel == 'Trendy Shoes'
-                  ? 'footwear $label'
-                  : '$audienceLabel $label';
+              String label;
+              if (i == 0) {
+                label = 'All';
+              } else {
+                final cat = categoryChips[i - 1];
+                label = cat['label'] ?? '';
+              }
+              
+              final query = i == 0
+                  ? ''
+                  : (audienceLabel == 'Electronics'
+                      ? label
+                      : audienceLabel == 'Trendy Shoes'
+                      ? 'footwear $label'
+                      : '$audienceLabel $label');
+              
               return GestureDetector(
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (_) => AllProductsScreen(initialSearch: query),
+                    builder: (_) => AllProductsScreen(
+                      initialSearch: query.isNotEmpty ? query : null,
+                      categoryName: i == 0 ? audienceLabel : null,
+                    ),
                   ),
                 ),
                 child: Container(
-                  width: 68,
                   margin: const EdgeInsets.only(right: 8),
-                  child: Column(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0FDF4),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: const Color(0xFFBBF7D0),
-                            width: 1.5,
-                          ),
-                        ),
-                        child: Center(
-                          child: Text(
-                            cat['emoji'] ?? '🛍️',
-                            style: const TextStyle(fontSize: 24),
-                          ),
-                        ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: i == 0 ? const Color(0xFF16A34A) : const Color(0xFFF5F5F5),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: i == 0 ? const Color(0xFF16A34A) : const Color(0xFFE0E0E0),
+                      width: 1,
+                    ),
+                  ),
+                  child: Center(
+                    child: Text(
+                      label,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: i == 0 ? Colors.white : const Color(0xFF1F2937),
+                        letterSpacing: 0.2,
                       ),
-                      const SizedBox(height: 5),
-                      Text(
-                        label,
-                        textAlign: TextAlign.center,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF374151),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               );
