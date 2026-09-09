@@ -26,7 +26,7 @@ const ManageCategories = () => {
 
   // Brands
   const [brands, setBrands] = useState([]);
-  const [brandForm, setBrandForm] = useState({ name: '' });
+  const [brandForm, setBrandForm] = useState({ name: '', logo_url: '', banner: '', banner_url: '' });
   const [editingBrand, setEditingBrand] = useState(null);
 
   // Fetch all data on mount
@@ -262,7 +262,7 @@ const ManageCategories = () => {
       }
 
       setSuccess(editingBrand ? 'Brand updated!' : 'Brand created!');
-      setBrandForm({ name: '' });
+      setBrandForm({ name: '', logo_url: '', banner: '', banner_url: '' });
       setEditingBrand(null);
       fetchBrands();
     } catch (err) {
@@ -549,6 +549,36 @@ const ManageCategories = () => {
                       required
                     />
                   </div>
+                  <div className="form-group">
+                    <label>Logo URL</label>
+                    <input
+                      type="url"
+                      name="logo_url"
+                      value={brandForm.logo_url}
+                      onChange={handleBrandChange}
+                      placeholder="https://example.com/logo.png"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Banner URL</label>
+                    <input
+                      type="url"
+                      name="banner"
+                      value={brandForm.banner}
+                      onChange={handleBrandChange}
+                      placeholder="https://example.com/banner.png (for brand page)"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Banner URL (Alternative)</label>
+                    <input
+                      type="url"
+                      name="banner_url"
+                      value={brandForm.banner_url}
+                      onChange={handleBrandChange}
+                      placeholder="https://example.com/banner-alt.png (fallback)"
+                    />
+                  </div>
                   <button type="submit" className="btn btn-primary" disabled={loading}>
                     {loading ? 'Saving...' : (editingBrand ? 'Update' : 'Add')} Brand
                   </button>
@@ -558,7 +588,7 @@ const ManageCategories = () => {
                       className="btn btn-secondary"
                       onClick={() => {
                         setEditingBrand(null);
-                        setBrandForm({ name: '' });
+                        setBrandForm({ name: '', logo_url: '', banner: '', banner_url: '' });
                       }}
                     >
                       Cancel
@@ -592,7 +622,12 @@ const ManageCategories = () => {
                               className="btn-small btn-edit"
                               onClick={() => {
                                 setEditingBrand(brand);
-                                setBrandForm({ name: brand.name });
+                                setBrandForm({ 
+                                  name: brand.name,
+                                  logo_url: brand.logo_url || '',
+                                  banner: brand.banner || '',
+                                  banner_url: brand.banner_url || ''
+                                });
                               }}
                             >
                               Edit

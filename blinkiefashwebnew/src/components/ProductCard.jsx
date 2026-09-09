@@ -111,7 +111,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     ? "BESTSELLER"
     : hasDiscount
     ? `${offPercent}% OFF`
-    : "+ 60 MIN";
+    : null;
 
   const badgeVariant = showNewBadge
     ? "new"
@@ -362,14 +362,16 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
           </div>
         )}
 
-        <div className="pc-badges-top">
-          <span className={`pc-badge pc-badge--${badgeVariant}`}>
-            {badgeVariant === "bestseller" && (
-              <MdLocalFireDepartment className="pc-badge-icon" />
-            )}
-            {badgeType}
-          </span>
-        </div>
+        {badgeType && (
+          <div className="pc-badges-top">
+            <span className={`pc-badge pc-badge--${badgeVariant}`}>
+              {badgeVariant === "bestseller" && (
+                <MdLocalFireDepartment className="pc-badge-icon" />
+              )}
+              {badgeType}
+            </span>
+          </div>
+        )}
 
         <button
           type="button"

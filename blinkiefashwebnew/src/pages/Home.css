@@ -1743,16 +1743,71 @@
   max-width: 100%;
 }
 
+.hp-shop-brands-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.hp-brands-scroll-btn {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #b8e6c8 0%, #7dd3a3 100%);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #fff;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+  z-index: 10;
+}
+
+.hp-brands-scroll-btn:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.2);
+  background: linear-gradient(135deg, #a3deb8 0%, #6ec999 100%);
+}
+
+.hp-brands-scroll-btn:active {
+  transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+  .hp-brands-scroll-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .hp-brands-scroll-btn svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
 .hp-shop-brands-wrap {
+  flex: 1;
   width: 100%;
   display: grid;
   gap: 14px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .hp-shop-brands-row {
   width: 100%;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+}
+
+.hp-shop-brands-row::-webkit-scrollbar {
+  display: none;
 }
 
 .hp-shop-brands-track {
@@ -1816,6 +1871,7 @@
   flex: 0 0 180px;
   width: 100%;
   min-height: 210px;
+  min-width: 180px;
   border: 1px solid #e8ecf0;
   border-radius: 20px;
   overflow: hidden;
@@ -1969,7 +2025,9 @@
 @media (max-width: 768px) {
   .hp-shop-brands-track {
     animation-duration: 100s;
+    gap: 10px;
   }
+
   .hp-shop-brands-grid {
     grid-auto-columns: 148px !important;
     gap: 10px !important;
@@ -1977,17 +2035,22 @@
   }
 
   .hp-shop-brand-card {
+    flex: 0 0 140px;
     min-height: 185px !important;
     border-radius: 16px;
   }
 
   .hp-shop-brand-visual {
-    min-height: 120px !important;
+    min-height: 130px !important;
     padding: 16px 12px 10px;
+    overflow: visible;
   }
 
   .hp-shop-brand-logo {
-    max-height: 90px;
+    max-width: 90%;
+    max-height: 100px;
+    width: auto;
+    height: auto;
   }
 
   .hp-shop-brand-footer {
@@ -2005,24 +2068,32 @@
 }
 
 @media (max-width: 420px) {
-  .hp-shop-brands-grid {
-    grid-auto-columns: 132px !important;
+  .hp-shop-brands-track {
+    gap: 8px;
   }
 
   .hp-shop-brand-card {
-    min-height: 170px !important;
+    flex: 0 0 120px;
+    min-height: 160px !important;
+    border-radius: 12px;
+    min-width: 120px;
   }
 
   .hp-shop-brand-visual {
-    min-height: 108px !important;
+    min-height: 110px !important;
+    padding: 12px 8px 8px;
+    overflow: visible;
   }
 
   .hp-shop-brand-logo {
-    max-height: 78px;
+    max-width: 92%;
+    max-height: 75px;
+    width: auto;
+    height: auto;
   }
 
   .hp-shop-brand-name {
-    font-size: 12px;
+    font-size: 11px;
   }
 }
 
@@ -4114,13 +4185,16 @@ html, body, #root {
 
 /* =========================================================
    Mobile-only hero aspect ratio — matches mobilebanner1-6.png
-   (1950x800). Deliberately scoped to phones only (<=767px) so
+   Updated: height increased from the source 1950x800 (2.44:1)
+   to a 16:9 ratio for a taller mobile banner. If you re-export
+   the mobile banner art, use 1950x1097 to match this ratio
+   exactly with no cropping. Scoped to phones only (<=767px) so
    tablets (iPad = 768px+ portrait width) and desktop keep the
    3.4/1 desktop banner ratio untouched.
    ========================================================= */
 @media (max-width: 767px) {
   .hp-slide {
-    aspect-ratio: 1950 / 800 !important;
+    aspect-ratio: 16 / 9 !important;
   }
 
 .hp-reward-image-card {
@@ -4505,4 +4579,4 @@ html, body, #root {
     border: none !important;
     background: transparent !important;
   }
-}
+} 

@@ -47,7 +47,6 @@ import "./Home.css";
 import "./Women.css";
 
 const EXPLORE_PAGE_SIZE = 6;
-
 const COLORS = [
   ["Pink", "#ec4899"],
   ["Blue", "#2563eb"],

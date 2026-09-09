@@ -50,13 +50,6 @@ export default function FashionQuest() {
 
   // Navigate back to whichever page the user came from.
   // Falls back to /offers if there's no history to go back to.
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/offers');
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -171,9 +164,6 @@ export default function FashionQuest() {
         <Navbar />
 
         <main className="page offer-feature-page fashion-quest-page">
-          <button type="button" className="offer-back" onClick={goBack}>
-            ← Back
-          </button>
           <div className="offer-feature-card">
             <h1>Fashion Quest</h1>
             <p>Log in to play memory match and earn daily discounts.</p>
@@ -193,9 +183,6 @@ export default function FashionQuest() {
       <Navbar />
 
       <main className="page offer-feature-page fashion-quest-page">
-        <button type="button" className="offer-back" onClick={goBack}>
-          ← Back
-        </button>
 
         <div className="fq-breadcrumb">Home &nbsp;›&nbsp; Fashion Quest</div>
 

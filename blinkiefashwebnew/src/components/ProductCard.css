@@ -135,10 +135,6 @@
   background: var(--pc-secondary);
 }
 
-.pc-badge--fresh {
-  background: var(--pc-primary);
-}
-
 .pc-badge--new {
   background: #0f9f52;
 }
