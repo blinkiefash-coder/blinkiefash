@@ -282,7 +282,7 @@ curl http://localhost:5000/api/products/74204ece-25b0-4adf-94a0-c007afb4cf10
 | API Integration | ✅ | Backend product creation endpoint works |
 | Database Storage | ✅ | Products stored correctly with all data |
 | Brand Datalist | ✅ | Dropdown with brand suggestions |
-| Try & Buy Toggle | ✅ | Checkbox for try and buy eligibility |
+| Try & Buy Toggle | ✅ 
 | Dark Store Selection | ✅ | Optional dark store assignment |
 
 ---

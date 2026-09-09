@@ -89,7 +89,7 @@ All core add product functionality is **100% working**:
 
 2. **Dark Store & Availability** ✅
    - Dark Store selector: Optional dropdown
-   - Try and Buy checkbox: Toggle functionality
+   
 
 3. **Variants, Pricing & Inventory** ✅
    - Size field: Accepts text input
@@ -191,7 +191,7 @@ ROOT
 
 **Checkboxes:** ✅
 - Bundle offer checkboxes toggle
-- Try and Buy checkbox toggles
+
 - States persist
 
 **File Input:** ✅
@@ -319,7 +319,6 @@ ROOT
 - [x] Mobile responsive design
 - [x] Bundle pricing support
 - [x] Dark store integration
-- [x] Try and Buy feature
 - [x] Stock tracking
 
 ---

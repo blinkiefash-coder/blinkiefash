@@ -19,7 +19,7 @@ export default function CustomerService() {
             <h3 className="info-page-subtitle">We're Here to Help You</h3>
             <p>
               At BLINKIEFASH, we want your shopping experience to be smooth, fast, and stress-free.
-              Whether you need help with your order, delivery, payment, return, refund, Try and Buy,
+              Whether you need help with your order, delivery, payment, return, refund,
               or store visit, our support team is always ready to assist you.
             </p>
           </div>
@@ -59,7 +59,7 @@ export default function CustomerService() {
           </article>
 
           <article className="info-card">
-            <h5>Try and Buy Support</h5>
+            <h5> Support</h5>
             <p className="sub">Details of trial and returns</p>
             <ul>
               <li>Trial window and size support</li>
