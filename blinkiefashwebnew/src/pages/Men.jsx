@@ -29,6 +29,8 @@ import {
   MdFilterList,
 } from "react-icons/md";
 
+// changes 
+
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import Loader from "../components/Loader";

@@ -179,6 +179,19 @@ const WOMEN_CATEGORY_FALLBACK = [
   { label: "Accessories", icon: MdStyle },
 ];
 
+
+// const TOP_NAV = [
+//   { label: "Women", to: "/women" },
+//   { label: "Men", to: "/men" },
+//   { label: "Footwear", to: "/footwear" },
+//   { label: "Electronics", to: "/electronics" },
+//   { label: "Beauty", to: "/shop?search=Beauty" },
+//   { label: "Home Living", to: "/shop?search=Home%20Living" },
+//   { label: "Kids", to: "/kids" },
+//   { label: "Travel & Backpack", to: "/shop?search=Travel" },
+// ];
+
+
 const TOP_STRIP_ITEMS = [
   { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
   { icon: MdShield, label: "100% Authentic Products" },
@@ -241,7 +254,40 @@ function normalizeProduct(p) {
   };
 }
 
+
+//
+
+// function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = "View All", onViewAll }) {
+//   return (
+//     <div className="hp-shead">
+//       <div className="hp-shead-title-group">
+//         <div className="hp-shead-title-wrap">
+//           {icon ? <span className="hp-shead-mark" aria-hidden="true">{icon}</span> : null}
+//           <h2 className="hp-shead-title">
+//             {accentWord ? (
+//               <>
+//                 <span>{title} </span>
+//                 <span className="hp-shead-accent">{accentWord}</span>
+//               </>
+//             ) : (
+//               <span>{title}</span>
+//             )}
+//           </h2>
+//         </div>
+//         {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
+//       </div>
+//       {onViewAll ? (
+//         <button type="button" className="hp-shead-action" onClick={onViewAll}>
+//           {viewAllLabel} <MdChevronRight />
+//         </button>
+//       ) : null}
+//     </div>
+//   );
+// }
+
+
 function ProductRail({ list, railRef, keyPrefix }) {
+
   const scrollRail = (dir) => {
     const el = railRef.current;
     if (!el) return;
