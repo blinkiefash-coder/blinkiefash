@@ -14,40 +14,29 @@ import {
   MdFavoriteBorder,
   MdHeadsetMic,
   MdKeyboardArrowDown,
-  MdLocalShipping,
   MdLocationOn,
   MdLock,
   MdOutlineShoppingCart,
   MdPayments,
-  MdPersonOutline,
   MdSchedule,
-  MdSearch,
   MdShare,
   MdVerified,
-  MdVerifiedUser,
   MdZoomIn,
 } from 'react-icons/md';
 import { FaFacebookF, FaLink, FaRegEnvelope, FaTwitter, FaWhatsapp } from 'react-icons/fa';
 import Loader from '../components/Loader';
 import PageSEO from '../components/PageSEO';
+import Navbar from '../components/Navbar';
 import { getAddresses, getProductById, getProducts } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { detectCurrentCity } from '../utils/location';
-import { hasVendorPasswordAuth } from '../utils/vendorSession';
 import './ProductDetail.css';
 import './Home.css';
 
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 const DESC_COLLAPSED_H = 132;
-
-const UTILITY_ITEMS = [
-  { icon: MdLocalShipping, label: 'Delivery promise by distance' },
-  { icon: MdVerifiedUser, label: '100% Authentic Products' },
-  { icon: MdAutorenew, label: 'Easy Returns' },
-  { icon: MdPayments, label: 'Cash on Delivery' },
-];
 
 const FEATURES = [
   { icon: MdBolt, title: '60 MIN', sub: 'Express Delivery' },
@@ -62,8 +51,6 @@ const TABS = [
   { key: 'reviews', label: 'Ratings & Reviews' },
 ];
 
-// Standard apparel size order — anything not in this list falls back to
-// alphabetical order after the known sizes.
 const SIZE_ORDER = ['XS', 'S', 'M', 'L', 'XL', 'XXL', 'XXXL', '3XL', '4XL', '5XL'];
 
 function sortSizes(sizes) {
@@ -72,12 +59,9 @@ function sortSizes(sizes) {
     const bKey = String(b).toUpperCase().trim();
     const aIdx = SIZE_ORDER.indexOf(aKey);
     const bIdx = SIZE_ORDER.indexOf(bKey);
-
-    // Numeric sizes (e.g. "28", "30", "32") sort numerically
     const aNum = Number(aKey);
     const bNum = Number(bKey);
     if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) return aNum - bNum;
-
     if (aIdx !== -1 && bIdx !== -1) return aIdx - bIdx;
     if (aIdx !== -1) return -1;
     if (bIdx !== -1) return 1;
@@ -90,8 +74,6 @@ function toCurrency(value) {
   return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(Math.max(num, 0));
 }
 
-// Picks the first genuinely positive price across variant/product fields,
-// instead of trusting whichever field happens to be non-null/undefined.
 function pickPrice(...candidates) {
   for (const c of candidates) {
     const n = Number(c);
@@ -107,13 +89,9 @@ export default function ProductDetail() {
   const fromPath = location.state?.fromPath || '/shop';
   const fromLabel = location.state?.fromLabel || null;
   const goBack = useSmartBack(fromPath);
-  const { addToCart, count } = useCart();
-  const { isWishlisted, toggleWishlist, items: wishlistItems } = useWishlist();
+  const { addToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const { user, isLoggedIn } = useAuth();
-  const canSwitchToVendor = user?.role === 'vendor' && hasVendorPasswordAuth();
-  const headerUserName = String(user?.name || localStorage.getItem('userName') || '').trim();
-  const headerFirstName = headerUserName ? headerUserName.split(/\s+/)[0] : '';
-  const accountLabel = isLoggedIn ? (headerFirstName ? `Hi, ${headerFirstName}` : 'My Account') : 'Login / Signup';
 
   const [data, setData] = useState(null);
   const [relatedProducts, setRelatedProducts] = useState([]);
@@ -143,14 +121,12 @@ export default function ProductDetail() {
   const reviewsRef = useRef(null);
   const descClipRef = useRef(null);
 
-  /* Reset image index whenever the selected color changes */
   const [prevSelectedColor, setPrevSelectedColor] = useState(selectedColor);
   if (selectedColor !== prevSelectedColor) {
     setPrevSelectedColor(selectedColor);
     setActiveImage(0);
   }
 
-  /* Reset all transient/product-scoped UI state whenever the product id changes */
   const [prevId, setPrevId] = useState(id);
   if (id !== prevId) {
     setPrevId(id);
@@ -192,19 +168,16 @@ export default function ProductDetail() {
       if (!data?.product) return;
       const categoryId = data.product.category_id;
       const brand = data.product.brand;
-
       try {
         let rows = [];
         if (categoryId) {
           const byCategory = await getProducts({ category_id: categoryId, limit: 12 });
           rows = byCategory?.products || (Array.isArray(byCategory) ? byCategory : []);
         }
-
         if ((!rows || rows.length === 0) && brand) {
           const byBrand = await getProducts({ search: brand, limit: 12 });
           rows = byBrand?.products || (Array.isArray(byBrand) ? byBrand : []);
         }
-
         if (!cancelled) {
           const seen = new Set();
           const unique = [];
@@ -221,7 +194,6 @@ export default function ProductDetail() {
         if (!cancelled) setRelatedProducts([]);
       }
     };
-
     loadRelated();
     return () => {
       cancelled = true;
@@ -231,17 +203,14 @@ export default function ProductDetail() {
   useEffect(() => {
     const container = relatedListRef.current;
     if (!container || relatedProducts.length === 0) return;
-
     const MIN_ITEM_WIDTH = 140;
     const GAP = 16;
-
     const computeVisible = () => {
       const width = container.clientWidth;
       if (!width) return;
       const columns = Math.max(1, Math.floor((width + GAP) / (MIN_ITEM_WIDTH + GAP)));
       setVisibleRelatedCount(Math.min(relatedProducts.length, Math.max(columns * 2, 4)));
     };
-
     computeVisible();
     const observer = new ResizeObserver(computeVisible);
     observer.observe(container);
@@ -252,7 +221,6 @@ export default function ProductDetail() {
     };
   }, [relatedProducts]);
 
-  /* Save this product to the recently-viewed list in localStorage */
   useEffect(() => {
     const pid = data?.product?.id;
     if (!pid) return;
@@ -287,7 +255,6 @@ export default function ProductDetail() {
     }
   }, [data, selectedVariant]);
 
-  /* Description "read more" clipping */
   useEffect(() => {
     const measure = () => {
       const el = descClipRef.current;
@@ -299,9 +266,10 @@ export default function ProductDetail() {
     return () => window.removeEventListener('resize', measure);
   }, [data?.product?.description, activeTab, loading]);
 
-  if (loading)
+  if (loading) {
     return (
       <div className="pd-screen pd-loading">
+        <Navbar />
         <Loader
           overlay
           label="Loading product..."
@@ -309,7 +277,19 @@ export default function ProductDetail() {
         />
       </div>
     );
-  if (error) return <div className="page"><p className="state-msg">{error}</p></div>;
+  }
+
+  if (error) {
+    return (
+      <div className="pd-screen">
+        <Navbar />
+        <div className="page">
+          <p className="state-msg">{error}</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!data) return null;
 
   const { product, images, variants } = data;
@@ -370,11 +350,12 @@ export default function ProductDetail() {
       ? (images || []).filter((img) => variantIdsForColor.has(img.variant_id))
       : [];
 
-  const gallery = colorFilteredImages.length > 0
-    ? colorFilteredImages
-    : images?.length
-      ? images
-      : [{ url: null }];
+  const gallery =
+    colorFilteredImages.length > 0
+      ? colorFilteredImages
+      : images?.length
+        ? images
+        : [{ url: null }];
 
   const colorThumbnails = {};
   colorOptions.forEach((color) => {
@@ -401,15 +382,18 @@ export default function ProductDetail() {
       ];
 
   const hasDetails =
-    product.brand || product.category_name || product.category ||
-    selectedVariant?.color || selectedVariant?.size || selectedVariant?.sku;
+    product.brand ||
+    product.category_name ||
+    product.category ||
+    selectedVariant?.color ||
+    selectedVariant?.size ||
+    selectedVariant?.sku;
 
   const handleAddToCart = (fulfillment = 'standard') => {
     if (hasVariants && !selectedVariant) {
       window.alert('Please select a size/color before adding to cart.');
       return false;
     }
-
     const unitPrice = Number(
       pickPrice(
         selectedVariant?.discount_price,
@@ -423,7 +407,6 @@ export default function ProductDetail() {
       window.alert('Price is unavailable for this item. Please try another variant.');
       return false;
     }
-
     try {
       addToCart({
         productId: product.id,
@@ -460,12 +443,6 @@ export default function ProductDetail() {
   const handleTryAndBuyClick = () => {
     logEvent('try_and_buy_clicked', { product_id: product.id });
     if (handleAddToCart('try_and_buy')) navigate('/checkout');
-  };
-
-  const handleSearchSubmit = (event) => {
-    event.preventDefault();
-    const q = event.currentTarget.elements.q.value.trim();
-    navigate(q ? `/shop?search=${encodeURIComponent(q)}` : '/shop');
   };
 
   const handlePrevImage = () => {
@@ -601,64 +578,21 @@ export default function ProductDetail() {
     <div className="pd-screen">
       <PageSEO
         title={`${product.name}${product.brand ? ` by ${product.brand}` : ''}`}
-        description={`Buy ${product.name}${product.brand ? ` by ${product.brand}` : ''} online. ${product.description ? product.description.slice(0, 120) : 'Fast 60-minute delivery in Odisha. 100% authentic products.'}`}
+        description={`Buy ${product.name}${product.brand ? ` by ${product.brand}` : ''} online. ${
+          product.description
+            ? product.description.slice(0, 120)
+            : 'Fast 60-minute delivery in Odisha. 100% authentic products.'
+        }`}
         path={`/product/${product.id}`}
         image={gallery[0]?.url || undefined}
         type="product"
       />
-      <div className="hp-utility-bar">
-        <div className="hp-utility-left">
-          {UTILITY_ITEMS.map((item) => (
-            <span key={item.label} className="hp-utility-item">
-              <item.icon /> {item.label}
-            </span>
-          ))}
-        </div>
-      </div>
 
-      <header className="pd-header">
-        <button type="button" className="hp-brand pd-brand-logo" onClick={() => navigate('/')}>
-          <img
-            src="https://res.cloudinary.com/dv6w0wyxk/image/upload/v1786438169/Image_1_idh5gu.jpg"
-            alt="Blinkiefash"
-            className="hp-logo"
-          />
-        </button>
-
-        <form className="hp-header-search" onSubmit={handleSearchSubmit}>
-          <MdSearch className="hp-search-icon" />
-          <input name="q" type="text" placeholder="Search Ethnic Wear, Sneakers, Bags & more..." />
-          <button type="submit" className="hp-search-btn" aria-label="Search products">
-            <MdSearch />
-          </button>
-        </form>
-
-        <div className="hp-header-actions">
-          {canSwitchToVendor ? (
-            <button type="button" onClick={() => navigate('/vendor/orders')}>
-              <MdCheckroom />
-              <span>Switch to Vendor</span>
-            </button>
-          ) : null}
-          <button type="button" onClick={() => navigate(isLoggedIn ? '/account' : '/login')}>
-            <MdPersonOutline />
-            <span>{accountLabel}</span>
-          </button>
-          <button type="button" onClick={() => navigate('/wishlist')}>
-            <MdFavoriteBorder />
-            <span>Wishlist</span>
-            {wishlistItems.length > 0 && <span className="hp-icon-badge">{wishlistItems.length}</span>}
-          </button>
-          <button type="button" onClick={() => navigate('/cart')}>
-            <MdOutlineShoppingCart />
-            <span>Cart</span>
-            {count > 0 && <span className="hp-icon-badge">{count}</span>}
-          </button>
-        </div>
-      </header>
+      {/* Shared Navbar — logo + BLINKIEFASH + Back button */}
+      <Navbar />
 
       <div className="pp-page">
-        {/* Breadcrumb */}
+        {/* Breadcrumb + Back */}
         <nav className="pp-breadcrumb" aria-label="Breadcrumb">
           <button type="button" className="pd-back" onClick={goBack}>
             <MdArrowBack size={13} /> Back
@@ -671,7 +605,10 @@ export default function ProductDetail() {
               else if (fromPath && crumb === fromLabel) navigate(fromPath);
             };
             return (
-              <span key={`${crumb}-${i}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <span
+                key={`${crumb}-${i}`}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+              >
                 <MdChevronRight size={13} />
                 {isLast ? (
                   <strong>{crumb}</strong>
@@ -679,7 +616,14 @@ export default function ProductDetail() {
                   <button
                     type="button"
                     onClick={onCrumbClick}
-                    style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', font: 'inherit' }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: 0,
+                      cursor: 'pointer',
+                      color: 'inherit',
+                      font: 'inherit',
+                    }}
                   >
                     {crumb}
                   </button>
@@ -702,9 +646,11 @@ export default function ProductDetail() {
                     aria-label={`View image ${i + 1}`}
                     aria-current={activeImage === i}
                   >
-                    {img.url
-                      ? <img src={img.url} alt={`${product.name} view ${i + 1}`} loading="lazy" />
-                      : <div className="pd-thumb-fallback" />}
+                    {img.url ? (
+                      <img src={img.url} alt={`${product.name} view ${i + 1}`} loading="lazy" />
+                    ) : (
+                      <div className="pd-thumb-fallback" />
+                    )}
                   </button>
                 ))}
               </div>
@@ -731,9 +677,13 @@ export default function ProductDetail() {
                   <MdChevronRight size={20} />
                 </button>
               )}
-              <span className="pp-zoom-tag"><MdZoomIn size={14} /> Zoom</span>
+              <span className="pp-zoom-tag">
+                <MdZoomIn size={14} /> Zoom
+              </span>
               {gallery.length > 1 && (
-                <span className="pp-image-counter">{activeImage + 1} / {gallery.length}</span>
+                <span className="pp-image-counter">
+                  {activeImage + 1} / {gallery.length}
+                </span>
               )}
             </div>
           </div>
@@ -741,9 +691,13 @@ export default function ProductDetail() {
           {/* Info */}
           <div className="pp-info-col">
             <div className="pp-badge-row" style={{ alignItems: 'center' }}>
-              <span className="pp-chip"><MdBolt size={13} /> 60 MIN DELIVERY</span>
+              <span className="pp-chip">
+                <MdBolt size={13} /> 60 MIN DELIVERY
+              </span>
               {product.is_try_and_buy && (
-                <span className="pp-chip pp-chip-outline"><MdVerified size={13} /> Try &amp; Buy</span>
+                <span className="pp-chip pp-chip-outline">
+                  <MdVerified size={13} /> TRY & BUY
+                </span>
               )}
               <div className="pd-share-wrap" style={{ flex: 'none', marginLeft: 'auto' }}>
                 <button
@@ -755,29 +709,36 @@ export default function ProductDetail() {
                 >
                   <MdShare />
                 </button>
-
                 {shareOpen && (
                   <>
                     <div className="pd-share-backdrop" onClick={() => setShareOpen(false)} />
                     <div className="pd-share-menu" role="menu">
                       <p className="pd-share-menu-title">Share this product</p>
-
                       {typeof navigator !== 'undefined' && navigator.share && (
                         <button type="button" className="pd-share-option" onClick={handleNativeShare}>
-                          <span className="pd-share-icon pd-share-device"><MdShare /></span>
+                          <span className="pd-share-icon pd-share-device">
+                            <MdShare />
+                          </span>
                           More options
                         </button>
                       )}
-
                       {SHARE_OPTIONS.map((opt) => (
-                        <button type="button" key={opt.label} className="pd-share-option" onClick={opt.action}>
-                          <span className={`pd-share-icon ${opt.className}`}><opt.icon /></span>
+                        <button
+                          type="button"
+                          key={opt.label}
+                          className="pd-share-option"
+                          onClick={opt.action}
+                        >
+                          <span className={`pd-share-icon ${opt.className}`}>
+                            <opt.icon />
+                          </span>
                           {opt.label}
                         </button>
                       ))}
-
                       <button type="button" className="pd-share-option" onClick={handleCopyLink}>
-                        <span className="pd-share-icon pd-share-copy"><FaLink /></span>
+                        <span className="pd-share-icon pd-share-copy">
+                          <FaLink />
+                        </span>
                         {linkCopied ? 'Link copied!' : 'Copy link'}
                       </button>
                     </div>
@@ -791,7 +752,8 @@ export default function ProductDetail() {
 
             <div className="pp-rating-line">
               <span className="pp-stars" aria-hidden="true">
-                {'★'.repeat(roundedAvg)}{'☆'.repeat(5 - roundedAvg)}
+                {'★'.repeat(roundedAvg)}
+                {'☆'.repeat(5 - roundedAvg)}
               </span>
               <strong>{rating.toFixed(1)}</strong>
               <span className="pp-muted">({reviewCount} Reviews)</span>
@@ -814,7 +776,9 @@ export default function ProductDetail() {
                   {colorOptions.map((color) => (
                     <button
                       key={color}
-                      className={`pp-swatch ${selectedColor.toLowerCase() === color.toLowerCase() ? 'active' : ''}`}
+                      className={`pp-swatch ${
+                        selectedColor.toLowerCase() === color.toLowerCase() ? 'active' : ''
+                      }`}
                       onClick={() => {
                         setSelectedColor(color);
                         const target = (variants || []).find(
@@ -842,22 +806,26 @@ export default function ProductDetail() {
                   <p className="pp-label">Select Size</p>
                 </div>
                 <div className="pp-size-row">
-                  {sortSizes([...new Set(sizeOptions.map((v) => v.size || 'Default'))]).map((size) => {
-                    const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
-                    const lowStock = Number(scoped?.available_stock || 0) <= 0;
-                    const active = (selectedVariant?.size || 'Default') === size;
-                    return (
-                      <button
-                        key={size}
-                        type="button"
-                        className={`pp-size-btn ${active ? 'active' : ''} ${lowStock ? 'disabled' : ''}`}
-                        onClick={() => pickSize(size)}
-                        aria-pressed={active}
-                      >
-                        {size}
-                      </button>
-                    );
-                  })}
+                  {sortSizes([...new Set(sizeOptions.map((v) => v.size || 'Default'))]).map(
+                    (size) => {
+                      const scoped = sizeOptions.find((v) => (v.size || 'Default') === size);
+                      const lowStock = Number(scoped?.available_stock || 0) <= 0;
+                      const active = (selectedVariant?.size || 'Default') === size;
+                      return (
+                        <button
+                          key={size}
+                          type="button"
+                          className={`pp-size-btn ${active ? 'active' : ''} ${
+                            lowStock ? 'disabled' : ''
+                          }`}
+                          onClick={() => pickSize(size)}
+                          aria-pressed={active}
+                        >
+                          {size}
+                        </button>
+                      );
+                    }
+                  )}
                 </div>
               </div>
             )}
@@ -869,9 +837,15 @@ export default function ProductDetail() {
             )}
 
             <div className="pp-quick-facts">
-              <p><strong>Category:</strong> {product.category_name || product.category || 'Fashion'}</p>
-              <p><strong>Brand:</strong> {product.brand || 'Blinkiefash'}</p>
-              <p><strong>Stock:</strong> {selectedVariant?.available_stock ?? 'Available'}</p>
+              <p>
+                <strong>Category:</strong> {product.category_name || product.category || 'Fashion'}
+              </p>
+              <p>
+                <strong>Brand:</strong> {product.brand || 'Blinkiefash'}
+              </p>
+              <p>
+                <strong>Stock:</strong> {selectedVariant?.available_stock ?? 'Available'}
+              </p>
             </div>
           </div>
 
@@ -886,7 +860,9 @@ export default function ProductDetail() {
               </button>
 
               <div className="pp-sidebar-row highlight">
-                <span className="pp-icon-dot"><MdBolt size={16} /></span>
+                <span className="pp-icon-dot">
+                  <MdBolt size={16} />
+                </span>
                 <div>
                   <strong>60-Minute Express Delivery</strong>
                   <span>Get it by end of day</span>
@@ -924,11 +900,11 @@ export default function ProductDetail() {
                 type="button"
                 className="pp-try-buy"
                 disabled={canPurchase === false}
-                aria-label={`Try and buy ${product.name}`}
+                aria-label={`Try & Buy ${product.name}`}
                 data-testid="try-and-buy-button"
                 onClick={handleTryAndBuyClick}
               >
-                <MdVerified size={16} /> Try and Buy
+                <MdVerified size={16} /> Try & Buy
               </button>
 
               <button
@@ -958,18 +934,23 @@ export default function ProductDetail() {
                 {wishlisted ? <MdFavorite size={16} /> : <MdFavoriteBorder size={16} />}
                 {wishlisted ? 'Wishlisted' : 'Add to Wishlist'}
               </button>
-              <p className="pd-secure"><MdLock size={13} /> Secure Payment</p>
+              <p className="pd-secure">
+                <MdLock size={13} /> Secure Payment
+              </p>
             </div>
 
             {hasRelated && (
               <div className="pp-related">
                 <div className="pp-related-head">
                   <p>You May Also Like</p>
-                  <button type="button" className="pp-related-viewall" onClick={() => navigate(fromPath || '/shop')}>
+                  <button
+                    type="button"
+                    className="pp-related-viewall"
+                    onClick={() => navigate(fromPath || '/shop')}
+                  >
                     View All
                   </button>
                 </div>
-
                 <div className="pp-related-grid" ref={relatedListRef}>
                   {relatedProducts.slice(0, visibleRelatedCount).map((item, idx) => {
                     const itemPrice = Number(item.discount_price || item.price || 0);
@@ -987,7 +968,11 @@ export default function ProductDetail() {
                           }}
                         >
                           <div className="pp-related-media">
-                            {itemImage ? <img src={itemImage} alt={item.name} loading="lazy" /> : <div className="pd-rel-fallback" />}
+                            {itemImage ? (
+                              <img src={itemImage} alt={item.name} loading="lazy" />
+                            ) : (
+                              <div className="pd-rel-fallback" />
+                            )}
                           </div>
                           <p className="pp-related-name">{item.name}</p>
                           <p className="pp-related-price">
@@ -1045,7 +1030,8 @@ export default function ProductDetail() {
                   className={`pp-tab ${activeTab === tab.key ? 'active' : ''}`}
                   onClick={() => setActiveTab(tab.key)}
                 >
-                  {tab.label}{tab.key === 'reviews' && reviewCount > 0 ? ` (${reviewCount})` : ''}
+                  {tab.label}
+                  {tab.key === 'reviews' && reviewCount > 0 ? ` (${reviewCount})` : ''}
                 </button>
               ))}
             </div>
@@ -1056,13 +1042,24 @@ export default function ProductDetail() {
                   <div
                     id="pp-desc-content"
                     ref={descClipRef}
-                    className={`pp-desc-clip ${descExpanded ? 'expanded' : ''} ${descClipped ? 'is-clipped' : ''}`}
+                    className={`pp-desc-clip ${descExpanded ? 'expanded' : ''} ${
+                      descClipped ? 'is-clipped' : ''
+                    }`}
                   >
                     <p>{product.description || 'No description available for this product yet.'}</p>
                     <ul className="pp-highlights">
-                      <li><MdCheck size={14} strokeWidth={3} /><span>100% Original product</span></li>
-                      <li><MdCheck size={14} strokeWidth={3} /><span>Easy returns within 5 days</span></li>
-                      <li><MdCheck size={14} strokeWidth={3} /><span>Secure payment and protected checkout</span></li>
+                      <li>
+                        <MdCheck size={14} />
+                        <span>100% Original product</span>
+                      </li>
+                      <li>
+                        <MdCheck size={14} />
+                        <span>Easy returns within 5 days</span>
+                      </li>
+                      <li>
+                        <MdCheck size={14} />
+                        <span>Secure payment and protected checkout</span>
+                      </li>
                     </ul>
                   </div>
                   {descClipped && (
@@ -1082,12 +1079,36 @@ export default function ProductDetail() {
 
               {activeTab === 'details' && hasDetails && (
                 <div className="pp-details-table">
-                  <div><span>Brand</span><strong>{product.brand || 'Blinkiefash'}</strong></div>
-                  <div><span>Category</span><strong>{product.category_name || product.category || 'Fashion'}</strong></div>
-                  {selectedVariant?.color && <div><span>Color</span><strong>{selectedVariant.color}</strong></div>}
-                  {selectedVariant?.size && <div><span>Size</span><strong>{selectedVariant.size}</strong></div>}
-                  {selectedVariant?.sku && <div><span>SKU</span><strong>{selectedVariant.sku}</strong></div>}
-                  <div><span>Stock</span><strong>{selectedVariant?.available_stock ?? 'Available'}</strong></div>
+                  <div>
+                    <span>Brand</span>
+                    <strong>{product.brand || 'Blinkiefash'}</strong>
+                  </div>
+                  <div>
+                    <span>Category</span>
+                    <strong>{product.category_name || product.category || 'Fashion'}</strong>
+                  </div>
+                  {selectedVariant?.color && (
+                    <div>
+                      <span>Color</span>
+                      <strong>{selectedVariant.color}</strong>
+                    </div>
+                  )}
+                  {selectedVariant?.size && (
+                    <div>
+                      <span>Size</span>
+                      <strong>{selectedVariant.size}</strong>
+                    </div>
+                  )}
+                  {selectedVariant?.sku && (
+                    <div>
+                      <span>SKU</span>
+                      <strong>{selectedVariant.sku}</strong>
+                    </div>
+                  )}
+                  <div>
+                    <span>Stock</span>
+                    <strong>{selectedVariant?.available_stock ?? 'Available'}</strong>
+                  </div>
                 </div>
               )}
 
@@ -1095,7 +1116,8 @@ export default function ProductDetail() {
                 <div className="pp-reviews-tab-content">
                   <div className="pp-reviews-score-inline">
                     <span className="pp-stars" aria-hidden="true">
-                      {'★'.repeat(roundedAvg)}{'☆'.repeat(5 - roundedAvg)}
+                      {'★'.repeat(roundedAvg)}
+                      {'☆'.repeat(5 - roundedAvg)}
                     </span>
                     <strong>{rating.toFixed(1)}</strong>
                     <span className="pp-muted">({reviewCount} reviews)</span>
@@ -1113,19 +1135,31 @@ export default function ProductDetail() {
         <section className="pp-trust-strip">
           <div className="pp-trust-item">
             <MdVerified size={20} />
-            <div><h4>100% Original Products</h4><p>Sourced directly from brands</p></div>
+            <div>
+              <h4>100% Original Products</h4>
+              <p>Sourced directly from brands</p>
+            </div>
           </div>
           <div className="pp-trust-item">
             <MdLock size={20} />
-            <div><h4>Secure Payments</h4><p>Multiple safe payment options</p></div>
+            <div>
+              <h4>Secure Payments</h4>
+              <p>Multiple safe payment options</p>
+            </div>
           </div>
           <div className="pp-trust-item">
             <MdAutorenew size={20} />
-            <div><h4>Easy Returns</h4><p>Hassle-free returns in 5 days</p></div>
+            <div>
+              <h4>Easy Returns</h4>
+              <p>Hassle-free returns in 5 days</p>
+            </div>
           </div>
           <div className="pp-trust-item">
             <MdHeadsetMic size={20} />
-            <div><h4>Dedicated Support</h4><p>We&apos;re here to help you</p></div>
+            <div>
+              <h4>Dedicated Support</h4>
+              <p>We&apos;re here to help you</p>
+            </div>
           </div>
         </section>
 
@@ -1148,7 +1182,11 @@ export default function ProductDetail() {
                     }}
                   >
                     <div className="pp-related-media">
-                      {item.image ? <img src={item.image} alt={item.name} loading="lazy" /> : <div className="pd-rel-fallback" />}
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} loading="lazy" />
+                      ) : (
+                        <div className="pd-rel-fallback" />
+                      )}
                     </div>
                     <p className="pp-related-name">{item.name}</p>
                     <p className="pp-related-price">₹{toCurrency(item._price || 0)}</p>
@@ -1160,7 +1198,7 @@ export default function ProductDetail() {
         )}
       </div>
 
-      {/* ===== MOBILE STICKY ACTION BAR (with Try & Buy) ===== */}
+      {/* Mobile sticky action bar */}
       <div className="pd-mobile-actionbar">
         <div className="pd-mobile-price">
           <strong>₹{toCurrency(price)}</strong>
@@ -1176,7 +1214,6 @@ export default function ProductDetail() {
             <MdOutlineShoppingCart />
             <span>{cartAdded ? 'Added ✓' : 'Cart'}</span>
           </button>
-
           <button
             type="button"
             className="pd-mobile-try"
@@ -1186,7 +1223,6 @@ export default function ProductDetail() {
             <MdVerified />
             <span>Try & Buy</span>
           </button>
-
           <button
             type="button"
             className="pd-mobile-buy"
@@ -1202,7 +1238,11 @@ export default function ProductDetail() {
       </div>
 
       {locationSheetOpen && (
-        <div className="hp-location-sheet-backdrop" role="presentation" onClick={() => setLocationSheetOpen(false)}>
+        <div
+          className="hp-location-sheet-backdrop"
+          role="presentation"
+          onClick={() => setLocationSheetOpen(false)}
+        >
           <section
             className="hp-location-sheet"
             role="dialog"
@@ -1215,9 +1255,7 @@ export default function ProductDetail() {
             <button type="button" className="hp-location-current-btn" onClick={handleDetectLocation}>
               <MdLocationOn /> {locating ? 'Detecting your location...' : 'Use current location'}
             </button>
-
             {locationError && <p className="hp-location-error">{locationError}</p>}
-
             {isLoggedIn ? (
               <>
                 <p className="hp-location-sheet-subtitle">Saved addresses</p>

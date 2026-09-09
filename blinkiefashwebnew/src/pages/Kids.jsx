@@ -18,6 +18,7 @@ import {
   MdSecurity,
   MdSupportAgent,
   MdGridView,
+  MdFilterList,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
@@ -36,6 +37,19 @@ import "./Kids.css";
 import kidsHeroBanner from "../assets/kids-hero.png";
 import kidsBoysBanner from "../assets/kids-boys.png";
 import kidsGirlsBanner from "../assets/kids-girls.png";
+
+const COLORS = [
+  ["Pink", "#ec4899"],
+  ["Blue", "#2563eb"],
+  ["Black", "#111827"],
+  ["Green", "#22c55e"],
+  ["Yellow", "#facc15"],
+  ["White", "#ffffff"],
+  ["Grey", "#9ca3af"],
+  ["Red", "#ef4444"],
+];
+
+const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
@@ -83,6 +97,10 @@ function childCatsFor(allCats, rootId) {
       image: c.category_url || c.image || "",
     }))
     .filter((c) => c.name);
+}
+
+function normalizeBrandName(value) {
+  return (value || "").toString().toLowerCase().replace(/\./g, "").trim();
 }
 
 const AGE_BANDS = [
@@ -161,6 +179,68 @@ export default function Kids() {
   const [kidsResolved, setKidsResolved] = useState(false);
   const [brands, setBrands] = useState([]);
   const picksRailRef = useRef(null);
+
+  // ---------- Filters (Brand / Color / Price / Discount / Availability) ----------
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [activeBrand, setActiveBrand] = useState([]);
+  const [activeColor, setActiveColor] = useState([]);
+  const [minDiscount, setMinDiscount] = useState(0);
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(10000);
+  const [brandSearch, setBrandSearch] = useState("");
+
+  const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+  const toggleBrandFilter = (name) => {
+    setActiveBrand((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
+  };
+
+  const toggleColorFilter = (name) => {
+    setActiveColor((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
+  };
+
+  const selectMinDiscount = (value) => {
+    setMinDiscount((prev) => (prev === value ? 0 : value));
+  };
+
+  const activeFilterCount =
+    activeBrand.length +
+    activeColor.length +
+    (minDiscount > 0 ? 1 : 0) +
+    (inStockOnly ? 1 : 0) +
+    (maxPrice < 10000 ? 1 : 0);
+
+  const clearAllFilters = () => {
+    setActiveBrand([]);
+    setActiveColor([]);
+    setMinDiscount(0);
+    setInStockOnly(false);
+    setMaxPrice(10000);
+    setBrandSearch("");
+  };
+
+  const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
+
+  const applyProductFilters = useCallback(
+    (list) =>
+      (list || []).filter((p) => {
+        if (activeBrand.length > 0) {
+          const b = normalizeText(p.brand);
+          if (!activeBrand.map(normalizeText).includes(b)) return false;
+        }
+        if (activeColor.length > 0) {
+          const c = normalizeText(p.color);
+          if (c && !activeColor.map(normalizeText).includes(c)) return false;
+        }
+        if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
+        if (inStockOnly && p.in_stock === false) return false;
+        const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
+        if (finalPrice > maxPrice) return false;
+        return true;
+      }),
+    [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+  );
+  // ---------------------------------------------------------------------------
 
   useEffect(() => {
     let cancelled = false;
@@ -352,6 +432,34 @@ export default function Kids() {
     if (!el) return;
     el.scrollBy({ left: dir * 320, behavior: "smooth" });
   };
+
+  // Only brands that appear on kids' products (falls back to the full API
+  // brand list if the current picks don't cover any brand names yet).
+  const kidsBrandsForRail = useMemo(() => {
+    const fromProducts = new Map();
+    (products || []).forEach((p) => {
+      const name = (p?.brand || "").toString().trim();
+      if (!name) return;
+      const key = normalizeBrandName(name);
+      if (!fromProducts.has(key)) fromProducts.set(key, name);
+    });
+
+    if (fromProducts.size === 0) {
+      return (brands || []).slice(0, 14);
+    }
+
+    const logoByName = new Map();
+    (brands || []).forEach((b) => {
+      const key = normalizeBrandName(b.name);
+      if (key) logoByName.set(key, b.logo_url || "");
+    });
+
+    return [...fromProducts.entries()]
+      .map(([key, name]) => ({ id: null, name, logo_url: logoByName.get(key) || "" }))
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+  }, [products, brands]);
+
+  const filteredPicks = applyProductFilters(products);
 
   return (
     <div className="catalog-page kids-page">
@@ -554,14 +662,117 @@ export default function Kids() {
         <section className="section kids-picks-section">
           <div className="hp-section-head">
             <h2>Top Picks for You</h2>
-            <button type="button" onClick={() => navigate(kidsScopedShopUrl())}>
-              View All <MdChevronRight />
-            </button>
+            <div className="kids-section-actions">
+              <button type="button" onClick={() => navigate(kidsScopedShopUrl())}>
+                View All <MdChevronRight />
+              </button>
+              <button
+                type="button"
+                className={`kids-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
+                onClick={() => setFilterOpen((o) => !o)}
+              >
+                <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
+              </button>
+            </div>
           </div>
+
+          {filterOpen ? (
+            <section className="kids-filters-panel" role="dialog" aria-label="Kids filters">
+              <div className="kids-filters-panel-header">
+                <h3>Filters</h3>
+                {activeFilterCount > 0 ? (
+                  <button type="button" className="kids-filters-clear" onClick={clearAllFilters}>
+                    Clear All
+                  </button>
+                ) : null}
+              </div>
+
+              <div className="kids-filter-col">
+                <h4>Brand</h4>
+                <input
+                  className="kids-filter-search"
+                  value={brandSearch}
+                  onChange={(e) => setBrandSearch(e.target.value)}
+                  placeholder="Search brand"
+                />
+                <div className="kids-filter-list">
+                  {visibleBrands.map((brand) => (
+                    <label key={brand.id || brand.name}>
+                      <input
+                        type="checkbox"
+                        checked={activeBrand.includes(brand.name)}
+                        onChange={() => toggleBrandFilter(brand.name)}
+                      />
+                      <span>{brand.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="kids-filter-col">
+                <h4>Color</h4>
+                <div className="kids-filter-list kids-filter-swatches">
+                  {COLORS.map(([name, hex]) => {
+                    const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
+                    return (
+                      <label key={name} className={`kids-swatch-label${checked ? " checked" : ""}`}>
+                        <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
+                        <span className="kids-swatch-dot" style={{ background: hex }} />
+                        <span>{name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="kids-filter-col">
+                <h4>Price</h4>
+                <input
+                  type="range"
+                  min="200"
+                  max="8000"
+                  step="100"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                />
+                <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
+              </div>
+
+              <div className="kids-filter-col">
+                <h4>Discount Range</h4>
+                <div className="kids-filter-discount-chips">
+                  {DISCOUNT_BUCKETS.map((value) => (
+                    <button
+                      key={value}
+                      type="button"
+                      className={`kids-filter-chip-item${minDiscount === value ? " active" : ""}`}
+                      onClick={() => selectMinDiscount(value)}
+                    >
+                      {value}% and above
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="kids-filter-col">
+                <h4>Availability</h4>
+                <div className="kids-filter-list">
+                  <label>
+                    <input
+                      type="checkbox"
+                      checked={inStockOnly}
+                      onChange={(e) => setInStockOnly(e.target.checked)}
+                    />
+                    <span>In stock only</span>
+                  </label>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {productsLoading ? (
             <p className="kids-empty-state">Loading today&apos;s picks…</p>
-          ) : products.length ? (
+          ) : filteredPicks.length ? (
             <div className="hp-deals-wrap">
               <button
                 type="button"
@@ -573,7 +784,7 @@ export default function Kids() {
               </button>
 
               <div className="hp-deals-rail" role="list" ref={picksRailRef}>
-                {products.map((p, idx) => (
+                {filteredPicks.map((p, idx) => (
                   <div
                     key={`kids-pick-${p.id}-${idx}`}
                     className="hp-deal-card-wrapper"
@@ -595,7 +806,9 @@ export default function Kids() {
             </div>
           ) : (
             <p className="kids-empty-state">
-              New kids styles are landing soon — check back shortly.
+              {products.length
+                ? "No products match the selected filters."
+                : "New kids styles are landing soon — check back shortly."}
             </p>
           )}
         </section>
@@ -606,7 +819,7 @@ export default function Kids() {
             <h2>Top Brands Kids Love</h2>
           </div>
           <div className="hp-top-brands-rail">
-            {brands.slice(0, 14).map((brand, idx) => {
+            {kidsBrandsForRail.map((brand, idx) => {
               const logo = resolveImageUrl(brand.logo_url);
               const initials = brand.name
                 .split(/\s+/)

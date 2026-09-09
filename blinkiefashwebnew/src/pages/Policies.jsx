@@ -41,7 +41,7 @@ export default function Policies() {
             <ul>
               <li>Provide accurate information</li>
               <li>Respect vendor and delivery policies</li>
-              <li>Follow return and Try and Buy rules</li>
+              <li>Follow return </li>
             </ul>
             <p className="info-note">BLINKIEFASH reserves the right to modify services and pricing policies when needed.</p>
           </article>

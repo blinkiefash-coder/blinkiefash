@@ -277,7 +277,7 @@ export default function AddProduct() {
                 <div className="try-buy-icon">🔒</div>
                 <div className="try-buy-copy">
                   <div className="try-buy-title">
-                    Try &amp; Buy <span className="try-buy-subtext">(Try Before You Buy)</span>
+                     <span className="try-buy-subtext">(Try Before You Buy)</span>
                     <span className="try-buy-help" title="Customers can try the product at home and pay only if they keep it.">?</span>
                   </div>
                   <div className="try-buy-desc">Let customers try the product and pay only if they like it.</div>
