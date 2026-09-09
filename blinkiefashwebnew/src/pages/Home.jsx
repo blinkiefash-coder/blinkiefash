@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   MdChevronRight,
   MdChevronLeft,
+  MdLogin,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -543,7 +544,7 @@ export default function Home() {
             category_id: rootId,
             search: rootId ? undefined : fallbackSearch,
             sort: 'newest',
-            limit: 10,
+            limit: 40,
           });
           return result?.products || (Array.isArray(result) ? result : []);
         };
@@ -557,8 +558,10 @@ export default function Home() {
           fetchCollection('Kids', 'kids'),
           fetchCollection('Electronics', 'electronics'),
           fetchCollection('Footwear', 'shoes sneakers sandals footwear'),
-          getProducts({ min_price: 0, max_price: 999, limit: 10, sort: 'price_asc' }),
-          getProducts({ min_price: 1000, max_price: 1999, limit: 10, sort: 'price_asc' }),
+          // Mixed products under ₹999 (newest first, not just cheapest accessories)
+          getProducts({ min_price: 0, max_price: 999, limit: 40, sort: 'newest' }),
+          // Mixed products ₹1000–₹1999 (newest first)
+          getProducts({ min_price: 1000, max_price: 1999, limit: 40, sort: 'newest' }),
         ]);
 
         const under999List = under999Res?.products || (Array.isArray(under999Res) ? under999Res : []);
@@ -648,9 +651,15 @@ export default function Home() {
         }));
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
-        const brandsList = [...brandsSource].sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-        );
+
+        // Force Puma to the front so it appears first in the upper row of Shop by Brands
+        const brandsList = [...brandsSource].sort((a, b) => {
+          const aName = (a.name || '').toLowerCase();
+          const bName = (b.name || '').toLowerCase();
+          if (aName === 'puma') return -1;
+          if (bName === 'puma') return 1;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
 
         if (cancelled) return;
 
@@ -811,7 +820,7 @@ export default function Home() {
     // tied to today's date — the selection/order changes once every 24
     // hours (at local midnight) without needing a backend change.
     const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
-    const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+    const pool = ranked.slice(0, Math.max(40, Math.min(80, ranked.length)));
 
     // Shuffle the pool for daily rotation, then pull Souled Store items to
     // the very front so they always lead the rail, while the rest of the
@@ -820,7 +829,7 @@ export default function Home() {
     const rotated = seededShuffle(pool, todaysSeed());
     const souledFirst = rotated.filter((item) => item._isSouledStore);
     const others = rotated.filter((item) => !item._isSouledStore);
-    return [...souledFirst, ...others].slice(0, 30);
+    return [...souledFirst, ...others].slice(0, 40);
   }, [deals]);
 
   const recentlyViewedProducts = useMemo(() => {
@@ -830,35 +839,17 @@ export default function Home() {
       .slice(0, 8);
   }, [recentlyViewedProductsData]);
 
+  // NEW ON BLINKIEFASH — show ALL newest products (mixed brands), no discount/Palermo filter
   const newOnBlinkiefash = useMemo(() => {
-    const items = (Array.isArray(newProducts) ? newProducts : [])
-      .map((item) => {
-        const price = Number(item?.discount_price ?? item?.price ?? 0);
-        const mrp = Number(item?.price ?? item?.original_price ?? price);
-        const hasDiscount = mrp > 0 && price > 0 && price < mrp;
-        const isPalermo = (item?.name || '').toString().toLowerCase().includes('palermo');
-        return { ...item, _hasDiscount: hasDiscount, _isPalermo: isPalermo };
-      })
-      .filter((item) => !item._hasDiscount && !item._isPalermo);
-
-    const pinned = pinnedNewProduct
-      ? (() => {
-          const price = Number(pinnedNewProduct?.discount_price ?? pinnedNewProduct?.price ?? 0);
-          const mrp = Number(pinnedNewProduct?.price ?? pinnedNewProduct?.original_price ?? price);
-          if (mrp > 0 && price > 0 && price < mrp) return null;
-          return { ...pinnedNewProduct };
-        })()
-      : null;
-
-    const rest = items.slice(0, 10 - (pinned ? 1 : 0));
-    return pinned ? [pinned, ...rest] : rest;
-  }, [newProducts, pinnedNewProduct]);
+    const items = (Array.isArray(newProducts) ? newProducts : []).slice(0, 40);
+    return items;
+  }, [newProducts]);
 
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     const normalizedGender = (userGender || '').toLowerCase().trim();
-    if (normalizedGender === 'women') return womensProducts.slice(0, 10);
-    if (normalizedGender === 'men') return mensProducts.slice(0, 10);
+    if (normalizedGender === 'women') return womensProducts.slice(0, 40);
+    if (normalizedGender === 'men') return mensProducts.slice(0, 40);
     return [];
   }, [isLoggedIn, userGender, womensProducts, mensProducts]);
 
@@ -945,19 +936,41 @@ export default function Home() {
                 </div>
               }
             />
-            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
+            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={40} />
           </section>
         )}
 
         <section className="section hp-rewards-section">
           <div className="hp-rewards-grid">
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/spin-wheel')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate(isLoggedIn ? '/spin-wheel' : '/login')}
+            >
               <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
+              {!isLoggedIn && (
+                <span className="hp-reward-login-badge">
+                  <MdLogin /> Login
+                </span>
+              )}
             </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/play-and-win')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate(isLoggedIn ? '/play-and-win' : '/login')}
+            >
               <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+              {!isLoggedIn && (
+                <span className="hp-reward-login-badge">
+                  <MdLogin /> Login
+                </span>
+              )}
             </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/refer-earn')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate('/refer-earn')}
+            >
               <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
             </button>
             <button type="button" className="hp-reward-image-card" onClick={() => navigate('/shop')}>
@@ -1063,7 +1076,7 @@ export default function Home() {
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
             />
-            <ProductRail items={recommendedProducts} keyPrefix="recommended" />
+            <ProductRail items={recommendedProducts} keyPrefix="recommended" limit={40} />
           </section>
         )}
 
@@ -1077,7 +1090,7 @@ export default function Home() {
         {newOnBlinkiefash.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={newOnBlinkiefashIcon} iconAlt="New on Blinkiefash" title="New on" accentWord="Blinkiefash" onViewAll={() => navigate('/shop?sort=newest')} />
-            <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
+            <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} limit={40} />
           </section>
         )}
 
@@ -1085,7 +1098,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
             <CategoryChipsRail chips={mensCats} audienceLabel="Men" activeId={activeCollectionCats.Men ?? mensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" /> : null}
+            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
           </section>
         )}
 
@@ -1093,7 +1106,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
             <CategoryChipsRail chips={womensCats} audienceLabel="Women" activeId={activeCollectionCats.Women ?? womensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" /> : null}
+            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
           </section>
         )}
 
@@ -1101,7 +1114,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
             <CategoryChipsRail chips={kidsCats} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" /> : null}
+            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" limit={40} /> : null}
           </section>
         )}
 
@@ -1109,7 +1122,7 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
             <CategoryChipsRail chips={electronicsCats} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" /> : null}
+            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" limit={40} /> : null}
           </section>
         )}
 
@@ -1117,21 +1130,21 @@ export default function Home() {
           <section className="section hp-feed-rail-section">
             <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Trendy" accentWord="Shoes" onViewAll={() => navigate('/footwear')} />
             <CategoryChipsRail chips={trendyShoesCats} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" /> : null}
+            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" limit={40} /> : null}
           </section>
         )}
 
         {under999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={under999Icon} iconAlt="Under ₹999" title="Under" accentWord="₹999" onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')} />
-            <ProductRail items={under999Products} keyPrefix="under999" />
+            <SectionHead icon={under999Icon} iconAlt="Under ₹999" title="Under" accentWord="₹999" onViewAll={() => navigate('/shop?max_price=999&sort=newest')} />
+            <ProductRail items={under999Products} keyPrefix="under999" limit={40} />
           </section>
         )}
 
         {under1999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={priceRangeIcon} iconAlt="₹999 to ₹1999" title="₹999 –" accentWord="₹1999" onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')} />
-            <ProductRail items={under1999Products} keyPrefix="under1999" />
+            <SectionHead icon={priceRangeIcon} iconAlt="₹999 to ₹1999" title="₹999 –" accentWord="₹1999" onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=newest')} />
+            <ProductRail items={under1999Products} keyPrefix="under1999" limit={40} />
           </section>
         )}
 

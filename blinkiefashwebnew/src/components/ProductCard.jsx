@@ -102,10 +102,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     : salePrice;
 
   const isBestseller = product.is_bestseller === true;
-  const isTryAndBuy = product.is_try_and_buy === true;
 
-  // Priority: NEW > BESTSELLER > % OFF > + 60 MIN
-  // Try & Buy is no longer a top badge — it is rendered as a bottom tag
+  // Priority: NEW > BESTSELLER > % OFF
   const badgeType = isNew
     ? "NEW"
     : isBestseller
@@ -387,14 +385,6 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
         {outOfStock && (
           <div className="pc-oos-overlay">
             <span className="pc-oos-pill">Out of Stock</span>
-          </div>
-        )}
-
-        {/* Try & Buy floating tag — bottom-left */}
-        {isTryAndBuy && !outOfStock && (
-          <div className="pc-tag-tryandbuy">
-            <span className="pc-tag-dot" />
-            Try & Buy
           </div>
         )}
 
