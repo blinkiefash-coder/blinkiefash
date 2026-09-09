@@ -36,10 +36,10 @@ import { API_BASE_URL } from "../apiBase";
 import womenBanner1 from "../assets/women-banner-1.png";
 import womenBanner2 from "../assets/women-banner-2.png";
 import womenBanner3 from "../assets/women-banner-3.png";
-import playAndWinImage from "../assets/play&win.png";
-import spinAndWinImage from "../assets/spin&win.png";
-import referAndEarnImage from "../assets/refer&earn.png";
-import freeDeliveryImage from "../assets/freedelivery.png";
+// import playAndWinImage from "../assets/play&win.png";
+// import spinAndWinImage from "../assets/spin&win.png";
+// import referAndEarnImage from "../assets/refer&earn.png";
+// import freeDeliveryImage from "../assets/freedelivery.png";
 import dealsOfTheDayIcon from "../assets/dealsoftheday.png";
 import shopByBrandIcon from "../assets/shopbybrand.png";
 import "./Shop.css";
@@ -899,7 +899,7 @@ export default function Women() {
           </div>
         </section>
 
-        <section className="section hp-rewards-section" aria-label="Offers & rewards">
+        {/* <section className="section hp-rewards-section" aria-label="Offers & rewards">
           <div className="hp-rewards-grid">
             <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
               <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
@@ -914,7 +914,7 @@ export default function Women() {
               <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
             </button>
           </div>
-        </section>
+        </section> */}
 
         {/* ========== DEALS OF THE DAY (Home-style + timer) ========== */}
         {topDeals.length > 0 && (
