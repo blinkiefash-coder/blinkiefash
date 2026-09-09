@@ -1795,19 +1795,19 @@
   width: 100%;
   display: grid;
   gap: 14px;
+  overflow: visible;
+}
+
+.hp-shop-brands-row {
+  width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   scroll-behavior: smooth;
   scrollbar-width: none;
 }
 
-.hp-shop-brands-wrap::-webkit-scrollbar {
+.hp-shop-brands-row::-webkit-scrollbar {
   display: none;
-}
-
-.hp-shop-brands-row {
-  width: 100%;
-  overflow: hidden;
 }
 
 .hp-shop-brands-track {

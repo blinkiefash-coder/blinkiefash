@@ -356,10 +356,13 @@ export default function Home() {
 
   const scrollBrandsLeft = () => {
     if (brandsWrapRef.current) {
-      const currentScrollLeft = brandsWrapRef.current.scrollLeft;
-      brandsWrapRef.current.scrollTo({
-        left: Math.max(0, currentScrollLeft - 300),
-        behavior: 'smooth',
+      const rows = brandsWrapRef.current.querySelectorAll('.hp-shop-brands-row');
+      rows.forEach((row) => {
+        const currentScrollLeft = row.scrollLeft;
+        row.scrollTo({
+          left: Math.max(0, currentScrollLeft - 300),
+          behavior: 'smooth',
+        });
       });
       pauseBrandCarousel();
     }
@@ -367,11 +370,14 @@ export default function Home() {
 
   const scrollBrandsRight = () => {
     if (brandsWrapRef.current) {
-      const currentScrollLeft = brandsWrapRef.current.scrollLeft;
-      const maxScroll = brandsWrapRef.current.scrollWidth - brandsWrapRef.current.clientWidth;
-      brandsWrapRef.current.scrollTo({
-        left: Math.min(maxScroll, currentScrollLeft + 300),
-        behavior: 'smooth',
+      const rows = brandsWrapRef.current.querySelectorAll('.hp-shop-brands-row');
+      rows.forEach((row) => {
+        const currentScrollLeft = row.scrollLeft;
+        const maxScroll = row.scrollWidth - row.clientWidth;
+        row.scrollTo({
+          left: Math.min(maxScroll, currentScrollLeft + 300),
+          behavior: 'smooth',
+        });
       });
       pauseBrandCarousel();
     }
