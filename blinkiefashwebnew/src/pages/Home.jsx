@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   MdChevronRight,
   MdChevronLeft,
+  MdTune,
   MdLogin,
 } from 'react-icons/md';
 
@@ -11,6 +12,7 @@ import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
 import Navbar from '../components/Navbar';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
+import Filter from '../components/filter';
 import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
@@ -300,6 +302,7 @@ function SectionHead({
   onViewAll,
   iconClassName,
   trailing,
+  headerActions,
 }) {
   return (
     <div className="hp-shead">
@@ -327,10 +330,15 @@ function SectionHead({
         </div>
       </div>
 
-      {onViewAll ? (
-        <button type="button" className="hp-shead-action" onClick={onViewAll}>
-          {viewAllLabel} <MdChevronRight />
-        </button>
+      {onViewAll || headerActions ? (
+        <div className="hp-shead-actions">
+          {headerActions}
+          {onViewAll ? (
+            <button type="button" className="hp-shead-action" onClick={onViewAll}>
+              {viewAllLabel} <MdChevronRight />
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -373,6 +381,22 @@ export default function Home() {
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
+  const [dealFilterOpen, setDealFilterOpen] = useState(false);
+  const [dealActiveBrand, setDealActiveBrand] = useState([]);
+  const [dealActiveColor, setDealActiveColor] = useState([]);
+  const [dealActiveGender, setDealActiveGender] = useState([]);
+  const [dealMinDiscount, setDealMinDiscount] = useState(0);
+  const [dealInStockOnly, setDealInStockOnly] = useState(false);
+  const [dealMaxPrice, setDealMaxPrice] = useState(10000);
+  const [dealBrandSearch, setDealBrandSearch] = useState('');
+  const [appliedDealFilters, setAppliedDealFilters] = useState({
+    brand: [],
+    color: [],
+    gender: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
 
   const heroTrackRef = useRef(null);
   const heroRatiosRef = useRef(new Map());
@@ -918,6 +942,68 @@ export default function Home() {
     return items;
   }, [newProducts]);
 
+  const dealVisibleBrands = useMemo(() => {
+    const search = dealBrandSearch.trim().toLowerCase();
+    return (topBrands || []).filter((brand) => (brand?.name || '').toLowerCase().includes(search));
+  }, [topBrands, dealBrandSearch]);
+
+  const filteredTopDeals = useMemo(() => {
+    const filters = appliedDealFilters;
+    return topDeals.filter((product) => {
+      const brand = String(product?.brand || '').trim().toLowerCase();
+      const color = String(product?.color || '').trim().toLowerCase();
+      const gender = String(product?.gender || '').trim().toLowerCase();
+      const price = Number(product?.discount_price ?? product?.price ?? 0);
+      const discount = Number(product?._discount || product?.discount || 0);
+
+      if (filters.brand.length && !filters.brand.some((value) => String(value).toLowerCase() === brand)) return false;
+      if (filters.color.length && color && !filters.color.some((value) => String(value).toLowerCase() === color)) return false;
+      if (filters.gender.length && gender && !filters.gender.some((value) => String(value).toLowerCase() === gender)) return false;
+      if (filters.minDiscount > 0 && discount < filters.minDiscount) return false;
+      if (filters.inStockOnly && product?.in_stock === false) return false;
+      if (price > filters.maxPrice) return false;
+      return true;
+    });
+  }, [topDeals, appliedDealFilters]);
+
+  const dealActiveFilterCount =
+    appliedDealFilters.brand.length +
+    appliedDealFilters.color.length +
+    appliedDealFilters.gender.length +
+    (appliedDealFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedDealFilters.inStockOnly ? 1 : 0) +
+    (appliedDealFilters.maxPrice < 10000 ? 1 : 0);
+
+  const clearDealFilters = () => {
+    setDealActiveBrand([]);
+    setDealActiveColor([]);
+    setDealActiveGender([]);
+    setDealMinDiscount(0);
+    setDealInStockOnly(false);
+    setDealMaxPrice(10000);
+    setDealBrandSearch('');
+    setAppliedDealFilters({
+      brand: [],
+      color: [],
+      gender: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
+  };
+
+  const applyDealFilters = () => {
+    setAppliedDealFilters({
+      brand: dealActiveBrand,
+      color: dealActiveColor,
+      gender: dealActiveGender,
+      minDiscount: dealMinDiscount,
+      inStockOnly: dealInStockOnly,
+      maxPrice: dealMaxPrice,
+    });
+    setDealFilterOpen(false);
+  };
+
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     const normalizedGender = (userGender || '').toLowerCase().trim();
@@ -929,8 +1015,8 @@ export default function Home() {
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
       <PageSEO
-        title="Fashion Delivered in 60 Minutes — Cuttack & Bhubaneswar"
-        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door in 60 minutes across Odisha."
+        title="Fashion Delivered Fast — Cuttack & Bhubaneswar"
+        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door across Odisha."
         path="/"
       />
       {loading ? <Loader overlay /> : null}
@@ -1023,7 +1109,57 @@ export default function Home() {
                   <span className="hp-deals-timer-value">{dealsCountdown}</span>
                 </div>
               }
+              headerActions={
+                <button
+                  type="button"
+                  className={`catalog-filter-toggle ${dealFilterOpen || dealActiveFilterCount ? 'active' : ''}`}
+                  onClick={() => {
+                    if (!dealFilterOpen) {
+                      setDealActiveBrand(appliedDealFilters.brand);
+                      setDealActiveColor(appliedDealFilters.color);
+                      setDealActiveGender(appliedDealFilters.gender);
+                      setDealMinDiscount(appliedDealFilters.minDiscount);
+                      setDealInStockOnly(appliedDealFilters.inStockOnly);
+                      setDealMaxPrice(appliedDealFilters.maxPrice);
+                    }
+                    setDealFilterOpen((open) => !open);
+                  }}
+                >
+                  <MdTune /> Filter
+                  {dealActiveFilterCount > 0 ? (
+                    <span className="catalog-filter-count">{dealActiveFilterCount}</span>
+                  ) : null}
+                </button>
+              }
             />
+            {dealFilterOpen ? (
+              <Filter
+                prefix="catalog"
+                ariaLabel="Deals of the Day filters"
+                brands={topBrands}
+                visibleBrands={dealVisibleBrands}
+                availableGenders={['Men', 'Women', 'Kids', 'Unisex']}
+                activeBrand={dealActiveBrand}
+                setActiveBrand={setDealActiveBrand}
+                activeColor={dealActiveColor}
+                setActiveColor={setDealActiveColor}
+                activeGender={dealActiveGender}
+                setActiveGender={setDealActiveGender}
+                minDiscount={dealMinDiscount}
+                setMinDiscount={setDealMinDiscount}
+                inStockOnly={dealInStockOnly}
+                setInStockOnly={setDealInStockOnly}
+                maxPrice={dealMaxPrice}
+                setMaxPrice={setDealMaxPrice}
+                brandSearch={dealBrandSearch}
+                setBrandSearch={setDealBrandSearch}
+                activeFilterCount={dealActiveFilterCount}
+                clearAllFilters={clearDealFilters}
+                applyFilters={applyDealFilters}
+                onClose={() => setDealFilterOpen(false)}
+              />
+            ) : null}
+            <ProductRail items={filteredTopDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={40} />
           </section>
         )}

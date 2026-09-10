@@ -4,6 +4,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import PageSEO from "../components/PageSEO";
 import Navbar from "../components/Navbar";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import Filter from "../components/filter";
 
 import {
   MdGridView,
@@ -14,20 +15,6 @@ import {
 import { API_API_BASE_URL, API_BASE_URL } from "../apiBase";
 import { getCategoryImage } from "../utils/categoryImages";
 import "./Home.css";
-
-const COLORS = [
-  ["Pink", "#ec4899"],
-  ["Blue", "#2563eb"],
-  ["Black", "#111827"],
-  ["Green", "#22c55e"],
-  ["Purple", "#7c3aed"],
-  ["Red", "#ef4444"],
-  ["Yellow", "#facc15"],
-  ["White", "#ffffff"],
-  ["Grey", "#9ca3af"],
-];
-
-const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
 
 // Desired display order for top-level ("root") category chips.
 const CATEGORY_ORDER = [
@@ -84,17 +71,34 @@ export default function Shop() {
   const [childrenByParent, setChildrenByParent] = useState({});
   const [productMetaById, setProductMetaById] = useState({});
   const [activeCategoryId, setActiveCategoryId] = useState(null);
+
+  // ---- Filter panel state ----
+  // activeBrand/activeColor/etc. are the *draft* values the checkboxes and
+  // sliders in the panel are bound to as the person clicks around. They
+  // don't affect the product grid on their own — appliedFilters is what the
+  // grid actually filters by, and it's only updated when "Apply Filters" is
+  // pressed. This matches the "add an apply button" request for every
+  // filter surface: nothing filters the list until Apply is clicked.
   const [activeBrand, setActiveBrand] = useState([]);
   const [activeColor, setActiveColor] = useState([]);
   const [activeGender, setActiveGender] = useState([]);
   const [minDiscount, setMinDiscount] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
+  const [maxPrice, setMaxPrice] = useState(10000);
+  const [appliedFilters, setAppliedFilters] = useState({
+    brand: [],
+    color: [],
+    gender: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
+
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
-  const [maxPrice, setMaxPrice] = useState(10000);
   const [loading, setLoading] = useState(true);
 
   // Explicit user expand/collapse action on the category tree (replaces the
@@ -363,9 +367,9 @@ export default function Shop() {
     : null;
 
   const filteredProducts = products.filter((product) => {
-    if (activeBrand.length > 0) {
+    if (appliedFilters.brand.length > 0) {
       const productBrand = normalizeText(product.brand || product.brand_name);
-      if (!activeBrand.map(normalizeText).includes(productBrand)) {
+      if (!appliedFilters.brand.map(normalizeText).includes(productBrand)) {
         return false;
       }
     }
@@ -382,12 +386,12 @@ export default function Shop() {
       }
     }
 
-    if (activeColor.length > 0) {
+    if (appliedFilters.color.length > 0) {
       const productColor =
         typeof product.color === "string" ? product.color : "";
       if (
         productColor &&
-        !activeColor
+        !appliedFilters.color
           .map(normalizeText)
           .includes(productColor.trim().toLowerCase())
       ) {
@@ -395,17 +399,17 @@ export default function Shop() {
       }
     }
 
-    if (activeGender.length > 0) {
+    if (appliedFilters.gender.length > 0) {
       const productGender = normalizeText(resolveProductGender(product));
       if (
         !productGender ||
-        !activeGender.map(normalizeText).includes(productGender)
+        !appliedFilters.gender.map(normalizeText).includes(productGender)
       ) {
         return false;
       }
     }
 
-    if (minDiscount > 0) {
+    if (appliedFilters.minDiscount > 0) {
       const basePrice = Number(product.price || 0);
       const discountedPrice =
         Number(product.discount_price) > 0
@@ -415,12 +419,12 @@ export default function Shop() {
         basePrice > 0 && discountedPrice < basePrice
           ? Math.round(((basePrice - discountedPrice) / basePrice) * 100)
           : 0;
-      if (offPercent < minDiscount) {
+      if (offPercent < appliedFilters.minDiscount) {
         return false;
       }
     }
 
-    if (inStockOnly) {
+    if (appliedFilters.inStockOnly) {
       const meta = productMetaById[product.id];
       if (meta && meta.inStock === false) {
         return false;
@@ -452,7 +456,7 @@ export default function Shop() {
       Number(product.discount_price) > 0
         ? Number(product.discount_price)
         : Number(product.price || 0);
-    if (finalPrice > maxPrice) {
+    if (finalPrice > appliedFilters.maxPrice) {
       return false;
     }
 
@@ -553,41 +557,28 @@ export default function Shop() {
     navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
   };
 
-  const toggleBrandFilter = (name) => {
-    setActiveBrand((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name)
-        : [...prev, name]
-    );
-  };
-
-  const toggleColorFilter = (name) => {
-    setActiveColor((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name)
-        : [...prev, name]
-    );
-  };
-
-  const toggleGenderFilter = (name) => {
-    setActiveGender((prev) =>
-      prev.includes(name)
-        ? prev.filter((item) => item !== name)
-        : [...prev, name]
-    );
-  };
-
-  const selectMinDiscount = (value) => {
-    setMinDiscount((prev) => (prev === value ? 0 : value));
-  };
-
+  // Reflects what's actually filtering the grid right now (appliedFilters),
+  // not whatever's mid-edit in the still-open panel.
   const activeFilterCount =
-    activeBrand.length +
-    activeColor.length +
-    activeGender.length +
-    (minDiscount > 0 ? 1 : 0) +
-    (inStockOnly ? 1 : 0) +
-    (maxPrice < 10000 ? 1 : 0);
+    appliedFilters.brand.length +
+    appliedFilters.color.length +
+    appliedFilters.gender.length +
+    (appliedFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedFilters.inStockOnly ? 1 : 0) +
+    (appliedFilters.maxPrice < 10000 ? 1 : 0);
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      brand: activeBrand,
+      color: activeColor,
+      gender: activeGender,
+      minDiscount,
+      inStockOnly,
+      maxPrice,
+    });
+    setVisibleCount(24);
+    setShowFilters(false);
+  };
 
   const clearAllFilters = () => {
     setActiveBrand([]);
@@ -597,6 +588,14 @@ export default function Shop() {
     setInStockOnly(false);
     setMaxPrice(10000);
     setBrandSearch("");
+    setAppliedFilters({
+      brand: [],
+      color: [],
+      gender: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
   };
 
   // --- Inline category tree handlers (replaces the old side drawer) ---
@@ -638,7 +637,7 @@ export default function Shop() {
     <div className="catalog-page">
       <PageSEO
         title="Shop Fashion Online — Clothing, Footwear & More"
-        description="Browse thousands of products across Men, Women, Kids, Electronics & Footwear. Filter by brand, price and colour. Express 60-minute delivery in Odisha."
+        description="Browse thousands of products across Men, Women, Kids, Electronics & Footwear. Filter by brand, price and colour. Fast delivery across Odisha."
         path="/shop"
       />
 
@@ -669,7 +668,19 @@ export default function Shop() {
             <button
               type="button"
               className={`catalog-filter-toggle ${showFilters ? "active" : ""}`}
-              onClick={() => setShowFilters((prev) => !prev)}
+              onClick={() => {
+                // Reopening should reflect what's actually applied, not
+                // whatever was left half-edited the last time it was closed.
+                if (!showFilters) {
+                  setActiveBrand(appliedFilters.brand);
+                  setActiveColor(appliedFilters.color);
+                  setActiveGender(appliedFilters.gender);
+                  setMinDiscount(appliedFilters.minDiscount);
+                  setInStockOnly(appliedFilters.inStockOnly);
+                  setMaxPrice(appliedFilters.maxPrice);
+                }
+                setShowFilters((prev) => !prev);
+              }}
             >
               <MdTune /> Filter
               {activeFilterCount > 0 ? (
@@ -792,137 +803,31 @@ export default function Shop() {
         </div>
 
         {showFilters ? (
-          <section className="catalog-filters-panel">
-            <div className="catalog-filters-panel-header">
-              <h3>Filters</h3>
-              {activeFilterCount > 0 ? (
-                <button
-                  type="button"
-                  className="catalog-filters-clear"
-                  onClick={clearAllFilters}
-                >
-                  Clear All
-                </button>
-              ) : null}
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>
-                Brand
-                {brands.length > 0 ? (
-                  <span className="catalog-filter-col-count"> ({brands.length})</span>
-                ) : null}
-              </h4>
-              <input
-                className="catalog-filter-search"
-                value={brandSearch}
-                onChange={(e) => setBrandSearch(e.target.value)}
-                placeholder="Search brand"
-              />
-              <div className="catalog-filter-list catalog-filter-list-brands">
-                {visibleBrands.map((brand) => (
-                  <label key={brand.id}>
-                    <input
-                      type="checkbox"
-                      checked={activeBrand.includes(brand.name)}
-                      onChange={() => toggleBrandFilter(brand.name)}
-                    />
-                    <span>{brand.name}</span>
-                  </label>
-                ))}
-                {visibleBrands.length === 0 ? (
-                  <p className="catalog-filter-empty">No brands match "{brandSearch}"</p>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>Color</h4>
-              <div className="catalog-filter-list catalog-filter-swatches">
-                {COLORS.map(([name, hex]) => {
-                  const checked =
-                    activeColor.includes(name.toLowerCase()) ||
-                    activeColor.includes(name);
-                  return (
-                    <label
-                      key={name}
-                      className={`catalog-swatch-label ${checked ? "checked" : ""}`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleColorFilter(name)}
-                      />
-                      <span
-                        className="catalog-swatch-dot"
-                        style={{ background: hex }}
-                      />
-                      <span>{name}</span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>Price</h4>
-              <input
-                type="range"
-                min="500"
-                max="12000"
-                step="100"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(Number(e.target.value))}
-              />
-              <p>Up to Rs. {maxPrice.toLocaleString("en-IN")}</p>
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>Gender</h4>
-              <div className="catalog-filter-list">
-                {availableGenders.map((name) => (
-                  <label key={name}>
-                    <input
-                      type="checkbox"
-                      checked={activeGender.includes(name)}
-                      onChange={() => toggleGenderFilter(name)}
-                    />
-                    <span>{name}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>Discount Range</h4>
-              <div className="catalog-filter-chips">
-                {DISCOUNT_BUCKETS.map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    className={`catalog-filter-chip ${minDiscount === value ? "active" : ""}`}
-                    onClick={() => selectMinDiscount(value)}
-                  >
-                    {value}% and above
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="catalog-filter-col">
-              <h4>Availability</h4>
-              <div className="catalog-filter-list">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={inStockOnly}
-                    onChange={(e) => setInStockOnly(e.target.checked)}
-                  />
-                  <span>In stock only</span>
-                </label>
-              </div>
-            </div>
-          </section>
+          <Filter
+            prefix="catalog"
+            ariaLabel="Shop filters"
+            brands={brands}
+            visibleBrands={visibleBrands}
+            availableGenders={availableGenders}
+            activeBrand={activeBrand}
+            setActiveBrand={setActiveBrand}
+            activeColor={activeColor}
+            setActiveColor={setActiveColor}
+            activeGender={activeGender}
+            setActiveGender={setActiveGender}
+            minDiscount={minDiscount}
+            setMinDiscount={setMinDiscount}
+            inStockOnly={inStockOnly}
+            setInStockOnly={setInStockOnly}
+            maxPrice={maxPrice}
+            setMaxPrice={setMaxPrice}
+            brandSearch={brandSearch}
+            setBrandSearch={setBrandSearch}
+            activeFilterCount={activeFilterCount}
+            clearAllFilters={clearAllFilters}
+            applyFilters={applyFilters}
+            onClose={() => setShowFilters(false)}
+          />
         ) : null}
 
         <div className="catalog-products-scroll">

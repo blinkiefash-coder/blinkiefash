@@ -8,7 +8,7 @@ import { API_BASE_URL } from "../apiBase";
 const steps = [
   { icon: "📍", title: "Find Nearby Stores", desc: "We show you fashion stores within your delivery zone in Cuttack & Bhubaneswar." },
   { icon: "🛍️", title: "Browse & Order", desc: "Pick your favorite outfits, sizes, and colors — order directly through the app." },
-  { icon: "⏱️", title: "60-Min Delivery", desc: "Our delivery partner picks up from the store and brings it to your door in 60 minutes." },
+  { icon: "⏱️", title: "Fast Delivery", desc: "Our delivery partner picks up from the store and brings it to your door." },
   { icon: "👗", title: "Try Before You Pay", desc: "Try at home. Pay only for what you keep. Return the rest — no questions asked." },
 ];
 
@@ -50,11 +50,11 @@ export default function Stores() {
           <div>
             <span className="lp-kicker">🏪 {stores.length}+ Partner Stores</span>
             <h1>Shop From Your<br /><span className="lp-green">Nearest Fashion Store</span></h1>
-            <p style={{fontSize:16,color:"#3d5042",lineHeight:1.7,margin:"14px 0 22px"}}>Browse top fashion stores nearby. Order through the app and get delivery in 60 minutes — or try before you buy.</p>
+            <p style={{fontSize:16,color:"#3d5042",lineHeight:1.7,margin:"14px 0 22px"}}>Browse top fashion stores nearby. Order through the app and get fast delivery — or try before you buy.</p>
             <button className="lp-pc-btn" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app","_blank","noopener,noreferrer")}>Browse on App →</button>
           </div>
           <div className="au-stat-grid">
-            {[[stores.length+"","Partner Stores"],["2","Cities"],["60 Min","Delivery"],["4.8★","Rating"]].map(([v,l]) => (
+            {[[stores.length+"","Partner Stores"],["2","Cities"],["Fast","Delivery"],["4.8★","Rating"]].map(([v,l]) => (
               <div key={l} className="au-stat"><span className="au-stat-val">{v}</span><span className="au-stat-lbl">{l}</span></div>
             ))}
           </div>

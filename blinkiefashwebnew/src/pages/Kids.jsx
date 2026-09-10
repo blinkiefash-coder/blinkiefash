@@ -19,6 +19,7 @@ import {
   MdSupportAgent,
   MdGridView,
   MdFilterList,
+  MdClose,
 } from "react-icons/md";
 
 import Footer from "../components/Footer";
@@ -26,6 +27,7 @@ import Loader from "../components/Loader";
 import Navbar from "../components/Navbar";
 import PageSEO from "../components/PageSEO";
 import ProductCard from "../components/ProductCard";
+import Filter from "../components/filter";
 import { getProducts, getCategories, getBrands } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
@@ -188,6 +190,13 @@ export default function Kids() {
   const [inStockOnly, setInStockOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState(10000);
   const [brandSearch, setBrandSearch] = useState("");
+  const [appliedFilters, setAppliedFilters] = useState({
+    brand: [],
+    color: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
 
@@ -204,11 +213,11 @@ export default function Kids() {
   };
 
   const activeFilterCount =
-    activeBrand.length +
-    activeColor.length +
-    (minDiscount > 0 ? 1 : 0) +
-    (inStockOnly ? 1 : 0) +
-    (maxPrice < 10000 ? 1 : 0);
+    appliedFilters.brand.length +
+    appliedFilters.color.length +
+    (appliedFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedFilters.inStockOnly ? 1 : 0) +
+    (appliedFilters.maxPrice < 10000 ? 1 : 0);
 
   const clearAllFilters = () => {
     setActiveBrand([]);
@@ -217,6 +226,24 @@ export default function Kids() {
     setInStockOnly(false);
     setMaxPrice(10000);
     setBrandSearch("");
+    setAppliedFilters({
+      brand: [],
+      color: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
+  };
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      brand: activeBrand,
+      color: activeColor,
+      minDiscount,
+      inStockOnly,
+      maxPrice,
+    });
+    setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
@@ -224,21 +251,21 @@ export default function Kids() {
   const applyProductFilters = useCallback(
     (list) =>
       (list || []).filter((p) => {
-        if (activeBrand.length > 0) {
+        if (appliedFilters.brand.length > 0) {
           const b = normalizeText(p.brand);
-          if (!activeBrand.map(normalizeText).includes(b)) return false;
+          if (!appliedFilters.brand.map(normalizeText).includes(b)) return false;
         }
-        if (activeColor.length > 0) {
+        if (appliedFilters.color.length > 0) {
           const c = normalizeText(p.color);
-          if (c && !activeColor.map(normalizeText).includes(c)) return false;
+          if (c && !appliedFilters.color.map(normalizeText).includes(c)) return false;
         }
-        if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
-        if (inStockOnly && p.in_stock === false) return false;
+        if (appliedFilters.minDiscount > 0 && (p.discount || 0) < appliedFilters.minDiscount) return false;
+        if (appliedFilters.inStockOnly && p.in_stock === false) return false;
         const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
-        if (finalPrice > maxPrice) return false;
+        if (finalPrice > appliedFilters.maxPrice) return false;
         return true;
       }),
-    [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+    [appliedFilters]
   );
   // ---------------------------------------------------------------------------
 
@@ -465,7 +492,7 @@ export default function Kids() {
     <div className="catalog-page kids-page">
       <PageSEO
         title="Kids Fashion, Toys & Essentials"
-        description="Shop kids clothing, toys, footwear and everyday essentials at Blinkiefash — delivered in 60 minutes across Odisha."
+        description="Shop kids clothing, toys, footwear and everyday essentials at Blinkiefash — delivered fast across Odisha."
         path="/kids"
       />
       {productsLoading ? (
@@ -493,7 +520,7 @@ export default function Kids() {
             <img
               className="kids-hero-banner-img"
               src={kidsHeroBanner}
-              alt="Little Dreams, Delivered in a Blink! Cool styles, fun toys and everyday essentials — all in 60 minutes."
+              alt="Little Dreams, Delivered in a Blink! Cool styles, fun toys and everyday essentials."
             />
             <div className="kids-hero-copy kids-hero-copy--sr">
               <p className="kids-hero-kicker">Little Dreams</p>
@@ -501,7 +528,7 @@ export default function Kids() {
                 Delivered in a <em>Blink!</em>
               </h1>
               <p className="kids-hero-sub">
-                Cool styles, fun toys &amp; everyday essentials — all in 60 minutes.
+                Cool styles, fun toys &amp; everyday essentials.
               </p>
             </div>
           </div>
@@ -669,7 +696,16 @@ export default function Kids() {
               <button
                 type="button"
                 className={`kids-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
-                onClick={() => setFilterOpen((o) => !o)}
+                onClick={() => {
+                  if (!filterOpen) {
+                    setActiveBrand(appliedFilters.brand);
+                    setActiveColor(appliedFilters.color);
+                    setMinDiscount(appliedFilters.minDiscount);
+                    setInStockOnly(appliedFilters.inStockOnly);
+                    setMaxPrice(appliedFilters.maxPrice);
+                  }
+                  setFilterOpen((o) => !o);
+                }}
               >
                 <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
               </button>
@@ -677,14 +713,53 @@ export default function Kids() {
           </div>
 
           {filterOpen ? (
+            <Filter
+              prefix="kids"
+              ariaLabel="Kids filters"
+              brands={brands}
+              visibleBrands={visibleBrands}
+              activeBrand={activeBrand}
+              setActiveBrand={setActiveBrand}
+              activeColor={activeColor}
+              setActiveColor={setActiveColor}
+              minDiscount={minDiscount}
+              setMinDiscount={setMinDiscount}
+              inStockOnly={inStockOnly}
+              setInStockOnly={setInStockOnly}
+              maxPrice={maxPrice}
+              setMaxPrice={setMaxPrice}
+              brandSearch={brandSearch}
+              setBrandSearch={setBrandSearch}
+              activeFilterCount={activeFilterCount}
+              clearAllFilters={clearAllFilters}
+              applyFilters={applyFilters}
+              onClose={() => setFilterOpen(false)}
+              colors={COLORS}
+              discountBuckets={DISCOUNT_BUCKETS}
+              minPrice={200}
+              maxPriceLimit={8000}
+            />
+          ) : null}
+
+          {filterOpen && filterOpen !== filterOpen ? (
             <section className="kids-filters-panel" role="dialog" aria-label="Kids filters">
               <div className="kids-filters-panel-header">
                 <h3>Filters</h3>
-                {activeFilterCount > 0 ? (
-                  <button type="button" className="kids-filters-clear" onClick={clearAllFilters}>
-                    Clear All
+                <div className="kids-filters-panel-actions">
+                  {activeFilterCount > 0 ? (
+                    <button type="button" className="kids-filters-clear" onClick={clearAllFilters}>
+                      Clear All
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="kids-filters-close"
+                    aria-label="Close filters"
+                    onClick={() => setFilterOpen(false)}
+                  >
+                    <MdClose />
                   </button>
-                ) : null}
+                </div>
               </div>
 
               <div className="kids-filter-col">
@@ -766,6 +841,12 @@ export default function Kids() {
                     <span>In stock only</span>
                   </label>
                 </div>
+              </div>
+
+              <div className="kids-filters-footer">
+                <button type="button" className="kids-filters-apply" onClick={applyFilters}>
+                  Apply Filters
+                </button>
               </div>
             </section>
           ) : null}
@@ -856,7 +937,7 @@ export default function Kids() {
           <div>
             <MdBolt />
             <div>
-              <strong>60 MINUTES</strong>
+              <strong>FAST</strong>
               <span>Delivery</span>
             </div>
           </div>

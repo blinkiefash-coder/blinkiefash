@@ -14,7 +14,7 @@ const perks = [
 ];
 
 const roles = [
-  { title: "Delivery Partner", dept: "Operations", type: "Part-time / Full-time", city: "Cuttack, Bhubaneswar", desc: "Deliver fashion to customers within 60 minutes. Must have 2-wheeler. Flexible hours, weekly payouts." },
+  { title: "Delivery Partner", dept: "Operations", type: "Part-time / Full-time", city: "Cuttack, Bhubaneswar", desc: "Deliver fashion to customers quickly. Must have 2-wheeler. Flexible hours, weekly payouts." },
   { title: "Customer Support Executive", dept: "Support", type: "Full-time", city: "Bhubaneswar", desc: "Help customers with orders, returns, and queries. Excellent communication skills required." },
   { title: "Store Relationship Manager", dept: "Partnerships", type: "Full-time", city: "Cuttack, Bhubaneswar", desc: "Onboard and manage fashion store partners. Sales background preferred." },
   { title: "React Developer", dept: "Engineering", type: "Full-time", city: "Remote / Bhubaneswar", desc: "Build and improve the BlinkieFash web and mobile experience. React & Node.js required." },

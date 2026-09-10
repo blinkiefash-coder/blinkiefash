@@ -15,7 +15,7 @@ export default function AppHeader({ showSearch = true }) {
     <header className="app-header">
       <div className="ah-location" onClick={() => navigate('/account')} role="button" tabIndex={0}>
         <div>
-          <p className="ah-location-label">Deliver in 60 mins to</p>
+          <p className="ah-location-label">Deliver to</p>
           <p className="ah-location-city">{city}</p>
         </div>
         <span className="ah-pill">DISTANCE-BASED DELIVERY</span>

@@ -265,7 +265,7 @@ function calculateDeliveryInfo(distanceKm, city) {
   if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'local';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
-    result.deliveryPromise = 'Delivery within 60 minutes';
+    result.deliveryPromise = 'Delivery today';
     result.etaMinutes = 60;
     result.etaMinMinutes = 60;
     result.etaMaxMinutes = 60;

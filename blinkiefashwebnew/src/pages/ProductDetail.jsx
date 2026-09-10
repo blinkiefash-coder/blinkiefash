@@ -6,7 +6,6 @@ import {
   MdAutorenew,
   MdBolt,
   MdCheck,
-  MdCheckroom,
   MdChevronLeft,
   MdChevronRight,
   MdEdit,
@@ -27,7 +26,7 @@ import { FaFacebookF, FaLink, FaRegEnvelope, FaTwitter, FaWhatsapp } from 'react
 import Loader from '../components/Loader';
 import PageSEO from '../components/PageSEO';
 import Navbar from '../components/Navbar';
-import { getAddresses, getProductById, getProducts } from '../api';
+import { getAddresses, getDeliveryFee, getProductById, getProducts } from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
@@ -39,8 +38,8 @@ const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 const DESC_COLLAPSED_H = 132;
 
 const FEATURES = [
-  { icon: MdBolt, title: '60 MIN', sub: 'Express Delivery' },
-  { icon: MdCheckroom, title: 'TRY & BUY', sub: '15 mins' },
+  // { icon: MdBolt, title: 'FAST', sub: 'Express Delivery' },
+  // { icon: MdCheckroom, title: 'TRY & BUY', sub: '15 mins' },
   { icon: MdVerified, title: 'ORIGINAL', sub: 'Genuine Products' },
   { icon: MdLock, title: 'SECURE', sub: 'Safe Payment' },
 ];
@@ -113,6 +112,9 @@ export default function ProductDetail() {
   const [locationSheetOpen, setLocationSheetOpen] = useState(false);
   const [addressLoading, setAddressLoading] = useState(false);
   const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [deliveryQuote, setDeliveryQuote] = useState(null);
+  const [deliveryQuoteLoading, setDeliveryQuoteLoading] = useState(false);
   const [locationError, setLocationError] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
@@ -161,6 +163,72 @@ export default function ProductDetail() {
       cancelled = true;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) {
+      setSavedAddresses([]);
+      setSelectedAddressId(null);
+      setDeliveryQuote(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    getAddresses(user.id)
+      .then((res) => {
+        if (cancelled) return;
+        const addresses = Array.isArray(res?.addresses) ? res.addresses : [];
+        setSavedAddresses(addresses);
+        setSelectedAddressId((current) => current || addresses[0]?.id || null);
+        if (addresses[0]?.city) {
+          setCity(addresses[0].city);
+          localStorage.setItem('bfw_city', addresses[0].city);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSavedAddresses([]);
+          setSelectedAddressId(null);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoggedIn, user]);
+
+  useEffect(() => {
+    if (!selectedAddressId || !data?.product) {
+      setDeliveryQuote(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    const subtotal = pickPrice(
+      selectedVariant?.discount_price,
+      selectedVariant?.price,
+      data.product.discount_price,
+      data.product.price
+    );
+    setDeliveryQuoteLoading(true);
+    getDeliveryFee({
+      addressId: selectedAddressId,
+      subtotal,
+      variantIds: selectedVariant?.id ? [selectedVariant.id] : [],
+    })
+      .then((quote) => {
+        if (!cancelled) setDeliveryQuote(quote);
+      })
+      .catch(() => {
+        if (!cancelled) setDeliveryQuote(null);
+      })
+      .finally(() => {
+        if (!cancelled) setDeliveryQuoteLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [data, selectedAddressId, selectedVariant]);
 
   useEffect(() => {
     let cancelled = false;
@@ -507,6 +575,7 @@ export default function ProductDetail() {
   const selectSavedAddress = (addr) => {
     const resolved = (addr?.city || addr?.address_line || '').toString().trim();
     if (!resolved) return;
+    setSelectedAddressId(addr.id);
     setCity(resolved);
     localStorage.setItem('bfw_city', resolved);
     setLocationSheetOpen(false);
@@ -581,7 +650,7 @@ export default function ProductDetail() {
         description={`Buy ${product.name}${product.brand ? ` by ${product.brand}` : ''} online. ${
           product.description
             ? product.description.slice(0, 120)
-            : 'Fast 60-minute delivery in Odisha. 100% authentic products.'
+             : ''
         }`}
         path={`/product/${product.id}`}
         image={gallery[0]?.url || undefined}
@@ -692,7 +761,7 @@ export default function ProductDetail() {
           <div className="pp-info-col">
             <div className="pp-badge-row" style={{ alignItems: 'center' }}>
               <span className="pp-chip">
-                <MdBolt size={13} /> 60 MIN DELIVERY
+                {/* <MdBolt size={13} /> EXPRESS DELIVERY */}
               </span>
               {product.is_try_and_buy && (
                 <span className="pp-chip pp-chip-outline">
@@ -864,8 +933,12 @@ export default function ProductDetail() {
                   <MdBolt size={16} />
                 </span>
                 <div>
-                  <strong>60-Minute Express Delivery</strong>
-                  <span>Get it by end of day</span>
+                  <strong>Estimated delivery</strong>
+                  <span>
+                    {deliveryQuoteLoading
+                      ? 'Calculating for your address...'
+                      : deliveryQuote?.deliveryPromise || 'Select an address for an estimate'}
+                  </span>
                 </div>
               </div>
 
