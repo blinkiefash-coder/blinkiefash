@@ -420,7 +420,7 @@ export default function Checkout() {
     <div className="ckt-page">
       <PageSEO
         title="Checkout"
-        description="Complete your order for fast 60-minute fashion delivery across Odisha."
+        description="Complete your order for fast fashion delivery across Odisha."
         path="/checkout"
         noIndex
       />
@@ -566,7 +566,7 @@ export default function Checkout() {
               <input type="radio" checked readOnly />
               <span>
                 <strong>{deliveryQuote?.deliveryPromise || 'Select an address for your delivery promise'}</strong>
-                <small>Up to 15 km: 60 minutes. Up to 45 km: 1 day. Beyond 45 km: 1-3 days.</small>
+                <small>Up to 15 km: same day. Up to 45 km: 1 day. Beyond 45 km: 1-3 days.</small>
               </span>
             </label>
           </section>

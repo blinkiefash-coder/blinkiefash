@@ -6,7 +6,7 @@ import PartnerModal from "../components/PartnerModal";
 import LpNav from "../components/LpNav";
 
 const whyItems = [
-  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "60 Min Delivery", sub: "Lightning fast delivery to your doorstep" },
+  { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>, title: "Fast Delivery", sub: "Lightning fast delivery to your doorstep" },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><path d="M12 2L3.5 6v5c0 5.25 3.75 10.15 8.5 11 4.75-.85 8.5-5.75 8.5-11V6L12 2z"/><polyline points="9 12 11 14 15 10"/></svg>, title: "Try Before You Buy", sub: "At home, pay only for what you keep" },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>, title: "Nearby Fashion Stores", sub: "Shop from trusted local fashion stores" },
   { icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" width="26" height="26"><circle cx="12" cy="12" r="10"/><line x1="14.5" y1="9.5" x2="9.5" y2="14.5"/><circle cx="9.5" cy="9.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="14.5" cy="14.5" r="0.8" fill="currentColor" stroke="none"/></svg>, title: "Exclusive Discounts", sub: "Best prices & exciting offers every day" },
@@ -16,7 +16,7 @@ const whyItems = [
 
 const faqs = [
   { q: "What is Try Before You Buy?", a: "Try on clothes at home before paying. You only pay for what you keep — return the rest for free within the same delivery window, no questions asked." },
-  { q: "How does 60-minute delivery work?", a: "We partner with nearby fashion stores in your city. Once you place an order, our delivery partner picks it up from the store and delivers it to your door in under 60 minutes." },
+  { q: "How does delivery work?", a: "We partner with nearby fashion stores in your city. Once you place an order, our delivery partner picks it up from the store and brings it to your door." },
   { q: "Can I return products?", a: "Yes! With Try Before You Buy, return items during the same delivery. For regular orders, easy returns are available through the app within 7 days of delivery." },
   { q: "Which cities do you deliver in?", a: "We currently deliver in Cuttack and Bhubaneswar. We're expanding soon to Berhampur, Rourkela, Sambalpur, Puri, Balasore and more cities across Odisha." },
   { q: "Is Cash on Delivery available?", a: "Yes! We support Cash on Delivery along with UPI, debit/credit cards, and net banking for your convenience." },
@@ -35,10 +35,10 @@ export default function Company() {
           {/* Left */}
           <div className="lp-hero-left">
             <span className="lp-kicker">⚡ INDIA'S FASTEST FASHION DELIVERY</span>
-            <h1>Fashion Delivered in<br /><span className="lp-green">60 Minutes</span></h1>
+            <h1>Fashion Delivered<br /><span className="lp-green">Fast</span></h1>
             <p className="lp-hero-sub">
               Shop from nearby fashion stores, <strong>Try Before You Buy</strong>,
-              and get your favorite outfits delivered in just <strong className="lp-green">60 minutes.</strong>
+              and get your favorite outfits delivered quickly.
             </p>
             <div className="lp-cta-row">
               <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
@@ -246,7 +246,7 @@ export default function Company() {
           <div className="lp-dl-copy">
             <span className="lp-dl-badge">⚡ India’s Fastest Fashion Delivery</span>
             <h2>Download the <span style={{color:'#86efac'}}>BlinkieFash</span> App</h2>
-            <p>Shop from nearby stores, try before you buy, and get fashion delivered to your door in just 60 minutes.</p>
+            <p>Shop from nearby stores, try before you buy, and get fashion delivered to your door quickly.</p>
             <div className="lp-dl-btns">
               <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app&pcampaignid=web_share", "_blank", "noopener,noreferrer")}>
                 <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18"><path d="M3.18 23.76a2.48 2.48 0 0 0 2.63-.17l12.4-7.29-2.73-2.73zM.5 1.26C.19 1.6 0 2.12 0 2.82v18.37c0 .69.19 1.21.51 1.55l.08.08 10.3-10.29v-.24zM20.1 9.85l-2.85-1.67-3.06 3.06 3.07 3.06 2.85-1.67c.81-.48.81-1.26 0-1.74zm-19.1 12.5 11.74-6.9-2.73-2.73z"/></svg>
@@ -261,7 +261,7 @@ export default function Company() {
               </button>
             </div>
             <div className="lp-dl-chips">
-              <span>⏱ 60 Min Delivery</span>
+              <span>⏱ Fast Delivery</span>
               <span>👗 Try Before You Buy</span>
               <span>📍 Live Tracking</span>
               <span>🔄 Easy Returns</span>

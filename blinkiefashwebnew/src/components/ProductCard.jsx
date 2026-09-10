@@ -73,6 +73,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
   const [isAddingToCart, setIsAddingToCart] = useState(false);
   const [isUpdatingQty, setIsUpdatingQty] = useState(false);
   const [isQuickOpen, setIsQuickOpen] = useState(false);
+  // Overrides the CSS `:hover` auto-open rule for the quick-size
+  // drawer. Without this, clicking the × close button does nothing
+  // visible: the mouse is still over .pc-card when it's clicked, so
+  // `.pc-card:hover .pc-quick-drawer.has-variants` immediately
+  // reopens the drawer the instant `is-open` is removed. This flag
+  // outranks that hover rule until the mouse actually leaves the
+  // card, at which point it resets so hovering back in works again.
+  const [isQuickForceClosed, setIsQuickForceClosed] = useState(false);
   const [isLoadingVariants, setIsLoadingVariants] = useState(false);
   const [variants, setVariants] = useState(() =>
     Array.isArray(product.variants) ? product.variants : []
@@ -106,14 +114,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
   const isBestseller = product.is_bestseller === true;
   const showNewBadge = isNew || product.isNew === true || product.is_new === true;
 
-  // Priority: NEW > BESTSELLER > % OFF > + 60 MIN
+  // Priority: NEW > BESTSELLER > % OFF > DELIVERY
   const badgeType = showNewBadge
     ? "NEW"
     : isBestseller
     ? "BESTSELLER"
     : hasDiscount
     ? `${offPercent}% OFF`
-    : "+ 60 MIN";
+    : "DELIVERY";
 
   const badgeVariant = showNewBadge
     ? "new"
@@ -137,6 +145,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     event.stopPropagation();
     event.preventDefault();
     setIsQuickOpen(false);
+    setIsQuickForceClosed(true);
   };
 
   const handleQuickToggle = async (event) => {
@@ -149,6 +158,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     }
 
     setIsQuickOpen(true);
+    // A manual (re)open should always win over a previous force-close.
+    setIsQuickForceClosed(false);
 
     if (variants.length || isLoadingVariants || !product.id) return;
 
@@ -337,6 +348,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     <article
       className={`pc-card${outOfStock ? " is-out-of-stock" : ""}`}
       onClick={() => navigate(`/product/${product.id}`)}
+      onMouseLeave={() => setIsQuickForceClosed(false)}
     >
       <span className="pc-sr-only" aria-live="polite">
         {announcement}
@@ -429,12 +441,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
         )}
 
         <div
-          className={`pc-quick-drawer${isQuickOpen ? " is-open" : ""}${variants.length ? " has-variants" : ""}`}
+          className={`pc-quick-drawer${isQuickOpen ? " is-open" : ""}${
+            variants.length ? " has-variants" : ""
+          }${isQuickForceClosed ? " is-force-closed" : ""}`}
         >
           <div className="pc-quick-heading">
             <span>Quick size</span>
             <button
               type="button"
+              onPointerDown={handleCloseQuick}
               onClick={handleCloseQuick}
               aria-label="Close quick size picker"
             >

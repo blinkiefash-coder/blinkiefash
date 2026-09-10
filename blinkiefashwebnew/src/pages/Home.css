@@ -4349,6 +4349,14 @@ html, body, #root {
   display: none;
 }
 
+.hp-shead-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  flex: none;
+}
+
 /* View All on the far right (same as every other heading) */
 .hp-shead-action {
   flex: none;

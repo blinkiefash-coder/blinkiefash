@@ -259,7 +259,7 @@ export default function AccountPage() {
           <div className="acct-logo">
             <img src={logo} alt="BlinkieFash" className="acct-logo-img" />
             <div className="acct-logo-text-wrap">
-              <span className="acct-logo-sub">DELIVERED IN 60 MIN</span>
+              <span className="acct-logo-sub">FAST FASHION DELIVERY</span>
             </div>
           </div>
 
@@ -347,7 +347,7 @@ export default function AccountPage() {
           <div className="acct-trust-item">
             <IconClock />
             <div>
-              <span>60 Min Delivery</span>
+              <span>Fast Delivery</span>
               <small>Lightning fast delivery</small>
             </div>
           </div>

@@ -376,6 +376,19 @@
   pointer-events: auto;
 }
 
+/* Explicit close (the × button) must win over the hover-driven
+   auto-open above, even while the cursor is still resting on the
+   card (it usually is — the × lives inside .pc-card). Kept as a
+   separate, later rule with !important so specificity/ordering
+   tricks in the hover rule above can't quietly win back. Cleared
+   automatically on mouseleave via React state, so hovering the
+   card again afterwards still opens it normally. */
+.pc-quick-drawer.is-force-closed {
+  transform: translateY(calc(100% + 16px)) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 .pc-quick-heading {
   display: flex;
   align-items: center;

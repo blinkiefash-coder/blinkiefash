@@ -27,6 +27,7 @@ import {
   MdInventory2,
   MdTwoWheeler,
   MdFilterList,
+  MdClose,
 } from "react-icons/md";
 
 // changes 
@@ -36,12 +37,14 @@ import Footer from "../components/Footer";
 import Loader from "../components/Loader";
 import PageSEO from "../components/PageSEO";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import Filter from "../components/filter";
 import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
 import menBanner2 from "../assets/men-banner-2.png";
 import menBanner3 from "../assets/men-banner-3.png";
+import traditionalBanner from "../assets/traditional.jpeg";
 // import playAndWinImage from "../assets/play&win.png";
 // import spinAndWinImage from "../assets/spin&win.png";
 // import referAndEarnImage from "../assets/refer&earn.png";
@@ -187,7 +190,7 @@ const MEN_CATEGORY_FALLBACK = [
 ];
 
 const TOP_STRIP_ITEMS = [
-  { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
+  { icon: MdTwoWheeler, label: "Fast Delivery" },
   { icon: MdShield, label: "100% Authentic Products" },
   { icon: MdAutorenew, label: "Easy Returns" },
   { icon: MdInventory2, label: "Cash on Delivery" },
@@ -286,6 +289,7 @@ export default function Men() {
   const [products, setProducts] = useState([]);
   const [newArrivals, setNewArrivals] = useState([]);
   const [deals, setDeals] = useState([]);
+  const [festiveFits, setFestiveFits] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
   const [menRootId, setMenRootId] = useState(null);
   const [menSubcats, setMenSubcats] = useState([]);
@@ -307,6 +311,18 @@ export default function Men() {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [brandSearch, setBrandSearch] = useState("");
 
+  // appliedFilters is what actually filters the product rails. activeBrand /
+  // activeColor / etc. above are just the draft values the filter panel's
+  // checkboxes and sliders are bound to — they don't affect the grid until
+  // "Apply Filters" is pressed (mirrors the Shop page behavior).
+  const [appliedFilters, setAppliedFilters] = useState({
+    brand: [],
+    color: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
+
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
@@ -323,12 +339,14 @@ export default function Men() {
     setMinDiscount((prev) => (prev === value ? 0 : value));
   };
 
+  // Reflects what's actually filtering the grid right now (appliedFilters),
+  // not whatever's mid-edit in the still-open panel.
   const activeFilterCount =
-    activeBrand.length +
-    activeColor.length +
-    (minDiscount > 0 ? 1 : 0) +
-    (inStockOnly ? 1 : 0) +
-    (maxPrice < 10000 ? 1 : 0);
+    appliedFilters.brand.length +
+    appliedFilters.color.length +
+    (appliedFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedFilters.inStockOnly ? 1 : 0) +
+    (appliedFilters.maxPrice < 10000 ? 1 : 0);
 
   const clearAllFilters = () => {
     setActiveBrand([]);
@@ -337,6 +355,24 @@ export default function Men() {
     setInStockOnly(false);
     setMaxPrice(10000);
     setBrandSearch("");
+    setAppliedFilters({
+      brand: [],
+      color: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
+  };
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      brand: activeBrand,
+      color: activeColor,
+      minDiscount,
+      inStockOnly,
+      maxPrice,
+    });
+    setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
@@ -344,26 +380,27 @@ export default function Men() {
   const applyProductFilters = useCallback(
     (list) =>
       (list || []).filter((p) => {
-        if (activeBrand.length > 0) {
+        if (appliedFilters.brand.length > 0) {
           const b = normalizeText(p.brand);
-          if (!activeBrand.map(normalizeText).includes(b)) return false;
+          if (!appliedFilters.brand.map(normalizeText).includes(b)) return false;
         }
-        if (activeColor.length > 0) {
+        if (appliedFilters.color.length > 0) {
           const c = normalizeText(p.color);
-          if (c && !activeColor.map(normalizeText).includes(c)) return false;
+          if (c && !appliedFilters.color.map(normalizeText).includes(c)) return false;
         }
-        if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
-        if (inStockOnly && p.in_stock === false) return false;
+        if (appliedFilters.minDiscount > 0 && (p.discount || 0) < appliedFilters.minDiscount) return false;
+        if (appliedFilters.inStockOnly && p.in_stock === false) return false;
         const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
-        if (finalPrice > maxPrice) return false;
+        if (finalPrice > appliedFilters.maxPrice) return false;
         return true;
       }),
-    [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+    [appliedFilters]
   );
 
   const trendingRef = useRef(null);
   const arrivalsRef = useRef(null);
   const dealsRef = useRef(null);
+  const festiveRef = useRef(null);
   const shopBrandsRef = useRef(null);
 
   useEffect(() => {
@@ -502,6 +539,50 @@ export default function Men() {
       cancelled = true;
     };
   }, [menResolved, menRootId, menSubcats]);
+
+  useEffect(() => {
+    if (!menResolved) return;
+    let cancelled = false;
+
+    (async () => {
+      const searchTerms = ["festive", "kurta", "ethnic wear"];
+      let found = [];
+
+      for (const search of searchTerms) {
+        try {
+          const response = await getProducts({
+            category_id: menRootId || undefined,
+            search,
+            sort: "newest",
+            limit: 8,
+          });
+          found = extractProducts(response);
+          if (found.length) break;
+        } catch {
+          // Try the next festive search term.
+        }
+      }
+
+      if (!found.length && menRootId) {
+        try {
+          const fallback = await getProducts({
+            category_id: menRootId,
+            sort: "newest",
+            limit: 8,
+          });
+          found = extractProducts(fallback);
+        } catch {
+          found = [];
+        }
+      }
+
+      if (!cancelled) setFestiveFits(found.map(normalizeProduct).slice(0, 8));
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [menResolved, menRootId]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -713,7 +794,7 @@ export default function Men() {
       {!menResolved && <Loader overlay />}
       <PageSEO
         title="Men's Fashion — Shirts, T-Shirts, Jeans & More | Blinkiefash India"
-        description="Shop the latest men's fashion at Blinkiefash India — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered in 60 minutes across India."
+        description="Shop the latest men's fashion at Blinkiefash India — t-shirts, shirts, jeans, footwear, watches, jackets and more, delivered fast across India."
         path="/men"
       />
 
@@ -767,23 +848,6 @@ export default function Men() {
           </div>
         </section>
 
-        {/* <section className="section hp-rewards-section" aria-label="Offers & rewards">
-          <div className="hp-rewards-grid">
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
-              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/play-and-win")}>
-              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/refer-earn")}>
-              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/shop")}>
-              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
-            </button>
-          </div>
-        </section> */}
-
         {/* ========== DEALS OF THE DAY (Home-style + timer) ========== */}
         {topDeals.length > 0 && (
           <section className="section men-picks-section">
@@ -810,7 +874,18 @@ export default function Men() {
                 <button
                   type="button"
                   className={`men-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
-                  onClick={() => setFilterOpen((o) => !o)}
+                  onClick={() => {
+                    // Reopening should reflect what's actually applied, not
+                    // whatever was left half-edited the last time it was closed.
+                    if (!filterOpen) {
+                      setActiveBrand(appliedFilters.brand);
+                      setActiveColor(appliedFilters.color);
+                      setMinDiscount(appliedFilters.minDiscount);
+                      setInStockOnly(appliedFilters.inStockOnly);
+                      setMaxPrice(appliedFilters.maxPrice);
+                    }
+                    setFilterOpen((o) => !o);
+                  }}
                 >
                   <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
                 </button>
@@ -818,14 +893,51 @@ export default function Men() {
             </div>
 
             {filterOpen && (
+              <Filter
+                prefix="men"
+                ariaLabel="Men filters"
+                brands={brands}
+                visibleBrands={visibleBrands}
+                activeBrand={activeBrand}
+                setActiveBrand={setActiveBrand}
+                activeColor={activeColor}
+                setActiveColor={setActiveColor}
+                minDiscount={minDiscount}
+                setMinDiscount={setMinDiscount}
+                inStockOnly={inStockOnly}
+                setInStockOnly={setInStockOnly}
+                maxPrice={maxPrice}
+                setMaxPrice={setMaxPrice}
+                brandSearch={brandSearch}
+                setBrandSearch={setBrandSearch}
+                activeFilterCount={activeFilterCount}
+                clearAllFilters={clearAllFilters}
+                applyFilters={applyFilters}
+                onClose={() => setFilterOpen(false)}
+                colors={COLORS}
+                discountBuckets={DISCOUNT_BUCKETS}
+              />
+            )}
+
+            {filterOpen && filterOpen !== filterOpen && (
               <section className="men-filters-panel" role="dialog" aria-label="Men filters">
                 <div className="men-filters-panel-header">
                   <h3>Filters</h3>
-                  {activeFilterCount > 0 ? (
-                    <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
-                      Clear All
+                  <div className="men-filters-panel-header-actions">
+                    {activeFilterCount > 0 ? (
+                      <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
+                        Clear All
+                      </button>
+                    ) : null}
+                    <button
+                      type="button"
+                      className="men-filters-close"
+                      onClick={() => setFilterOpen(false)}
+                      aria-label="Close filters"
+                    >
+                      <MdClose />
                     </button>
-                  ) : null}
+                  </div>
                 </div>
 
                 <div className="men-filter-col">
@@ -907,6 +1019,12 @@ export default function Men() {
                       <span>In stock only</span>
                     </label>
                   </div>
+                </div>
+
+                <div className="men-filters-footer">
+                  <button type="button" className="men-filters-apply" onClick={applyFilters}>
+                    Apply Filters
+                  </button>
                 </div>
               </section>
             )}
@@ -1004,6 +1122,29 @@ export default function Men() {
           </section>
         )}
 
+        {festiveFits.length > 0 && (
+          <section className="section men-festive-section" aria-labelledby="men-festive-title">
+            <button
+              type="button"
+              className="men-festive-banner"
+              onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}
+            >
+              <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
+            </button>
+
+            <div className="men-festive-heading">
+              <div>
+                <h2>FESTIVE FITS</h2>
+                <p>Traditional styles for modern celebrations</p>
+              </div>
+              <button type="button" onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+            <ProductRail list={applyProductFilters(festiveFits)} railRef={festiveRef} keyPrefix="men-festive" />
+          </section>
+        )}
+
         {/* All Men's Picks */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
@@ -1046,47 +1187,6 @@ export default function Men() {
               </button>
             ))}
           </div>
-        </section>
-
-        {/* Promos */}
-        <section className="men-promo-strip" aria-label="Offers">
-          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
-            <div>
-              <p className="title">EXTRA 10% OFF</p>
-              <p className="sub">On Prepaid Orders · Code BLINK10</p>
-            </div>
-            <MdLocalOffer style={{ fontSize: 28 }} />
-          </button>
-
-          <button
-            type="button"
-            className="men-promo-card men-promo-brands"
-            onClick={() => navigate(menScopedShopUrl())}
-          >
-            <div>
-              <p className="title">UP TO 60% OFF</p>
-              <p className="sub">On Top Brands</p>
-              <div className="men-promo-brands-row">
-                <span className="men-promo-brand-chip">NIKE</span>
-                <span className="men-promo-brand-chip">PUMA</span>
-                <span className="men-promo-brand-chip">LEVI&apos;S</span>
-              </div>
-            </div>
-            <span className="cta">SHOP NOW →</span>
-          </button>
-
-          <button
-            type="button"
-            className="men-promo-card men-promo-delivery"
-            onClick={() => navigate(menScopedShopUrl())}
-          >
-            <div>
-              <p className="title">FREE DELIVERY</p>
-              <p className="sub">On Orders Above ₹1499</p>
-              <span className="cta">SHOP NOW →</span>
-            </div>
-            <span style={{ fontSize: 28 }}>🛵</span>
-          </button>
         </section>
 
         {/* New arrivals */}
@@ -1143,8 +1243,8 @@ export default function Men() {
           ) : (
             <div className="hp-explore-grid" role="list">
               {Array.from({ length: 6 }).map((_, idx) => (
-                <ProductCardSkeleton key={`explore-init-${idx}`} />
-              ))}
+                <ProductCardSkeleton key={`explore-init-${idx}`} />)
+              )}
             </div>
           )}
 
@@ -1159,7 +1259,7 @@ export default function Men() {
           <div>
             <MdBolt />
             <div>
-              <strong>60 MINUTES</strong>
+              <strong>FAST</strong>
               <span>Delivery</span>
             </div>
           </div>

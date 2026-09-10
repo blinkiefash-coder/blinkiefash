@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MdArrowBack, MdLocalFireDepartment } from 'react-icons/md';
+import { MdArrowBack, MdLocalFireDepartment, MdTune, MdClose } from 'react-icons/md';
 
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
 import Navbar from '../components/Navbar';
 import ProductCard from '../components/ProductCard';
-import { getCategories, getProducts } from '../api';
+import { getCategories, getProducts, getBrands } from '../api';
 
 import './dealsoftheday.css';
 
@@ -88,6 +88,57 @@ export default function DealsOfTheDay() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
+
+  // ---- Filters (Brand) ----
+  // `brands` holds every fashion brand in the catalog (not just brands that
+  // happen to have a deal today), fetched separately from /brands so the
+  // list is always complete. `draftBrand` is the live checkbox state inside
+  // the panel; it only takes effect on products once "Apply Filters" is
+  // pressed, at which point it's copied into `appliedBrand`.
+  const [brands, setBrands] = useState([]);
+  const [brandSearch, setBrandSearch] = useState('');
+  const [draftBrand, setDraftBrand] = useState([]);
+  const [appliedBrand, setAppliedBrand] = useState([]);
+  const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getBrands()
+      .then((data) => {
+        if (!cancelled) setBrands(Array.isArray(data) ? data : []);
+      })
+      .catch((err) => console.error('[DealsOfTheDay] Could not load brands', err));
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const visibleBrands = useMemo(
+    () =>
+      brands.filter((brand) =>
+        String(brand?.name || '').toLowerCase().includes(brandSearch.toLowerCase())
+      ),
+    [brands, brandSearch]
+  );
+
+  const toggleDraftBrand = (name) => {
+    setDraftBrand((prev) =>
+      prev.includes(name) ? prev.filter((item) => item !== name) : [...prev, name]
+    );
+  };
+
+  const applyFilters = () => {
+    setAppliedBrand(draftBrand);
+    setVisibleCount(PAGE_SIZE);
+    setShowFilters(false);
+  };
+
+  const clearFilters = () => {
+    setDraftBrand([]);
+    setAppliedBrand([]);
+    setBrandSearch('');
+    setVisibleCount(PAGE_SIZE);
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -173,13 +224,21 @@ export default function DealsOfTheDay() {
       ? allDeals.filter((item) => String(item._rootCategoryId) === String(activeCategoryId))
       : allDeals;
 
+    if (appliedBrand.length > 0) {
+      const wanted = appliedBrand.map((b) => String(b).trim().toLowerCase());
+      list = list.filter((item) => {
+        const itemBrand = String(item.brand || item.brand_name || '').trim().toLowerCase();
+        return itemBrand && wanted.includes(itemBrand);
+      });
+    }
+
     list = [...list];
     if (sortBy === 'price_asc') list.sort((a, b) => a._price - b._price);
     else if (sortBy === 'price_desc') list.sort((a, b) => b._price - a._price);
     else list.sort((a, b) => b._discount - a._discount);
 
     return list;
-  }, [allDeals, activeCategoryId, sortBy]);
+  }, [allDeals, activeCategoryId, sortBy, appliedBrand]);
 
   const visibleDeals = filteredDeals.slice(0, visibleCount);
   const hasMore = visibleCount < filteredDeals.length;
@@ -268,8 +327,83 @@ export default function DealsOfTheDay() {
                 <option key={opt.id} value={opt.id}>{opt.label}</option>
               ))}
             </select>
+
+            <button
+              type="button"
+              className={`dotd-filter-toggle${showFilters ? ' active' : ''}`}
+              onClick={() => {
+                // Reopening should reflect whatever's actually applied, not
+                // whatever was left mid-edit the last time the panel closed.
+                if (!showFilters) setDraftBrand(appliedBrand);
+                setShowFilters((prev) => !prev);
+              }}
+            >
+              <MdTune /> Filters
+              {appliedBrand.length > 0 ? (
+                <span className="dotd-filter-count">{appliedBrand.length}</span>
+              ) : null}
+            </button>
           </div>
         </div>
+
+        {showFilters ? (
+          <section className="dotd-filters-panel">
+            <div className="dotd-filters-panel-header">
+              <h3>Filters</h3>
+              <div className="dotd-filters-panel-header-actions">
+                {(draftBrand.length > 0 || appliedBrand.length > 0) ? (
+                  <button type="button" className="dotd-filters-clear" onClick={clearFilters}>
+                    Clear
+                  </button>
+                ) : null}
+                <button
+                  type="button"
+                  className="dotd-filters-close"
+                  onClick={() => setShowFilters(false)}
+                  aria-label="Close filters"
+                >
+                  <MdClose />
+                </button>
+              </div>
+            </div>
+
+            <div className="dotd-filter-col">
+              <h4>
+                Brand
+                {brands.length > 0 ? (
+                  <span className="dotd-filter-col-count"> ({brands.length})</span>
+                ) : null}
+              </h4>
+              <input
+                className="dotd-filter-search"
+                value={brandSearch}
+                onChange={(e) => setBrandSearch(e.target.value)}
+                placeholder="Search brand"
+              />
+              <div className="dotd-filter-list">
+                {visibleBrands.map((brand) => (
+                  <label key={brand.id}>
+                    <input
+                      type="checkbox"
+                      checked={draftBrand.includes(brand.name)}
+                      onChange={() => toggleDraftBrand(brand.name)}
+                    />
+                    <span>{brand.name}</span>
+                  </label>
+                ))}
+                {visibleBrands.length === 0 ? (
+                  <p className="dotd-filter-empty">No brands match "{brandSearch}"</p>
+                ) : null}
+              </div>
+            </div>
+
+            <div className="dotd-filters-footer">
+              <button type="button" className="dotd-filters-apply" onClick={applyFilters}>
+                Apply Filters
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {error && <p className="state-msg">{error}</p>}
 

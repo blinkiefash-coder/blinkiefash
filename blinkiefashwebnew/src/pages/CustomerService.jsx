@@ -50,7 +50,7 @@ export default function CustomerService() {
             <h5>Delivery Support</h5>
             <p className="sub">Delivery updates and partner details</p>
             <ul>
-              <li>60-minute delivery updates</li>
+              <li>Delivery updates</li>
               <li>Delayed delivery issues</li>
               <li>Address and route support</li>
               <li>Failed delivery attempts</li>
