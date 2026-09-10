@@ -249,6 +249,16 @@ function normalizeProduct(p) {
   };
 }
 
+function uniqueProducts(list) {
+  const seen = new Set();
+  return (list || []).filter((product) => {
+    const key = product?.id || product?.product_id || product?.variant_id;
+    if (!key || seen.has(String(key))) return false;
+    seen.add(String(key));
+    return true;
+  });
+}
+
 function ProductRail({ list, railRef, keyPrefix, isNew = false }) {
   const scrollRail = (dir) => {
     const el = railRef.current;
@@ -263,7 +273,7 @@ function ProductRail({ list, railRef, keyPrefix, isNew = false }) {
       </button>
 
       <div className="hp-deals-rail" role="list" ref={railRef}>
-        {list.map((p, idx) => (
+        {uniqueProducts(list).map((p, idx) => (
           <div
             key={`${keyPrefix}-${p.id}-${idx}`}
             className="hp-deal-card-wrapper"
@@ -293,6 +303,7 @@ export default function Men() {
   const [menRootId, setMenRootId] = useState(null);
   const [menSubcats, setMenSubcats] = useState([]);
   const [menResolved, setMenResolved] = useState(false);
+  const [productsRefreshKey, setProductsRefreshKey] = useState(0);
   const [brands, setBrands] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
 
@@ -398,6 +409,23 @@ export default function Men() {
   }, []);
 
   useEffect(() => {
+    const refreshProducts = () => {
+      if (document.visibilityState === "visible") {
+        setProductsRefreshKey((key) => key + 1);
+      }
+    };
+    const refreshInterval = window.setInterval(refreshProducts, 60_000);
+
+    window.addEventListener("focus", refreshProducts);
+    document.addEventListener("visibilitychange", refreshProducts);
+    return () => {
+      window.clearInterval(refreshInterval);
+      window.removeEventListener("focus", refreshProducts);
+      document.removeEventListener("visibilitychange", refreshProducts);
+    };
+  }, []);
+
+  useEffect(() => {
     let cancelled = false;
 
     (async () => {
@@ -459,12 +487,19 @@ export default function Men() {
 
       if (menRootId) {
         try {
-          const byCategory = await getProducts({
-            category_id: menRootId,
-            sort: "newest",
-            limit: 30,
-          });
-          found = extractProducts(byCategory);
+          let offset = 0;
+          while (true) {
+            const byCategory = await getProducts({
+              category_id: menRootId,
+              sort: "newest",
+              limit: 100,
+              offset,
+            });
+            const page = extractProducts(byCategory);
+            found.push(...page);
+            if (page.length < 100) break;
+            offset += page.length;
+          }
         } catch {
           found = [];
         }
@@ -516,7 +551,7 @@ export default function Men() {
       if (!cancelled) {
         const normalized = found.map(normalizeProduct);
         setProducts(normalized.slice(0, 20));
-        setNewArrivals(normalized.slice(0, 10));
+        setNewArrivals(normalized);
         setDeals(dealList.map(normalizeProduct).slice(0, 12));
         setProductsLoading(false);
       }
@@ -525,7 +560,7 @@ export default function Men() {
     return () => {
       cancelled = true;
     };
-  }, [menResolved, menRootId, menSubcats]);
+  }, [menResolved, menRootId, menSubcats, productsRefreshKey]);
 
   useEffect(() => {
     if (!menResolved) return;
@@ -689,6 +724,13 @@ export default function Men() {
     },
     [menSubcats]
   );
+
+  const menKurtaShopUrl = useCallback(() => {
+    const kurtaCategory = findMenSubcatByLabel("kurta");
+    return kurtaCategory
+      ? menScopedShopUrl({ categoryId: kurtaCategory.id })
+      : menScopedShopUrl({ search: "kurta" });
+  }, [findMenSubcatByLabel, menScopedShopUrl]);
 
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
@@ -1004,7 +1046,7 @@ export default function Men() {
             <button
               type="button"
               className="men-festive-banner"
-              onClick={() => navigate("/festive/men")}
+              onClick={() => navigate(menKurtaShopUrl())}
             >
               <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
             </button>
@@ -1014,7 +1056,7 @@ export default function Men() {
                 <h2>FESTIVE FITS</h2>
                 <p>Traditional styles for modern celebrations</p>
               </div>
-              <button type="button" onClick={() => navigate("/festive/men")}>
+              <button type="button" onClick={() => navigate(menKurtaShopUrl())}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1066,6 +1108,47 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Offers */}
+        <section className="men-promo-strip" aria-label="Offers">
+          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
+            <div>
+              <p className="title">EXTRA 10% OFF</p>
+              <p className="sub">On Prepaid Orders · Code BLINK10</p>
+            </div>
+            <MdLocalOffer style={{ fontSize: 28 }} />
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-brands"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">UP TO 60% OFF</p>
+              <p className="sub">On Top Brands</p>
+              <div className="men-promo-brands-row">
+                <span className="men-promo-brand-chip">NIKE</span>
+                <span className="men-promo-brand-chip">PUMA</span>
+                <span className="men-promo-brand-chip">LEVI&apos;S</span>
+              </div>
+            </div>
+            <span className="cta">SHOP NOW →</span>
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-delivery"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">FREE DELIVERY</p>
+              <p className="sub">On Orders Above ₹1499</p>
+              <span className="cta">SHOP NOW →</span>
+            </div>
+            <MdTwoWheeler style={{ fontSize: 28 }} />
+          </button>
+        </section>
+
         {/* New arrivals */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
@@ -1077,7 +1160,12 @@ export default function Men() {
           {productsLoading ? (
             <Loader />
           ) : newArrivals.length ? (
-            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" isNew />
+            <ProductRail
+              list={applyProductFilters(newArrivals)}
+              railRef={arrivalsRef}
+              keyPrefix="men-new"
+              isNew
+            />
           ) : (
             <p className="men-empty-state">Fresh styles coming soon.</p>
           )}
@@ -1108,7 +1196,7 @@ export default function Men() {
 
           {exploreProducts.length > 0 ? (
             <div className="hp-explore-grid" role="list">
-              {exploreProducts.map((p, idx) => (
+              {uniqueProducts(exploreProducts).map((p, idx) => (
                 <ProductCard key={`explore-${p.id}-${idx}`} product={p} />
               ))}
               {exploreLoading
@@ -1177,7 +1265,7 @@ export default function Men() {
           </div>
         </section>
       </main>
-
+      
       <Footer />
     </div>
   );

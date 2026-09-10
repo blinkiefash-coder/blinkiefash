@@ -42,6 +42,7 @@
   box-sizing: border-box;
   overflow-x: hidden;
   background: transparent;
+  margin-top: 0;
 }
 
 /* =========================================================
@@ -317,7 +318,7 @@
   position: relative;
   border-radius: 22px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   background: var(--m-blue-bg);
 }
@@ -337,7 +338,6 @@
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 3.4 / 1;
   object-fit: cover;
 }
 
@@ -1064,7 +1064,7 @@
 
 @media (max-width: 768px) {
   .men-promo-strip {
-    grid-template-columns: 1fr;
+    display: none;
   }
 }
 
@@ -1189,7 +1189,7 @@
 
 @media (max-width: 640px) {
   .men-main {
-    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
   .men-hero-arrow {
@@ -1262,7 +1262,7 @@
 
 @media (max-width: 400px) {
   .men-main {
-    padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .men-trust-strip {

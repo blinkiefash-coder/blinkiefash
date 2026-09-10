@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -70,7 +71,8 @@ class _HomeScreenState extends State<HomeScreen>
   double? _lastKnownLat;
   double? _lastKnownLng;
 
-  // EXPRESS delivery tab: 'all' shows all products, 'express' shows within 45km
+  // EXPRESS tab shows products stocked by stores within the delivery radius.
+  static const double _expressRadiusKm = 400;
   final String _productDeliveryTab = 'all';
   double? _nearestStoreDistanceKm;
 
@@ -147,6 +149,7 @@ class _HomeScreenState extends State<HomeScreen>
   Timer? _brandAutoScrollTimer;
   Timer? _brandPauseTimer;
   bool _brandsPaused = false;
+  bool _homeScrollActive = false;
 
   // Categories tab: index of selected root category
   int _catSelectedIndex = 0;
@@ -227,7 +230,8 @@ class _HomeScreenState extends State<HomeScreen>
       final mapped = <Map<String, String>>[];
       for (final row in rows) {
         if (row is! Map) continue;
-        final image = (row['image_url'] ?? '').toString();
+        final image = (row['mobile_image_url'] ?? row['image_url'] ?? '')
+            .toString();
         if (image.isEmpty) continue;
         final type = (row['reference_type'] ?? '').toString();
         final value = (row['reference_value'] ?? '').toString();
@@ -268,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (mounted && _isLoading) setState(() => _isLoading = false);
   }
 
-  // Advances the hero banner one slide every 5 seconds, looping back to the
+  // Advances the hero banner one slide every 15 seconds, looping back to the
   // first slide after the last one.
   void _startHeroAutoSlide() {
     _heroAutoTimer = Timer.periodic(const Duration(seconds: 15), (_) {
@@ -310,6 +314,12 @@ class _HomeScreenState extends State<HomeScreen>
         (_timerHours != hours ||
             _timerMinutes != minutes ||
             _timerSeconds != seconds)) {
+      if (_homeScrollActive) {
+        _timerHours = hours;
+        _timerMinutes = minutes;
+        _timerSeconds = seconds;
+        return;
+      }
       setState(() {
         _timerHours = hours;
         _timerMinutes = minutes;
@@ -321,10 +331,12 @@ class _HomeScreenState extends State<HomeScreen>
   // Continuous marquee auto-scroll: top row drifts forward, bottom row backward.
   // Each row renders its brands twice, so wrapping at the halfway point is seamless.
   void _startBrandAutoScroll() {
-    _brandAutoScrollTimer = Timer.periodic(const Duration(milliseconds: 16), (
+    _brandAutoScrollTimer = Timer.periodic(const Duration(milliseconds: 33), (
       _,
     ) {
-      if (!mounted || _brandsPaused || _brands.isEmpty) return;
+      if (!mounted || _homeScrollActive || _brandsPaused || _brands.isEmpty) {
+        return;
+      }
       _driftBrandRow(_brandRowTopController, forward: true);
       _driftBrandRow(_brandRowBottomController, forward: false);
     });
@@ -335,7 +347,7 @@ class _HomeScreenState extends State<HomeScreen>
     final maxScroll = controller.position.maxScrollExtent;
     if (maxScroll <= 0) return;
 
-    const step = 0.35; // px per frame ≈ 21px/sec
+    const step = 0.7; // px per frame ≈ 21px/sec at 30fps
     final half = maxScroll / 2;
     var next = controller.offset + (forward ? step : -step);
 
@@ -350,10 +362,28 @@ class _HomeScreenState extends State<HomeScreen>
 
   void _pauseBrandCarousel() {
     _brandPauseTimer?.cancel();
-    if (!_brandsPaused) setState(() => _brandsPaused = true);
+    _brandsPaused = true;
     _brandPauseTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) setState(() => _brandsPaused = false);
+      if (mounted) _brandsPaused = false;
     });
+  }
+
+  bool _handleHomeScrollNotification(ScrollNotification notification) {
+    if (notification is ScrollStartNotification ||
+        notification is ScrollUpdateNotification ||
+        notification is OverscrollNotification) {
+      _homeScrollActive = true;
+      _brandPauseTimer?.cancel();
+      _brandsPaused = true;
+    } else if (notification is ScrollEndNotification) {
+      _homeScrollActive = false;
+      _brandPauseTimer?.cancel();
+      _brandPauseTimer = Timer(const Duration(milliseconds: 700), () {
+        if (mounted) _brandsPaused = false;
+      });
+      _updateDealsTimer();
+    }
+    return false;
   }
 
   void _nudgeBrandRows({required bool forward}) {
@@ -767,22 +797,9 @@ class _HomeScreenState extends State<HomeScreen>
           (lat != null && lng != null);
       final distKm = nearestStore?['dist'] as num?;
 
-      // Determine delivery radius based on store location
-      // Odisha stores support extended delivery (500 km), others default to 45 km
-      final storeCity = (nearestStore?['city'] as String?)?.toLowerCase() ?? '';
-      final isOdishaStore =
-          storeCity.contains('bhubaneswar') ||
-          storeCity.contains('cuttack') ||
-          storeCity.contains('khordha') ||
-          storeCity.contains('puri') ||
-          storeCity.contains('sambalpur') ||
-          storeCity.contains('balasore') ||
-          storeCity.contains('baleshwar') ||
-          storeCity.contains('bhadrak') ||
-          storeCity.contains('odisha');
-      final radiusKm =
-          (nearestStore?['deliveryRadiusKm'] as num?) ??
-          (isOdishaStore ? 500 : 45);
+      // Determine delivery radius based on store location.
+        final radiusKm =
+          (nearestStore?['deliveryRadiusKm'] as num?) ?? _expressRadiusKm;
       final outOfArea =
           locationProvided &&
           (nearestStore == null || (distKm != null && distKm > radiusKm));
@@ -1630,9 +1647,10 @@ class _HomeScreenState extends State<HomeScreen>
   /// Returns filtered products based on the selected delivery tab
   List<Map<String, dynamic>> _getTabFilteredProducts() {
     if (_productDeliveryTab == 'express') {
-      // EXPRESS tab: Show products only if nearest store is within 45km
+      // EXPRESS tab: Show products only if nearest store is within 400km
       final canExpress =
-          _nearestStoreDistanceKm != null && _nearestStoreDistanceKm! <= 45;
+          _nearestStoreDistanceKm != null &&
+          _nearestStoreDistanceKm! <= _expressRadiusKm;
       return canExpress ? _products : const [];
     }
     // ALL tab: Return all products
@@ -1641,7 +1659,8 @@ class _HomeScreenState extends State<HomeScreen>
 
   /// Returns whether EXPRESS delivery is available in this location
   bool _isExpressAvailable() {
-    return _nearestStoreDistanceKm != null && _nearestStoreDistanceKm! <= 45;
+    return _nearestStoreDistanceKm != null &&
+        _nearestStoreDistanceKm! <= _expressRadiusKm;
   }
 
   /// EXPRESS tab body: shows nearby-eligible products, or an unavailable banner.
@@ -1671,14 +1690,7 @@ class _HomeScreenState extends State<HomeScreen>
                 color: Color(0xFF0F172A),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              expressAvailable
-                  ? 'Delivered within 45km${_nearestStoreDistanceKm != null ? ' • ${_nearestStoreDistanceKm!.toStringAsFixed(1)} km away' : ''}'
-                  : 'Fast delivery for nearby locations',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             if (!expressAvailable)
               _expressUnavailableBanner()
             else if (_products.isEmpty)
@@ -1692,197 +1704,14 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.6,
+                  childAspectRatio: 0.49,
                 ),
-                itemBuilder: (_, i) => _expressGridProductCard(_products[i]),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Grid-friendly product card (fills its cell, unlike the fixed-width horizontal card).
-  Widget _expressGridProductCard(Map<String, dynamic> item) {
-    final name = item['name']?.toString() ?? 'Product';
-    final brand = item['brand']?.toString() ?? '';
-    final variantData = _getCardVariant(item);
-    final price = _fmt(variantData['discount_price']);
-    final mrp = _fmt(variantData['price']);
-    final off = item['off']?.toString() ?? _offLabel(item);
-    final image = _imgUrl(variantData['image_url'] ?? item['image']);
-    final hasDiscount = mrp.isNotEmpty && mrp != price && mrp != '0';
-    final wishItem = WishlistItem(
-      productId: item['id']?.toString() ?? '',
-      name: name,
-      price: price,
-      imageUrl: image,
-    );
-
-    return GestureDetector(
-      onTap: item['id'] != null ? () => _openProduct(item) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2F3E8)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A166534),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                    child: image == null
-                        ? Container(
-                            color: const Color(0xFFF7FAF8),
-                            child: const Icon(
-                              Icons.checkroom_outlined,
-                              color: Color(0xFFCBD5E1),
-                              size: 36,
-                            ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: image,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.center,
-                            memCacheWidth: 480,
-                            placeholder: (_, _) =>
-                                Container(color: const Color(0xFFF7FAF8)),
-                            errorWidget: (_, _, _) => Container(
-                              color: const Color(0xFFF7FAF8),
-                              child: const Icon(Icons.broken_image_outlined),
-                            ),
-                          ),
-                  ),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: GestureDetector(
-                      onTap: () {
-                        WishlistManager.instance.toggle(wishItem);
-                        setState(() {});
-                      },
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          WishlistManager.instance.isWishlisted(
-                                wishItem.productId,
-                              )
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          size: 16,
-                          color:
-                              WishlistManager.instance.isWishlisted(
-                                wishItem.productId,
-                              )
-                              ? const Color(0xFFE11D48)
-                              : const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (brand.isNotEmpty)
-                      Text(
-                        brand.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    const SizedBox(height: 2),
-                    Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                        height: 1.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasDiscount
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF166534),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        hasDiscount ? off : 'NEW',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Text(
-                          '₹$price',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                        if (hasDiscount) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '₹$mrp',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF94A3B8),
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+                itemBuilder: (_, i) => _standardHomeProductCard(
+                  _products[i],
+                  width: double.infinity,
+                  margin: EdgeInsets.zero,
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -1935,7 +1764,7 @@ class _HomeScreenState extends State<HomeScreen>
                 const SizedBox(height: 4),
                 Text(
                   _nearestStoreDistanceKm != null
-                      ? 'Nearest store is ${_nearestStoreDistanceKm!.toStringAsFixed(1)} km away. Express needs a store within 45km.'
+                      ? 'Nearest store is ${_nearestStoreDistanceKm!.toStringAsFixed(1)} km away. Delivery is available within 400 km.'
                       : 'Express delivery is not available at your location yet.',
                   style: const TextStyle(
                     fontSize: 12,
@@ -1966,188 +1795,196 @@ class _HomeScreenState extends State<HomeScreen>
         backgroundColor: const Color(0xFF0D2015),
         strokeWidth: 2.5,
         onRefresh: _loadHomeDataForCurrentSelection,
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            if (_outOfServiceArea) ...[
-              _serviceAreaGate(),
-            ] else ...[
-              _couponBanner(),
-              _heroBanner(),
-              _shopCategoriesSectionHeader(),
-              _exploreCategories(),
-              _dealsOfTheDayWithTimerSection(),
-              const SizedBox(height: 16),
-              _spinGameReferContainer(),
-              _shopBrandsSectionHeader(),
-              _shopByBrands(),
-              const SizedBox(height: 8),
-              _sectionHeader(
-                'NEW & TRENDY',
-                iconAsset: 'assets/images/new.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      initialNoDiscount: true,
-                      initialSort: 'newest',
-                    ),
-                  ),
-                ),
-              ),
-              _getTabFilteredProducts().isNotEmpty
-                  ? _newAndTrendyCategories()
-                  : _stockOutBanner(),
-              const SizedBox(height: 16),
-              if (_recentlyExploredProducts.isNotEmpty) ...[
+        child: NotificationListener<ScrollNotification>(
+          onNotification: _handleHomeScrollNotification,
+          child: ListView(
+            padding: EdgeInsets.zero,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              if (_outOfServiceArea) ...[
+                _serviceAreaGate(),
+              ] else ...[
+                _couponBanner(),
+                _heroBanner(),
+                _shopCategoriesSectionHeader(),
+                _exploreCategories(),
+                _dealsOfTheDayWithTimerSection(),
+                const SizedBox(height: 10),
+                _spinGameReferContainer(),
+                _shopBrandsSectionHeader(),
+                _shopByBrands(),
+                const SizedBox(height: 4),
                 _sectionHeader(
-                  'Recently Viewed',
-                  iconAsset: 'assets/images/recentlyviewed.png',
+                  'NEW & TRENDY',
+                  iconAsset: 'assets/images/new.png',
                   actionLabel: 'View All',
                   onAction: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const AllBrandsScreen()),
-                  ),
-                ),
-                _buildRecentlyExploredSection(),
-                const SizedBox(height: 16),
-              ],
-              _banner01Strip(),
-              _universeSection(),
-              _brandBannersGrid(),
-              _sectionHeader(
-                'SHOP FOR MEN',
-                subtitle: 'Trendy styles. Top brands. Great prices.',
-                iconAsset: 'assets/images/menicon.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      categoryName: 'Men',
-                      initialSort: 'newest',
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        initialNoDiscount: true,
+                        initialSort: 'newest',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              _mensProducts.isNotEmpty
-                  ? _mensCreativeSection()
-                  : _stockOutBanner(),
-              _sectionHeader(
-                'SHOP FOR WOMEN',
-                subtitle: 'Latest trends. Premium brands. Best deals.',
-                iconAsset: 'assets/images/womanicon.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      categoryName: 'Women',
-                      initialSort: 'newest',
+                _getTabFilteredProducts().isNotEmpty
+                    ? _newAndTrendyCategories()
+                    : _stockOutBanner(),
+                const SizedBox(height: 10),
+                if (_recentlyExploredProducts.isNotEmpty) ...[
+                  _sectionHeader(
+                    'Recently Viewed',
+                    iconAsset: 'assets/images/recentlyviewed.png',
+                    actionLabel: 'View All',
+                    onAction: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const AllBrandsScreen(),
+                      ),
+                    ),
+                  ),
+                  _buildRecentlyExploredSection(),
+                  const SizedBox(height: 10),
+                ],
+                _banner01Strip(),
+                _universeSection(),
+                _brandBannersGrid(),
+                _sectionHeader(
+                  'SHOP FOR MEN',
+                  subtitle: 'Trendy styles. Top brands. Great prices.',
+                  iconAsset: 'assets/images/menicon.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        categoryName: 'Men',
+                        initialSort: 'newest',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              _womensProducts.isNotEmpty
-                  ? _collectionCreativeSection(
-                      audienceLabel: 'Women',
-                      products: _womensProducts,
-                      categoryChips: _womensCats,
-                    )
-                  : _stockOutBanner(),
-              _sectionHeader(
-                'SHOP FOR KIDS',
-                subtitle: 'Fun styles. Comfort fit. Durable quality.',
-                iconAsset: 'assets/images/kidsicon.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      categoryName: 'Kids',
-                      initialSort: 'newest',
+                _mensProducts.isNotEmpty
+                    ? _mensCreativeSection()
+                    : _stockOutBanner(),
+                _sectionHeader(
+                  'SHOP FOR WOMEN',
+                  subtitle: 'Latest trends. Premium brands. Best deals.',
+                  iconAsset: 'assets/images/womanicon.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        categoryName: 'Women',
+                        initialSort: 'newest',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              _kidsProducts.isNotEmpty
-                  ? _collectionCreativeSection(
-                      audienceLabel: 'Kids',
-                      products: _kidsProducts,
-                      categoryChips: _kidsCats,
-                    )
-                  : _stockOutBanner(),
-              _sectionHeader(
-                'EXPLORE ELECTRONICS',
-                subtitle: 'Latest gadgets. Smart devices. Tech essentials.',
-                iconAsset: 'assets/images/electronicsicon.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      initialSearch: 'electronics',
-                      initialSort: 'newest',
+                _womensProducts.isNotEmpty
+                    ? _collectionCreativeSection(
+                        audienceLabel: 'Women',
+                        products: _womensProducts,
+                        categoryChips: _womensCats,
+                      )
+                    : _stockOutBanner(),
+                _sectionHeader(
+                  'SHOP FOR KIDS',
+                  subtitle: 'Fun styles. Comfort fit. Durable quality.',
+                  iconAsset: 'assets/images/kidsicon.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        categoryName: 'Kids',
+                        initialSort: 'newest',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              _electronicsProducts.isNotEmpty
-                  ? _collectionCreativeSection(
-                      audienceLabel: 'Electronics',
-                      products: _electronicsProducts,
-                      categoryChips: _electronicsCats,
-                    )
-                  : _stockOutBanner(),
-              _sectionHeader(
-                'SHOP FOR FOOTWEAR',
-                subtitle: 'Comfort. Style. Every step matters.',
-                iconAsset: 'assets/images/shoeicon.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(
-                      categoryName: 'Footwear',
-                      initialSort: 'newest',
+                _kidsProducts.isNotEmpty
+                    ? _collectionCreativeSection(
+                        audienceLabel: 'Kids',
+                        products: _kidsProducts,
+                        categoryChips: _kidsCats,
+                      )
+                    : _stockOutBanner(),
+                _sectionHeader(
+                  'EXPLORE ELECTRONICS',
+                  subtitle: 'Latest gadgets. Smart devices. Tech essentials.',
+                  iconAsset: 'assets/images/electronicsicon.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        initialSearch: 'electronics',
+                        initialSort: 'newest',
+                      ),
                     ),
                   ),
                 ),
-              ),
-              _trendyShoesProducts.isNotEmpty
-                  ? _collectionCreativeSection(
-                      audienceLabel: 'Trendy Shoes',
-                      products: _trendyShoesProducts,
-                      categoryChips: _trendyShoesCats,
-                    )
-                  : _stockOutBanner(),
-              _sectionHeader(
-                'UNDER ₹999',
-                iconAsset: 'assets/images/prices.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const AllProductsScreen(maxPrice: 999),
+                _electronicsProducts.isNotEmpty
+                    ? _collectionCreativeSection(
+                        audienceLabel: 'Electronics',
+                        products: _electronicsProducts,
+                        categoryChips: _electronicsCats,
+                      )
+                    : _stockOutBanner(),
+                _sectionHeader(
+                  'SHOP FOR FOOTWEAR',
+                  subtitle: 'Comfort. Style. Every step matters.',
+                  iconAsset: 'assets/images/shoeicon.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        categoryName: 'Footwear',
+                        initialSort: 'newest',
+                      ),
+                    ),
                   ),
                 ),
-              ),
-              _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
-              _sectionHeader(
-                '₹999 - ₹1999',
-                iconAsset: 'assets/images/prices.png',
-                actionLabel: 'View All',
-                onAction: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const AllProductsScreen(minPrice: 999, maxPrice: 1999),
+                _trendyShoesProducts.isNotEmpty
+                    ? _collectionCreativeSection(
+                        audienceLabel: 'Trendy Shoes',
+                        products: _trendyShoesProducts,
+                        categoryChips: _trendyShoesCats,
+                      )
+                    : _stockOutBanner(),
+                _sectionHeader(
+                  'UNDER ₹999',
+                  iconAsset: 'assets/images/prices.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(maxPrice: 999),
+                    ),
                   ),
                 ),
-              ),
-              _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
-              _sectionHeader(
-                'MORE TO EXPLORE',
-                iconAsset: 'assets/images/explore.png',
-              ),
-              _shopByCategorySection(),
-              _newsletterStrip(),
-              _downloadBanner(),
-              const SizedBox(height: 24),
-            ], // end else (in service area)
-          ],
+                _under999.isNotEmpty ? _under999Cards() : _stockOutBanner(),
+                _sectionHeader(
+                  '₹999 - ₹1999',
+                  iconAsset: 'assets/images/prices.png',
+                  actionLabel: 'View All',
+                  onAction: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const AllProductsScreen(
+                        minPrice: 999,
+                        maxPrice: 1999,
+                      ),
+                    ),
+                  ),
+                ),
+                _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
+                _sectionHeader(
+                  'MORE TO EXPLORE',
+                  iconAsset: 'assets/images/explore.png',
+                ),
+                _shopByCategorySection(),
+                _newsletterStrip(),
+                _downloadBanner(),
+                const SizedBox(height: 18),
+              ], // end else (in service area)
+            ],
+          ),
         ),
       ),
     );
@@ -2249,48 +2086,50 @@ class _HomeScreenState extends State<HomeScreen>
     final heroWidth = MediaQuery.of(context).size.width;
     final heroHeight = heroWidth * 915 / 1719;
 
-    return SizedBox(
-      width: heroWidth,
-      height: heroHeight,
-      child: Stack(
-        children: [
-          PageView.builder(
-            controller: _heroPageController,
-            itemCount: _heroCards.length,
-            onPageChanged: (i) => setState(() => _heroPageIndex = i),
-            itemBuilder: (context, index) {
-              final card = _heroCards[index];
-              return GestureDetector(
-                onTap: () => _handleHeroTap(card),
-                child: _heroSlideImage(card['image'] as String),
-              );
-            },
-          ),
-          if (_heroCards.length > 1)
-            Positioned(
-              bottom: 10,
-              left: 0,
-              right: 0,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(_heroCards.length, (i) {
-                  final active = i == _heroPageIndex;
-                  return AnimatedContainer(
-                    duration: const Duration(milliseconds: 250),
-                    margin: const EdgeInsets.symmetric(horizontal: 3),
-                    width: active ? 18 : 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: active
-                          ? Colors.white
-                          : Colors.white.withValues(alpha: 0.5),
-                      borderRadius: BorderRadius.circular(3),
-                    ),
-                  );
-                }),
-              ),
+    return RepaintBoundary(
+      child: SizedBox(
+        width: heroWidth,
+        height: heroHeight,
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _heroPageController,
+              itemCount: _heroCards.length,
+              onPageChanged: (i) => setState(() => _heroPageIndex = i),
+              itemBuilder: (context, index) {
+                final card = _heroCards[index];
+                return GestureDetector(
+                  onTap: () => _handleHeroTap(card),
+                  child: _heroSlideImage(card['image'] as String),
+                );
+              },
             ),
-        ],
+            if (_heroCards.length > 1)
+              Positioned(
+                bottom: 10,
+                left: 0,
+                right: 0,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(_heroCards.length, (i) {
+                    final active = i == _heroPageIndex;
+                    return AnimatedContainer(
+                      duration: const Duration(milliseconds: 250),
+                      margin: const EdgeInsets.symmetric(horizontal: 3),
+                      width: active ? 18 : 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        color: active
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    );
+                  }),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -2298,42 +2137,87 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _heroSlideImage(String image) {
     if (image.startsWith('http')) {
       final devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
-      return CachedNetworkImage(
-        imageUrl: image,
-        fit: BoxFit.fitWidth,
-        alignment: Alignment.center,
-        width: double.infinity,
-        memCacheWidth: (900 * devicePixelRatio).round(),
-        fadeInDuration: const Duration(milliseconds: 150),
-        placeholder: (ctx, url) => Container(color: const Color(0xFFF1F5F9)),
-        errorWidget: (ctx, url, err) => Container(
-          color: const Color(0xFF16A34A),
-          child: const Center(
-            child: Icon(
-              Icons.image_not_supported_outlined,
-              color: Colors.white,
-              size: 40,
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Transform.scale(
+              scale: 1.16,
+              child: CachedNetworkImage(
+                imageUrl: image,
+                fit: BoxFit.cover,
+                alignment: Alignment.center,
+                memCacheWidth: (760 * devicePixelRatio).round(),
+                fadeInDuration: Duration.zero,
+                placeholder: (ctx, url) =>
+                    Container(color: const Color(0xFFF1F5F9)),
+                errorWidget: (ctx, url, err) =>
+                    Container(color: const Color(0xFF16A34A)),
+              ),
+            ),
+          ),
+          Container(color: Colors.white.withValues(alpha: 0.14)),
+          CachedNetworkImage(
+            imageUrl: image,
+            fit: BoxFit.contain,
+            alignment: Alignment.center,
+            width: double.infinity,
+            memCacheWidth: (900 * devicePixelRatio).round(),
+            fadeInDuration: const Duration(milliseconds: 150),
+            placeholder: (ctx, url) =>
+                Container(color: const Color(0xFFF1F5F9)),
+            errorWidget: (ctx, url, err) => Container(
+              color: const Color(0xFF16A34A),
+              child: const Center(
+                child: Icon(
+                  Icons.image_not_supported_outlined,
+                  color: Colors.white,
+                  size: 40,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ImageFiltered(
+          imageFilter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+          child: Transform.scale(
+            scale: 1.16,
+            child: Image.asset(
+              image,
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+              filterQuality: FilterQuality.low,
+              errorBuilder: (_, _, _) => Container(
+                color: const Color(0xFF16A34A),
+              ),
             ),
           ),
         ),
-      );
-    }
-    return Image.asset(
-      image,
-      fit: BoxFit.fitWidth,
-      alignment: Alignment.center,
-      filterQuality: FilterQuality.high,
-      width: double.infinity,
-      errorBuilder: (_, _, _) => Container(
-        color: const Color(0xFF16A34A),
-        child: const Center(
-          child: Icon(
-            Icons.image_not_supported_outlined,
-            color: Colors.white,
-            size: 40,
+        Container(color: Colors.white.withValues(alpha: 0.14)),
+        Image.asset(
+          image,
+          fit: BoxFit.contain,
+          alignment: Alignment.center,
+          filterQuality: FilterQuality.high,
+          width: double.infinity,
+          errorBuilder: (_, _, _) => Container(
+            color: const Color(0xFF16A34A),
+            child: const Center(
+              child: Icon(
+                Icons.image_not_supported_outlined,
+                color: Colors.white,
+                size: 40,
+              ),
+            ),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -2400,194 +2284,199 @@ class _HomeScreenState extends State<HomeScreen>
 
   // ── Spin / Play / Refer unified light container ────────────────────────────
   Widget _spinGameReferContainer() {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 0,
-      crossAxisSpacing: 0,
-      childAspectRatio: 1.45,
-      padding: EdgeInsets.zero,
-      children: [
-        // Top left: Spin & Win
-        GestureDetector(
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen())),
-          child: Image.asset(
-            'assets/images/spin_and_win.png',
-            fit: BoxFit.fill,
-            width: double.infinity,
-            height: double.infinity,
-            errorBuilder: (context, error, stackTrace) => Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFFEC4899), Color(0xFFBE185D)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+    return RepaintBoundary(
+      child: GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        mainAxisSpacing: 0,
+        crossAxisSpacing: 0,
+        childAspectRatio: 1.62,
+        padding: EdgeInsets.zero,
+        children: [
+          // Top left: Spin & Win
+          GestureDetector(
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const SpinWheelScreen())),
+            child: Image.asset(
+              'assets/images/spin_and_win.png',
+              fit: BoxFit.fill,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) => Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Color(0xFFEC4899), Color(0xFFBE185D)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('🎡', style: TextStyle(fontSize: 32)),
+                      SizedBox(height: 4),
+                      Text(
+                        'Spin & Win',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              child: const Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('🎡', style: TextStyle(fontSize: 32)),
-                    SizedBox(height: 4),
-                    Text(
-                      'Spin & Win',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 12,
-                      ),
+            ),
+          ),
+          // Top right: Play & Win
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const FashionQuestScreen()),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/play_and_win.png',
+                fit: BoxFit.fill,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7C3AED), Color(0xFF0EA5E9)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
                     ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        // Top right: Play & Win
-        GestureDetector(
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const FashionQuestScreen())),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              'assets/images/play_and_win.png',
-              fit: BoxFit.fill,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) => Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFF0EA5E9)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('🎮', style: TextStyle(fontSize: 32)),
-                      SizedBox(height: 4),
-                      Text(
-                        'Play & Win',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🎮', style: TextStyle(fontSize: 32)),
+                        SizedBox(height: 4),
+                        Text(
+                          'Play & Win',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        // Bottom left: Refer & Earn
-        GestureDetector(
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const ReferEarnScreen())),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              'assets/images/refer_and_earn_new.png',
-              fit: BoxFit.fill,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) => Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF7C3AED), Color(0xFF4338CA)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          // Bottom left: Refer & Earn
+          GestureDetector(
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ReferEarnScreen())),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/refer_and_earn_new.png',
+                fit: BoxFit.fill,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF7C3AED), Color(0xFF4338CA)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('🎁', style: TextStyle(fontSize: 32)),
-                      SizedBox(height: 4),
-                      Text(
-                        'Refer & Earn',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🎁', style: TextStyle(fontSize: 32)),
+                        SizedBox(height: 4),
+                        Text(
+                          'Refer & Earn',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-        // Bottom right: Free Delivery
-        GestureDetector(
-          onTap: () => Navigator.of(
-            context,
-          ).push(MaterialPageRoute(builder: (_) => const AllProductsScreen())),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.asset(
-              'assets/images/free_delivery.png',
-              fit: BoxFit.fill,
-              width: double.infinity,
-              height: double.infinity,
-              errorBuilder: (context, error, stackTrace) => Container(
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF059669), Color(0xFF065F46)],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
+          // Bottom right: Free Delivery
+          GestureDetector(
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const AllProductsScreen()),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.asset(
+                'assets/images/free_delivery.png',
+                fit: BoxFit.fill,
+                width: double.infinity,
+                height: double.infinity,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF059669), Color(0xFF065F46)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
                   ),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text('🚚', style: TextStyle(fontSize: 32)),
-                      SizedBox(height: 4),
-                      Text(
-                        'Free Delivery',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 12,
+                  child: const Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('🚚', style: TextStyle(fontSize: 32)),
+                        SizedBox(height: 4),
+                        Text(
+                          'Free Delivery',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   // ── Banner 01 Strip ───────────────────────────────────────────────────────
   Widget _banner01Strip() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: Image.asset(
-          'assets/images/banner01.jpeg',
-          fit: BoxFit.fitWidth,
-          width: double.infinity,
-          errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
+    return RepaintBoundary(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 10, 12, 0),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: Image.asset(
+            'assets/images/banner01.jpeg',
+            fit: BoxFit.fitWidth,
+            width: double.infinity,
+            errorBuilder: (context, error, stackTrace) =>
+                const SizedBox.shrink(),
+          ),
         ),
       ),
     );
@@ -2596,7 +2485,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Universe Section ────────────────────────────────────────────────────
   Widget _universeSection() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 22, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 2),
       child: Column(
         children: [
           // ── — Explore — ─────────────────────────────────────────────
@@ -2879,7 +2768,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Shop Categories Section Header ────────────────────────────────────────
   Widget _shopCategoriesSectionHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+      padding: const EdgeInsets.fromLTRB(12, 4, 12, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -2948,7 +2837,7 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Shop Brands Section Header ────────────────────────────────────────────
   Widget _shopBrandsSectionHeader() {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 16, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -3022,7 +2911,7 @@ class _HomeScreenState extends State<HomeScreen>
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
           child: Row(
             children: [
               // Hot-deal flame badge — matches web's hp-shead-mark-deals
@@ -3176,7 +3065,7 @@ class _HomeScreenState extends State<HomeScreen>
       final isLastWordHighlight = words.length > 1;
 
       return Padding(
-        padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 6),
         child: Row(
           children: [
             if (iconAsset != null) ...[
@@ -3275,7 +3164,7 @@ class _HomeScreenState extends State<HomeScreen>
     }
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 24, 16, 12),
+      padding: const EdgeInsets.fromLTRB(12, 14, 12, 8),
       child: Row(
         children: [
           if (iconAsset != null)
@@ -3552,13 +3441,11 @@ class _HomeScreenState extends State<HomeScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // ── Text-only category chips ───────────────────────────────
-        SizedBox(
-          height: 50,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
-            itemCount: categoryChips.length + 1,
-            itemBuilder: (_, i) {
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
+          child: Row(
+            children: List.generate(categoryChips.length + 1, (i) {
               String label;
               if (i == 0) {
                 label = 'All';
@@ -3584,38 +3471,45 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
-                child: Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 10,
-                  ),
-                  decoration: BoxDecoration(
-                    color: i == 0
-                        ? const Color(0xFF16A34A)
-                        : const Color(0xFFF5F5F5),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
                       color: i == 0
                           ? const Color(0xFF16A34A)
-                          : const Color(0xFFE0E0E0),
-                      width: 1,
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(20),
+                      border: i == 0
+                          ? null
+                          : Border.all(
+                              color: const Color(0xFFE5E7EB),
+                              width: 1,
+                            ),
                     ),
-                  ),
-                  child: Center(
-                    child: Text(
-                      label,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: i == 0 ? Colors.white : const Color(0xFF1F2937),
-                        letterSpacing: 0.2,
+                    child: Center(
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        softWrap: false,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: i == 0
+                              ? Colors.white
+                              : const Color(0xFF6B7280),
+                          letterSpacing: 0.2,
+                        ),
                       ),
                     ),
                   ),
                 ),
               );
-            },
+            }),
           ),
         ),
         const SizedBox(height: 10),
@@ -3853,6 +3747,8 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _standardHomeProductCard(
     Map<String, dynamic> item, {
     bool isNew = false,
+    double width = 168,
+    EdgeInsetsGeometry margin = const EdgeInsets.only(right: 12),
   }) {
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
@@ -3906,8 +3802,8 @@ class _HomeScreenState extends State<HomeScreen>
     return GestureDetector(
       onTap: item['id'] != null ? () => _openProduct(item) : null,
       child: Container(
-        width: 168,
-        margin: const EdgeInsets.only(right: 12),
+        width: width,
+        margin: margin,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
@@ -6273,15 +6169,27 @@ class _HomeScreenState extends State<HomeScreen>
           }
         }
       },
-      child: Image.asset(
-        'assets/images/coupon.png',
-        fit: BoxFit.cover,
-        width: double.infinity,
-        errorBuilder: (context, error, stackTrace) => Container(
-          height: 120,
-          color: const Color(0xFFDCFCE7),
-          child: const Center(child: Text('Exclusive app coupon available')),
-        ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final bannerHeight =
+              (constraints.maxWidth * 393 / 2944 - 8).clamp(44.0, 68.0);
+          return SizedBox(
+            width: double.infinity,
+            height: bannerHeight.toDouble(),
+            child: Image.asset(
+              'assets/images/coupon.png',
+              fit: BoxFit.cover,
+              width: double.infinity,
+              height: double.infinity,
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: const Color(0xFFDCFCE7),
+                child: const Center(
+                  child: Text('Exclusive app coupon available'),
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -6350,12 +6258,14 @@ class _HomeScreenState extends State<HomeScreen>
 
     return Listener(
       onPointerDown: (_) => _pauseBrandCarousel(),
-      child: Column(
-        children: [
-          _brandMarqueeRow(topRow, _brandRowTopController),
-          _brandMarqueeRow(bottomRow, _brandRowBottomController),
-          _brandArrows(),
-        ],
+      child: RepaintBoundary(
+        child: Column(
+          children: [
+            _brandMarqueeRow(topRow, _brandRowTopController),
+            _brandMarqueeRow(bottomRow, _brandRowBottomController),
+            _brandArrows(),
+          ],
+        ),
       ),
     );
   }
@@ -6363,7 +6273,7 @@ class _HomeScreenState extends State<HomeScreen>
   // Manual scroll arrows — mirror the web carousel's left/right buttons.
   Widget _brandArrows() {
     return Padding(
-      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      padding: const EdgeInsets.only(top: 2, bottom: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -6371,7 +6281,7 @@ class _HomeScreenState extends State<HomeScreen>
             Icons.chevron_left_rounded,
             () => _nudgeBrandRows(forward: false),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 12),
           _brandArrowButton(
             Icons.chevron_right_rounded,
             () => _nudgeBrandRows(forward: true),
@@ -6386,8 +6296,8 @@ class _HomeScreenState extends State<HomeScreen>
       onTap: onTap,
       customBorder: const CircleBorder(),
       child: Container(
-        width: 32,
-        height: 32,
+        width: 28,
+        height: 28,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: Colors.white,
@@ -6400,7 +6310,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
           ],
         ),
-        child: Icon(icon, size: 20, color: const Color(0xFF334155)),
+        child: Icon(icon, size: 18, color: const Color(0xFF334155)),
       ),
     );
   }
@@ -6413,7 +6323,7 @@ class _HomeScreenState extends State<HomeScreen>
     if (brands.isEmpty) return const SizedBox.shrink();
 
     return SizedBox(
-      height: 160,
+      height: 136,
       child: ScrollbarTheme(
         data: ScrollbarThemeData(
           thumbColor: WidgetStateProperty.all(Colors.transparent),
@@ -6422,7 +6332,8 @@ class _HomeScreenState extends State<HomeScreen>
         child: ListView.builder(
           controller: controller,
           scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          padding: const EdgeInsets.fromLTRB(12, 6, 12, 6),
+          itemExtent: 106,
           itemCount: brands.length * 2,
           itemBuilder: (context, index) {
             final brand = brands[index % brands.length];
@@ -6447,14 +6358,14 @@ class _HomeScreenState extends State<HomeScreen>
                 }
               },
               child: Container(
-                width: 110,
-                margin: const EdgeInsets.only(right: 12),
+                width: 96,
+                margin: const EdgeInsets.only(right: 10),
                 child: Column(
                   children: [
                     // Brand box with rounded corners
                     Container(
-                      width: 110,
-                      height: 110,
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(14),
                         color: const Color(0xFFF8FAFC),
@@ -6474,7 +6385,7 @@ class _HomeScreenState extends State<HomeScreen>
                         borderRadius: BorderRadius.circular(13),
                         child: imgUrl != null
                             ? Padding(
-                                padding: const EdgeInsets.all(6),
+                                padding: const EdgeInsets.all(5),
                                 child: CachedNetworkImage(
                                   imageUrl: imgUrl,
                                   memCacheWidth:
@@ -6521,7 +6432,7 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     // Brand name
                     Text(
                       name,
@@ -6529,7 +6440,7 @@ class _HomeScreenState extends State<HomeScreen>
                       overflow: TextOverflow.ellipsis,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        fontSize: 12,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Color(0xFF1F2937),
                         height: 1.2,

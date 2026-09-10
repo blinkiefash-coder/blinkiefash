@@ -246,6 +246,7 @@ export default function Shop() {
           setProducts(nextProducts);
           shopCatalogCache = { ...(shopCatalogCache || {}), products: nextProducts };
         }
+        if (!isCancelled) setProducts(extractProducts(data));
       })
       .catch((err) => {
         console.error("[Shop] Error fetching products:", err);

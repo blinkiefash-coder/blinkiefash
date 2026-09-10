@@ -246,7 +246,7 @@ export const requestClothesPickup = (payload) =>
 
 export const submitSupportTicket = async (payload) => {
   try {
-    const ticket = await request('/support-tickets', {
+    const ticket = await request('/support/tickets', {
       method: 'POST',
       body: JSON.stringify(payload),
     });
