@@ -435,6 +435,52 @@
   padding: 0 3px;
 }
 
+/* ---- Login button (shown in header actions when logged out) ---- */
+.hp-login-btn {
+  display: inline-flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 6px !important;
+  border: none;
+  background: var(--theme-primary, #16a34a);
+  color: #fff !important;
+  font-size: 12.5px !important;
+  font-weight: 800;
+  padding: 9px 16px;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.3);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+  white-space: nowrap;
+}
+
+.hp-login-btn svg {
+  font-size: 16px;
+  color: #fff;
+}
+
+.hp-login-btn:hover {
+  background: var(--theme-dark, #15803d);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(22, 163, 74, 0.36);
+}
+
+@media (max-width: 900px) {
+  .hp-login-btn {
+    padding: 8px 12px;
+    font-size: 11.5px !important;
+  }
+
+  .hp-login-btn span {
+    display: inline !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-login-btn {
+    padding: 7px 10px;
+  }
+}
+
 /* ---- Hamburger trigger (hidden on desktop, shown <768px) ---- */
 .hp-drawer-toggle {
   display: none;
@@ -767,9 +813,11 @@
 }
 
 .hp-slide {
+  position: relative;
   scroll-snap-align: start;
   flex: 0 0 100%;
-  aspect-ratio: 3.4 / 1;
+  aspect-ratio: var(--hp-hero-ratio, 3.4 / 1);
+  max-height: min(520px, 62vh);
   border: none;
   border-radius: 16px;
   overflow: hidden;
@@ -803,11 +851,48 @@
 }
 
 .hp-slide-img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  display: block;
+}
+
+.hp-slide picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hp-slide-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hp-slide-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
-  display: block;
+  object-position: center;
+  transform: scale(1.08);
+  filter: blur(18px) saturate(1.08);
+  opacity: 0.72;
+}
+
+.hp-slide-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.14));
+}
+
+.hp-slide-fg {
+  position: relative;
+  z-index: 1;
 }
 
 .hp-hero-dots {
@@ -1183,6 +1268,91 @@
   opacity: 0.75;
 }
 
+/* ================================================================
+   Spin & Win / Play & Win / Refer & Earn / Free Delivery cards
+   (image-based reward cards used in the Home page rewards grid).
+   These live OUTSIDE any media query so they apply on every
+   screen size, not just mobile.
+   ================================================================ */
+.hp-reward-image-card {
+  position: relative;
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  padding: 0;
+  overflow: hidden;
+  border: none;
+  outline: none;
+  border-radius: 16px;
+  background: transparent;
+  cursor: pointer;
+  line-height: 0;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hp-reward-image-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.16);
+}
+
+.hp-reward-image-card:active {
+  transform: translateY(-1px);
+}
+
+.hp-reward-image-card:focus,
+.hp-reward-image-card:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.28), 0 14px 28px rgba(15, 23, 42, 0.14);
+}
+
+.hp-reward-image-card img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Small green "Login" pill shown over Spin/Play/Refer cards when
+   the visitor is not signed in. */
+.hp-reward-login-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  box-shadow: 0 6px 14px rgba(22, 163, 74, 0.35);
+  pointer-events: none;
+}
+
+.hp-reward-login-badge svg {
+  font-size: 13px;
+}
+
+@media (max-width: 640px) {
+  .hp-reward-login-badge {
+    font-size: 9.5px;
+    padding: 4px 9px;
+    top: 6px;
+    right: 6px;
+    gap: 3px;
+  }
+
+  .hp-reward-login-badge svg {
+    font-size: 11px;
+  }
+}
+
 /* ===== DEALS RAIL — mobile swipe ready ===== */
 .hp-deals-wrap {
   position: relative;
@@ -1439,6 +1609,35 @@
   color: var(--brand-dark);
   white-space: normal;
   word-break: break-word;
+}
+
+/* Text-only chips mode (for Men's, Women's collections) */
+.hp-collection-chips.text-only .hp-collection-chip {
+  flex: none;
+  min-width: auto;
+  max-width: none;
+  padding: 10px 20px;
+  background: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  gap: 0;
+  box-shadow: none;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip:hover {
+  background: #efefef;
+  border-color: #d0d0d0;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip.active {
+  background: var(--theme-primary, #159447);
+  border-color: var(--theme-primary, #159447);
+  color: #fff;
+}
+
+.hp-collection-chips.text-only .hp-collection-chip-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: inherit;
 }
 
 .hp-subcat-rail {
@@ -2085,9 +2284,14 @@
     overflow: visible;
   }
 
+  .hp-shop-brand-visual {
+    min-height: 115px !important;
+    padding: 14px 8px 10px;
+  }
+
   .hp-shop-brand-logo {
     max-width: 92%;
-    max-height: 75px;
+    max-height: 90px;
     width: auto;
     height: auto;
   }
@@ -3617,276 +3821,6 @@ html, body, #root {
   }
 }
 
-/* =========================================================================
-   FINAL MOBILE BANNERS PASS — Hero Carousel, Reward Panels, Universe Brand
-   Banners. Consolidated here on purpose: earlier breakpoints above already
-   touch these three components in several places (some with !important),
-   which made behavior hard to predict. Everything below uses !important
-   and sits at the very end of the file so it is the single source of truth
-   for how these three banners behave on phones/tablets — safe to tweak
-   these numbers without hunting through the rest of the stylesheet.
-   ========================================================= */
-
-@media (max-width: 768px) {
-  /* ---------- 1. HERO CAROUSEL ---------- */
-  .hp-hero-carousel {
-    width: 100% !important;
-    margin: 0 0 4px !important;
-    border-radius: 0 !important;
-    overflow: hidden !important;
-  }
-
-  .hp-hero-track {
-    gap: 0 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    scroll-snap-type: x mandatory !important;
-    touch-action: pan-x !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  .hp-slide {
-    flex: 0 0 100% !important;
-    aspect-ratio: 2.2 / 1 !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    background: #e2e8f0 !important;
-  }
-
-  .hp-slide-img {
-    object-fit: cover !important;
-    object-position: center !important;
-  }
-
-  .hp-hero-arrow {
-    display: none !important;
-  }
-
-  .hp-hero-dots {
-    margin-top: 8px !important;
-  }
-
-  /* ---------- 2. REWARD PANELS ---------- */
-  .hp-rewards-grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-areas:
-      "spin"
-      "play"
-      "refer"
-      "stack" !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-
-  .hp-reward-spin  { grid-area: spin !important; }
-  .hp-reward-play  { grid-area: play !important; }
-  .hp-reward-refer { grid-area: refer !important; }
-  .hp-reward-stack {
-    grid-area: stack !important;
-    flex-direction: row !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-
-  .hp-reward-panel {
-    width: 100% !important;
-    min-height: 120px !important;
-    border-radius: 12px !important;
-    box-shadow: none !important;
-    padding: 14px !important;
-  }
-
-  .hp-reward-spin,
-  .hp-reward-play {
-    min-height: 132px !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    justify-content: space-between !important;
-  }
-
-  .hp-reward-spin .hp-reward-copy,
-  .hp-reward-play .hp-reward-copy {
-    width: 100% !important;
-    padding-right: 46px !important;
-  }
-
-  .hp-reward-copy h3 {
-    font-size: 14px !important;
-  }
-
-  .hp-reward-copy p {
-    font-size: 11px !important;
-    max-width: 100% !important;
-  }
-
-  .hp-reward-graphic {
-    width: 44px !important;
-    height: 44px !important;
-    font-size: 22px !important;
-  }
-
-  .hp-reward-spin .hp-reward-graphic,
-  .hp-reward-play .hp-reward-graphic {
-    position: absolute !important;
-    top: 10px !important;
-    right: 10px !important;
-  }
-
-  .hp-reward-copy button {
-    font-size: 10px !important;
-    min-height: 34px !important;
-    padding: 8px 10px !important;
-    width: 100% !important;
-    justify-content: center !important;
-  }
-
-  .hp-reward-mini {
-    padding: 12px 14px !important;
-    border-radius: 12px !important;
-  }
-
-  .hp-reward-mini strong {
-    font-size: 12px !important;
-  }
-
-  .hp-reward-mini span {
-    font-size: 9.5px !important;
-  }
-
-  .hp-reward-mini-icon {
-    font-size: 20px !important;
-  }
-
-  /* ---------- 3. UNIVERSE BRAND BANNERS ---------- */
-  .hp-brand-grid {
-    display: flex !important;
-    grid-template-columns: none !important;
-    overflow-x: auto !important;
-    gap: 10px !important;
-    padding: 4px 2px 10px !important;
-    scroll-snap-type: x mandatory !important;
-    touch-action: pan-x !important;
-    -webkit-overflow-scrolling: touch !important;
-  }
-
-  .hp-brand-banner {
-    flex: 0 0 auto !important;
-    width: 78% !important;
-    max-width: 320px !important;
-    min-height: 110px !important;
-    border-radius: 12px !important;
-    scroll-snap-align: start !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .hp-slide {
-    aspect-ratio: 2 / 1 !important;
-  }
-
-  .hp-reward-panel {
-    min-height: 104px !important;
-    padding: 10px !important;
-  }
-
-  .hp-reward-spin,
-  .hp-reward-play {
-    min-height: 118px !important;
-  }
-
-  .hp-reward-graphic {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 18px !important;
-  }
-
-  .hp-reward-copy h3 {
-    font-size: 13px !important;
-  }
-
-  .hp-reward-mini strong {
-    font-size: 11px !important;
-  }
-
-  .hp-reward-mini span {
-    font-size: 9px !important;
-  }
-
-  .hp-brand-banner {
-    width: 84% !important;
-    min-height: 96px !important;
-  }
-}
-
-/* =========================================================
-   GAP FIX — coupon banner ↔ hero carousel ↔ dots
-   Makes both banners bleed full-width consistently and
-   removes the stray vertical gaps between them on mobile.
-   Placed at the very end so it wins the cascade over every
-   earlier pass that touched these components.
-   ========================================================= */
-@media (max-width: 768px) {
-  .hp-coupon-section {
-    margin-bottom: 0 !important;
-  }
-
-  /* Match the hero carousel's bleed to the coupon banner's bleed
-     so there's no visual "step" or gray strip between them */
-  .hp-hero-carousel {
-    width: calc(100% + 20px) !important;
-    margin: 0 -10px 8px !important;
-    border-radius: 0 !important;
-  }
-
-  .hp-hero-dots {
-    margin-top: 6px !important;
-  }
-
-  /* Tighten the top of hp-main so nothing floats below the header
-     with extra breathing room before the coupon banner starts */
-  .hp-main {
-    padding-top: 8px !important;
-  }
-}
-
-@media (max-width: 768px) {
-  .hp-slide {
-    aspect-ratio: 16 / 10 !important;
-  }
-
-  .hp-deals-rail {
-    grid-auto-columns: calc((100% - 10px) / 2) !important;
-    gap: 10px !important;
-    padding-top: 2px;
-  }
-
-  .hp-deals-rail.is-recently-viewed {
-    grid-auto-columns: calc((100% - 10px) / 2) !important;
-  }
-
-  .hp-deals-rail .pc-image-wrap {
-    aspect-ratio: 4 / 5;
-  }
-
-  .hp-deals-rail .pc-body {
-    padding: 8px 9px 11px;
-  }
-}
-
-@media (max-width: 420px) {
-  .hp-coupon-section {
-    margin: 0 -8px 0 !important;
-  }
-
-  .hp-hero-carousel {
-    width: calc(100% + 16px) !important;
-    margin: 0 -8px 6px !important;
-  }
-}
-
 /* Belt-and-braces: kill any inherited top margin on the first
    child inside hp-main so there's never a phantom gap at the top */
 .hp-main > *:first-child {
@@ -3915,7 +3849,7 @@ html, body, #root {
   height: 100% !important;
   min-width: 100% !important;
   min-height: 100% !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center !important;
 }
 
@@ -3985,49 +3919,70 @@ html, body, #root {
 }
 
 /* =========================================================
-   FIX: Hero banner cropping left/right on mobile.
-   Root cause: mobile breakpoints forced .hp-slide into a
-   taller aspect-ratio (2.2/1, then 2/1 on small phones)
-   than the banner images are actually designed for (3.4/1).
-   Since .hp-slide-img uses object-fit: cover, squeezing the
-   box into a taller ratio than the source image zooms in and
-   crops the sides. Keeping 3.4/1 at every breakpoint shows
-   the banner exactly as designed, with no cropping.
-   Placed at the very end so it wins the cascade over every
-   earlier breakpoint that changed this ratio.
+   HERO BANNER ASPECT RATIO
+   -------------------------------------------------------
+   Desktop banners (banner1-6.png) are designed wide, ~3.4:1.
+   Mobile banners (mobilebanner1-6.png) are designed taller,
+   ~1.4:1 (portrait-friendly crop for phones).
+
+   Previously a single unscoped rule at the very end of this
+   file forced aspect-ratio: 1.4/1 on .hp-slide at EVERY
+   viewport width — including desktop. Since <picture> only
+   swaps in the mobile image below 767px, desktop was still
+   loading the wide banner1-6.png files but squeezing them
+   into the tall mobile ratio, so they looked cropped/zoomed
+   like the mobile banners even on large screens.
+
+   Fixed: scope the ratio per breakpoint so desktop keeps the
+   wide 3.4:1 banners as designed, and only phones get the
+   taller mobile ratio.
    ========================================================= */
-.hp-slide {
-  aspect-ratio: 3.4 / 1 !important;
-}
-
-@media (max-width: 768px) {
+@media (min-width: 768px) {
   .hp-slide {
-    aspect-ratio: 3.4 / 1 !important;
+    aspect-ratio: var(--hp-hero-ratio, 3.4 / 1) !important;
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 767px) {
   .hp-slide {
-    aspect-ratio: 3.4 / 1 !important;
-  }
-}
-
-@media (max-width: 480px) {
-  .hp-slide {
-    aspect-ratio: 3.4 / 1 !important;
-  }
-}
-
-@media (max-width: 420px) {
-  .hp-slide {
-    aspect-ratio: 3.4 / 1 !important;
+    aspect-ratio: var(--hp-hero-ratio, 1.4 / 1) !important;
     min-height: 145px !important;
+    max-height: min(620px, 72vh) !important;
   }
 }
 
 .hp-slide-img {
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+.hp-slide-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+}
+
+.hp-slide-bg img {
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover !important;
   object-position: center !important;
+  transform: scale(1.08) !important;
+  filter: blur(18px) saturate(1.08) !important;
+  opacity: 0.72 !important;
+}
+
+.hp-slide-bg::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.14)) !important;
+}
+
+.hp-slide-fg {
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 /* =========================================================
@@ -4045,125 +4000,13 @@ html, body, #root {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     grid-template-areas: none !important;
-    gap: 6px !important;
+    gap: 10px !important;
     width: 100% !important;
   }
 
-  .hp-reward-spin  { grid-area: auto !important; }
-  .hp-reward-play  { grid-area: auto !important; }
-  .hp-reward-refer { grid-area: auto !important; }
-
-  /* Let the remaining offer join the other three cards in the grid. */
-  .hp-reward-stack {
-    display: contents !important;
-    grid-column: auto !important;
-    grid-area: auto !important;
-  }
-
-  .hp-reward-mini {
-    grid-column: auto !important;
-    min-height: 108px !important;
-  }
-
-  .hp-reward-panel,
-  .hp-reward-spin,
-  .hp-reward-play,
-  .hp-reward-refer {
-    width: 100% !important;
-    min-height: 108px !important;
-    border-radius: 10px !important;
-    padding: 8px !important;
-    flex-direction: column !important;
-    align-items: flex-start !important;
-    justify-content: flex-end !important;
-    gap: 4px !important;
-  }
-
-  /* Icon shrinks and tucks into the corner instead of taking
-     up prime real estate */
-  .hp-reward-graphic {
-    position: absolute !important;
-    top: 6px !important;
-    right: 6px !important;
-    width: 26px !important;
-    height: 26px !important;
-    font-size: 13px !important;
-  }
-
-  .hp-reward-copy {
-    width: 100% !important;
-    padding-right: 0 !important;
-    gap: 2px !important;
-  }
-
-  .hp-reward-copy h3 {
-    font-size: 10.5px !important;
-    line-height: 1.15 !important;
-  }
-
-  /* Descriptions are too long for a card this small — hide them */
-  .hp-reward-copy p {
-    display: none !important;
-  }
-
-  .hp-reward-amount {
-    font-size: 8.5px !important;
-    padding: 2px 6px !important;
-    margin-top: 0 !important;
-  }
-
-  .hp-reward-copy button {
-    font-size: 8.5px !important;
-    padding: 5px 6px !important;
-    min-height: 24px !important;
-    width: 100% !important;
-    justify-content: center !important;
-    gap: 2px !important;
-    margin-top: 2px !important;
-  }
-
-  .hp-reward-copy button svg {
-    display: none !important;
-  }
-
-  .hp-reward-refer .hp-referral-code {
-    display: none !important;
-  }
-
-  .hp-reward-panel::before,
-  .hp-reward-panel::after {
-    display: none !important;
-  }
-}
-
-@media (max-width: 420px) {
-  .hp-reward-panel,
-  .hp-reward-spin,
-  .hp-reward-play,
-  .hp-reward-refer {
-    min-height: 96px !important;
-    padding: 7px !important;
-  }
-
-  .hp-reward-copy h3 {
-    font-size: 9.5px !important;
-  }
-
-  .hp-reward-graphic {
-    width: 22px !important;
-    height: 22px !important;
-    font-size: 11px !important;
-    top: 5px !important;
-    right: 5px !important;
-  }
-
-  .hp-reward-copy button {
-    font-size: 8px !important;
-    min-height: 22px !important;
-  }
-
-  .hp-reward-amount {
-    font-size: 8px !important;
+  .hp-reward-image-card {
+    aspect-ratio: 2.1 / 1 !important;
+    border-radius: 12px !important;
   }
 }
 
@@ -4180,48 +4023,6 @@ html, body, #root {
   position: relative;
   z-index: 5;
   pointer-events: auto !important;
-}
-
-
-/* =========================================================
-   Mobile-only hero aspect ratio — matches mobilebanner1-6.png
-   Updated: height increased from the source 1950x800 (2.44:1)
-   to a 16:9 ratio for a taller mobile banner. If you re-export
-   the mobile banner art, use 1950x1097 to match this ratio
-   exactly with no cropping. Scoped to phones only (<=767px) so
-   tablets (iPad = 768px+ portrait width) and desktop keep the
-   3.4/1 desktop banner ratio untouched.
-   ========================================================= */
-@media (max-width: 767px) {
-  .hp-slide {
-    aspect-ratio: 16 / 9 !important;
-  }
-
-.hp-reward-image-card {
-  display: block;
-  width: 100%;
-  aspect-ratio: 2 / 1;
-  padding: 0;
-  overflow: hidden;
-  border: 0;
-  border-radius: 12px;
-  background: transparent;
-  cursor: pointer;
-  line-height: 0;
-  transition: transform 0.25s ease;
-}
-
-.hp-reward-image-card:hover {
-  transform: translateY(-2px);
-}
-
-.hp-reward-image-card img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-
-}
 }
 
 /* =========================================================
@@ -4345,8 +4146,20 @@ html, body, #root {
   -webkit-text-fill-color: transparent;
 }
 
+.hp-shead-text-block {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .hp-shead-subtitle {
-  display: none;
+  display: block;
+  font-size: clamp(0.75rem, 2vw, 0.9rem);
+  color: #64748b;
+  font-weight: 500;
+  margin: 0;
+  letter-spacing: 0.3px;
+  line-height: 1.3;
 }
 
 .hp-shead-actions {
@@ -4459,8 +4272,16 @@ html, body, #root {
   }
 }
 
+@media (max-width: 640px) {
+  .hp-shead-subtitle {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    letter-spacing: 0.2px;
+  }
+}
+
 @media (max-width: 480px) {
-  .hp-shop-brands-section .hp-shead-subtitle {
+  .hp-shead-subtitle {
     display: none;
   }
 }
@@ -4587,4 +4408,70 @@ html, body, #root {
     border: none !important;
     background: transparent !important;
   }
-} 
+}
+
+/* =========================================================
+   SHOP BY BRANDS — smaller cards on mobile (final override)
+   ========================================================= */
+@media (max-width: 768px) {
+  .hp-shop-brands-grid {
+    grid-auto-columns: 118px !important;
+    gap: 8px !important;
+    padding: 4px 2px 10px !important;
+  }
+
+  .hp-shop-brand-card {
+    flex: 0 0 118px !important;
+    min-width: 118px !important;
+    min-height: 150px !important;
+    border-radius: 12px !important;
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 90px !important;
+    padding: 10px 8px 6px !important;
+  }
+
+  .hp-shop-brand-logo {
+    max-height: 60px !important;
+  }
+
+  .hp-shop-brand-footer {
+    padding: 8px 10px 10px !important;
+  }
+
+  .hp-shop-brand-name {
+    font-size: 11.5px !important;
+  }
+
+  .hp-shop-brand-arrow {
+    width: 22px !important;
+    height: 22px !important;
+  }
+}
+
+@media (max-width: 420px) {
+  .hp-shop-brands-grid {
+    grid-auto-columns: 100px !important;
+    gap: 8px !important;
+  }
+
+  .hp-shop-brand-card {
+    flex: 0 0 100px !important;
+    min-width: 100px !important;
+    min-height: 130px !important;
+  }
+
+  .hp-shop-brand-visual {
+    min-height: 76px !important;
+    padding: 8px 6px 4px !important;
+  }
+
+  .hp-shop-brand-logo {
+    max-height: 46px !important;
+  }
+
+  .hp-shop-brand-name {
+    font-size: 10.5px !important;
+  }
+}

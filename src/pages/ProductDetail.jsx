@@ -209,7 +209,7 @@ export default function ProductDetail() {
       <div className="hp-utility-bar">
         <div className="hp-utility-left">
           <span className="hp-utility-item"><MdBolt /> 60-Minute Delivery</span>
-          <span className="hp-utility-item"><MdVerified /> Try &amp; Buy (15 mins)</span>
+          <span className="hp-utility-item"><MdVerified />(15 mins)</span>
           <span className="hp-utility-item"><MdLocalShipping /> Free Delivery above ₹1,499</span>
         </div>
       </div>
@@ -283,7 +283,7 @@ export default function ProductDetail() {
           <div className="pd-info-panel">
             <div className="pd-badges">
               <span><MdBolt /> 60 MIN DELIVERY</span>
-              {product.is_try_and_buy ? <span><MdVerified /> Try &amp; Buy</span> : null}
+              {product.is_try_and_buy ? <span><MdVerified /></span> : null}
             </div>
             {product.brand && <p className="pd-brand">{product.brand}</p>}
             <h1>{product.name}</h1>

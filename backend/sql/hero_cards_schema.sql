@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS hero_cards (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   title VARCHAR(255) NOT NULL,
   image_url TEXT NOT NULL,
+  mobile_image_url TEXT, -- optional narrow-viewport crop; falls back to image_url
   reference_type VARCHAR(50) NOT NULL, -- 'brand', 'category', 'search', 'link'
   reference_value TEXT,  -- Brand name, category name, search query, or URL
   position INT NOT NULL DEFAULT 0, -- Display order
@@ -16,6 +17,9 @@ CREATE TABLE IF NOT EXISTS hero_cards (
   created_by UUID REFERENCES users(id) ON DELETE SET NULL,
   UNIQUE(position)
 );
+
+-- Applied separately for databases created before this column existed
+ALTER TABLE hero_cards ADD COLUMN IF NOT EXISTS mobile_image_url TEXT;
 
 -- Create index for faster queries
 CREATE INDEX IF NOT EXISTS hero_cards_active_position_idx ON hero_cards(is_active, position);

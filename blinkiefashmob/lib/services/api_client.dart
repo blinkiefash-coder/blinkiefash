@@ -125,6 +125,15 @@ class ApiClient {
     return const [];
   }
 
+  // Admin-managed home hero slides, ordered by position.
+  Future<List<dynamic>> fetchHeroCards() async {
+    final uri = Uri.parse('$apiApiBaseUrl/hero-cards');
+    final data = await _getJson(uri);
+    if (data is Map && data['data'] is List) return data['data'] as List;
+    if (data is List) return data;
+    return const [];
+  }
+
   // ── Addresses ──────────────────────────────────────────────────────────────
 
   Future<List<dynamic>> fetchAddresses(String userId) async {

@@ -48,12 +48,12 @@ const CATEGORY_LINKS = [
   { label: "Women", path: "/women" },
   { label: "Men", path: "/men" },
   { label: "Footwear", path: "/footwear" },
-  { label: "Beauty", path: "/beauty" },
+  { label: "Kids", path: "/kids" },
   { label: "Electronics", path: "/electronics" },
 ];
 
 const MORE_LINKS = [
-  { label: "Kids", path: "/kids" },
+  { label: "Beauty", path: "/beauty" },
   { label: "Home & Living", path: "/home-living" },
   { label: "Backpack", path: "/backpack" },
 ];
@@ -80,7 +80,7 @@ export default function Navbar() {
   const [userName, setUserName] = useState(() => readAuthFromStorage().userName);
   const [cartCount, setCartCount] = useState(() => readCartCount());
 
-  /* Category hover mega-menu (Women / Men / Footwear / Beauty / Electronics) */
+  /* Category hover mega-menu (Women / Men / Footwear / Kids / Electronics) */
   const [hoveredCat, setHoveredCat] = useState(null);
   const [categoryCols, setCategoryCols] = useState({});
   const closeHoverTimer = useRef(null);
@@ -119,7 +119,7 @@ export default function Navbar() {
     return () => document.removeEventListener("mousedown", onDocClick);
   }, []);
 
-  /* Fetch categories once and build Women/Men/Footwear/Beauty/Electronics -> sub-columns lookup,
+  /* Fetch categories once and build Women/Men/Footwear/Kids/Electronics -> sub-columns lookup,
      the same structure used by the Home page's hover mega menu. */
   useEffect(() => {
     let cancelled = false;
@@ -180,7 +180,7 @@ export default function Navbar() {
           Women: childCatsFor(allCats, "Women"),
           Men: childCatsFor(allCats, "Men"),
           Footwear: childCatsFor(allCats, ["Footwear", "Shoes"]),
-          Beauty: childCatsFor(allCats, "Beauty"),
+          Kids: childCatsFor(allCats, "Kids"),
           Electronics: childCatsFor(allCats, "Electronics"),
         });
       } catch {
@@ -524,7 +524,7 @@ export default function Navbar() {
               </form>
 
               <div className="nav-drawer-section-title">SHOP</div>
-              {CATEGORY_LINKS.map((cat) => (
+              {[...CATEGORY_LINKS, ...MORE_LINKS].map((cat) => (
                 <button
                   key={cat.label}
                   type="button"

@@ -112,6 +112,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     : salePrice;
 
   const isBestseller = product.is_bestseller === true;
+
   const showNewBadge = isNew || product.isNew === true || product.is_new === true;
 
   // Priority: NEW > BESTSELLER > % OFF > DELIVERY

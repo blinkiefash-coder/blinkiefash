@@ -895,7 +895,7 @@ export default function Shop() {
                   ? Math.round(((originalPrice - salePrice) / originalPrice) * 100)
                   : 0;
                 const isBestseller = product.is_bestseller === true;
-                const isTryAndBuy = product.is_try_and_buy === true;
+                
                 const badgeType = isBestseller
                   ? "BESTSELLER"
                   : isTryAndBuy

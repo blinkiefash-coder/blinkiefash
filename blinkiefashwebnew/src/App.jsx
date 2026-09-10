@@ -54,6 +54,7 @@ import HelpSupport from './pages/helpsupport';
 import SavedAddresses from './pages/SavedAddresses';
 import CreateVendor from './pages/CreateVendor';
 import ManageCategories from './pages/ManageCategories';
+import HeroCardsManager from './pages/HeroCardsManager';
 import { useAuth } from './context/AuthContext';
 import DealsOfTheDay from './pages/dealsoftheday';
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
@@ -295,6 +296,14 @@ export default function App() {
             </RequireAdmin>
           }
         />
+        <Route
+          path="/vendor/hero-cards"
+          element={
+            <RequireAdmin>
+              <HeroCardsManager />
+            </RequireAdmin>
+          }
+        />
         <Route path="/vendor/:identifier" element={<VendorStore />} />
         <Route path="/company" element={<Company />} />
         <Route path="/customer-service" element={<CustomerService />} />
@@ -310,7 +319,7 @@ export default function App() {
         <Route path="/account/addresses" element={<SavedAddresses />} />
         <Route path="/deals-of-the-day" element={<DealsOfTheDay />}
         />
-
+        /* hi */
         {/* NEW: Blinkiefash India / Local mode pages */}
         {/* <Route path="/blinkiefash-india" element={<BlinkiefashIndia />} /> */}
         {/* <Route path="/blinkiefash-local" element={<BlinkiefashLocal />} /> */}

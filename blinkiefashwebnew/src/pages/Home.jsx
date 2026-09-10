@@ -4,6 +4,7 @@ import {
   MdChevronRight,
   MdChevronLeft,
   MdTune,
+  MdLogin,
 } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -63,13 +64,16 @@ function resolveImageUrl(raw) {
   return `${API_BASE_URL}/${value}`;
 }
 
-const HERO_SLIDES = [
+// Shown until /api/hero-cards responds, and kept as the fallback if the admin
+// has no active cards configured so the hero never renders empty.
+const FALLBACK_HERO_SLIDES = [
   {
     id: 'hero-men-women',
     image: banner1,
     mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
+    hotspots: true,
   },
   {
     id: 'hero-puma',
@@ -103,6 +107,36 @@ const HERO_SLIDES = [
     brand: 'MK',
   },
 ];
+
+// Maps a hero_cards row onto the shape the carousel renders.
+function heroCardToSlide(card) {
+  const value = card.reference_value || '';
+  const slide = {
+    id: card.id,
+    title: card.title || '',
+    image: card.image_url,
+    mobileImage: card.mobile_image_url || null,
+    pos: 'center',
+  };
+
+  switch (card.reference_type) {
+    case 'brand':
+      slide.brand = value;
+      break;
+    case 'category':
+      slide.to = `/${value.toLowerCase()}`;
+      break;
+    case 'search':
+      slide.to = `/shop?search=${encodeURIComponent(value)}`;
+      // The men/women banner is a split image with two tappable halves.
+      slide.hotspots = /men/i.test(value) && /women/i.test(value);
+      break;
+    default:
+      slide.to = value || '/shop';
+  }
+
+  return slide;
+}
 
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, lifestyle: 4 };
 function sortCategories(list) {
@@ -263,6 +297,7 @@ function SectionHead({
   iconAlt = '',
   title,
   accentWord,
+  subtitle = '',
   viewAllLabel = 'View All',
   onViewAll,
   iconClassName,
@@ -278,16 +313,19 @@ function SectionHead({
               <img src={icon} alt={iconAlt} className="hp-shead-mark-img" />
             </span>
           ) : null}
-          <h2 className="hp-shead-title">
-            {accentWord ? (
-              <>
-                <span>{title} </span>
-                <span className="hp-shead-accent">{accentWord}</span>
-              </>
-            ) : (
-              <span>{title}</span>
-            )}
-          </h2>
+          <div className="hp-shead-text-block">
+            <h2 className="hp-shead-title">
+              {accentWord ? (
+                <>
+                  <span>{title} </span>
+                  <span className="hp-shead-accent">{accentWord}</span>
+                </>
+              ) : (
+                <span>{title}</span>
+              )}
+            </h2>
+            {subtitle && <p className="hp-shead-subtitle">{subtitle}</p>}
+          </div>
           {trailing}
         </div>
       </div>
@@ -314,7 +352,7 @@ export default function Home() {
   const [categories, setCategories] = useState(() => c?.categories ?? []);
   const [deals, setDeals] = useState(() => c?.deals ?? []);
   const [newProducts, setNewProducts] = useState(() => c?.newProducts ?? []);
-  const [pinnedNewProduct, setPinnedNewProduct] = useState(() => c?.pinnedNewProduct ?? null);
+  const [, setPinnedNewProduct] = useState(() => c?.pinnedNewProduct ?? null);
   const [mensProducts, setMensProducts] = useState(() => c?.mensProducts ?? []);
   const [womensProducts, setWomensProducts] = useState(() => c?.womensProducts ?? []);
   const [kidsProducts, setKidsProducts] = useState(() => c?.kidsProducts ?? []);
@@ -338,6 +376,8 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroPosition, setHeroPosition] = useState(0);
+  const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
+  const [heroAspectRatio, setHeroAspectRatio] = useState(null);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
@@ -359,6 +399,7 @@ export default function Home() {
   });
 
   const heroTrackRef = useRef(null);
+  const heroRatiosRef = useRef(new Map());
   const dealsRef = useRef(null);
   const brandsPauseTimerRef = useRef(null);
   const brandsWrapRef = useRef(null);
@@ -567,7 +608,7 @@ export default function Home() {
             category_id: rootId,
             search: rootId ? undefined : fallbackSearch,
             sort: 'newest',
-            limit: 10,
+            limit: 40,
           });
           return result?.products || (Array.isArray(result) ? result : []);
         };
@@ -581,8 +622,10 @@ export default function Home() {
           fetchCollection('Kids', 'kids'),
           fetchCollection('Electronics', 'electronics'),
           fetchCollection('Footwear', 'shoes sneakers sandals footwear'),
-          getProducts({ min_price: 0, max_price: 999, limit: 10, sort: 'price_asc' }),
-          getProducts({ min_price: 1000, max_price: 1999, limit: 10, sort: 'price_asc' }),
+          // Mixed products under ₹999 (newest first, not just cheapest accessories)
+          getProducts({ min_price: 0, max_price: 999, limit: 40, sort: 'newest' }),
+          // Mixed products ₹1000–₹1999 (newest first)
+          getProducts({ min_price: 1000, max_price: 1999, limit: 40, sort: 'newest' }),
         ]);
 
         const under999List = under999Res?.products || (Array.isArray(under999Res) ? under999Res : []);
@@ -672,9 +715,15 @@ export default function Home() {
         }));
 
         const brandsSource = dbBrands.length > 0 ? dbBrands : fallbackBrandObjects;
-        const brandsList = [...brandsSource].sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
-        );
+
+        // Force Puma to the front so it appears first in the upper row of Shop by Brands
+        const brandsList = [...brandsSource].sort((a, b) => {
+          const aName = (a.name || '').toLowerCase();
+          const bName = (b.name || '').toLowerCase();
+          if (aName === 'puma') return -1;
+          if (bName === 'puma') return 1;
+          return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+        });
 
         if (cancelled) return;
 
@@ -731,11 +780,30 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/hero-cards`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        const cards = Array.isArray(payload?.data) ? payload.data : [];
+        if (!cancelled && cards.length) {
+          setHeroSlides(cards.map(heroCardToSlide));
+          setHeroPosition(0);
+        }
+      } catch {
+        // Keep the bundled fallback slides on any failure.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      setHeroPosition((position) => (position + 1) % HERO_SLIDES.length);
+      setHeroPosition((position) => (position + 1) % heroSlides.length);
     }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     const track = heroTrackRef.current;
@@ -809,8 +877,22 @@ export default function Home() {
   };
 
   const goToSlide = (delta) => {
-    setHeroPosition((position) => (position + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setHeroPosition((position) => (position + delta + heroSlides.length) % heroSlides.length);
   };
+
+  const handleHeroImageLoad = (slideId, event) => {
+    const image = event.currentTarget;
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = image.naturalWidth / image.naturalHeight;
+    heroRatiosRef.current.set(slideId, ratio);
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    if (activeSlide?.id === slideId) setHeroAspectRatio(ratio);
+  };
+
+  useEffect(() => {
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    setHeroAspectRatio(activeSlide ? heroRatiosRef.current.get(activeSlide.id) || null : null);
+  }, [heroPosition, heroSlides]);
 
   const handleCouponClick = () => {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
@@ -835,7 +917,7 @@ export default function Home() {
     // tied to today's date — the selection/order changes once every 24
     // hours (at local midnight) without needing a backend change.
     const ranked = [...discountedOnly].sort((a, b) => b._discount - a._discount);
-    const pool = ranked.slice(0, Math.max(30, Math.min(80, ranked.length)));
+    const pool = ranked.slice(0, Math.max(40, Math.min(80, ranked.length)));
 
     // Shuffle the pool for daily rotation, then pull Souled Store items to
     // the very front so they always lead the rail, while the rest of the
@@ -844,7 +926,7 @@ export default function Home() {
     const rotated = seededShuffle(pool, todaysSeed());
     const souledFirst = rotated.filter((item) => item._isSouledStore);
     const others = rotated.filter((item) => !item._isSouledStore);
-    return [...souledFirst, ...others].slice(0, 30);
+    return [...souledFirst, ...others].slice(0, 40);
   }, [deals]);
 
   const recentlyViewedProducts = useMemo(() => {
@@ -854,29 +936,11 @@ export default function Home() {
       .slice(0, 8);
   }, [recentlyViewedProductsData]);
 
+  // NEW ON BLINKIEFASH — show ALL newest products (mixed brands), no discount/Palermo filter
   const newOnBlinkiefash = useMemo(() => {
-    const items = (Array.isArray(newProducts) ? newProducts : [])
-      .map((item) => {
-        const price = Number(item?.discount_price ?? item?.price ?? 0);
-        const mrp = Number(item?.price ?? item?.original_price ?? price);
-        const hasDiscount = mrp > 0 && price > 0 && price < mrp;
-        const isPalermo = (item?.name || '').toString().toLowerCase().includes('palermo');
-        return { ...item, _hasDiscount: hasDiscount, _isPalermo: isPalermo };
-      })
-      .filter((item) => !item._hasDiscount && !item._isPalermo);
-
-    const pinned = pinnedNewProduct
-      ? (() => {
-          const price = Number(pinnedNewProduct?.discount_price ?? pinnedNewProduct?.price ?? 0);
-          const mrp = Number(pinnedNewProduct?.price ?? pinnedNewProduct?.original_price ?? price);
-          if (mrp > 0 && price > 0 && price < mrp) return null;
-          return { ...pinnedNewProduct };
-        })()
-      : null;
-
-    const rest = items.slice(0, 10 - (pinned ? 1 : 0));
-    return pinned ? [pinned, ...rest] : rest;
-  }, [newProducts, pinnedNewProduct]);
+    const items = (Array.isArray(newProducts) ? newProducts : []).slice(0, 40);
+    return items;
+  }, [newProducts]);
 
   const dealVisibleBrands = useMemo(() => {
     const search = dealBrandSearch.trim().toLowerCase();
@@ -943,8 +1007,8 @@ export default function Home() {
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     const normalizedGender = (userGender || '').toLowerCase().trim();
-    if (normalizedGender === 'women') return womensProducts.slice(0, 10);
-    if (normalizedGender === 'men') return mensProducts.slice(0, 10);
+    if (normalizedGender === 'women') return womensProducts.slice(0, 40);
+    if (normalizedGender === 'men') return mensProducts.slice(0, 40);
     return [];
   }, [isLoggedIn, userGender, womensProducts, mensProducts]);
 
@@ -964,20 +1028,35 @@ export default function Home() {
           </button>
         </section>
 
-        <section className="hp-hero-carousel">
+        <section
+          className="hp-hero-carousel"
+          style={heroAspectRatio ? { '--hp-hero-ratio': heroAspectRatio } : undefined}
+        >
           <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide, index) => {
-              const isFirst = index === 0;
+            {heroSlides.map((slide) => {
               const content = (
-                <picture>
-                  {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
-                  <img src={slide.image} alt="" className="hp-slide-img" style={slide.pos ? { objectPosition: slide.pos } : undefined} draggable={false} />
-                </picture>
+                <>
+                  <picture className="hp-slide-bg" aria-hidden="true">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img src={slide.image} alt="" draggable={false} />
+                  </picture>
+                  <picture className="hp-slide-fg">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img
+                      src={slide.image}
+                      alt={slide.title || ''}
+                      className="hp-slide-img"
+                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                      draggable={false}
+                      onLoad={(event) => handleHeroImageLoad(slide.id, event)}
+                    />
+                  </picture>
+                </>
               );
-              if (isFirst) {
+              if (slide.hotspots) {
                 return (
                   <div key={slide.id} className="hp-slide hp-slide-first">
                     {content}
@@ -1002,10 +1081,10 @@ export default function Home() {
             <MdChevronRight />
           </button>
           <div className="hp-hero-dots">
-            {HERO_SLIDES.map((slide, i) => (
+            {heroSlides.map((slide, i) => (
               <span
                 key={slide.id}
-                className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`}
+                className={`hp-hero-dot${i === heroPosition % heroSlides.length ? ' active' : ''}`}
                 onClick={() => setHeroPosition(i)}
               />
             ))}
@@ -1081,18 +1160,41 @@ export default function Home() {
               />
             ) : null}
             <ProductRail items={filteredTopDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
+            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={40} />
           </section>
         )}
 
         <section className="section hp-rewards-section">
           <div className="hp-rewards-grid">
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/spin-wheel')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate(isLoggedIn ? '/spin-wheel' : '/login')}
+            >
               <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
+              {!isLoggedIn && (
+                <span className="hp-reward-login-badge">
+                  <MdLogin /> Login
+                </span>
+              )}
             </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/play-and-win')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate(isLoggedIn ? '/play-and-win' : '/login')}
+            >
               <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
+              {!isLoggedIn && (
+                <span className="hp-reward-login-badge">
+                  <MdLogin /> Login
+                </span>
+              )}
             </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate('/refer-earn')}>
+            <button
+              type="button"
+              className="hp-reward-image-card"
+              onClick={() => navigate('/refer-earn')}
+            >
               <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
             </button>
             <button type="button" className="hp-reward-image-card" onClick={() => navigate('/shop')}>
@@ -1198,7 +1300,7 @@ export default function Home() {
               accentWord={userGender?.toLowerCase() === 'women' ? 'Her' : 'Him'}
               onViewAll={() => navigate(userGender?.toLowerCase() === 'women' ? '/women' : '/men')}
             />
-            <ProductRail items={recommendedProducts} keyPrefix="recommended" />
+            <ProductRail items={recommendedProducts} keyPrefix="recommended" limit={40} />
           </section>
         )}
 
@@ -1212,61 +1314,61 @@ export default function Home() {
         {newOnBlinkiefash.length > 0 && (
           <section className="section hp-feed-rail-section">
             <SectionHead icon={newOnBlinkiefashIcon} iconAlt="New on Blinkiefash" title="New on" accentWord="Blinkiefash" onViewAll={() => navigate('/shop?sort=newest')} />
-            <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} />
+            <ProductRail items={newOnBlinkiefash} keyPrefix="new" railRef={newOnBlinkiefashRailRef} limit={40} />
           </section>
         )}
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
-            <CategoryChipsRail chips={mensCats} audienceLabel="Men" activeId={activeCollectionCats.Men ?? mensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" /> : null}
+            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Shop For" accentWord="Men" subtitle="Trendy styles. Top brands. Great prices." onViewAll={() => navigate('/men')} />
+            <CategoryChipsRail chips={[{ id: 'all-men', name: 'All' }, ...mensCats]} audienceLabel="Men" activeId={activeCollectionCats.Men ?? 'all-men'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
+            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
           </section>
         )}
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
-            <CategoryChipsRail chips={womensCats} audienceLabel="Women" activeId={activeCollectionCats.Women ?? womensCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" /> : null}
+            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Shop For" accentWord="Women" subtitle="Latest trends. Premium brands. Best deals." onViewAll={() => navigate('/women')} />
+            <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
+            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
           </section>
         )}
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
-            <CategoryChipsRail chips={kidsCats} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" /> : null}
+            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Shop For" accentWord="Kids" subtitle="Fun styles. Comfort fit. Durable quality." onViewAll={() => navigate('/kids')} />
+            <CategoryChipsRail chips={[{ id: 'all-kids', name: 'All' }, ...kidsCats]} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? 'all-kids'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
+            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" limit={40} /> : null}
           </section>
         )}
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
-            <CategoryChipsRail chips={electronicsCats} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" /> : null}
+            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Explore" accentWord="Electronics" subtitle="Latest gadgets. Smart devices. Tech essentials." onViewAll={() => navigate('/electronics')} />
+            <CategoryChipsRail chips={[{ id: 'all-electronics', name: 'All' }, ...electronicsCats]} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? 'all-electronics'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
+            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" limit={40} /> : null}
           </section>
         )}
 
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Trendy" accentWord="Shoes" onViewAll={() => navigate('/footwear')} />
-            <CategoryChipsRail chips={trendyShoesCats} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} />
-            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" /> : null}
+            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Shop For" accentWord="Footwear" subtitle="Comfort. Style. Every step matters." onViewAll={() => navigate('/footwear')} />
+            <CategoryChipsRail chips={[{ id: 'all-shoes', name: 'All' }, ...trendyShoesCats]} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? 'all-shoes'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
+            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" limit={40} /> : null}
           </section>
         )}
 
         {under999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={under999Icon} iconAlt="Under ₹999" title="Under" accentWord="₹999" onViewAll={() => navigate('/shop?max_price=999&sort=price_asc')} />
-            <ProductRail items={under999Products} keyPrefix="under999" />
+            <SectionHead icon={under999Icon} iconAlt="Under ₹999" title="Under" accentWord="₹999" onViewAll={() => navigate('/shop?max_price=999&sort=newest')} />
+            <ProductRail items={under999Products} keyPrefix="under999" limit={40} />
           </section>
         )}
 
         {under1999Products.length > 0 && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={priceRangeIcon} iconAlt="₹999 to ₹1999" title="₹999 –" accentWord="₹1999" onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=price_asc')} />
-            <ProductRail items={under1999Products} keyPrefix="under1999" />
+            <SectionHead icon={priceRangeIcon} iconAlt="₹999 to ₹1999" title="₹999 –" accentWord="₹1999" onViewAll={() => navigate('/shop?min_price=1000&max_price=1999&sort=newest')} />
+            <ProductRail items={under1999Products} keyPrefix="under1999" limit={40} />
           </section>
         )}
 
@@ -1316,7 +1418,7 @@ export default function Home() {
   );
 }
 
-function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect }) {
+function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect, textOnly = false }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
   const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
@@ -1328,16 +1430,18 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
         <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
           <MdChevronLeft />
         </button>
-        <div className="hp-collection-chips" role="list" ref={chipsRef}>
+        <div className={`hp-collection-chips${textOnly ? ' text-only' : ''}`} role="list" ref={chipsRef}>
           {chips.map((cat, idx) => {
             const icon = resolveImageUrl(cat.image);
             const fallback = chipFallbackIcon(cat.name, audienceLabel);
             const isActive = String(cat.id) === String(activeId);
             return (
               <button key={`${cat.id || cat.name || 'chip'}-${idx}`} type="button" className={`hp-collection-chip${isActive ? ' active' : ''}`} role="listitem" onClick={() => onChipSelect(cat.id)}>
-                <span className="hp-collection-chip-icon" aria-hidden="true">
-                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
-                </span>
+                {!textOnly && (
+                  <span className="hp-collection-chip-icon" aria-hidden="true">
+                    {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
+                  </span>
+                )}
                 <span className="hp-collection-chip-label">{cat.name}</span>
               </button>
             );
@@ -1347,7 +1451,7 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
           <MdChevronRight />
         </button>
       </div>
-      {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
+      {!textOnly && Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
         <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
           {activeCat.subcategories.map((sub, subIdx) => {
             const subImg = resolveImageUrl(sub.image);
