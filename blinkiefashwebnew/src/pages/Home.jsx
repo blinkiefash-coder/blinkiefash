@@ -111,6 +111,7 @@ function heroCardToSlide(card) {
   const value = card.reference_value || '';
   const slide = {
     id: card.id,
+    title: card.title || '',
     image: card.image_url,
     mobileImage: card.mobile_image_url || null,
     pos: 'center',
@@ -368,11 +369,13 @@ export default function Home() {
   const [error, setError] = useState('');
   const [heroPosition, setHeroPosition] = useState(0);
   const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
+  const [heroAspectRatio, setHeroAspectRatio] = useState(null);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
 
   const heroTrackRef = useRef(null);
+  const heroRatiosRef = useRef(new Map());
   const dealsRef = useRef(null);
   const brandsPauseTimerRef = useRef(null);
   const brandsWrapRef = useRef(null);
@@ -853,6 +856,20 @@ export default function Home() {
     setHeroPosition((position) => (position + delta + heroSlides.length) % heroSlides.length);
   };
 
+  const handleHeroImageLoad = (slideId, event) => {
+    const image = event.currentTarget;
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = image.naturalWidth / image.naturalHeight;
+    heroRatiosRef.current.set(slideId, ratio);
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    if (activeSlide?.id === slideId) setHeroAspectRatio(ratio);
+  };
+
+  useEffect(() => {
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    setHeroAspectRatio(activeSlide ? heroRatiosRef.current.get(activeSlide.id) || null : null);
+  }, [heroPosition, heroSlides]);
+
   const handleCouponClick = () => {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
   };
@@ -925,17 +942,33 @@ export default function Home() {
           </button>
         </section>
 
-        <section className="hp-hero-carousel">
+        <section
+          className="hp-hero-carousel"
+          style={heroAspectRatio ? { '--hp-hero-ratio': heroAspectRatio } : undefined}
+        >
           <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
             {heroSlides.map((slide) => {
               const content = (
-                <picture>
-                  {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
-                  <img src={slide.image} alt="" className="hp-slide-img" style={slide.pos ? { objectPosition: slide.pos } : undefined} draggable={false} />
-                </picture>
+                <>
+                  <picture className="hp-slide-bg" aria-hidden="true">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img src={slide.image} alt="" draggable={false} />
+                  </picture>
+                  <picture className="hp-slide-fg">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img
+                      src={slide.image}
+                      alt={slide.title || ''}
+                      className="hp-slide-img"
+                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                      draggable={false}
+                      onLoad={(event) => handleHeroImageLoad(slide.id, event)}
+                    />
+                  </picture>
+                </>
               );
               if (slide.hotspots) {
                 return (

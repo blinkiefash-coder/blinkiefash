@@ -813,9 +813,11 @@
 }
 
 .hp-slide {
+  position: relative;
   scroll-snap-align: start;
   flex: 0 0 100%;
-  aspect-ratio: 3.4 / 1;
+  aspect-ratio: var(--hp-hero-ratio, 3.4 / 1);
+  max-height: min(520px, 62vh);
   border: none;
   border-radius: 16px;
   overflow: hidden;
@@ -849,11 +851,48 @@
 }
 
 .hp-slide-img {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center top;
+  display: block;
+}
+
+.hp-slide picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hp-slide-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.hp-slide-bg img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  object-position: center top;
-  display: block;
+  object-position: center;
+  transform: scale(1.08);
+  filter: blur(18px) saturate(1.08);
+  opacity: 0.72;
+}
+
+.hp-slide-bg::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.14));
+}
+
+.hp-slide-fg {
+  position: relative;
+  z-index: 1;
 }
 
 .hp-hero-dots {
@@ -3810,7 +3849,7 @@ html, body, #root {
   height: 100% !important;
   min-width: 100% !important;
   min-height: 100% !important;
-  object-fit: cover !important;
+  object-fit: contain !important;
   object-position: center !important;
 }
 
@@ -3900,20 +3939,50 @@ html, body, #root {
    ========================================================= */
 @media (min-width: 768px) {
   .hp-slide {
-    aspect-ratio: 3.4 / 1 !important;
+    aspect-ratio: var(--hp-hero-ratio, 3.4 / 1) !important;
   }
 }
 
 @media (max-width: 767px) {
   .hp-slide {
-    aspect-ratio: 1.4 / 1 !important;
+    aspect-ratio: var(--hp-hero-ratio, 1.4 / 1) !important;
     min-height: 145px !important;
+    max-height: min(620px, 72vh) !important;
   }
 }
 
 .hp-slide-img {
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+.hp-slide-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 0 !important;
+  overflow: hidden !important;
+}
+
+.hp-slide-bg img {
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover !important;
   object-position: center !important;
+  transform: scale(1.08) !important;
+  filter: blur(18px) saturate(1.08) !important;
+  opacity: 0.72 !important;
+}
+
+.hp-slide-bg::after {
+  content: "" !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.14), rgba(255, 255, 255, 0.16), rgba(15, 23, 42, 0.14)) !important;
+}
+
+.hp-slide-fg {
+  position: relative !important;
+  z-index: 1 !important;
 }
 
 /* =========================================================
