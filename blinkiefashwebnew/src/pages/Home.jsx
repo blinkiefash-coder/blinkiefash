@@ -280,6 +280,22 @@ function formatCountdown(ms) {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+async function getProductsForCategoryIds(categoryIds) {
+  const ids = [...new Set((Array.isArray(categoryIds) ? categoryIds : [categoryIds]).filter(Boolean).map(String))];
+  const responses = await Promise.all(
+    ids.map((categoryId) => getProducts({ category_id: categoryId, sort: 'newest', limit: 40 }))
+  );
+  const seen = new Set();
+  return responses
+    .flatMap((res) => res?.products || (Array.isArray(res) ? res : []))
+    .filter((item) => {
+      const key = String(item?.id || '');
+      if (!key || seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+}
+
 const NON_FASHION_KEYWORDS = [
   'electronics', 'headphone', 'headphones', 'earbud', 'earbuds', 'speaker',
   'mobile', 'phone', 'laptop', 'camera', 'gaming', 'game console',
@@ -364,6 +380,12 @@ export default function Home() {
   const [electronicsCats, setElectronicsCats] = useState(() => c?.electronicsCats ?? []);
   const [trendyShoesCats, setTrendyShoesCats] = useState(() => c?.trendyShoesCats ?? []);
   const [activeCollectionCats, setActiveCollectionCats] = useState({});
+  const [sectionCategoryFilters, setSectionCategoryFilters] = useState({});
+  // Tracks an active SUBCATEGORY filter per audience section (Men/Women/Kids/
+  // Electronics/Trendy Shoes). When set for a given audience, that section's
+  // product rail shows the fetched subcategory products instead of the
+  // default collection products. Shape: { [audienceKey]: { subId, products, loading } }
+  const [sectionSubFilters, setSectionSubFilters] = useState({});
   const [under999Products, setUnder999Products] = useState(() => c?.under999Products ?? []);
   const [under1999Products, setUnder1999Products] = useState(() => c?.under1999Products ?? []);
   const [topBrands, setTopBrands] = useState(() => c?.topBrands ?? []);
@@ -445,6 +467,87 @@ export default function Home() {
         });
       });
       pauseBrandCarousel();
+    }
+  };
+
+  // Selecting a top-level category chip (e.g. switching from "T-Shirts" to
+  // "Jeans" within Men's) should drop any subcategory filter that was
+  // active for that audience, since its subcategory list is about to change.
+  const handleMainCategorySelect = async (audienceKey, id, relatedCategoryIds = []) => {
+    const categoryIds = [id, ...relatedCategoryIds].filter(Boolean).map(String);
+    const categoryId = categoryIds.join(',');
+    setActiveCollectionCats((prev) => ({ ...prev, [audienceKey]: id }));
+    setSectionSubFilters((prev) => {
+      const next = { ...prev };
+      delete next[audienceKey];
+      return next;
+    });
+
+    setSectionCategoryFilters((prev) => ({
+      ...prev,
+      [audienceKey]: { categoryId, products: [], loading: true },
+    }));
+
+    try {
+      const items = await getProductsForCategoryIds(categoryIds);
+      setSectionCategoryFilters((prev) => {
+        if (prev[audienceKey]?.categoryId !== categoryId) return prev;
+        return {
+          ...prev,
+          [audienceKey]: { categoryId, products: Array.isArray(items) ? items : [], loading: false },
+        };
+      });
+    } catch {
+      setSectionCategoryFilters((prev) => {
+        if (prev[audienceKey]?.categoryId !== categoryId) return prev;
+        return { ...prev, [audienceKey]: { categoryId, products: [], loading: false } };
+      });
+    }
+  };
+
+  // Selecting a subcategory pill fetches products for that subcategory and
+  // swaps them into the section's rail in place, instead of navigating away.
+  // Clicking the already-active subcategory pill again clears the filter.
+  const handleSubcategorySelect = async (audienceKey, subId, relatedCategoryIds = []) => {
+    const subcategoryIds = [subId, ...relatedCategoryIds].filter(Boolean).map(String);
+    const subIdValue = String(subId);
+    const requestKey = subcategoryIds.join(',');
+    const current = sectionSubFilters[audienceKey];
+
+    if (current?.subId === subIdValue) {
+      setSectionSubFilters((prev) => {
+        const next = { ...prev };
+        delete next[audienceKey];
+        return next;
+      });
+      return;
+    }
+
+    setSectionSubFilters((prev) => ({
+      ...prev,
+      [audienceKey]: { subId: subIdValue, requestKey, products: [], loading: true },
+    }));
+
+    try {
+      const items = await getProductsForCategoryIds(subcategoryIds);
+      setSectionSubFilters((prev) => {
+        // Ignore the response if the user has since switched away from this
+        // subcategory (or the whole audience filter was cleared) while the
+        // request was in flight.
+        if (prev[audienceKey]?.requestKey !== requestKey) return prev;
+        return {
+          ...prev,
+          [audienceKey]: { subId: subIdValue, requestKey, products: Array.isArray(items) ? items : [], loading: false },
+        };
+      });
+    } catch {
+      setSectionSubFilters((prev) => {
+        if (prev[audienceKey]?.requestKey !== requestKey) return prev;
+        return {
+          ...prev,
+          [audienceKey]: { subId: subIdValue, requestKey, products: [], loading: false },
+        };
+      });
     }
   };
 
@@ -586,6 +689,7 @@ export default function Home() {
               .filter((c) => String(c.parent_id) === String(categoryId))
               .map((c) => ({
                 id: c.id,
+                categoryIds: [c.id],
                 name: (c?.name || '').toString().trim(),
                 image: c.category_url || c.image || '',
               }))
@@ -595,6 +699,7 @@ export default function Home() {
             .filter((c) => String(c.parent_id) === String(rootId))
             .map((c) => ({
               id: c.id,
+              categoryIds: [c.id],
               name: c.name,
               image: c.category_url || c.image || '',
               subcategories: subCatsFor(c.id),
@@ -621,7 +726,7 @@ export default function Home() {
           fetchCollection('Women', 'women'),
           fetchCollection('Kids', 'kids'),
           fetchCollection('Electronics', 'electronics'),
-          fetchCollection('Footwear', 'shoes sneakers sandals footwear'),
+          fetchCollection(['Footwear', 'Shoes'], 'shoes'),
           // Mixed products under ₹999 (newest first, not just cheapest accessories)
           getProducts({ min_price: 0, max_price: 999, limit: 40, sort: 'newest' }),
           // Mixed products ₹1000–₹1999 (newest first)
@@ -742,7 +847,49 @@ export default function Home() {
         const freshWomensCats = childCatsFor('Women');
         const freshKidsCats = childCatsFor('Kids');
         const freshElectronicsCats = childCatsFor('Electronics');
-        const freshShoesCats = childCatsFor('Footwear');
+        let freshShoesCats = childCatsFor(['Footwear', 'Shoes']);
+        const womenRootId = rootIdForAny('Women');
+        const womenFootwearRoot = allCats.find(
+          (category) => String(category.parent_id) === String(womenRootId)
+            && (category.name || '').toString().toLowerCase().trim() === 'footwear'
+        );
+        if (womenFootwearRoot) {
+          const womenFootwearChildren = allCats
+            .filter((category) => String(category.parent_id) === String(womenFootwearRoot.id))
+            .map((category) => ({
+              id: category.id,
+              categoryIds: [category.id],
+              name: (category.name || '').toString().trim(),
+              image: category.category_url || category.image || '',
+            }))
+            .filter((category) => category.name);
+          const womenFootwearCategory = {
+            id: womenFootwearRoot.id,
+            categoryIds: [womenFootwearRoot.id],
+            name: womenFootwearRoot.name,
+            image: womenFootwearRoot.category_url || womenFootwearRoot.image || '',
+            subcategories: womenFootwearChildren,
+          };
+          freshShoesCats = freshShoesCats.map((category) => {
+            if ((category.name || '').toString().toLowerCase() !== 'female') return category;
+            const subcategories = [...category.subcategories];
+            womenFootwearCategory.subcategories.forEach((sub) => {
+              const existing = subcategories.find(
+                (item) => item.name.toLowerCase() === sub.name.toLowerCase()
+              );
+              if (existing) {
+                existing.categoryIds = [...new Set([...existing.categoryIds, sub.id])];
+              } else {
+                subcategories.push(sub);
+              }
+            });
+            return {
+              ...category,
+              categoryIds: [...category.categoryIds, womenFootwearRoot.id],
+              subcategories,
+            };
+          });
+        }
 
         _homeCache = {
           categories: freshCategories, deals: freshDeals, newProducts: freshNewProducts,
@@ -1011,6 +1158,32 @@ export default function Home() {
     if (normalizedGender === 'men') return mensProducts.slice(0, 40);
     return [];
   }, [isLoggedIn, userGender, womensProducts, mensProducts]);
+
+  // Products actually shown per audience section: the fetched subcategory
+  // products when a subcategory pill is active for that section, otherwise
+  // the section's default top-level collection products.
+  const getSectionDisplay = (audienceKey, defaultProducts) => {
+    const subcategory = sectionSubFilters[audienceKey];
+    if (subcategory) return { products: subcategory.products, loading: subcategory.loading };
+    const category = sectionCategoryFilters[audienceKey];
+    if (category) return { products: category.products, loading: category.loading };
+    return { products: defaultProducts, loading: false };
+  };
+  const mensDisplay = getSectionDisplay('Men', mensProducts);
+  const womensDisplay = getSectionDisplay('Women', womensProducts);
+  const kidsDisplay = getSectionDisplay('Kids', kidsProducts);
+  const electronicsDisplay = getSectionDisplay('Electronics', electronicsProducts);
+  const trendyShoesDisplay = getSectionDisplay('Trendy Shoes', trendyShoesProducts);
+  const mensDisplayProducts = mensDisplay.products;
+  const mensDisplayLoading = mensDisplay.loading;
+  const womensDisplayProducts = womensDisplay.products;
+  const womensDisplayLoading = womensDisplay.loading;
+  const kidsDisplayProducts = kidsDisplay.products;
+  const kidsDisplayLoading = kidsDisplay.loading;
+  const electronicsDisplayProducts = electronicsDisplay.products;
+  const electronicsDisplayLoading = electronicsDisplay.loading;
+  const trendyShoesDisplayProducts = trendyShoesDisplay.products;
+  const trendyShoesDisplayLoading = trendyShoesDisplay.loading;
 
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
@@ -1320,41 +1493,106 @@ export default function Home() {
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Shop For" accentWord="Men" subtitle="Trendy styles. Top brands. Great prices." onViewAll={() => navigate('/men')} />
-            <CategoryChipsRail chips={[{ id: 'all-men', name: 'All' }, ...mensCats]} audienceLabel="Men" activeId={activeCollectionCats.Men ?? 'all-men'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Men: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
-            {mensProducts.length > 0 ? <ProductRail items={mensProducts} keyPrefix="men" limit={40} /> : null}
+            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
+            <CategoryChipsRail
+              chips={mensCats}
+              audienceLabel="Men"
+              activeId={activeCollectionCats.Men ?? mensCats[0]?.id}
+              onChipSelect={(id) => handleMainCategorySelect('Men', id)}
+              activeSubId={sectionSubFilters.Men?.subId}
+              onSubSelect={(id) => handleSubcategorySelect('Men', id)}
+            />
+            {mensDisplayLoading ? (
+              <Loader label="Loading products..." />
+            ) : mensDisplayProducts.length > 0 ? (
+              <ProductRail items={mensDisplayProducts} keyPrefix="men" limit={40} />
+            ) : sectionSubFilters.Men || sectionCategoryFilters.Men ? (
+              <p className="hp-location-sheet-muted">No products in this subcategory yet.</p>
+            ) : null}
           </section>
         )}
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Shop For" accentWord="Women" subtitle="Latest trends. Premium brands. Best deals." onViewAll={() => navigate('/women')} />
-            <CategoryChipsRail chips={[{ id: 'all-women', name: 'All' }, ...womensCats]} audienceLabel="Women" activeId={activeCollectionCats.Women ?? 'all-women'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Women: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
-            {womensProducts.length > 0 ? <ProductRail items={womensProducts} keyPrefix="women" limit={40} /> : null}
+            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
+            <CategoryChipsRail
+              chips={womensCats}
+              audienceLabel="Women"
+              activeId={activeCollectionCats.Women ?? womensCats[0]?.id}
+              onChipSelect={(id) => handleMainCategorySelect('Women', id)}
+              activeSubId={sectionSubFilters.Women?.subId}
+              onSubSelect={(id) => handleSubcategorySelect('Women', id)}
+            />
+            {womensDisplayLoading ? (
+              <Loader label="Loading products..." />
+            ) : womensDisplayProducts.length > 0 ? (
+              <ProductRail items={womensDisplayProducts} keyPrefix="women" limit={40} />
+            ) : sectionSubFilters.Women || sectionCategoryFilters.Women ? (
+              <p className="hp-location-sheet-muted">No products in this subcategory yet.</p>
+            ) : null}
           </section>
         )}
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Shop For" accentWord="Kids" subtitle="Fun styles. Comfort fit. Durable quality." onViewAll={() => navigate('/kids')} />
-            <CategoryChipsRail chips={[{ id: 'all-kids', name: 'All' }, ...kidsCats]} audienceLabel="Kids" activeId={activeCollectionCats.Kids ?? 'all-kids'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Kids: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
-            {kidsProducts.length > 0 ? <ProductRail items={kidsProducts} keyPrefix="kids" limit={40} /> : null}
+            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
+            <CategoryChipsRail
+              chips={kidsCats}
+              audienceLabel="Kids"
+              activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id}
+              onChipSelect={(id) => handleMainCategorySelect('Kids', id)}
+              activeSubId={sectionSubFilters.Kids?.subId}
+              onSubSelect={(id) => handleSubcategorySelect('Kids', id)}
+            />
+            {kidsDisplayLoading ? (
+              <Loader label="Loading products..." />
+            ) : kidsDisplayProducts.length > 0 ? (
+              <ProductRail items={kidsDisplayProducts} keyPrefix="kids" limit={40} />
+            ) : sectionSubFilters.Kids || sectionCategoryFilters.Kids ? (
+              <p className="hp-location-sheet-muted">No products in this subcategory yet.</p>
+            ) : null}
           </section>
         )}
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Explore" accentWord="Electronics" subtitle="Latest gadgets. Smart devices. Tech essentials." onViewAll={() => navigate('/electronics')} />
-            <CategoryChipsRail chips={[{ id: 'all-electronics', name: 'All' }, ...electronicsCats]} audienceLabel="Electronics" activeId={activeCollectionCats.Electronics ?? 'all-electronics'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, Electronics: id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
-            {electronicsProducts.length > 0 ? <ProductRail items={electronicsProducts} keyPrefix="electronics" limit={40} /> : null}
+            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
+            <CategoryChipsRail
+              chips={electronicsCats}
+              audienceLabel="Electronics"
+              activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id}
+              onChipSelect={(id) => handleMainCategorySelect('Electronics', id)}
+              activeSubId={sectionSubFilters.Electronics?.subId}
+              onSubSelect={(id) => handleSubcategorySelect('Electronics', id)}
+            />
+            {electronicsDisplayLoading ? (
+              <Loader label="Loading products..." />
+            ) : electronicsDisplayProducts.length > 0 ? (
+              <ProductRail items={electronicsDisplayProducts} keyPrefix="electronics" limit={40} />
+            ) : sectionSubFilters.Electronics || sectionCategoryFilters.Electronics ? (
+              <p className="hp-location-sheet-muted">No products in this subcategory yet.</p>
+            ) : null}
           </section>
         )}
 
         {(trendyShoesProducts.length > 0 || trendyShoesCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Shop For" accentWord="Footwear" subtitle="Comfort. Style. Every step matters." onViewAll={() => navigate('/footwear')} />
-            <CategoryChipsRail chips={[{ id: 'all-shoes', name: 'All' }, ...trendyShoesCats]} audienceLabel="Trendy Shoes" activeId={activeCollectionCats['Trendy Shoes'] ?? 'all-shoes'} onChipSelect={(id) => setActiveCollectionCats((prev) => ({ ...prev, 'Trendy Shoes': id }))} onSubSelect={(id) => navigate(`/shop?category_id=${id}`)} textOnly />
-            {trendyShoesProducts.length > 0 ? <ProductRail items={trendyShoesProducts} keyPrefix="shoes" limit={40} /> : null}
+            <SectionHead icon={trendyShoesIcon} iconAlt="Trendy shoes" title="Trendy" accentWord="Shoes" onViewAll={() => navigate('/footwear')} />
+            <CategoryChipsRail
+              chips={trendyShoesCats}
+              audienceLabel="Trendy Shoes"
+              activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id}
+              onChipSelect={(id) => handleMainCategorySelect('Trendy Shoes', id)}
+              activeSubId={sectionSubFilters['Trendy Shoes']?.subId}
+              onSubSelect={(id) => handleSubcategorySelect('Trendy Shoes', id)}
+            />
+            {trendyShoesDisplayLoading ? (
+              <Loader label="Loading products..." />
+            ) : trendyShoesDisplayProducts.length > 0 ? (
+              <ProductRail items={trendyShoesDisplayProducts} keyPrefix="shoes" limit={40} />
+            ) : sectionSubFilters['Trendy Shoes'] || sectionCategoryFilters['Trendy Shoes'] ? (
+              <p className="hp-location-sheet-muted">No products in this subcategory yet.</p>
+            ) : null}
           </section>
         )}
 
@@ -1418,7 +1656,7 @@ export default function Home() {
   );
 }
 
-function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSubSelect, textOnly = false }) {
+function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, activeSubId, onSubSelect }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
   const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
@@ -1430,18 +1668,26 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
         <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
           <MdChevronLeft />
         </button>
-        <div className={`hp-collection-chips${textOnly ? ' text-only' : ''}`} role="list" ref={chipsRef}>
+        <div className="hp-collection-chips" role="list" ref={chipsRef}>
           {chips.map((cat, idx) => {
             const icon = resolveImageUrl(cat.image);
             const fallback = chipFallbackIcon(cat.name, audienceLabel);
             const isActive = String(cat.id) === String(activeId);
             return (
-              <button key={`${cat.id || cat.name || 'chip'}-${idx}`} type="button" className={`hp-collection-chip${isActive ? ' active' : ''}`} role="listitem" onClick={() => onChipSelect(cat.id)}>
-                {!textOnly && (
-                  <span className="hp-collection-chip-icon" aria-hidden="true">
-                    {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
-                  </span>
-                )}
+              <button
+                key={`${cat.id || cat.name || 'chip'}-${idx}`}
+                type="button"
+                className={`hp-collection-chip${isActive ? ' active' : ''}`}
+                role="listitem"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onChipSelect(cat.id, cat.categoryIds);
+                }}
+              >
+                <span className="hp-collection-chip-icon" aria-hidden="true">
+                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
+                </span>
                 <span className="hp-collection-chip-label">{cat.name}</span>
               </button>
             );
@@ -1451,13 +1697,24 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, onSub
           <MdChevronRight />
         </button>
       </div>
-      {!textOnly && Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
+      {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
         <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
           {activeCat.subcategories.map((sub, subIdx) => {
             const subImg = resolveImageUrl(sub.image);
             const subFallback = chipFallbackIcon(sub.name, audienceLabel);
+            const isSubActive = String(sub.id) === String(activeSubId);
             return (
-              <button key={`${sub.id || sub.name || 'sub'}-${subIdx}`} type="button" className="hp-subcat-chip" role="listitem" onClick={() => onSubSelect(sub.id)}>
+              <button
+                key={`${sub.id || sub.name || 'sub'}-${subIdx}`}
+                type="button"
+                className={`hp-subcat-chip${isSubActive ? ' active' : ''}`}
+                role="listitem"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  onSubSelect(sub.id, sub.categoryIds);
+                }}
+              >
                 <span className="hp-subcat-chip-icon" aria-hidden="true">
                   {subImg ? <img src={subImg} alt="" loading="lazy" /> : <span>{subFallback}</span>}
                 </span>
@@ -1493,3 +1750,4 @@ function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
     </div>
   );
 }
+
