@@ -97,7 +97,7 @@ export default function Navbar() {
      applies inside the existing max-width: 900px media query in Navbar.css. */
   const isSearchOnlyMobile = location.pathname.startsWith("/shop");
   const showBackButton = location.pathname !== "/";
-  const shouldShowNavbarSpacer = !location.pathname.startsWith("/men");
+  const shouldShowNavbarSpacer = true;
 
   useEffect(() => {
     const syncAuth = () => {

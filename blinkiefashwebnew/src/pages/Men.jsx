@@ -703,6 +703,13 @@ export default function Men() {
     [menSubcats]
   );
 
+  const menKurtaShopUrl = useCallback(() => {
+    const kurtaCategory = findMenSubcatByLabel("kurta");
+    return kurtaCategory
+      ? menScopedShopUrl({ categoryId: kurtaCategory.id })
+      : menScopedShopUrl({ search: "kurta" });
+  }, [findMenSubcatByLabel, menScopedShopUrl]);
+
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
       return menSubcats.map((cat) => {
@@ -1127,7 +1134,7 @@ export default function Men() {
             <button
               type="button"
               className="men-festive-banner"
-              onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}
+              onClick={() => navigate(menKurtaShopUrl())}
             >
               <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
             </button>
@@ -1137,7 +1144,7 @@ export default function Men() {
                 <h2>FESTIVE FITS</h2>
                 <p>Traditional styles for modern celebrations</p>
               </div>
-              <button type="button" onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}>
+              <button type="button" onClick={() => navigate(menKurtaShopUrl())}>
                 View All <MdChevronRight />
               </button>
             </div>

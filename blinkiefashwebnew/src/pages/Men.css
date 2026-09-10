@@ -38,7 +38,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 18px 24px 48px;
   box-sizing: border-box;
   overflow-x: hidden;
   background: transparent;
@@ -333,7 +333,6 @@
   display: block;
   width: 100%;
   height: auto;
-  aspect-ratio: 3.4 / 1;
   object-fit: cover;
 }
 
