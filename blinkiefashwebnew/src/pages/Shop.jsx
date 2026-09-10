@@ -61,14 +61,17 @@ const buildChildrenMap = (data) => {
   return map;
 };
 
+let shopCatalogCache = null;
+
 export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
+  const newArrivalsMode = new URLSearchParams(location.search).get("new_arrivals") === "true";
 
-  const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [brands, setBrands] = useState([]);
-  const [childrenByParent, setChildrenByParent] = useState({});
+  const [products, setProducts] = useState(() => shopCatalogCache?.products ?? []);
+  const [categories, setCategories] = useState(() => shopCatalogCache?.categories ?? []);
+  const [brands, setBrands] = useState(() => shopCatalogCache?.brands ?? []);
+  const [childrenByParent, setChildrenByParent] = useState(() => shopCatalogCache?.childrenByParent ?? {});
   const [productMetaById, setProductMetaById] = useState({});
   const [activeCategoryId, setActiveCategoryId] = useState(null);
 
@@ -212,6 +215,7 @@ export default function Shop() {
   }, [location.search]);
 
   useEffect(() => {
+    if (shopCatalogCache?.products) return undefined;
     let isCancelled = false;
 
     const fetchAllProducts = async () => {
@@ -237,6 +241,11 @@ export default function Shop() {
     const startId = setTimeout(() => setLoading(true), 0);
     fetchAllProducts()
       .then((data) => {
+        if (!isCancelled) {
+          const nextProducts = Array.isArray(data) ? data : [];
+          setProducts(nextProducts);
+          shopCatalogCache = { ...(shopCatalogCache || {}), products: nextProducts };
+        }
         if (!isCancelled) setProducts(extractProducts(data));
       })
       .catch((err) => {
@@ -253,21 +262,27 @@ export default function Shop() {
   }, []);
 
   useEffect(() => {
+    if (shopCatalogCache?.categories) return undefined;
     fetch(`${API_BASE}/categories`)
       .then((res) => res.json())
       .then((data) => {
         const safeCategories = Array.isArray(data) ? data : [];
+        const nextChildren = buildChildrenMap(safeCategories);
         setCategories(safeCategories);
-        setChildrenByParent(buildChildrenMap(safeCategories));
+        setChildrenByParent(nextChildren);
+        shopCatalogCache = { ...(shopCatalogCache || {}), categories: safeCategories, childrenByParent: nextChildren };
       })
       .catch((err) => console.error(err));
   }, []);
 
   useEffect(() => {
+    if (shopCatalogCache?.brands) return undefined;
     fetch(`${API_BASE}/brands`)
       .then((res) => res.json())
       .then((data) => {
-        setBrands(Array.isArray(data) ? data : []);
+        const nextBrands = Array.isArray(data) ? data : [];
+        setBrands(nextBrands);
+        shopCatalogCache = { ...(shopCatalogCache || {}), brands: nextBrands };
       })
       .catch((err) => console.error(err));
   }, []);
@@ -840,6 +855,7 @@ export default function Shop() {
                   <ProductCard
                     key={`${product.id}-${product.variant_id || ""}-${product.image || ""}`}
                     product={product}
+                    isNew={newArrivalsMode && sortBy === "newest"}
                   />
                 ))}
 

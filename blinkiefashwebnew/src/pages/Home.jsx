@@ -51,10 +51,35 @@ import under999Icon from '../assets/prices.png';
 import priceRangeIcon from '../assets/prices.png';
 import moreToExploreIcon from '../assets/explore.png';
 
+// Login-prompt popup images shown to logged-out users on the reward cards
+import spinWheelPopup from '../assets/spinwheelpopup.png';
+import playWinPopup from '../assets/playwinpopup.png';
+import referEarnPopup from '../assets/referearnpopup.png';
+
 import './Shop.css';
 import './Home.css';
 
 const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.blinkiefash.app';
+
+// Maps each reward card to its login-prompt image, destination route
+// (once logged in), and CTA copy shown below the image.
+const REWARD_LOGIN_PROMPTS = {
+  spin: {
+    image: spinWheelPopup,
+    to: '/spin-wheel',
+    cta: 'Log In to Spin Now',
+  },
+  play: {
+    image: playWinPopup,
+    to: '/play-and-win',
+    cta: 'Log In to Play Now',
+  },
+  refer: {
+    image: referEarnPopup,
+    to: '/refer-earn',
+    cta: 'Log In to Refer Now',
+  },
+};
 
 function resolveImageUrl(raw) {
   const value = (raw ?? '').toString().trim();
@@ -419,6 +444,8 @@ export default function Home() {
     inStockOnly: false,
     maxPrice: 10000,
   });
+  // Which reward-card login prompt is open: 'spin' | 'play' | 'refer' | null
+  const [rewardLoginPrompt, setRewardLoginPrompt] = useState(null);
 
   const heroTrackRef = useRef(null);
   const heroRatiosRef = useRef(new Map());
@@ -467,6 +494,18 @@ export default function Home() {
         });
       });
       pauseBrandCarousel();
+    }
+  };
+
+  // Opens the login-prompt popup for a reward card when logged out;
+  // navigates straight through when already logged in.
+  const handleRewardCardClick = (key) => {
+    const config = REWARD_LOGIN_PROMPTS[key];
+    if (!config) return;
+    if (isLoggedIn) {
+      navigate(config.to);
+    } else {
+      setRewardLoginPrompt(key);
     }
   };
 
@@ -1341,31 +1380,21 @@ export default function Home() {
             <button
               type="button"
               className="hp-reward-image-card"
-              onClick={() => navigate(isLoggedIn ? '/spin-wheel' : '/login')}
+              onClick={() => handleRewardCardClick('spin')}
             >
               <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
-              {!isLoggedIn && (
-                <span className="hp-reward-login-badge">
-                  <MdLogin /> Login
-                </span>
-              )}
             </button>
             <button
               type="button"
               className="hp-reward-image-card"
-              onClick={() => navigate(isLoggedIn ? '/play-and-win' : '/login')}
+              onClick={() => handleRewardCardClick('play')}
             >
               <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
-              {!isLoggedIn && (
-                <span className="hp-reward-login-badge">
-                  <MdLogin /> Login
-                </span>
-              )}
             </button>
             <button
               type="button"
               className="hp-reward-image-card"
-              onClick={() => navigate('/refer-earn')}
+              onClick={() => handleRewardCardClick('refer')}
             >
               <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
             </button>
@@ -1651,6 +1680,47 @@ export default function Home() {
 
         <Footer />
       </main>
+
+      {rewardLoginPrompt && (
+        <div
+          className="hp-reward-modal-backdrop"
+          onClick={() => setRewardLoginPrompt(null)}
+          role="presentation"
+        >
+          <div
+            className="hp-reward-modal"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+          >
+            <button
+              type="button"
+              className="hp-reward-modal-back"
+              onClick={() => setRewardLoginPrompt(null)}
+            >
+              <MdChevronLeft /> Back
+            </button>
+
+            <img
+              src={REWARD_LOGIN_PROMPTS[rewardLoginPrompt].image}
+              alt=""
+              className="hp-reward-modal-img"
+            />
+
+            <button
+              type="button"
+              className="hp-reward-modal-login-btn"
+              onClick={() => {
+                const redirectTo = REWARD_LOGIN_PROMPTS[rewardLoginPrompt].to;
+                setRewardLoginPrompt(null);
+                navigate('/login', { state: { redirectTo } });
+              }}
+            >
+              <MdLogin /> {REWARD_LOGIN_PROMPTS[rewardLoginPrompt].cta}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -1749,4 +1819,3 @@ function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
     </div>
   );
 }
-

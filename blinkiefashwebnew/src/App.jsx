@@ -50,13 +50,15 @@ import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
 import OrderTracking from './pages/OrderTracking';
 import Parcel from './pages/Parcel';
-import HelpSupport from './pages/helpsupport'; 
+import HelpSupport from './pages/helpsupport';
 import SavedAddresses from './pages/SavedAddresses';
 import CreateVendor from './pages/CreateVendor';
 import ManageCategories from './pages/ManageCategories';
 import HeroCardsManager from './pages/HeroCardsManager';
 import { useAuth } from './context/AuthContext';
 import DealsOfTheDay from './pages/dealsoftheday';
+import FestivePage from './pages/FestivePage';
+
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
 
 // NEW: Blinkiefash India / Local mode pages
@@ -134,6 +136,7 @@ export default function App() {
 
   const isHome = pathname === '/';
   const isDeals = pathname === '/deals-of-the-day';
+  const isFestive = pathname.startsWith('/festive');
   const isVendorArea = pathname.startsWith('/vendor');
   const isCatalogPage =
     pathname === '/shop' ||
@@ -176,7 +179,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}${isDeals ? ' is-deals' : ''}`}
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}${isDeals ? ' is-deals' : ''}${isFestive ? ' is-festive' : ''}`}
     >
       {routeLoading ? (
         <Loader overlay label="Loading page..." subtitle="Please wait" showLogo />
@@ -317,9 +320,8 @@ export default function App() {
         <Route path="/terms" element={<Policies />} />
         <Route path="/help-support" element={<HelpSupport />} />
         <Route path="/account/addresses" element={<SavedAddresses />} />
-        <Route path="/deals-of-the-day" element={<DealsOfTheDay />}
-        />
-        /* hi */
+        <Route path="/deals-of-the-day" element={<DealsOfTheDay />} />
+        <Route path="/festive/:gender" element={<FestivePage />} />
         {/* NEW: Blinkiefash India / Local mode pages */}
         {/* <Route path="/blinkiefash-india" element={<BlinkiefashIndia />} /> */}
         {/* <Route path="/blinkiefash-local" element={<BlinkiefashLocal />} /> */}
@@ -332,8 +334,9 @@ export default function App() {
         !isOrderTrackingPage &&
         !isAccountPage &&
         !isOffersPage &&
-        !isHelpSupportPage && 
-        !isDeals && <BottomNav />}
+        !isHelpSupportPage &&
+        !isDeals &&
+        !isFestive && <BottomNav />}
 
       <AuthModal />
     </div>

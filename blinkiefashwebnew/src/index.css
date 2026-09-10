@@ -846,3 +846,12 @@ html {
     font-size: 12px;
   }
 }
+
+.app-shell.is-festive {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  width: 100%;
+  background: transparent;
+}

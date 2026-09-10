@@ -39,7 +39,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 18px 24px 48px;
   box-sizing: border-box;
   overflow-x: hidden;
   background: transparent;
@@ -97,7 +97,7 @@
 
 /* The shared navbar is fixed; the utility strip already occupies the page flow. */
 .women-page .navbar-spacer {
-  height: 56px;
+  height: 48px;
 }
 
 .women-page .catalog-home-topbar {
@@ -363,6 +363,7 @@
   display: block;
   width: 100%;
   height: auto;
+  aspect-ratio: 3.4 / 1;
   object-fit: cover;
 }
 
@@ -1031,7 +1032,8 @@
 }
 
 .women-page .hp-shop-brand-card {
-  width: 100%;
+  width: 160px;
+  min-width: 160px;
   min-height: 140px;
   border: 1px solid #fbd7e4;
   border-radius: 18px;
@@ -1193,6 +1195,8 @@
   }
 
   .women-page .hp-shop-brand-card {
+    width: 132px;
+    min-width: 132px;
     min-height: 120px !important;
   }
 
