@@ -389,6 +389,9 @@ export default function Home() {
   const [under999Products, setUnder999Products] = useState(() => c?.under999Products ?? []);
   const [under1999Products, setUnder1999Products] = useState(() => c?.under1999Products ?? []);
   const [topBrands, setTopBrands] = useState(() => c?.topBrands ?? []);
+  const [homeRotationSeed] = useState(
+    () => Date.now() + Math.floor(Math.random() * 1000000),
+  );
   const [exploreCatChipIndex, setExploreCatChipIndex] = useState(0);
   const [exploreCatId, setExploreCatId] = useState('');
   const [exploreProducts, setExploreProducts] = useState([]);
@@ -1085,9 +1088,16 @@ export default function Home() {
 
   // NEW ON BLINKIEFASH — show ALL newest products (mixed brands), no discount/Palermo filter
   const newOnBlinkiefash = useMemo(() => {
-    const items = (Array.isArray(newProducts) ? newProducts : []).slice(0, 40);
-    return items;
-  }, [newProducts]);
+    const unique = [];
+    const seen = new Set();
+    (Array.isArray(newProducts) ? newProducts : []).forEach((product) => {
+      const key = String(product?.id || product?.variant_id || '');
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      unique.push(product);
+    });
+    return seededShuffle(unique, homeRotationSeed).slice(0, 40);
+  }, [homeRotationSeed, newProducts]);
 
   const dealVisibleBrands = useMemo(() => {
     const search = dealBrandSearch.trim().toLowerCase();
