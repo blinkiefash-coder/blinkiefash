@@ -97,6 +97,7 @@ export default function Navbar() {
      applies inside the existing max-width: 900px media query in Navbar.css. */
   const isSearchOnlyMobile = location.pathname.startsWith("/shop");
   const showBackButton = location.pathname !== "/";
+  const shouldShowNavbarSpacer = !location.pathname.startsWith("/men");
 
   useEffect(() => {
     const syncAuth = () => {
@@ -578,7 +579,7 @@ export default function Navbar() {
           onCancel={cancelLogout}
         />
       </header>
-      <div className="navbar-spacer" aria-hidden="true" />
+      {shouldShowNavbarSpacer ? <div className="navbar-spacer" aria-hidden="true" /> : null}
     </>
   );
 }

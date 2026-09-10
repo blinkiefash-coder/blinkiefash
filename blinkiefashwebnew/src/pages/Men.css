@@ -38,10 +38,11 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 18px 24px 48px;
+  padding: 0 24px 48px;
   box-sizing: border-box;
   overflow-x: hidden;
   background: transparent;
+  margin-top: 0;
 }
 
 /* =========================================================
@@ -312,7 +313,7 @@
   position: relative;
   border-radius: 22px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin: 0 0 20px;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
   background: var(--m-blue-bg);
 }
@@ -1153,7 +1154,7 @@
 
 @media (max-width: 640px) {
   .men-main {
-    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
   .men-hero-arrow {
@@ -1226,7 +1227,7 @@
 
 @media (max-width: 400px) {
   .men-main {
-    padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .men-trust-strip {

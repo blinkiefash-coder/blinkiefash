@@ -1189,6 +1189,47 @@ export default function Men() {
           </div>
         </section>
 
+        {/* Offers */}
+        <section className="men-promo-strip" aria-label="Offers">
+          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
+            <div>
+              <p className="title">EXTRA 10% OFF</p>
+              <p className="sub">On Prepaid Orders · Code BLINK10</p>
+            </div>
+            <MdLocalOffer style={{ fontSize: 28 }} />
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-brands"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">UP TO 60% OFF</p>
+              <p className="sub">On Top Brands</p>
+              <div className="men-promo-brands-row">
+                <span className="men-promo-brand-chip">NIKE</span>
+                <span className="men-promo-brand-chip">PUMA</span>
+                <span className="men-promo-brand-chip">LEVI&apos;S</span>
+              </div>
+            </div>
+            <span className="cta">SHOP NOW →</span>
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-delivery"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">FREE DELIVERY</p>
+              <p className="sub">On Orders Above ₹1499</p>
+              <span className="cta">SHOP NOW →</span>
+            </div>
+            <MdTwoWheeler style={{ fontSize: 28 }} />
+          </button>
+        </section>
+
         {/* New arrivals */}
         <section className="section men-picks-section">
           <div className="hp-section-head">
