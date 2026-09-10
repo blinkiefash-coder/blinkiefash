@@ -290,12 +290,16 @@ class ApiClient {
   Future<Map<String, dynamic>> fetchProductsWithStore({
     double? lat,
     double? lng,
+    int limit = 100,
   }) async {
-    String url = '$apiApiBaseUrl/products';
+    final params = <String, String>{'limit': '$limit'};
     if (lat != null && lng != null) {
-      url += '?lat=$lat&lng=$lng';
+      params['lat'] = '$lat';
+      params['lng'] = '$lng';
     }
-    final uri = Uri.parse(url);
+    final uri = Uri.parse(
+      '$apiApiBaseUrl/products',
+    ).replace(queryParameters: params);
     final data = await _getJson(uri);
     if (data is Map<String, dynamic>) {
       // Persist the nearest store id so all subsequent product calls filter
