@@ -177,9 +177,10 @@ export default function OrderTracking() {
     Number.isFinite(distanceKm) ? distanceKm : null,
   );
 
-  const deliveryPromise = delivery.tier !== 'unknown'
-    ? delivery.label
-    : order.deliveryPromise || order.delivery_promise || delivery.label;
+  const deliveryPromise =
+    order.deliveryPromise ||
+    order.delivery_promise ||
+    (delivery.tier !== 'unknown' ? delivery.label : 'Delivery estimate unavailable');
   // --- END CHANGED ---
 
   const statusLabel = isCancelled
