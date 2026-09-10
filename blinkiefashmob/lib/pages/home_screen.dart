@@ -73,7 +73,6 @@ class _HomeScreenState extends State<HomeScreen>
 
   // EXPRESS tab shows products stocked by stores within the delivery radius.
   static const double _expressRadiusKm = 400;
-  static const double _sameHourDeliveryRadiusKm = 15;
   final String _productDeliveryTab = 'all';
   double? _nearestStoreDistanceKm;
 
@@ -1664,31 +1663,6 @@ class _HomeScreenState extends State<HomeScreen>
         _nearestStoreDistanceKm! <= _expressRadiusKm;
   }
 
-  String _expressDeliveryPromiseText() {
-    final distanceKm = _nearestStoreDistanceKm;
-    if (distanceKm == null) {
-      return '60 min up to 15 km • 24 hrs up to 400 km';
-    }
-    final distanceText = distanceKm < 0.1
-        ? ''
-        : ' • nearest store ${distanceKm.toStringAsFixed(1)} km away';
-    return '60 min up to 15 km • 24 hrs up to 400 km$distanceText';
-  }
-
-  double? _productFulfillmentDistanceKm(Map<String, dynamic> item) {
-    final raw = item['fulfillment_distance_km'];
-    if (raw is num) return raw.toDouble();
-    return double.tryParse((raw ?? '').toString());
-  }
-
-  String _productDeliveryPromise(Map<String, dynamic> item) {
-    final distanceKm = _productFulfillmentDistanceKm(item);
-    if (distanceKm == null) return 'Delivery available';
-    return distanceKm <= _sameHourDeliveryRadiusKm
-        ? '60 min delivery'
-        : '24 hrs delivery';
-  }
-
   /// EXPRESS tab body: shows nearby-eligible products, or an unavailable banner.
   Widget _expressBody() {
     if (_isLoading) {
@@ -1716,14 +1690,7 @@ class _HomeScreenState extends State<HomeScreen>
                 color: Color(0xFF0F172A),
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              expressAvailable
-                  ? _expressDeliveryPromiseText()
-                  : 'Products are shown when a store is within 400 km',
-              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
-            ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             if (!expressAvailable)
               _expressUnavailableBanner()
             else if (_products.isEmpty)
@@ -1737,231 +1704,14 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisCount: 2,
                   mainAxisSpacing: 12,
                   crossAxisSpacing: 12,
-                  childAspectRatio: 0.6,
+                  childAspectRatio: 0.49,
                 ),
-                itemBuilder: (_, i) => _expressGridProductCard(_products[i]),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Grid-friendly product card (fills its cell, unlike the fixed-width horizontal card).
-  Widget _expressGridProductCard(Map<String, dynamic> item) {
-    final name = item['name']?.toString() ?? 'Product';
-    final brand = item['brand']?.toString() ?? '';
-    final variantData = _getCardVariant(item);
-    final price = _fmt(variantData['discount_price']);
-    final mrp = _fmt(variantData['price']);
-    final off = item['off']?.toString() ?? _offLabel(item);
-    final image = _imgUrl(variantData['image_url'] ?? item['image']);
-    final hasDiscount = mrp.isNotEmpty && mrp != price && mrp != '0';
-    final deliveryPromise = _productDeliveryPromise(item);
-    final deliveryDistanceKm = _productFulfillmentDistanceKm(item);
-    final isSameHour =
-      deliveryDistanceKm != null &&
-      deliveryDistanceKm <= _sameHourDeliveryRadiusKm;
-    final wishItem = WishlistItem(
-      productId: item['id']?.toString() ?? '',
-      name: name,
-      price: price,
-      imageUrl: image,
-    );
-
-    return GestureDetector(
-      onTap: item['id'] != null ? () => _openProduct(item) : null,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE2F3E8)),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0x1A166534),
-              blurRadius: 12,
-              offset: Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(
-                      top: Radius.circular(16),
-                    ),
-                    child: image == null
-                        ? Container(
-                            color: const Color(0xFFF7FAF8),
-                            child: const Icon(
-                              Icons.checkroom_outlined,
-                              color: Color(0xFFCBD5E1),
-                              size: 36,
-                            ),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: image,
-                            fit: BoxFit.contain,
-                            alignment: Alignment.center,
-                            memCacheWidth: 480,
-                            placeholder: (_, _) =>
-                                Container(color: const Color(0xFFF7FAF8)),
-                            errorWidget: (_, _, _) => Container(
-                              color: const Color(0xFFF7FAF8),
-                              child: const Icon(Icons.broken_image_outlined),
-                            ),
-                          ),
-                  ),
-                  Positioned(
-                    top: 6,
-                    right: 6,
-                    child: GestureDetector(
-                      onTap: () {
-                        WishlistManager.instance.toggle(wishItem);
-                        setState(() {});
-                      },
-                      child: Container(
-                        width: 30,
-                        height: 30,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          WishlistManager.instance.isWishlisted(
-                                wishItem.productId,
-                              )
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          size: 16,
-                          color:
-                              WishlistManager.instance.isWishlisted(
-                                wishItem.productId,
-                              )
-                              ? const Color(0xFFE11D48)
-                              : const Color(0xFF94A3B8),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(10, 8, 10, 8),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (brand.isNotEmpty)
-                      Text(
-                        brand.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Color(0xFF94A3B8),
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    const SizedBox(height: 2),
-                    Text(
-                      name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0F172A),
-                        height: 1.2,
-                      ),
-                    ),
-                    const Spacer(),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 7,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hasDiscount
-                            ? const Color(0xFFDC2626)
-                            : const Color(0xFF166534),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        hasDiscount ? off : 'NEW',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Icon(
-                          isSameHour
-                              ? Icons.bolt_rounded
-                              : Icons.schedule_rounded,
-                          size: 13,
-                          color: isSameHour
-                              ? const Color(0xFF16A34A)
-                              : const Color(0xFFEA580C),
-                        ),
-                        const SizedBox(width: 3),
-                        Expanded(
-                          child: Text(
-                            deliveryPromise,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w800,
-                              color: isSameHour
-                                  ? const Color(0xFF16A34A)
-                                  : const Color(0xFFEA580C),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 5),
-                    Row(
-                      children: [
-                        Text(
-                          '₹$price',
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF15803D),
-                          ),
-                        ),
-                        if (hasDiscount) ...[
-                          const SizedBox(width: 4),
-                          Text(
-                            '₹$mrp',
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF94A3B8),
-                              decoration: TextDecoration.lineThrough,
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
+                itemBuilder: (_, i) => _standardHomeProductCard(
+                  _products[i],
+                  width: double.infinity,
+                  margin: EdgeInsets.zero,
                 ),
               ),
-            ),
           ],
         ),
       ),
@@ -3997,6 +3747,8 @@ class _HomeScreenState extends State<HomeScreen>
   Widget _standardHomeProductCard(
     Map<String, dynamic> item, {
     bool isNew = false,
+    double width = 168,
+    EdgeInsetsGeometry margin = const EdgeInsets.only(right: 12),
   }) {
     final name = item['name']?.toString() ?? 'Product';
     final brand = item['brand']?.toString() ?? '';
@@ -4050,8 +3802,8 @@ class _HomeScreenState extends State<HomeScreen>
     return GestureDetector(
       onTap: item['id'] != null ? () => _openProduct(item) : null,
       child: Container(
-        width: 168,
-        margin: const EdgeInsets.only(right: 12),
+        width: width,
+        margin: margin,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
