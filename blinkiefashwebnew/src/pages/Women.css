@@ -39,7 +39,7 @@
   width: 100%;
   max-width: 100%;
   margin: 0 auto;
-  padding: 18px 24px 48px;
+  padding: 0 24px 48px;
   box-sizing: border-box;
   overflow-x: hidden;
   background: transparent;
@@ -93,6 +93,11 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* The shared navbar is fixed; the utility strip already occupies the page flow. */
+.women-page .navbar-spacer {
+  height: 56px;
 }
 
 .women-page .catalog-home-topbar {
@@ -334,6 +339,7 @@
    ========================================================= */
 
 .women-hero-carousel {
+  margin-top: 0;   /* remove the negative margin */
   position: relative;
   border-radius: 22px;
   overflow: hidden;
@@ -930,169 +936,65 @@
   color: var(--w-pink-dark);
 }
 
-.women-promo-strip {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-  margin: 20px 0;
-}
-.women-promo-card {
-  border: 1px solid #fbd7e4;
-  background: #fdf2f6;
-  border-radius: 14px;
-  padding: 16px 18px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  text-align: left;
-  cursor: pointer;
-}
-.women-promo-card .title {
-  font-weight: 900;
-  font-size: 14px;
-  margin: 0 0 2px;
-  color: var(--w-ink);
-}
-.women-promo-card .sub {
-  font-size: 12px;
-  color: var(--w-sub);
-  margin: 0;
-}
-.women-promo-card .cta {
-  color: var(--w-pink-dark);
-  font-weight: 800;
-  font-size: 12.5px;
-}
-.women-promo-brands-row {
-  display: flex;
-  gap: 6px;
-  margin-top: 6px;
-}
-.women-promo-brand-chip {
-  background: #fff;
-  border: 1px solid var(--w-pink);
-  color: var(--w-pink-dark);
-  border-radius: 999px;
-  padding: 2px 8px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
 .women-explore-section {
   margin-top: 30px;
 }
 
+
+
 /* =========================================================
-   HOME-STYLE SECTION HEAD + TIMER on Women page
+   PLAIN SECTION HEADINGS (Festive Edit, All Women's Picks,
+   New Arrivals, More to Explore) — give them the same pink
+   accent-bar treatment as the icon headings above, so the
+   whole page reads as one consistent design.
    ========================================================= */
 
-.women-page .hp-shead {
+.women-page .hp-section-head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
+  flex-wrap: wrap;
   margin-bottom: 16px;
 }
 
-.women-page .hp-shead-title-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-  min-width: 0;
-  flex: 1;
-}
-
-.women-page .hp-shead-title-wrap {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
-}
-
-.women-page .hp-shead-title {
+.women-page .hp-section-head h2 {
+  position: relative;
   margin: 0;
-  font-size: clamp(1.4rem, 2.1vw, 1.85rem);
-  line-height: 1.14;
-  letter-spacing: -0.025em;
+  padding-left: 14px;
+  font-size: 18px;
   font-weight: 900;
-  color: #0b1d2d;
-  white-space: nowrap;
+  letter-spacing: 0.3px;
+  color: var(--w-ink);
 }
 
-/* Default accent — pink on Women page */
-.women-page .hp-shead-accent {
-  color: var(--w-pink);
-  background: linear-gradient(90deg, #e91e63, #f472b6);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+.women-page .hp-section-head h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--w-pink), var(--w-pink-dark));
 }
 
-/* Deals of the Day — keep orange→red accent like Home */
-.women-page .section:has(.hp-deals-timer) .hp-shead-accent {
-  color: #ea580c;
-  background: linear-gradient(90deg, #ea580c 0%, #ef4444 55%, #dc2626 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.women-page .hp-shead-action {
-  flex: none;
-  border: none;
-  background: transparent;
-  color: var(--w-pink-dark);
-  font-size: 0.85rem;
-  font-weight: 800;
+.women-page .hp-section-head button {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  cursor: pointer;
-  white-space: nowrap;
-  padding: 4px 2px;
-  margin: 0;
-}
-
-.women-page .hp-shead-action:hover {
-  color: var(--w-pink);
-}
-
-.women-page .hp-shead-action svg {
-  font-size: 17px;
-}
-
-/* Timer pill (same as Home) */
-.women-page .hp-deals-timer {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin-top: 0.25rem;
-  padding: 5px 12px 5px 10px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #1c1917 0%, #292524 100%);
-  color: #fff7ed;
-  width: fit-content;
-  white-space: nowrap;
-  line-height: 1;
-  box-shadow: 0 2px 10px rgba(234, 88, 12, 0.25);
-  border: 1px solid rgba(249, 115, 22, 0.35);
-}
-
-.women-page .hp-deals-timer-label {
-  font-size: 10.5px;
-  font-weight: 700;
-  color: rgba(255, 247, 237, 0.7);
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-
-.women-page .hp-deals-timer-value {
+  border: none;
+  background: none;
+  color: var(--w-pink-dark);
+  font-weight: 800;
   font-size: 13px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  font-variant-numeric: tabular-nums;
-  color: #fb923c;
-  text-shadow: 0 0 14px rgba(251, 146, 60, 0.45);
+  cursor: pointer;
+  padding: 8px 4px;
+  font-family: inherit;
+}
+
+.women-page .hp-section-head button:hover {
+  text-decoration: underline;
 }
 
 /* Brands You Will Love — reuse Home shop-by-brands grid */
@@ -1200,10 +1102,40 @@
   opacity: 0.85;
 }
 
-@media (max-width: 768px) {
-  .women-promo-strip {
-    grid-template-columns: 1fr;
-  }
+/* =========================================================
+   ETHNIC BANNER (Festive Edit) — sits under Brands You Will Love
+   ========================================================= */
+
+.women-ethnic-banner-section {
+  margin: 24px 0;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  width: 100%;
+  max-width: 100%;
+}
+
+.women-ethnic-banner-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.women-ethnic-banner-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+  transition: transform 0.25s ease;
+}
+
+.women-ethnic-banner-btn:hover .women-ethnic-banner-img {
+  transform: scale(1.01);
 }
 
 /* ===== Responsive ===== */
@@ -1272,9 +1204,10 @@
     max-height: 64px !important;
   }
 
-  .women-page .hp-shead {
-    gap: 10px;
+    .women-page .hp-shead {
+    gap: 8px;
     margin-bottom: 12px;
+    flex-wrap: wrap; /* allow wrap only on small screens if needed */
   }
 
   .women-page .hp-shead-title {
@@ -1282,29 +1215,48 @@
   }
 
   .women-page .hp-shead-title-wrap {
-    gap: 10px;
+    gap: 8px;
+    flex-wrap: wrap; /* timer can drop under title on very narrow screens */
+  }
+
+  .women-page .hp-shead-mark {
+    width: 34px;
+    height: 34px;
   }
 
   .women-page .hp-deals-timer {
-    padding: 4px 10px 4px 8px;
+    padding: 3px 8px 3px 6px;
   }
 
   .women-page .hp-deals-timer-label {
-    font-size: 9.5px;
+    font-size: 9px;
   }
 
   .women-page .hp-deals-timer-value {
-    font-size: 11.5px;
+    font-size: 11px;
   }
 
   .women-page .hp-shead-action {
     font-size: 0.76rem;
   }
+
+  .women-page .women-section-actions {
+    margin-left: auto;
+  }
+
+  .women-page .hp-section-head h2 {
+    font-size: 15.5px;
+  }
+
+  .women-ethnic-banner-section {
+    margin: 16px 0;
+    border-radius: 16px;
+  }
 }
 
 @media (max-width: 640px) {
   .women-main {
-    padding: 12px 12px calc(32px + env(safe-area-inset-bottom, 0px));
+    padding: 0 12px calc(32px + env(safe-area-inset-bottom, 0px));
   }
 
   .women-rewards-grid {
@@ -1394,7 +1346,7 @@
 
 @media (max-width: 400px) {
   .women-main {
-    padding: 10px 10px calc(28px + env(safe-area-inset-bottom, 0px));
+    padding: 0 10px calc(28px + env(safe-area-inset-bottom, 0px));
   }
 
   .women-rewards-grid {
@@ -1431,7 +1383,8 @@
   height: 100%;
 }
 
-/* Mobile: rails → 2-column grid */
+/* Mobile: rails stay horizontally scrollable (swipe), same pattern as
+   the brands rail — arrows hidden, native touch scroll enabled. */
 @media (max-width: 640px) {
   .women-picks-section .hp-deals-wrap {
     position: relative;
@@ -1443,29 +1396,45 @@
   }
 
   .women-picks-section .hp-deals-rail {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    flex-wrap: nowrap;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
     gap: 10px;
-    overflow-x: visible;
-    scroll-snap-type: none;
-    padding: 0;
+    padding: 2px 2px 10px;
+  }
+
+  .women-picks-section .hp-deals-rail::-webkit-scrollbar {
+    display: none;
   }
 
   .women-picks-section .hp-deal-card-wrapper {
-    min-width: 0;
-    max-width: none;
-    flex: none;
-    width: 100%;
+    min-width: 150px;
+    max-width: 170px;
+    flex: 0 0 auto;
+    width: auto;
+    scroll-snap-align: start;
   }
 
   .women-picks-section .pc-card {
-    height: auto;
+    height: 100%;
   }
 }
 
 @media (max-width: 380px) {
   .women-picks-section .hp-deals-rail {
     gap: 8px;
+  }
+
+  .women-picks-section .hp-deal-card-wrapper {
+    min-width: 136px;
+    max-width: 152px;
   }
 }
 
@@ -1672,4 +1641,4 @@
   .women-page .hp-shop-brands-wrap .hp-deals-next {
     display: none !important;
   }
-}
+} 
