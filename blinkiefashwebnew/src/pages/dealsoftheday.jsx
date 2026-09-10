@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { MdArrowBack, MdLocalFireDepartment, MdTune, MdClose } from 'react-icons/md';
 
 import Loader from '../components/Loader';
@@ -28,6 +28,8 @@ const CATEGORY_ORDER = [
   'ELECTRONICS',
   'TRAVEL AND BACKPACK',
 ];
+
+let dealsPageCache = null;
 
 function getCategoryRank(name) {
   const normalized = String(name || '').trim().toUpperCase();
@@ -80,12 +82,14 @@ function formatCountdown(ms) {
 
 export default function DealsOfTheDay() {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState([]);
-  const [activeCategoryId, setActiveCategoryId] = useState('');
+  const location = useLocation();
+  const initialCategoryId = new URLSearchParams(location.search).get('category_id') || '';
+  const [categories, setCategories] = useState(() => dealsPageCache?.categories ?? []);
+  const [activeCategoryId, setActiveCategoryId] = useState(initialCategoryId);
   const [sortBy, setSortBy] = useState('discount');
-  const [allDeals, setAllDeals] = useState([]);
+  const [allDeals, setAllDeals] = useState(() => dealsPageCache?.allDeals ?? []);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!dealsPageCache);
   const [error, setError] = useState('');
   const [countdown, setCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
 
@@ -95,17 +99,22 @@ export default function DealsOfTheDay() {
   // list is always complete. `draftBrand` is the live checkbox state inside
   // the panel; it only takes effect on products once "Apply Filters" is
   // pressed, at which point it's copied into `appliedBrand`.
-  const [brands, setBrands] = useState([]);
+  const [brands, setBrands] = useState(() => dealsPageCache?.brands ?? []);
   const [brandSearch, setBrandSearch] = useState('');
   const [draftBrand, setDraftBrand] = useState([]);
   const [appliedBrand, setAppliedBrand] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
 
   useEffect(() => {
+    if (dealsPageCache?.brands) return undefined;
     let cancelled = false;
     getBrands()
       .then((data) => {
-        if (!cancelled) setBrands(Array.isArray(data) ? data : []);
+        if (!cancelled) {
+          const nextBrands = Array.isArray(data) ? data : [];
+          setBrands(nextBrands);
+          dealsPageCache = { ...(dealsPageCache || {}), brands: nextBrands };
+        }
       })
       .catch((err) => console.error('[DealsOfTheDay] Could not load brands', err));
     return () => {
@@ -148,6 +157,7 @@ export default function DealsOfTheDay() {
   }, []);
 
   useEffect(() => {
+    if (dealsPageCache?.allDeals) return undefined;
     let cancelled = false;
     (async () => {
       setLoading(true);
@@ -191,8 +201,10 @@ export default function DealsOfTheDay() {
           });
 
         if (cancelled) return;
-        setCategories(allCats.filter((c) => !c.parent_id));
+        const rootCategories = allCats.filter((c) => !c.parent_id);
+        setCategories(rootCategories);
         setAllDeals(discountedOnly);
+        dealsPageCache = { ...(dealsPageCache || {}), categories: rootCategories, allDeals: discountedOnly };
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load deals');
       } finally {

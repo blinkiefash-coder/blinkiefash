@@ -27,7 +27,6 @@ import {
   MdInventory2,
   MdTwoWheeler,
   MdFilterList,
-  MdClose,
 } from "react-icons/md";
 
 // changes 
@@ -250,7 +249,7 @@ function normalizeProduct(p) {
   };
 }
 
-function ProductRail({ list, railRef, keyPrefix }) {
+function ProductRail({ list, railRef, keyPrefix, isNew = false }) {
   const scrollRail = (dir) => {
     const el = railRef.current;
     if (!el) return;
@@ -271,7 +270,7 @@ function ProductRail({ list, railRef, keyPrefix }) {
             role="listitem"
             style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
           >
-            <ProductCard product={p} />
+            <ProductCard product={p} isNew={isNew} />
           </div>
         ))}
       </div>
@@ -326,18 +325,6 @@ export default function Men() {
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
-
-  const toggleBrandFilter = (name) => {
-    setActiveBrand((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
-  };
-
-  const toggleColorFilter = (name) => {
-    setActiveColor((prev) => (prev.includes(name) ? prev.filter((v) => v !== name) : [...prev, name]));
-  };
-
-  const selectMinDiscount = (value) => {
-    setMinDiscount((prev) => (prev === value ? 0 : value));
-  };
 
   // Reflects what's actually filtering the grid right now (appliedFilters),
   // not whatever's mid-edit in the still-open panel.
@@ -919,116 +906,6 @@ export default function Men() {
               />
             )}
 
-            {filterOpen && filterOpen !== filterOpen && (
-              <section className="men-filters-panel" role="dialog" aria-label="Men filters">
-                <div className="men-filters-panel-header">
-                  <h3>Filters</h3>
-                  <div className="men-filters-panel-header-actions">
-                    {activeFilterCount > 0 ? (
-                      <button type="button" className="men-filters-clear" onClick={clearAllFilters}>
-                        Clear All
-                      </button>
-                    ) : null}
-                    <button
-                      type="button"
-                      className="men-filters-close"
-                      onClick={() => setFilterOpen(false)}
-                      aria-label="Close filters"
-                    >
-                      <MdClose />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="men-filter-col">
-                  <h4>Brand</h4>
-                  <input
-                    className="men-filter-search"
-                    value={brandSearch}
-                    onChange={(e) => setBrandSearch(e.target.value)}
-                    placeholder="Search brand"
-                  />
-                  <div className="men-filter-list">
-                    {visibleBrands.slice(0, 15).map((brand) => (
-                      <label key={brand.id || brand.name}>
-                        <input
-                          type="checkbox"
-                          checked={activeBrand.includes(brand.name)}
-                          onChange={() => toggleBrandFilter(brand.name)}
-                        />
-                        <span>{brand.name}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="men-filter-col">
-                  <h4>Color</h4>
-                  <div className="men-filter-list men-filter-swatches">
-                    {COLORS.map(([name, hex]) => {
-                      const checked = activeColor.includes(name.toLowerCase()) || activeColor.includes(name);
-                      return (
-                        <label key={name} className={`men-swatch-label${checked ? " checked" : ""}`}>
-                          <input type="checkbox" checked={checked} onChange={() => toggleColorFilter(name)} />
-                          <span className="men-swatch-dot" style={{ background: hex }} />
-                          <span>{name}</span>
-                        </label>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                <div className="men-filter-col">
-                  <h4>Price</h4>
-                  <input
-                    type="range"
-                    min="500"
-                    max="12000"
-                    step="100"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(Number(e.target.value))}
-                  />
-                  <p>Up to ₹{maxPrice.toLocaleString("en-IN")}</p>
-                </div>
-
-                <div className="men-filter-col">
-                  <h4>Discount Range</h4>
-                  <div className="men-filter-chips">
-                    {DISCOUNT_BUCKETS.map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        className={`men-filter-chip-item${minDiscount === value ? " active" : ""}`}
-                        onClick={() => selectMinDiscount(value)}
-                      >
-                        {value}% and above
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="men-filter-col">
-                  <h4>Availability</h4>
-                  <div className="men-filter-list">
-                    <label>
-                      <input
-                        type="checkbox"
-                        checked={inStockOnly}
-                        onChange={(e) => setInStockOnly(e.target.checked)}
-                      />
-                      <span>In stock only</span>
-                    </label>
-                  </div>
-                </div>
-
-                <div className="men-filters-footer">
-                  <button type="button" className="men-filters-apply" onClick={applyFilters}>
-                    Apply Filters
-                  </button>
-                </div>
-              </section>
-            )}
-
             <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="men-deal" />
           </section>
         )}
@@ -1127,7 +1004,7 @@ export default function Men() {
             <button
               type="button"
               className="men-festive-banner"
-              onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}
+              onClick={() => navigate("/festive/men")}
             >
               <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
             </button>
@@ -1137,7 +1014,7 @@ export default function Men() {
                 <h2>FESTIVE FITS</h2>
                 <p>Traditional styles for modern celebrations</p>
               </div>
-              <button type="button" onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}>
+              <button type="button" onClick={() => navigate("/festive/men")}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1200,7 +1077,7 @@ export default function Men() {
           {productsLoading ? (
             <Loader />
           ) : newArrivals.length ? (
-            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" />
+            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="men-new" isNew />
           ) : (
             <p className="men-empty-state">Fresh styles coming soon.</p>
           )}
@@ -1243,8 +1120,8 @@ export default function Men() {
           ) : (
             <div className="hp-explore-grid" role="list">
               {Array.from({ length: 6 }).map((_, idx) => (
-                <ProductCardSkeleton key={`explore-init-${idx}`} />)
-              )}
+                <ProductCardSkeleton key={`explore-init-${idx}`} />
+              ))}
             </div>
           )}
 

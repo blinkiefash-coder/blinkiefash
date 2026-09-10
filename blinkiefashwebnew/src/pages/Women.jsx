@@ -246,6 +246,8 @@ const HERO_SLIDES = [
   { image: womenBanner3, tag: "New arrivals" },
 ];
 
+let womenPageCache = null;
+
 function normalizeProduct(p) {
   const salePrice = Number(p.discount_price ?? p.price ?? 0);
   const originalPrice = Number(p.price ?? p.original_price ?? p._mrp ?? salePrice);
@@ -348,15 +350,15 @@ function ProductRail({ list, railRef, keyPrefix, isNew = false }) {
 export default function Women() {
   const navigate = useNavigate();
 
-  const [products, setProducts] = useState([]);
-  const [newArrivals, setNewArrivals] = useState([]);
-  const [deals, setDeals] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(true);
-  const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
-  const [womenRootId, setWomenRootId] = useState(null);
-  const [womenSubcats, setWomenSubcats] = useState([]);
-  const [womenResolved, setWomenResolved] = useState(false);
-  const [brands, setBrands] = useState([]);
+  const [products, setProducts] = useState(() => womenPageCache?.products ?? []);
+  const [newArrivals, setNewArrivals] = useState(() => womenPageCache?.newArrivals ?? []);
+  const [deals, setDeals] = useState(() => womenPageCache?.deals ?? []);
+  const [productsLoading, setProductsLoading] = useState(!womenPageCache);
+  const [newArrivalsLoading, setNewArrivalsLoading] = useState(!womenPageCache);
+  const [womenRootId, setWomenRootId] = useState(() => womenPageCache?.womenRootId ?? null);
+  const [womenSubcats, setWomenSubcats] = useState(() => womenPageCache?.womenSubcats ?? []);
+  const [womenResolved, setWomenResolved] = useState(() => Boolean(womenPageCache));
+  const [brands, setBrands] = useState(() => womenPageCache?.brands ?? []);
   const [heroIndex, setHeroIndex] = useState(0);
 
   const [exploreCatId, setExploreCatId] = useState("");
@@ -476,6 +478,7 @@ export default function Women() {
   }, []);
 
   useEffect(() => {
+    if (womenPageCache) return undefined;
     let cancelled = false;
 
     (async () => {
@@ -502,6 +505,7 @@ export default function Women() {
   }, []);
 
   useEffect(() => {
+    if (womenPageCache?.brands?.length) return undefined;
     let cancelled = false;
 
     (async () => {
@@ -515,9 +519,16 @@ export default function Women() {
           }))
           .filter((b) => b.name);
 
-        if (!cancelled) setBrands(list.length ? list : TOP_BRANDS_FALLBACK);
+        if (!cancelled) {
+          const nextBrands = list.length ? list : TOP_BRANDS_FALLBACK;
+          setBrands(nextBrands);
+          womenPageCache = { ...(womenPageCache || {}), brands: nextBrands };
+        }
       } catch {
-        if (!cancelled) setBrands(TOP_BRANDS_FALLBACK);
+        if (!cancelled) {
+          setBrands(TOP_BRANDS_FALLBACK);
+          womenPageCache = { ...(womenPageCache || {}), brands: TOP_BRANDS_FALLBACK };
+        }
       }
     })();
 
@@ -529,6 +540,7 @@ export default function Women() {
   // Main product pool + deals
   useEffect(() => {
     if (!womenResolved) return;
+    if (womenPageCache?.products) return;
     let cancelled = false;
 
     (async () => {
@@ -596,6 +608,13 @@ export default function Women() {
         const normalized = found.map(normalizeProduct);
         setProducts(normalized.slice(0, 20));
         setDeals(dealList.map(normalizeProduct).slice(0, 12));
+        womenPageCache = {
+          ...(womenPageCache || {}),
+          products: normalized.slice(0, 20),
+          deals: dealList.map(normalizeProduct).slice(0, 12),
+          womenRootId,
+          womenSubcats,
+        };
         setProductsLoading(false);
       }
     })();
@@ -612,6 +631,7 @@ export default function Women() {
   // were actually added most recently.
   useEffect(() => {
     if (!womenResolved) return;
+    if (womenPageCache?.newArrivals) return;
     let cancelled = false;
 
     (async () => {
@@ -644,7 +664,9 @@ export default function Women() {
         }
 
         if (cancelled) return;
-        setNewArrivals(pool.map(normalizeProduct).slice(0, NEW_ARRIVALS_DISPLAY_LIMIT));
+        const normalizedNewArrivals = pool.map(normalizeProduct).slice(0, NEW_ARRIVALS_DISPLAY_LIMIT);
+        setNewArrivals(normalizedNewArrivals);
+        womenPageCache = { ...(womenPageCache || {}), newArrivals: normalizedNewArrivals };
       } catch {
         if (!cancelled) setNewArrivals([]);
       } finally {
@@ -750,6 +772,8 @@ export default function Women() {
         }
       }
       if (search) params.set("search", search);
+      if (opts.sort) params.set("sort", String(opts.sort));
+      if (opts.newArrivals) params.set("new_arrivals", "true");
       const qs = params.toString();
       return qs ? `/shop?${qs}` : "/shop?search=women";
     },
@@ -942,8 +966,15 @@ export default function Women() {
       ? womenScopedShopUrl({ categoryId: ethnicCat.id })
       : womenScopedShopUrl({ search: "ethnic" });
   }, [findWomenSubcatByLabel, ethnicCategories, womenScopedShopUrl]);
+  void ethnicShopUrl; // kept for now in case other flows still want the /shop-scoped ethnic URL
 
   const slide = HERO_SLIDES[heroIndex];
+  const indianFusionCategory = findWomenSubcatByLabel("Indian and Fusion wear") || ethnicCategories[0];
+  const heroDestination = heroIndex === 1
+    ? womenScopedShopUrl({ categoryId: indianFusionCategory?.id })
+    : heroIndex === 2
+      ? womenScopedShopUrl({ sort: "newest", newArrivals: true })
+      : womenScopedShopUrl();
 
   const filtersPanel = (
     <section className="women-filters-panel" role="dialog" aria-label="Women filters">
@@ -1085,7 +1116,7 @@ export default function Women() {
             <MdChevronLeft />
           </button>
 
-          <button type="button" className="women-hero-media-btn" onClick={() => navigate(womenScopedShopUrl())}>
+          <button type="button" className="women-hero-media-btn" onClick={() => navigate(heroDestination)}>
             <img src={slide.image} alt={slide.tag} className="women-hero-img" />
           </button>
 
@@ -1131,7 +1162,11 @@ export default function Women() {
                 </div>
               </div>
               <div className="women-section-actions">
-                <button type="button" className="hp-shead-action" onClick={() => navigate(womenScopedShopUrl())}>
+                <button
+                  type="button"
+                  className="hp-shead-action"
+                  onClick={() => navigate(womenRootId ? `/deals-of-the-day?category_id=${encodeURIComponent(womenRootId)}` : "/deals-of-the-day")}
+                >
                   View All <MdChevronRight />
                 </button>
                 <button
@@ -1280,7 +1315,7 @@ export default function Women() {
           <button
             type="button"
             className="women-ethnic-banner-btn"
-            onClick={() => navigate(ethnicShopUrl)}
+            onClick={() => navigate("/festive/women")}
           >
             <img
               src={womenEthnicBanner}
@@ -1295,7 +1330,7 @@ export default function Women() {
           <section className="section women-picks-section" aria-label="Festive edit — ethnic wear">
             <div className="hp-section-head">
               <h2>FESTIVE EDIT 🪔</h2>
-              <button type="button" onClick={() => navigate(ethnicShopUrl)}>
+              <button type="button" onClick={() => navigate("/festive/women")}>
                 View All <MdChevronRight />
               </button>
             </div>
