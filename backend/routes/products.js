@@ -819,6 +819,9 @@ router.get("/", async (req, res) => {
       store_id,   // explicit store override from frontend
       store_ids,
     } = req.query;
+    const customerLat = Number.parseFloat(lat);
+    const customerLng = Number.parseFloat(lng);
+    const hasCustomerLocation = Number.isFinite(customerLat) && Number.isFinite(customerLng);
 
     // Let a free-text budget phrase ("under 500") drive price filtering when
     // explicit min_price/max_price filters weren't already supplied.
@@ -837,7 +840,7 @@ router.get("/", async (req, res) => {
     let nearestStoreCity = null;
     let nearestStoreDist = null;
     let nearestStoreId = null;
-    if (lat && lng) {
+    if (hasCustomerLocation) {
       const { rows: storeRows } = await pool.query(
         `SELECT id, name, city,
            6371 * acos(
@@ -846,7 +849,7 @@ router.get("/", async (req, res) => {
            ) AS dist
          FROM dark_stores WHERE is_active = true AND lat IS NOT NULL AND lng IS NOT NULL
          ORDER BY dist ASC LIMIT 1`,
-        [parseFloat(lat), parseFloat(lng)]
+        [customerLat, customerLng]
       );
       if (storeRows.length) {
         nearestStoreId = storeRows[0].id;
@@ -862,10 +865,8 @@ router.get("/", async (req, res) => {
       .filter(Boolean);
 
     let nearbyStores = [];
-    if (!store_id && !explicitStoreIds.length && lat && lng) {
-      // Use extended radius (500 km) for Odisha, standard radius (150 km) for others
-      // to match the delivery policies configured in checkout
-      const radiusKm = 150; // Default extended radius
+    if (!store_id && !explicitStoreIds.length && hasCustomerLocation) {
+      const radiusKm = 400;
       
       const { rows } = await pool.query(
         `SELECT id, name, city,
@@ -882,7 +883,7 @@ router.get("/", async (req, res) => {
              sin(radians($1)) * sin(radians(lat))
            ) <= $3
          ORDER BY dist ASC`,
-        [parseFloat(lat), parseFloat(lng), radiusKm]
+        [customerLat, customerLng, radiusKm]
       );
       nearbyStores = rows.map((r) => ({
         id: r.id,
@@ -892,14 +893,28 @@ router.get("/", async (req, res) => {
       }));
     }
 
-    // Effective stores: explicit store(s) first, then nearby stores, then nearest store fallback.
+    // Effective stores: explicit store(s) first, then nearby stores. If a location
+    // was supplied and none are within 400 km, do not fall back beyond the radius.
     const effectiveStoreIds = explicitStoreIds.length
       ? explicitStoreIds
       : store_id
         ? [String(store_id)]
         : nearbyStores.length
           ? nearbyStores.map((s) => s.id)
-          : (nearestStoreId ? [nearestStoreId] : []);
+              : (hasCustomerLocation ? [] : (nearestStoreId ? [nearestStoreId] : []));
+
+            if (hasCustomerLocation && !store_id && !explicitStoreIds.length && !effectiveStoreIds.length) {
+      return res.json({
+        products: [],
+        total: 0,
+        nearestStore: nearestStoreName
+          ? { id: nearestStoreId, name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
+          : null,
+        nearbyStores: [],
+        nearbyStoreIds: [],
+        locationProvided: true,
+      });
+    }
 
     // Build parameter list — store_id is ALWAYS $1 when present so LATERAL
     // can reference it by position before other dynamic conditions are added.
@@ -909,8 +924,16 @@ router.get("/", async (req, res) => {
     let storeInvCondition = '';
     if (effectiveStoreIds.length) {
       values.push(effectiveStoreIds);
-      storeInvCondition = `AND (inv.store_id = ANY($${index++}::uuid[]) OR inv.store_id IS NULL)`;
+      storeInvCondition = `AND inv.store_id = ANY($${index++}::uuid[])
+          AND GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) > 0`;
     }
+
+    const fulfillmentDistanceSql = hasCustomerLocation
+      ? `6371 * acos(LEAST(1, GREATEST(-1,
+             cos(radians(${customerLat})) * cos(radians(ds.lat)) * cos(radians(ds.lng) - radians(${customerLng})) +
+             sin(radians(${customerLat})) * sin(radians(ds.lat))
+           )))`
+      : `NULL`;
 
     let query = `
       SELECT
@@ -925,6 +948,9 @@ router.get("/", async (req, res) => {
         pv.mrp        AS price,
         pv.sell_price AS discount_price,
         pv.available_stock,
+        pv.fulfillment_store_id,
+        pv.fulfillment_store_city,
+        pv.fulfillment_distance_km,
         p.is_bestseller,
         (p.is_try_enabled OR p.is_try_and_buy) AS is_try_and_buy,
         p.buy_2,
@@ -943,6 +969,9 @@ router.get("/", async (req, res) => {
           v.color,
           v.mrp,
           v.price AS sell_price,
+          inv.store_id AS fulfillment_store_id,
+          ds.city AS fulfillment_store_city,
+          ${fulfillmentDistanceSql} AS fulfillment_distance_km,
           GREATEST(COALESCE(inv.stock, 0) - COALESCE(inv.reserved_stock, 0), 0) AS available_stock,
           COALESCE(
 
@@ -1025,10 +1054,11 @@ router.get("/", async (req, res) => {
           ) AS image
         FROM product_variants v
         LEFT JOIN inventory inv ON inv.variant_id = v.id
+        LEFT JOIN dark_stores ds ON ds.id = inv.store_id AND ds.lat IS NOT NULL AND ds.lng IS NOT NULL
         WHERE v.product_id = p.id
           AND v.is_active = true
           ${storeInvCondition}
-        ORDER BY lower(COALESCE(v.color, '')), (EXISTS(SELECT 1 FROM product_media WHERE variant_id = v.id)) DESC, v.price ASC, v.id ASC
+        ORDER BY lower(COALESCE(v.color, '')), fulfillment_distance_km ASC NULLS LAST, (EXISTS(SELECT 1 FROM product_media WHERE variant_id = v.id)) DESC, v.price ASC, v.id ASC
       ) pv ON true
       WHERE 1=1
         AND pv.variant_id IS NOT NULL
@@ -1208,7 +1238,7 @@ router.get("/", async (req, res) => {
         : null,
       nearbyStores,
       nearbyStoreIds: effectiveStoreIds,
-      locationProvided: !!(lat && lng),
+      locationProvided: hasCustomerLocation,
     });
 
   } catch (err) {
