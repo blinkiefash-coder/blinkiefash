@@ -60,6 +60,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
   List<Map<String, dynamic>> _subcategories =
       const []; // subcategories of selected category
   List<Map<String, dynamic>> _brands = const [];
+  List<Map<String, dynamic>> _brandCategoryOptions = const [];
 
   // ── Search suggestions ───────────────────────────────────────────────────
   // Each item: {text, type:'category'|'brand'|'product', id?}
@@ -308,11 +309,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       _searchCtrl.text = text;
       _searchCtrl.selection = TextSelection.collapsed(offset: text.length);
       _searchFocus.unfocus();
-      setState(() {
-        _showSuggestions = false;
-        _typedSuggestions = const [];
-      });
-      _loadProducts(reset: true);
+      _submitSearchText(text);
       return;
     }
     if (type == 'category') {
@@ -350,9 +347,14 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           _selectedBrandName = name;
           _searchCtrl.clear();
         });
+        _loadBrandCategoryOptions();
         _loadProducts(reset: true);
       } else {
-        _searchCtrl.text = name;
+        setState(() {
+          _selectedBrandName = name;
+          _searchCtrl.clear();
+        });
+        _loadBrandCategoryOptions();
         _loadProducts(reset: true);
       }
       return;
@@ -366,6 +368,27 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       _showSuggestions = false;
       _typedSuggestions = const [];
     });
+    _loadProducts(reset: true);
+  }
+
+  void _submitSearchText(String text) {
+    final exactBrand = _brandByExactName(text);
+    setState(() {
+      _showSuggestions = false;
+      _typedSuggestions = const [];
+      if (exactBrand != null) {
+        _selectedBrandId = exactBrand['id']?.toString();
+        _selectedBrandName = exactBrand['name']?.toString();
+        _selectedCategoryId = null;
+        _selectedCategoryName = null;
+        _searchCtrl.clear();
+      } else {
+        _selectedBrandId = null;
+        _selectedBrandName = null;
+        _brandCategoryOptions = const [];
+      }
+    });
+    if (exactBrand != null) _loadBrandCategoryOptions();
     _loadProducts(reset: true);
   }
 
@@ -504,6 +527,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     if (!mounted) return;
 
     final allCats = (results[0]).whereType<Map<String, dynamic>>().toList();
+    final brands = (results[1]).whereType<Map<String, dynamic>>().toList();
 
     // Resolve categoryName → categoryId when only a name was passed
     String? resolvedCatId;
@@ -517,6 +541,21 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
       if (match.isNotEmpty) {
         resolvedCatId = match['id'].toString();
         resolvedCatName = match['name'].toString();
+      }
+    }
+
+    String? resolvedBrandId;
+    String? resolvedBrandName;
+    if (widget.brandId == null &&
+        widget.brandName == null &&
+        widget.initialSearch != null) {
+      final needle = _normalizeBrandName(widget.initialSearch);
+      for (final brand in brands) {
+        if (_normalizeBrandName(brand['name']) == needle) {
+          resolvedBrandId = brand['id']?.toString();
+          resolvedBrandName = brand['name']?.toString();
+          break;
+        }
       }
     }
 
@@ -539,17 +578,25 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         return an.compareTo(bn);
       });
       _allCats = allCats;
-      _brands = (results[1]).whereType<Map<String, dynamic>>().toList();
+      _brands = brands;
       if (resolvedCatId != null) {
         _selectedCategoryId = resolvedCatId;
         _selectedCategoryName = resolvedCatName;
         _updateSubcategoriesForSelected(resolvedCatId);
       }
+      if (resolvedBrandId != null) {
+        _selectedBrandId = resolvedBrandId;
+        _selectedBrandName = resolvedBrandName;
+        _searchCtrl.clear();
+      }
     });
 
     // Reload with the resolved category filter
-    if (resolvedCatId != null) {
+    if (resolvedCatId != null || resolvedBrandId != null) {
       _loadProducts(reset: true);
+    }
+    if (_isBrandMode) {
+      _loadBrandCategoryOptions();
     }
   }
 
@@ -562,6 +609,63 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         .where((c) => c['parent_id']?.toString() == categoryId)
         .toList();
     _subcategories = subs;
+  }
+
+  bool get _isBrandMode =>
+      _selectedBrandId != null ||
+      (_selectedBrandName != null && _selectedBrandName!.trim().isNotEmpty);
+
+  Future<void> _loadBrandCategoryOptions() async {
+    final brandId = _selectedBrandId;
+    final brandName = _selectedBrandName;
+    if (brandId == null && (brandName == null || brandName.trim().isEmpty)) {
+      if (mounted) setState(() => _brandCategoryOptions = const []);
+      return;
+    }
+
+    try {
+      final data = await _api.fetchAllProducts(
+        brandId: brandId,
+        search: brandId == null ? brandName : null,
+        sort: 'newest',
+        limit: 200,
+        offset: 0,
+      );
+      final rows = (data['products'] as List? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .toList();
+      final byName = <String, Map<String, dynamic>>{};
+      for (final product in rows) {
+        final rawName = (product['category_name'] ?? product['category'] ?? '')
+            .toString();
+        final name = rawName.trim();
+        if (name.isEmpty) continue;
+        final existingCategory = _allCats
+            .cast<Map<String, dynamic>?>()
+            .firstWhere(
+              (cat) =>
+                  _normalizeBrandName(cat?['name']) ==
+                  _normalizeBrandName(name),
+              orElse: () => null,
+            );
+        byName[_normalizeBrandName(name)] = {
+          'id':
+              existingCategory?['id']?.toString() ??
+              product['category_id']?.toString() ??
+              '',
+          'name': existingCategory?['name']?.toString() ?? name,
+        };
+      }
+      final options = byName.values.toList()
+        ..sort(
+          (a, b) => (a['name'] ?? '').toString().compareTo(
+            (b['name'] ?? '').toString(),
+          ),
+        );
+      if (mounted) setState(() => _brandCategoryOptions = options);
+    } catch (_) {
+      if (mounted) setState(() => _brandCategoryOptions = const []);
+    }
   }
 
   Future<void> _loadProducts({bool reset = false}) async {
@@ -682,6 +786,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
             _minPrice = minP;
             _maxPrice = maxP;
           });
+          _loadBrandCategoryOptions();
           _loadProducts(reset: true);
         },
         onClear: () {
@@ -690,6 +795,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
             _selectedCategoryName = null;
             _selectedBrandId = null;
             _selectedBrandName = null;
+            _brandCategoryOptions = const [];
             _sort = 'newest';
             _minPrice = null;
             _maxPrice = null;
@@ -715,6 +821,46 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     return '$apiBaseUrl/$raw';
   }
 
+  String _normalizeBrandName(dynamic value) =>
+      (value ?? '').toString().toLowerCase().replaceAll('.', '').trim();
+
+  Map<String, dynamic>? get _activeBrandInfo {
+    final selectedId = _selectedBrandId;
+    final selectedName = _selectedBrandName;
+    for (final brand in _brands) {
+      if (selectedId != null && brand['id']?.toString() == selectedId) {
+        return brand;
+      }
+    }
+    if (selectedName != null && selectedName.trim().isNotEmpty) {
+      final needle = _normalizeBrandName(selectedName);
+      for (final brand in _brands) {
+        if (_normalizeBrandName(brand['name']) == needle) return brand;
+      }
+    }
+    return null;
+  }
+
+  Map<String, dynamic>? _brandByExactName(dynamic value) {
+    final needle = _normalizeBrandName(value);
+    if (needle.isEmpty) return null;
+    for (final brand in _brands) {
+      if (_normalizeBrandName(brand['name']) == needle) return brand;
+    }
+    return null;
+  }
+
+  String? get _activeBrandBannerUrl {
+    final brand = _activeBrandInfo;
+    if (brand == null) return null;
+    return _imgUrl(brand['banner_url'] ?? brand['banner'] ?? brand['logo_url']);
+  }
+
+  String get _activeBrandDisplayName =>
+      _activeBrandInfo?['name']?.toString() ??
+      _selectedBrandName ??
+      _searchCtrl.text.trim();
+
   @override
   Widget build(BuildContext context) {
     final title = _selectedCategoryName ?? _selectedBrandName ?? 'All Products';
@@ -737,8 +883,10 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_categories.isNotEmpty) _categoryChipsRow(),
-                      if (_subcategories.isNotEmpty) _subcategoriesRow(),
+                      if (!_isBrandMode && _categories.isNotEmpty)
+                        _categoryChipsRow(),
+                      if (!_isBrandMode && _subcategories.isNotEmpty)
+                        _subcategoriesRow(),
                       if (_activeFilterCount > 0) _activeFilterChips(),
                     ],
                   ),
@@ -859,11 +1007,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
         },
         onSubmitted: (_) {
           _searchFocus.unfocus();
-          setState(() {
-            _showSuggestions = false;
-            _typedSuggestions = const [];
-          });
-          _loadProducts(reset: true);
+          _submitSearchText(_searchCtrl.text);
         },
         textInputAction: TextInputAction.search,
         decoration: InputDecoration(
@@ -932,6 +1076,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
           setState(() {
             _selectedBrandId = null;
             _selectedBrandName = null;
+            _brandCategoryOptions = const [];
           });
           _loadProducts(reset: true);
         }),
@@ -1082,6 +1227,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                   _selectedBrandId = null;
                   _selectedBrandName = null;
                   _subcategories = const [];
+                  _brandCategoryOptions = const [];
                 });
                 _loadProducts(reset: true);
               },
@@ -1100,6 +1246,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     _selectedCategoryName = name;
                     _selectedBrandId = null;
                     _selectedBrandName = null;
+                    _brandCategoryOptions = const [];
                     _searchCtrl.clear();
                     _updateSubcategoriesForSelected(id);
                   });
@@ -1203,76 +1350,232 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
     );
   }
 
+  Widget? _brandBanner() {
+    final bannerUrl = _activeBrandBannerUrl;
+    if (bannerUrl == null) return null;
+    final displayName = _activeBrandDisplayName;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F0F172A),
+            blurRadius: 16,
+            offset: Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: AspectRatio(
+          aspectRatio: 4.2,
+          child: CachedNetworkImage(
+            imageUrl: bannerUrl,
+            fit: BoxFit.cover,
+            alignment: Alignment.center,
+            memCacheWidth: (1100 * MediaQuery.of(context).devicePixelRatio)
+                .round(),
+            placeholder: (_, _) => Container(color: const Color(0xFFE2E8F0)),
+            errorWidget: (_, _, _) => Container(
+              color: const Color(0xFFE2E8F0),
+              alignment: Alignment.center,
+              child: Text(
+                displayName,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFF0F172A),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _brandCategoryChips() {
+    if (!_isBrandMode || _brandCategoryOptions.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      color: const Color(0xFFF8FAFC),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+      child: SizedBox(
+        height: 42,
+        child: ListView(
+          scrollDirection: Axis.horizontal,
+          children: [
+            _brandCategoryChip(
+              label: 'All',
+              selected: _selectedCategoryId == null,
+              onTap: () {
+                setState(() {
+                  _selectedCategoryId = null;
+                  _selectedCategoryName = null;
+                  _subcategories = const [];
+                });
+                _loadProducts(reset: true);
+              },
+            ),
+            ..._brandCategoryOptions.map((category) {
+              final id = category['id']?.toString();
+              final name = category['name']?.toString() ?? '';
+              return _brandCategoryChip(
+                label: name,
+                selected: id != null && id.isNotEmpty
+                    ? _selectedCategoryId == id
+                    : _selectedCategoryName == name,
+                onTap: () {
+                  setState(() {
+                    _selectedCategoryId = id?.isEmpty ?? true ? null : id;
+                    _selectedCategoryName = name;
+                    _updateSubcategoriesForSelected(_selectedCategoryId);
+                  });
+                  _loadProducts(reset: true);
+                },
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _brandCategoryChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(right: 8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: selected ? null : onTap,
+        child: Container(
+          constraints: const BoxConstraints(minWidth: 68),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          decoration: BoxDecoration(
+            color: selected ? _green : Colors.white,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: selected ? _green : const Color(0xFFE2E8F0),
+              width: 1.2,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: _green.withValues(alpha: 0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: selected ? Colors.white : const Color(0xFF64748B),
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _emptyProductsState() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.search_off_rounded,
+          size: 64,
+          color: Color(0xFFCBD5E1),
+        ),
+        const SizedBox(height: 12),
+        const Text(
+          'No products found',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF64748B),
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextButton(
+          onPressed: () {
+            _searchCtrl.clear();
+            setState(() {
+              _selectedCategoryId = null;
+              _selectedCategoryName = null;
+              _selectedBrandId = null;
+              _selectedBrandName = null;
+              _sort = 'newest';
+              _minPrice = null;
+              _maxPrice = null;
+            });
+            _loadProducts(reset: true);
+          },
+          child: const Text('Clear filters', style: TextStyle(color: _green)),
+        ),
+      ],
+    );
+  }
+
   Widget _body() {
     if (_isLoading && _products.isEmpty) {
       return const Center(child: BfSpinner());
     }
-    if (_products.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.search_off_rounded,
-              size: 64,
-              color: Color(0xFFCBD5E1),
-            ),
-            const SizedBox(height: 12),
-            const Text(
-              'No products found',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            const SizedBox(height: 6),
-            TextButton(
-              onPressed: () {
-                _searchCtrl.clear();
-                setState(() {
-                  _selectedCategoryId = null;
-                  _selectedCategoryName = null;
-                  _selectedBrandId = null;
-                  _selectedBrandName = null;
-                  _sort = 'newest';
-                  _minPrice = null;
-                  _maxPrice = null;
-                });
-                _loadProducts(reset: true);
-              },
-              child: const Text(
-                'Clear filters',
-                style: TextStyle(color: _green),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    final brandBanner = _brandBanner();
     return RefreshIndicator(
       color: const Color(0xFF22C55E),
       backgroundColor: const Color(0xFF0D2015),
       strokeWidth: 2.5,
       onRefresh: () => _loadProducts(reset: true),
-      child: GridView.builder(
+      child: CustomScrollView(
         controller: _scrollCtrl,
-        padding: const EdgeInsets.all(12),
-        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 0.53,
-          crossAxisSpacing: 10,
-          mainAxisSpacing: 10,
-        ),
-        itemCount: _products.length + (_hasMore ? 1 : 0),
-        itemBuilder: (_, i) {
-          if (i == _products.length) {
-            return const Center(
-              child: Padding(padding: EdgeInsets.all(16), child: BfSpinner()),
-            );
-          }
-          return _productCard(_products[i]);
-        },
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          if (brandBanner != null) SliverToBoxAdapter(child: brandBanner),
+          if (_isBrandMode) SliverToBoxAdapter(child: _brandCategoryChips()),
+          if (_products.isEmpty)
+            SliverFillRemaining(
+              hasScrollBody: false,
+              child: Center(child: _emptyProductsState()),
+            )
+          else
+            SliverPadding(
+              padding: const EdgeInsets.all(12),
+              sliver: SliverGrid(
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  childAspectRatio: 0.53,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                ),
+                delegate: SliverChildBuilderDelegate((_, i) {
+                  if (i == _products.length) {
+                    return const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: BfSpinner(),
+                      ),
+                    );
+                  }
+                  return _productCard(_products[i]);
+                }, childCount: _products.length + (_hasMore ? 1 : 0)),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -1395,7 +1698,7 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                         ),
                       ),
                     )
-                  else if (item['is_try_and_buy'] == true)
+                  else if (hasDiscount)
                     Positioned(
                       top: 8,
                       left: 8,
@@ -1405,40 +1708,21 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
+                          color: const Color(0xFFDC2626),
                           borderRadius: BorderRadius.circular(20),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Color(0x55F59E0B),
-                              blurRadius: 6,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
                         ),
-                        child: const Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text('✨', style: TextStyle(fontSize: 7, height: 1)),
-                            SizedBox(width: 3),
-                            Text(
-                              'Try & Buy',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 8,
-                                fontWeight: FontWeight.w900,
-                                letterSpacing: 0.3,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          offLabel,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.3,
+                          ),
                         ),
                       ),
                     )
-                  else if (!item.containsKey('is_try_and_buy') ||
-                      item['is_try_and_buy'] != true)
+                  else
                     Positioned(
                       top: 8,
                       left: 8,
@@ -1466,29 +1750,6 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    )
-                  else if (hasDiscount)
-                    Positioned(
-                      top: 8,
-                      left: 8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 6,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFDC2626),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Text(
-                          offLabel,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 8,
-                            fontWeight: FontWeight.w800,
-                          ),
                         ),
                       ),
                     ),
