@@ -237,7 +237,7 @@ export default function Shop() {
     const startId = setTimeout(() => setLoading(true), 0);
     fetchAllProducts()
       .then((data) => {
-        if (!isCancelled) setProducts(Array.isArray(data) ? data : []);
+        if (!isCancelled) setProducts(extractProducts(data));
       })
       .catch((err) => {
         console.error("[Shop] Error fetching products:", err);
