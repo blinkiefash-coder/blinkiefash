@@ -166,9 +166,11 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!isLoggedIn || !user?.id) {
-      setSavedAddresses([]);
-      setSelectedAddressId(null);
-      setDeliveryQuote(null);
+      queueMicrotask(() => {
+        setSavedAddresses([]);
+        setSelectedAddressId(null);
+        setDeliveryQuote(null);
+      });
       return undefined;
     }
 
@@ -198,7 +200,7 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!selectedAddressId || !data?.product) {
-      setDeliveryQuote(null);
+      queueMicrotask(() => setDeliveryQuote(null));
       return undefined;
     }
 
@@ -209,7 +211,7 @@ export default function ProductDetail() {
       data.product.discount_price,
       data.product.price
     );
-    setDeliveryQuoteLoading(true);
+    queueMicrotask(() => setDeliveryQuoteLoading(true));
     getDeliveryFee({
       addressId: selectedAddressId,
       subtotal,

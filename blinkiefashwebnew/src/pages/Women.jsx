@@ -38,6 +38,7 @@ import { API_BASE_URL } from "../apiBase";
 import womenBanner1 from "../assets/women-banner-1.png";
 import womenBanner2 from "../assets/women-banner-2.png";
 import womenBanner3 from "../assets/women-banner-3.png";
+import womenEthnicBanner from "../assets/womenethnicbanner.jpg";
 // import playAndWinImage from "../assets/play&win.png";
 // import spinAndWinImage from "../assets/spin&win.png";
 // import referAndEarnImage from "../assets/refer&earn.png";
@@ -62,6 +63,43 @@ const COLORS = [
 ];
 
 const DISCOUNT_BUCKETS = [10, 20, 30, 40, 50, 60, 70];
+
+// Any women's subcategory whose name matches one of these keywords counts
+// as "ethnic wear" — this is keyword-based (not a fixed label list) so it
+// automatically picks up things like "Kurtis & Suits", "Kurti Sets",
+// "Ethnic Sets", "Anarkali", "Sarees", etc. straight from your backend's
+// actual category names, without needing to hardcode every variant.
+const ETHNIC_KEYWORDS = [
+  "ethnic",
+  "kurti",
+  "kurta",
+  "saree",
+  "sari",
+  "suit",
+  "lehenga",
+  "salwar",
+  "dupatta",
+  "chikankari",
+  "anarkali",
+  "sharara",
+  "dhoti",
+  "indo western",
+  "indo-western",
+  "fusion wear",
+];
+
+// Per-category fetch size — high enough that pooling several ethnic
+// categories together reliably surfaces everything available, not just
+// a capped preview.
+const ETHNIC_FETCH_LIMIT_PER_CATEGORY = 100;
+
+// How many pages of `sort: "newest"` results to page through when building
+// the women's New Arrivals pool. Each page pulls up to 100 products, so
+// 4 pages covers up to 400 of the most recently added women's products
+// before we trim down to what the rail actually displays.
+const NEW_ARRIVALS_MAX_PAGES = 4;
+const NEW_ARRIVALS_PAGE_SIZE = 100;
+const NEW_ARRIVALS_DISPLAY_LIMIT = 20;
 
 const NIKE_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg";
 
@@ -242,7 +280,38 @@ function normalizeProduct(p) {
   };
 }
 
-function ProductRail({ list, railRef, keyPrefix }) {
+//
+
+// function SectionHead({ icon, title, accentWord, subtitle, viewAllLabel = "View All", onViewAll }) {
+//   return (
+//     <div className="hp-shead">
+//       <div className="hp-shead-title-group">
+//         <div className="hp-shead-title-wrap">
+//           {icon ? <span className="hp-shead-mark" aria-hidden="true">{icon}</span> : null}
+//           <h2 className="hp-shead-title">
+//             {accentWord ? (
+//               <>
+//                 <span>{title} </span>
+//                 <span className="hp-shead-accent">{accentWord}</span>
+//               </>
+//             ) : (
+//               <span>{title}</span>
+//             )}
+//           </h2>
+//         </div>
+//         {subtitle ? <p className="hp-shead-subtitle">{subtitle}</p> : null}
+//       </div>
+//       {onViewAll ? (
+//         <button type="button" className="hp-shead-action" onClick={onViewAll}>
+//           {viewAllLabel} <MdChevronRight />
+//         </button>
+//       ) : null}
+//     </div>
+//   );
+// }
+
+
+function ProductRail({ list, railRef, keyPrefix, isNew = false }) {
 
   const scrollRail = (dir) => {
     const el = railRef.current;
@@ -264,7 +333,7 @@ function ProductRail({ list, railRef, keyPrefix }) {
             role="listitem"
             style={{ minWidth: 180, maxWidth: 220, flex: "0 0 auto" }}
           >
-            <ProductCard product={p} />
+            <ProductCard product={p} isNew={isNew} />
           </div>
         ))}
       </div>
@@ -283,6 +352,7 @@ export default function Women() {
   const [newArrivals, setNewArrivals] = useState([]);
   const [deals, setDeals] = useState([]);
   const [productsLoading, setProductsLoading] = useState(true);
+  const [newArrivalsLoading, setNewArrivalsLoading] = useState(true);
   const [womenRootId, setWomenRootId] = useState(null);
   const [womenSubcats, setWomenSubcats] = useState([]);
   const [womenResolved, setWomenResolved] = useState(false);
@@ -294,6 +364,9 @@ export default function Women() {
   const [exploreOffset, setExploreOffset] = useState(0);
   const [exploreHasMore, setExploreHasMore] = useState(false);
   const [exploreLoading, setExploreLoading] = useState(false);
+
+  // Festive Edit (ethnic wear) products
+  const [ethnicProducts, setEthnicProducts] = useState([]);
 
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState([]);
@@ -393,6 +466,7 @@ export default function Women() {
   const arrivalsRef = useRef(null);
   const dealsRef = useRef(null);
   const shopBrandsRef = useRef(null);
+  const festiveRef = useRef(null);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -521,7 +595,6 @@ export default function Women() {
       if (!cancelled) {
         const normalized = found.map(normalizeProduct);
         setProducts(normalized.slice(0, 20));
-        setNewArrivals(normalized.slice(0, 10));
         setDeals(dealList.map(normalizeProduct).slice(0, 12));
         setProductsLoading(false);
       }
@@ -531,6 +604,58 @@ export default function Women() {
       cancelled = true;
     };
   }, [womenResolved, womenRootId, womenSubcats]);
+
+  // New Arrivals — a dedicated, newest-first pool (same approach Home uses
+  // for "New on Blinkiefash"), scoped to the Women's category only. This
+  // pages through `sort: "newest"` results instead of reusing whatever
+  // "All Women's Picks" happened to fetch, so it reflects products that
+  // were actually added most recently.
+  useEffect(() => {
+    if (!womenResolved) return;
+    let cancelled = false;
+
+    (async () => {
+      setNewArrivalsLoading(true);
+      try {
+        const pool = [];
+        const seen = new Set();
+        let offset = 0;
+
+        for (let i = 0; i < NEW_ARRIVALS_MAX_PAGES; i += 1) {
+          const res = await getProducts({
+            category_id: womenRootId || undefined,
+            search: womenRootId ? undefined : "women",
+            sort: "newest",
+            limit: NEW_ARRIVALS_PAGE_SIZE,
+            offset,
+          });
+          const batch = extractProducts(res);
+          if (!Array.isArray(batch) || batch.length === 0) break;
+
+          batch.forEach((item) => {
+            const key = String(item?.id ?? "");
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            pool.push(item);
+          });
+
+          if (batch.length < NEW_ARRIVALS_PAGE_SIZE) break;
+          offset += NEW_ARRIVALS_PAGE_SIZE;
+        }
+
+        if (cancelled) return;
+        setNewArrivals(pool.map(normalizeProduct).slice(0, NEW_ARRIVALS_DISPLAY_LIMIT));
+      } catch {
+        if (!cancelled) setNewArrivals([]);
+      } finally {
+        if (!cancelled) setNewArrivalsLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [womenResolved, womenRootId]);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -735,6 +860,88 @@ export default function Women() {
       }))
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
   }, [products, deals, newArrivals, exploreProducts, brands]);
+
+  const ethnicCategories = useMemo(() => {
+    if (!womenSubcats.length) return [];
+    return womenSubcats.filter((cat) => {
+      const name = (cat.name || "").toLowerCase();
+      return ETHNIC_KEYWORDS.some((kw) => name.includes(kw));
+    });
+  }, [womenSubcats]);
+
+  // Festive Edit — every ethnic wear product for women (kurtis, kurta
+  // sets, sarees, suits, lehengas, etc.), pooled across all matching
+  // subcategories with no artificial cap on the total shown.
+  useEffect(() => {
+    if (!womenResolved) return;
+    let cancelled = false;
+
+    (async () => {
+      let merged = [];
+
+      if (ethnicCategories.length) {
+        try {
+          const perCat = await Promise.all(
+            ethnicCategories.map((cat) =>
+              getProducts({
+                category_id: cat.id,
+                sort: "newest",
+                limit: ETHNIC_FETCH_LIMIT_PER_CATEGORY,
+              }).catch(() => [])
+            )
+          );
+          merged = perCat.flatMap(extractProducts);
+        } catch {
+          merged = [];
+        }
+      }
+
+      // Dedupe by product id, preserving first occurrence
+      const seenIds = new Set();
+      merged = merged.filter((p) => {
+        const key = String(p?.id ?? "");
+        if (!key || seenIds.has(key)) return false;
+        seenIds.add(key);
+        return true;
+      });
+
+      // No ethnic subcategories resolved at all — fall back to a keyword search
+      if (!merged.length) {
+        try {
+          const res = await getProducts({
+            category_id: womenRootId || undefined,
+            search: womenRootId ? "ethnic" : "women ethnic",
+            sort: "newest",
+            limit: ETHNIC_FETCH_LIMIT_PER_CATEGORY,
+          });
+          extractProducts(res).forEach((p) => {
+            const key = String(p?.id ?? "");
+            if (key && !seenIds.has(key)) {
+              seenIds.add(key);
+              merged.push(p);
+            }
+          });
+        } catch {
+          // ignore, use whatever we already have
+        }
+      }
+
+      if (!cancelled) {
+        setEthnicProducts(merged.map(normalizeProduct));
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [womenResolved, womenRootId, ethnicCategories]);
+
+  const ethnicShopUrl = useMemo(() => {
+    const ethnicCat = findWomenSubcatByLabel("Ethnic Wear") || ethnicCategories[0];
+    return ethnicCat
+      ? womenScopedShopUrl({ categoryId: ethnicCat.id })
+      : womenScopedShopUrl({ search: "ethnic" });
+  }, [findWomenSubcatByLabel, ethnicCategories, womenScopedShopUrl]);
 
   const slide = HERO_SLIDES[heroIndex];
 
@@ -1068,6 +1275,38 @@ export default function Women() {
           </section>
         )}
 
+        {/* ========== ETHNIC BANNER ========== */}
+        <section className="women-ethnic-banner-section" aria-label="Festive ethnic wear">
+          <button
+            type="button"
+            className="women-ethnic-banner-btn"
+            onClick={() => navigate(ethnicShopUrl)}
+          >
+            <img
+              src={womenEthnicBanner}
+              alt="Your Festive Fits — traditional roots, modern style"
+              className="women-ethnic-banner-img"
+            />
+          </button>
+        </section>
+
+        {/* ========== FESTIVE EDIT (ethnic wear rail) ========== */}
+        {ethnicProducts.length > 0 && (
+          <section className="section women-picks-section" aria-label="Festive edit — ethnic wear">
+            <div className="hp-section-head">
+              <h2>FESTIVE EDIT 🪔</h2>
+              <button type="button" onClick={() => navigate(ethnicShopUrl)}>
+                View All <MdChevronRight />
+              </button>
+            </div>
+            <ProductRail
+              list={applyProductFilters(ethnicProducts)}
+              railRef={festiveRef}
+              keyPrefix="women-festive"
+            />
+          </section>
+        )}
+
         {/* All Women's Picks */}
         <section className="section women-picks-section">
           <div className="hp-section-head">
@@ -1112,59 +1351,23 @@ export default function Women() {
           </div>
         </section>
 
-        {/* Promos */}
-        <section className="women-promo-strip" aria-label="Offers">
-          <button type="button" className="women-promo-card women-promo-prepaid" onClick={() => navigate("/offers")}>
-            <div>
-              <p className="title">EXTRA 10% OFF</p>
-              <p className="sub">On Prepaid Orders · Code BLINK10</p>
-            </div>
-            <MdLocalOffer style={{ fontSize: 28 }} />
-          </button>
-
-          <button
-            type="button"
-            className="women-promo-card women-promo-brands"
-            onClick={() => navigate(womenScopedShopUrl())}
-          >
-            <div>
-              <p className="title">UP TO 60% OFF</p>
-              <p className="sub">On Top Brands</p>
-              <div className="women-promo-brands-row">
-                <span className="women-promo-brand-chip">ZUDIO</span>
-                <span className="women-promo-brand-chip">BIBA</span>
-                <span className="women-promo-brand-chip">MANGO</span>
-              </div>
-            </div>
-            <span className="cta">SHOP NOW →</span>
-          </button>
-
-          <button
-            type="button"
-            className="women-promo-card women-promo-delivery"
-            onClick={() => navigate(womenScopedShopUrl())}
-          >
-            <div>
-              <p className="title">FREE DELIVERY</p>
-              <p className="sub">On Orders Above ₹1499</p>
-              <span className="cta">SHOP NOW →</span>
-            </div>
-            <span style={{ fontSize: 28 }}>🛵</span>
-          </button>
-        </section>
-
-        {/* New arrivals */}
+        {/* New arrivals — genuinely newest women's products (Home-style pool) */}
         <section className="section women-picks-section">
           <div className="hp-section-head">
             <h2>NEW ARRIVALS ✨</h2>
-            <button type="button" onClick={() => navigate(womenScopedShopUrl())}>
+            <button type="button" onClick={() => navigate(womenScopedShopUrl({ search: "newest" }))}>
               View All <MdChevronRight />
             </button>
           </div>
-          {productsLoading ? (
+          {newArrivalsLoading ? (
             <Loader />
           ) : newArrivals.length ? (
-            <ProductRail list={applyProductFilters(newArrivals)} railRef={arrivalsRef} keyPrefix="women-new" />
+            <ProductRail
+              list={applyProductFilters(newArrivals)}
+              railRef={arrivalsRef}
+              keyPrefix="women-new"
+              isNew
+            />
           ) : (
             <p className="women-empty-state">Fresh styles coming soon.</p>
           )}
