@@ -62,13 +62,16 @@ function resolveImageUrl(raw) {
   return `${API_BASE_URL}/${value}`;
 }
 
-const HERO_SLIDES = [
+// Shown until /api/hero-cards responds, and kept as the fallback if the admin
+// has no active cards configured so the hero never renders empty.
+const FALLBACK_HERO_SLIDES = [
   {
     id: 'hero-men-women',
     image: banner1,
     mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
+    hotspots: true,
   },
   {
     id: 'hero-puma',
@@ -102,6 +105,35 @@ const HERO_SLIDES = [
     brand: 'MK',
   },
 ];
+
+// Maps a hero_cards row onto the shape the carousel renders.
+function heroCardToSlide(card) {
+  const value = card.reference_value || '';
+  const slide = {
+    id: card.id,
+    image: card.image_url,
+    mobileImage: card.mobile_image_url || null,
+    pos: 'center',
+  };
+
+  switch (card.reference_type) {
+    case 'brand':
+      slide.brand = value;
+      break;
+    case 'category':
+      slide.to = `/${value.toLowerCase()}`;
+      break;
+    case 'search':
+      slide.to = `/shop?search=${encodeURIComponent(value)}`;
+      // The men/women banner is a split image with two tappable halves.
+      slide.hotspots = /men/i.test(value) && /women/i.test(value);
+      break;
+    default:
+      slide.to = value || '/shop';
+  }
+
+  return slide;
+}
 
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, lifestyle: 4 };
 function sortCategories(list) {
@@ -335,6 +367,7 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroPosition, setHeroPosition] = useState(0);
+  const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
@@ -720,11 +753,30 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/hero-cards`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        const cards = Array.isArray(payload?.data) ? payload.data : [];
+        if (!cancelled && cards.length) {
+          setHeroSlides(cards.map(heroCardToSlide));
+          setHeroPosition(0);
+        }
+      } catch {
+        // Keep the bundled fallback slides on any failure.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      setHeroPosition((position) => (position + 1) % HERO_SLIDES.length);
+      setHeroPosition((position) => (position + 1) % heroSlides.length);
     }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     const track = heroTrackRef.current;
@@ -798,7 +850,7 @@ export default function Home() {
   };
 
   const goToSlide = (delta) => {
-    setHeroPosition((position) => (position + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setHeroPosition((position) => (position + delta + heroSlides.length) % heroSlides.length);
   };
 
   const handleCouponClick = () => {
@@ -878,15 +930,14 @@ export default function Home() {
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide, index) => {
-              const isFirst = index === 0;
+            {heroSlides.map((slide) => {
               const content = (
                 <picture>
                   {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
                   <img src={slide.image} alt="" className="hp-slide-img" style={slide.pos ? { objectPosition: slide.pos } : undefined} draggable={false} />
                 </picture>
               );
-              if (isFirst) {
+              if (slide.hotspots) {
                 return (
                   <div key={slide.id} className="hp-slide hp-slide-first">
                     {content}
@@ -911,10 +962,10 @@ export default function Home() {
             <MdChevronRight />
           </button>
           <div className="hp-hero-dots">
-            {HERO_SLIDES.map((slide, i) => (
+            {heroSlides.map((slide, i) => (
               <span
                 key={slide.id}
-                className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`}
+                className={`hp-hero-dot${i === heroPosition % heroSlides.length ? ' active' : ''}`}
                 onClick={() => setHeroPosition(i)}
               />
             ))}

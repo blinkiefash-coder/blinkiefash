@@ -54,6 +54,7 @@ import HelpSupport from './pages/helpsupport';
 import SavedAddresses from './pages/SavedAddresses';
 import CreateVendor from './pages/CreateVendor';
 import ManageCategories from './pages/ManageCategories';
+import HeroCardsManager from './pages/HeroCardsManager';
 import { useAuth } from './context/AuthContext';
 import DealsOfTheDay from './pages/dealsoftheday';
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
@@ -292,6 +293,14 @@ export default function App() {
           element={
             <RequireAdmin>
               <ManageCategories />
+            </RequireAdmin>
+          }
+        />
+        <Route
+          path="/vendor/hero-cards"
+          element={
+            <RequireAdmin>
+              <HeroCardsManager />
             </RequireAdmin>
           }
         />

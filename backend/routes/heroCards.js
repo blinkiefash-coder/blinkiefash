@@ -3,26 +3,16 @@ import { pool } from '../db.js';
 
 const router = express.Router();
 
-// Middleware to check if user is admin
-const isAdmin = async (req, res, next) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ error: 'Not authenticated' });
-    }
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "superadminsatyam@blinkiefash.in";
 
-    const result = await pool.query(
-      'SELECT is_admin FROM users WHERE id = $1',
-      [req.user.id]
-    );
-
-    if (!result.rows[0]?.is_admin) {
-      return res.status(403).json({ error: 'Admin access required' });
-    }
-
-    next();
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+// Matches the guard used by the other internal dashboards (see routes/admin.js) —
+// this backend has no JWT layer, so `req.user` is never populated.
+const isAdmin = (req, res, next) => {
+  const adminEmail = req.headers['x-admin-email'] || req.query.admin_email || '';
+  if (String(adminEmail).toLowerCase() !== ADMIN_EMAIL.toLowerCase()) {
+    return res.status(403).json({ error: 'Admin access required' });
   }
+  next();
 };
 
 // ── PUBLIC: Get all active hero cards (for home page) ────────────────────────
@@ -33,6 +23,7 @@ router.get('/', async (req, res) => {
         id, 
         title, 
         image_url, 
+        mobile_image_url,
         reference_type, 
         reference_value, 
         position 
@@ -59,6 +50,7 @@ router.get('/admin/all', isAdmin, async (req, res) => {
         id, 
         title, 
         image_url, 
+        mobile_image_url,
         reference_type, 
         reference_value, 
         position, 
@@ -82,7 +74,7 @@ router.get('/admin/all', isAdmin, async (req, res) => {
 
 // ── ADMIN: Create new hero card ────────────────────────────────────────────────
 router.post('/admin', isAdmin, async (req, res) => {
-  const { title, image_url, reference_type, reference_value, position } = req.body;
+  const { title, image_url, mobile_image_url, reference_type, reference_value, position } = req.body;
 
   try {
     // Check if we already have 15 cards
@@ -112,10 +104,10 @@ router.post('/admin', isAdmin, async (req, res) => {
 
     const result = await pool.query(
       `INSERT INTO hero_cards 
-       (title, image_url, reference_type, reference_value, position, created_by) 
+       (title, image_url, mobile_image_url, reference_type, reference_value, position) 
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [title, image_url, reference_type, reference_value, position || 0, req.user.id]
+      [title, image_url, mobile_image_url || null, reference_type, reference_value, position || 0]
     );
 
     res.status(201).json({
@@ -131,7 +123,7 @@ router.post('/admin', isAdmin, async (req, res) => {
 // ── ADMIN: Update hero card ────────────────────────────────────────────────────
 router.put('/admin/:id', isAdmin, async (req, res) => {
   const { id } = req.params;
-  const { title, image_url, reference_type, reference_value, position, is_active } = req.body;
+  const { title, image_url, mobile_image_url, reference_type, reference_value, position, is_active } = req.body;
 
   try {
     // Validate reference_type if provided
@@ -160,13 +152,14 @@ router.put('/admin/:id', isAdmin, async (req, res) => {
        SET 
          title = COALESCE($1, title),
          image_url = COALESCE($2, image_url),
-         reference_type = COALESCE($3, reference_type),
-         reference_value = COALESCE($4, reference_value),
-         position = COALESCE($5, position),
-         is_active = COALESCE($6, is_active)
-       WHERE id = $7
+         mobile_image_url = COALESCE($3, mobile_image_url),
+         reference_type = COALESCE($4, reference_type),
+         reference_value = COALESCE($5, reference_value),
+         position = COALESCE($6, position),
+         is_active = COALESCE($7, is_active)
+       WHERE id = $8
        RETURNING *`,
-      [title, image_url, reference_type, reference_value, position, is_active, id]
+      [title, image_url, mobile_image_url, reference_type, reference_value, position, is_active, id]
     );
 
     if (result.rows.length === 0) {
