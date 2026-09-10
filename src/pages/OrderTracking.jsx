@@ -325,7 +325,7 @@ function StatusStepper({ status }) {
             <li key={step.key} className="flex-1 flex flex-col items-center relative">
               {i > 0 && (
                 <div
-                  className="absolute top-5 right-1/2 w-full h-0.5 -z-0"
+                  className="absolute top-5 right-1/2 w-full h-0.5 z-0"
                   style={{ backgroundColor: i <= active ? GREEN : "#e5e7eb" }}
                   aria-hidden="true"
                 />
@@ -411,7 +411,7 @@ function RiderCard({ rider }) {
 function CancelledBanner({ reason }) {
   return (
     <div className="rounded-2xl p-4 flex items-start gap-3 border" style={{ backgroundColor: RED_SOFT, borderColor: "#fecaca" }}>
-      <XCircle size={20} color={RED} className="mt-0.5 flex-shrink-0" />
+      <XCircle size={20} color={RED} className="mt-0.5 shrink-0" />
       <div>
         <p className="font-semibold" style={{ color: RED }}>Order Cancelled</p>
         {reason && (
@@ -433,7 +433,7 @@ function AddressCard({ order }) {
   return (
     <div className="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
       <div className="flex items-start gap-3">
-        <MapPin size={18} color={GREEN} className="mt-0.5 flex-shrink-0" />
+        <MapPin size={18} color={GREEN} className="mt-0.5 shrink-0" />
         <div>
           <p className="text-sm text-slate-500 mb-1">Shipping To</p>
           <p className="font-semibold text-slate-900">{name}</p>
@@ -463,7 +463,7 @@ function ProductsCard({ items }) {
         {items.map((item) => (
           <li key={item.variant_id} className="flex items-center gap-3">
             {item.image && (
-              <img src={item.image} alt="" className="w-16 h-16 rounded-xl object-cover bg-slate-100 flex-shrink-0" />
+              <img src={item.image} alt="" className="w-16 h-16 rounded-xl object-cover bg-slate-100 shrink-0" />
             )}
             <div className="flex-1 min-w-0">
               <p className="font-medium text-slate-900 text-sm leading-snug truncate">{item.product_name}</p>
