@@ -524,6 +524,32 @@
   text-decoration: underline;
 }
 
+.catalog-filters-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-filters-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.catalog-filters-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
 .catalog-filter-col h4 {
   margin: 0 0 10px;
   font-size: 12.5px;
@@ -626,6 +652,40 @@
   font-size: 12.5px;
   font-weight: 700;
   color: #16a34a;
+}
+
+.catalog-filters-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid #eef1f5;
+}
+
+.catalog-filters-apply {
+  border: 0;
+  background: #16a34a;
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: background 0.15s ease;
+}
+
+.catalog-filters-apply:hover {
+  background: #059669;
+}
+
+@media (max-width: 640px) {
+  .catalog-filters-apply {
+    width: 100%;
+  }
+
+  .catalog-filters-footer {
+    justify-content: stretch;
+  }
 }
 
 /* Discount range chips */

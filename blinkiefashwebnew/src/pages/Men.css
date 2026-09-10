@@ -571,6 +571,121 @@
   -webkit-overflow-scrolling: touch;
 }
 
+.men-festive-section {
+  margin: 24px 0 28px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.men-festive-banner {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  min-height: 236px;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 16px;
+  background: #f2dfc5;
+  color: #173c2a;
+  text-align: left;
+  cursor: pointer;
+}
+
+.men-festive-copy {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  width: 54%;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 30px 5% 30px 7%;
+  background: linear-gradient(90deg, #f2dfc5 0%, #f2dfc5 78%, rgba(242, 223, 197, 0.82) 100%);
+  box-sizing: border-box;
+}
+
+.men-festive-kicker {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  color: #3e3426;
+}
+
+.men-festive-copy strong {
+  margin-top: 4px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(2.1rem, 4.5vw, 4.2rem);
+  line-height: 0.96;
+  letter-spacing: 0.01em;
+  color: #163d2a;
+}
+
+.men-festive-subtitle {
+  font-size: clamp(1rem, 1.7vw, 1.35rem);
+  color: #2f291f;
+}
+
+.men-festive-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-top: 10px;
+  padding: 9px 17px;
+  border-radius: 999px;
+  background: #147342;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+
+.men-festive-image {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.men-festive-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 12px 2px 8px;
+}
+
+.men-festive-heading h2 {
+  margin: 0;
+  color: var(--m-ink);
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.men-festive-heading p {
+  margin: 3px 0 0;
+  color: #7a8493;
+  font-size: 12px;
+}
+
+.men-festive-heading button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 0;
+  background: transparent;
+  color: var(--m-blue-dark);
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
 .men-section-actions {
   display: flex;
   align-items: center;
@@ -975,6 +1090,32 @@
     max-height: 64px !important;
   }
 
+  .men-festive-banner {
+    min-height: 190px;
+  }
+
+  .men-festive-copy {
+    width: 68%;
+    padding: 22px 20px;
+    background: linear-gradient(90deg, #f2dfc5 0%, #f2dfc5 65%, rgba(242, 223, 197, 0.72) 100%);
+  }
+
+  .men-festive-image {
+    width: 100%;
+  }
+
+  .men-festive-kicker {
+    font-size: 8px;
+  }
+
+  .men-festive-copy strong {
+    font-size: clamp(1.9rem, 9vw, 3rem);
+  }
+
+  .men-festive-subtitle {
+    font-size: 0.9rem;
+  }
+
   .men-page .hp-shead {
     gap: 10px;
     margin-bottom: 12px;
@@ -1346,6 +1487,32 @@
   color: #fff;
 }
 
+.men-filters-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid #dce8fd;
+}
+
+.men-filters-apply {
+  border: 0;
+  background: var(--m-blue);
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.men-filters-apply:hover {
+  background: var(--m-blue-dark);
+}
+
 @media (max-width: 760px) {
   .men-filters-panel {
     grid-template-columns: 1fr;
@@ -1354,4 +1521,37 @@
   .men-filter-list {
     grid-template-columns: 1fr;
   }
+
+  .men-filters-apply {
+    width: 100%;
+  }
+
+  .men-filters-footer {
+    justify-content: stretch;
+  }
+}
+.men-filters-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.men-filters-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #eef4ff;
+  color: #1c2a4a;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.men-filters-close:hover {
+  background: #c9dcfb;
+  color: #0f172a;
 }

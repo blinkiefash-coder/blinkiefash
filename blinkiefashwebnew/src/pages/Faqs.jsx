@@ -6,7 +6,7 @@ const allFaqs = [
   {
     category: "Orders & Delivery",
     items: [
-      { q: "How does 60-minute delivery work?", a: "We partner with nearby fashion stores in your city. Once you place an order, our delivery partner picks it up from the store and delivers it to your door in under 60 minutes." },
+      { q: "How does delivery work?", a: "We partner with nearby fashion stores in your city. Once you place an order, our delivery partner picks it up from the store and brings it to your door." },
       { q: "Which cities do you currently deliver in?", a: "We currently deliver in Cuttack and Bhubaneswar. We're expanding soon to Berhampur, Rourkela, Sambalpur, Puri, Balasore, Bhadrak, Jeypore, and Angul." },
       { q: "Can I track my order in real time?", a: "Yes! Once your order is picked up, you can track your delivery partner's live location directly in the BlinkieFash app." },
       { q: "What if my order is delayed?", a: "In rare cases of delay, you'll receive a notification. You can also reach our support team via WhatsApp or the app for immediate help." },

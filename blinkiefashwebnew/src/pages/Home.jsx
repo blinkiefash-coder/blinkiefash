@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   MdChevronRight,
   MdChevronLeft,
+  MdTune,
   MdLogin,
 } from 'react-icons/md';
 
@@ -11,6 +12,7 @@ import Footer from '../components/Footer';
 import PageSEO from '../components/PageSEO';
 import Navbar from '../components/Navbar';
 import ProductCard, { ProductCardSkeleton } from '../components/ProductCard';
+import Filter from '../components/filter';
 import { useAuth } from '../context/AuthContext';
 import { getCategories, getBestsellers, getProducts, getBrands, getProductById } from '../api';
 import { API_BASE_URL } from '../apiBase';
@@ -62,13 +64,16 @@ function resolveImageUrl(raw) {
   return `${API_BASE_URL}/${value}`;
 }
 
-const HERO_SLIDES = [
+// Shown until /api/hero-cards responds, and kept as the fallback if the admin
+// has no active cards configured so the hero never renders empty.
+const FALLBACK_HERO_SLIDES = [
   {
     id: 'hero-men-women',
     image: banner1,
     mobileImage: mobilebanner1,
     to: '/shop?search=men%women',
     pos: 'center',
+    hotspots: true,
   },
   {
     id: 'hero-puma',
@@ -102,6 +107,36 @@ const HERO_SLIDES = [
     brand: 'MK',
   },
 ];
+
+// Maps a hero_cards row onto the shape the carousel renders.
+function heroCardToSlide(card) {
+  const value = card.reference_value || '';
+  const slide = {
+    id: card.id,
+    title: card.title || '',
+    image: card.image_url,
+    mobileImage: card.mobile_image_url || null,
+    pos: 'center',
+  };
+
+  switch (card.reference_type) {
+    case 'brand':
+      slide.brand = value;
+      break;
+    case 'category':
+      slide.to = `/${value.toLowerCase()}`;
+      break;
+    case 'search':
+      slide.to = `/shop?search=${encodeURIComponent(value)}`;
+      // The men/women banner is a split image with two tappable halves.
+      slide.hotspots = /men/i.test(value) && /women/i.test(value);
+      break;
+    default:
+      slide.to = value || '/shop';
+  }
+
+  return slide;
+}
 
 const CAT_PRIORITY = { women: 0, men: 1, footwear: 2, electronics: 3, lifestyle: 4 };
 function sortCategories(list) {
@@ -278,10 +313,12 @@ function SectionHead({
   iconAlt = '',
   title,
   accentWord,
+  subtitle = '',
   viewAllLabel = 'View All',
   onViewAll,
   iconClassName,
   trailing,
+  headerActions,
 }) {
   return (
     <div className="hp-shead">
@@ -292,24 +329,32 @@ function SectionHead({
               <img src={icon} alt={iconAlt} className="hp-shead-mark-img" />
             </span>
           ) : null}
-          <h2 className="hp-shead-title">
-            {accentWord ? (
-              <>
-                <span>{title} </span>
-                <span className="hp-shead-accent">{accentWord}</span>
-              </>
-            ) : (
-              <span>{title}</span>
-            )}
-          </h2>
+          <div className="hp-shead-text-block">
+            <h2 className="hp-shead-title">
+              {accentWord ? (
+                <>
+                  <span>{title} </span>
+                  <span className="hp-shead-accent">{accentWord}</span>
+                </>
+              ) : (
+                <span>{title}</span>
+              )}
+            </h2>
+            {subtitle && <p className="hp-shead-subtitle">{subtitle}</p>}
+          </div>
           {trailing}
         </div>
       </div>
 
-      {onViewAll ? (
-        <button type="button" className="hp-shead-action" onClick={onViewAll}>
-          {viewAllLabel} <MdChevronRight />
-        </button>
+      {onViewAll || headerActions ? (
+        <div className="hp-shead-actions">
+          {headerActions}
+          {onViewAll ? (
+            <button type="button" className="hp-shead-action" onClick={onViewAll}>
+              {viewAllLabel} <MdChevronRight />
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </div>
   );
@@ -353,11 +398,30 @@ export default function Home() {
   const [loading, setLoading] = useState(!_homeCache);
   const [error, setError] = useState('');
   const [heroPosition, setHeroPosition] = useState(0);
+  const [heroSlides, setHeroSlides] = useState(FALLBACK_HERO_SLIDES);
+  const [heroAspectRatio, setHeroAspectRatio] = useState(null);
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
+  const [dealFilterOpen, setDealFilterOpen] = useState(false);
+  const [dealActiveBrand, setDealActiveBrand] = useState([]);
+  const [dealActiveColor, setDealActiveColor] = useState([]);
+  const [dealActiveGender, setDealActiveGender] = useState([]);
+  const [dealMinDiscount, setDealMinDiscount] = useState(0);
+  const [dealInStockOnly, setDealInStockOnly] = useState(false);
+  const [dealMaxPrice, setDealMaxPrice] = useState(10000);
+  const [dealBrandSearch, setDealBrandSearch] = useState('');
+  const [appliedDealFilters, setAppliedDealFilters] = useState({
+    brand: [],
+    color: [],
+    gender: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
 
   const heroTrackRef = useRef(null);
+  const heroRatiosRef = useRef(new Map());
   const dealsRef = useRef(null);
   const brandsPauseTimerRef = useRef(null);
   const brandsWrapRef = useRef(null);
@@ -863,11 +927,30 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/hero-cards`);
+        if (!response.ok) return;
+        const payload = await response.json();
+        const cards = Array.isArray(payload?.data) ? payload.data : [];
+        if (!cancelled && cards.length) {
+          setHeroSlides(cards.map(heroCardToSlide));
+          setHeroPosition(0);
+        }
+      } catch {
+        // Keep the bundled fallback slides on any failure.
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  useEffect(() => {
     const timer = setInterval(() => {
-      setHeroPosition((position) => (position + 1) % HERO_SLIDES.length);
+      setHeroPosition((position) => (position + 1) % heroSlides.length);
     }, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [heroSlides.length]);
 
   useEffect(() => {
     const track = heroTrackRef.current;
@@ -941,8 +1024,22 @@ export default function Home() {
   };
 
   const goToSlide = (delta) => {
-    setHeroPosition((position) => (position + delta + HERO_SLIDES.length) % HERO_SLIDES.length);
+    setHeroPosition((position) => (position + delta + heroSlides.length) % heroSlides.length);
   };
+
+  const handleHeroImageLoad = (slideId, event) => {
+    const image = event.currentTarget;
+    if (!image.naturalWidth || !image.naturalHeight) return;
+    const ratio = image.naturalWidth / image.naturalHeight;
+    heroRatiosRef.current.set(slideId, ratio);
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    if (activeSlide?.id === slideId) setHeroAspectRatio(ratio);
+  };
+
+  useEffect(() => {
+    const activeSlide = heroSlides[heroPosition % heroSlides.length];
+    setHeroAspectRatio(activeSlide ? heroRatiosRef.current.get(activeSlide.id) || null : null);
+  }, [heroPosition, heroSlides]);
 
   const handleCouponClick = () => {
     window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
@@ -992,6 +1089,68 @@ export default function Home() {
     return items;
   }, [newProducts]);
 
+  const dealVisibleBrands = useMemo(() => {
+    const search = dealBrandSearch.trim().toLowerCase();
+    return (topBrands || []).filter((brand) => (brand?.name || '').toLowerCase().includes(search));
+  }, [topBrands, dealBrandSearch]);
+
+  const filteredTopDeals = useMemo(() => {
+    const filters = appliedDealFilters;
+    return topDeals.filter((product) => {
+      const brand = String(product?.brand || '').trim().toLowerCase();
+      const color = String(product?.color || '').trim().toLowerCase();
+      const gender = String(product?.gender || '').trim().toLowerCase();
+      const price = Number(product?.discount_price ?? product?.price ?? 0);
+      const discount = Number(product?._discount || product?.discount || 0);
+
+      if (filters.brand.length && !filters.brand.some((value) => String(value).toLowerCase() === brand)) return false;
+      if (filters.color.length && color && !filters.color.some((value) => String(value).toLowerCase() === color)) return false;
+      if (filters.gender.length && gender && !filters.gender.some((value) => String(value).toLowerCase() === gender)) return false;
+      if (filters.minDiscount > 0 && discount < filters.minDiscount) return false;
+      if (filters.inStockOnly && product?.in_stock === false) return false;
+      if (price > filters.maxPrice) return false;
+      return true;
+    });
+  }, [topDeals, appliedDealFilters]);
+
+  const dealActiveFilterCount =
+    appliedDealFilters.brand.length +
+    appliedDealFilters.color.length +
+    appliedDealFilters.gender.length +
+    (appliedDealFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedDealFilters.inStockOnly ? 1 : 0) +
+    (appliedDealFilters.maxPrice < 10000 ? 1 : 0);
+
+  const clearDealFilters = () => {
+    setDealActiveBrand([]);
+    setDealActiveColor([]);
+    setDealActiveGender([]);
+    setDealMinDiscount(0);
+    setDealInStockOnly(false);
+    setDealMaxPrice(10000);
+    setDealBrandSearch('');
+    setAppliedDealFilters({
+      brand: [],
+      color: [],
+      gender: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
+  };
+
+  const applyDealFilters = () => {
+    setAppliedDealFilters({
+      brand: dealActiveBrand,
+      color: dealActiveColor,
+      gender: dealActiveGender,
+      minDiscount: dealMinDiscount,
+      inStockOnly: dealInStockOnly,
+      maxPrice: dealMaxPrice,
+    });
+    setDealFilterOpen(false);
+  };
+
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
     const normalizedGender = (userGender || '').toLowerCase().trim();
@@ -1029,8 +1188,8 @@ export default function Home() {
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
       <PageSEO
-        title="Fashion Delivered in 60 Minutes — Cuttack & Bhubaneswar"
-        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door in 60 minutes across Odisha."
+        title="Fashion Delivered Fast — Cuttack & Bhubaneswar"
+        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door across Odisha."
         path="/"
       />
       {loading ? <Loader overlay /> : null}
@@ -1042,20 +1201,35 @@ export default function Home() {
           </button>
         </section>
 
-        <section className="hp-hero-carousel">
+        <section
+          className="hp-hero-carousel"
+          style={heroAspectRatio ? { '--hp-hero-ratio': heroAspectRatio } : undefined}
+        >
           <button type="button" className="hp-hero-arrow left" onClick={() => goToSlide(-1)} aria-label="Previous">
             <MdChevronLeft />
           </button>
           <div className="hp-hero-track" ref={heroTrackRef}>
-            {HERO_SLIDES.map((slide, index) => {
-              const isFirst = index === 0;
+            {heroSlides.map((slide) => {
               const content = (
-                <picture>
-                  {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
-                  <img src={slide.image} alt="" className="hp-slide-img" style={slide.pos ? { objectPosition: slide.pos } : undefined} draggable={false} />
-                </picture>
+                <>
+                  <picture className="hp-slide-bg" aria-hidden="true">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img src={slide.image} alt="" draggable={false} />
+                  </picture>
+                  <picture className="hp-slide-fg">
+                    {slide.mobileImage ? <source media="(max-width: 767px)" srcSet={slide.mobileImage} /> : null}
+                    <img
+                      src={slide.image}
+                      alt={slide.title || ''}
+                      className="hp-slide-img"
+                      style={slide.pos ? { objectPosition: slide.pos } : undefined}
+                      draggable={false}
+                      onLoad={(event) => handleHeroImageLoad(slide.id, event)}
+                    />
+                  </picture>
+                </>
               );
-              if (isFirst) {
+              if (slide.hotspots) {
                 return (
                   <div key={slide.id} className="hp-slide hp-slide-first">
                     {content}
@@ -1080,10 +1254,10 @@ export default function Home() {
             <MdChevronRight />
           </button>
           <div className="hp-hero-dots">
-            {HERO_SLIDES.map((slide, i) => (
+            {heroSlides.map((slide, i) => (
               <span
                 key={slide.id}
-                className={`hp-hero-dot${i === heroPosition % HERO_SLIDES.length ? ' active' : ''}`}
+                className={`hp-hero-dot${i === heroPosition % heroSlides.length ? ' active' : ''}`}
                 onClick={() => setHeroPosition(i)}
               />
             ))}
@@ -1108,7 +1282,57 @@ export default function Home() {
                   <span className="hp-deals-timer-value">{dealsCountdown}</span>
                 </div>
               }
+              headerActions={
+                <button
+                  type="button"
+                  className={`catalog-filter-toggle ${dealFilterOpen || dealActiveFilterCount ? 'active' : ''}`}
+                  onClick={() => {
+                    if (!dealFilterOpen) {
+                      setDealActiveBrand(appliedDealFilters.brand);
+                      setDealActiveColor(appliedDealFilters.color);
+                      setDealActiveGender(appliedDealFilters.gender);
+                      setDealMinDiscount(appliedDealFilters.minDiscount);
+                      setDealInStockOnly(appliedDealFilters.inStockOnly);
+                      setDealMaxPrice(appliedDealFilters.maxPrice);
+                    }
+                    setDealFilterOpen((open) => !open);
+                  }}
+                >
+                  <MdTune /> Filter
+                  {dealActiveFilterCount > 0 ? (
+                    <span className="catalog-filter-count">{dealActiveFilterCount}</span>
+                  ) : null}
+                </button>
+              }
             />
+            {dealFilterOpen ? (
+              <Filter
+                prefix="catalog"
+                ariaLabel="Deals of the Day filters"
+                brands={topBrands}
+                visibleBrands={dealVisibleBrands}
+                availableGenders={['Men', 'Women', 'Kids', 'Unisex']}
+                activeBrand={dealActiveBrand}
+                setActiveBrand={setDealActiveBrand}
+                activeColor={dealActiveColor}
+                setActiveColor={setDealActiveColor}
+                activeGender={dealActiveGender}
+                setActiveGender={setDealActiveGender}
+                minDiscount={dealMinDiscount}
+                setMinDiscount={setDealMinDiscount}
+                inStockOnly={dealInStockOnly}
+                setInStockOnly={setDealInStockOnly}
+                maxPrice={dealMaxPrice}
+                setMaxPrice={setDealMaxPrice}
+                brandSearch={dealBrandSearch}
+                setBrandSearch={setDealBrandSearch}
+                activeFilterCount={dealActiveFilterCount}
+                clearAllFilters={clearDealFilters}
+                applyFilters={applyDealFilters}
+                onClose={() => setDealFilterOpen(false)}
+              />
+            ) : null}
+            <ProductRail items={filteredTopDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
             <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={40} />
           </section>
         )}

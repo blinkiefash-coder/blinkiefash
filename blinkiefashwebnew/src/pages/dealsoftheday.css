@@ -219,6 +219,225 @@
   padding: 0 14px;
 }
 
+/* ---- Filters toggle + panel ---- */
+.dotd-filter-toggle {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid #e3e6ea;
+  background: #fff;
+  color: #334155;
+  font-size: 12.5px;
+  font-weight: 800;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.dotd-filter-toggle svg {
+  font-size: 16px;
+}
+
+.dotd-filter-toggle:hover {
+  border-color: #cbd0d6;
+  color: #0f172a;
+}
+
+.dotd-filter-toggle.active {
+  background: #0f172a;
+  border-color: #0f172a;
+  color: #fff;
+}
+
+.dotd-filter-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.dotd-filters-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid #e7ebf0;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 18px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.dotd-filters-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid #eef1f5;
+}
+
+.dotd-filters-panel-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #0f172a;
+}
+
+.dotd-filters-clear {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: #ec4899;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+
+.dotd-filters-clear:hover {
+  text-decoration: underline;
+}
+
+.dotd-filters-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dotd-filters-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.dotd-filters-close:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.dotd-filter-col h4 {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #334155;
+}
+
+.dotd-filter-col-count {
+  color: #94a3b8;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.dotd-filter-search {
+  width: 100%;
+  max-width: 320px;
+  height: 36px;
+  border: 1px solid #e0e5eb;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  outline: none;
+}
+
+.dotd-filter-search:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.dotd-filter-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 8px 12px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.dotd-filter-empty {
+  grid-column: 1 / -1;
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.dotd-filter-list label {
+  font-size: 12.5px;
+  color: #3c4453;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.dotd-filter-list input[type="checkbox"] {
+  accent-color: #16a34a;
+  width: 14px;
+  height: 14px;
+}
+
+.dotd-filters-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid #eef1f5;
+}
+
+.dotd-filters-apply {
+  border: 0;
+  background: #16a34a;
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-size: 13px;
+  font-weight: 800;
+  transition: background 0.15s ease;
+}
+
+.dotd-filters-apply:hover {
+  background: #059669;
+}
+
+@media (max-width: 640px) {
+  .dotd-filter-toggle {
+    flex: none;
+  }
+
+  .dotd-filters-apply {
+    width: 100%;
+  }
+
+  .dotd-filters-footer {
+    justify-content: stretch;
+  }
+}
+
 /* ---- Product grid ---- */
 .dotd-grid {
   display: grid;

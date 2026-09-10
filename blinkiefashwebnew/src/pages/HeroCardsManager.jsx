@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { API_BASE_URL } from '../apiBase';
+import { adminHeaders } from '../utils/adminSession';
 import './HeroCardsManager.css';
 
 export default function HeroCardsManager() {
@@ -11,6 +12,7 @@ export default function HeroCardsManager() {
   const [formData, setFormData] = useState({
     title: '',
     image_url: '',
+    mobile_image_url: '',
     reference_type: 'brand',
     reference_value: '',
     position: 0,
@@ -21,9 +23,7 @@ export default function HeroCardsManager() {
   const fetchHeroCards = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/api/hero-cards/admin/all`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: adminHeaders(),
       });
 
       if (!response.ok) {
@@ -82,7 +82,7 @@ export default function HeroCardsManager() {
         method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          ...adminHeaders(),
         },
         body: JSON.stringify(formData),
       });
@@ -97,6 +97,7 @@ export default function HeroCardsManager() {
       setFormData({
         title: '',
         image_url: '',
+        mobile_image_url: '',
         reference_type: 'brand',
         reference_value: '',
         position: 0,
@@ -126,9 +127,7 @@ export default function HeroCardsManager() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/hero-cards/admin/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        headers: adminHeaders(),
       });
 
       if (!response.ok) {
@@ -149,6 +148,7 @@ export default function HeroCardsManager() {
     setFormData({
       title: '',
       image_url: '',
+      mobile_image_url: '',
       reference_type: 'brand',
       reference_value: '',
       position: 0,
@@ -204,6 +204,22 @@ export default function HeroCardsManager() {
               {formData.image_url && (
                 <div className="hcm-image-preview">
                   <img src={formData.image_url} alt={formData.title} onError={(e) => e.target.style.display = 'none'} />
+                </div>
+              )}
+            </div>
+
+            <div className="hcm-form-group">
+              <label>Mobile Image URL</label>
+              <input
+                type="url"
+                name="mobile_image_url"
+                value={formData.mobile_image_url || ''}
+                onChange={handleInputChange}
+                placeholder="Optional portrait crop shown under 767px"
+              />
+              {formData.mobile_image_url && (
+                <div className="hcm-image-preview">
+                  <img src={formData.mobile_image_url} alt={formData.title} onError={(e) => e.target.style.display = 'none'} />
                 </div>
               )}
             </div>

@@ -5,7 +5,7 @@ import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
 const heroStats = [
-  { val: "60 Mins", lbl: "Express SLA", sub: "Doorstep in an hour" },
+  { val: "Fast", lbl: "Express Delivery", sub: "Doorstep service" },
   { val: "300+", lbl: "Orders Delivered", sub: "Rapidly growing daily" },
   { val: "4.8 ★", lbl: "User Rating", sub: "From verified buyers" },
   { val: "100+", lbl: "Partner Brands", sub: "Puma, Libas, FCUK & more" },
@@ -53,7 +53,7 @@ const techTeam = [
     name: "Asish Kumar Das",
     role: "Operations",
     title: "Operational Manager",
-    desc: "Supervises hyper-local supply routes, hub inventory accuracy, rider fleet dispatch, and SLA enforcement for sub-60 min delivery.",
+    desc: "Supervises hyper-local supply routes, hub inventory accuracy, rider fleet dispatch, and delivery operations.",
     footer: "Supply Chain, Hub Logistics & 60-Min Mesh",
   },
   {
@@ -76,7 +76,7 @@ const techTeam = [
 
 const featurePills = [
   "📍 Cuttack Hub",
-  "⚡ 60 Min Delivery",
+  "⚡ Fast Delivery",
   "👗 Try Before Buy",
   "🏪 100+ Partner Stores",
   "📦 Zero-Friction Returns",
@@ -91,7 +91,7 @@ const brands = [
     alt: "Puma at BlinkieFash",
     tag: "Sportswear & Athleisure",
     name: "PUMA Official",
-    desc: "Footwear, activewear & running tees delivered in 60 mins.",
+    desc: "Footwear, activewear & running tees delivered to your doorstep.",
   },
   {
     img: "https://lh3.googleusercontent.com/aida/AEtjO1WfV-xNVRSJiTZVqP_rmcgmNyRT3bbzg1Df9bor3cvRJxaYkKkeyYJIqQk1MMWc8xZNe0tAN9hreP0jn15bMdQ1T8-P0R9fSTdfemzBcJxKV9Axcp5GJa7ypzNcIWI9P_nz8-ZA62pADJQZyqo2dwzb7ChPD-ctaZDEPDjzZZtry6bm2YIr6hcMCuNg8sF3X3fv363sBrJOmi5Q-FZ3h1yQt_Yowq4EOkFharHFa2wkuj_Zp7tHZaBUihlM",
@@ -120,7 +120,7 @@ const codeValues = [
   {
     icon: "⚡",
     title: "Hyper-Speed Logistics",
-    desc: "Eliminating multi-day shipping friction with strategically placed micro-fulfillment dark hubs and sub-60 min express doorstep dispatch.",
+    desc: "Eliminating multi-day shipping friction with strategically placed micro-fulfillment dark hubs and express doorstep dispatch.",
   },
   {
     icon: "🛡️",
@@ -204,7 +204,7 @@ export default function AboutUs() {
           </div>
           <h1 className="abt-hero-title">
             Reimagining Fashion Delivery in Odisha.<br />
-            <span className="abt-hero-gradient">Hyperlocal Speed. Delivered in 60 Minutes.</span>
+            <span className="abt-hero-gradient">Hyperlocal Speed. Delivered Fast.</span>
           </h1>
           <p className="abt-hero-copy">
             BlinkieFash connects you to 100+ partner stores and premier brands across Odisha with doorstep trial, instant return, and lightning-fast dispatch. From trend-setting streetwear to authentic Sambalpuri ethnic couture, enjoy runway-grade apparel at your doorstep in under an hour.
@@ -258,7 +258,7 @@ export default function AboutUs() {
             <div>
               <span className="abt-eyebrow">GOVERNANCE &amp; ARCHITECTS</span>
               <h2 className="au-section-title">Executive Leadership &amp; Board</h2>
-              <p className="abt-team-sub">The visionary leadership and technical builders executing the 60-minute quick-fashion infrastructure across Odisha.</p>
+              <p className="abt-team-sub">The visionary leadership and technical builders executing the quick-fashion infrastructure across Odisha.</p>
             </div>
             <span className="abt-pillar-badge">7 Core Pillars</span>
           </div>
@@ -329,7 +329,7 @@ export default function AboutUs() {
           <div className="abt-purpose-banner">
             <div className="abt-purpose-copy">
               <span className="abt-eyebrow abt-eyebrow-light">OUR PURPOSE &amp; COMMITMENT</span>
-              <h2>"To make fashion accessible to every household in Odisha — delivered in 60 minutes, tried at home, and loved before you pay."</h2>
+              <h2>"To make fashion accessible to every household in Odisha — delivered fast, tried at home, and loved before you pay."</h2>
               <p>No waiting 4 to 7 days for national courier vans. Your favorite styles from top regional and global labels reach your living room in the time it takes to grab a coffee.</p>
             </div>
             <div className="abt-purpose-card">
@@ -395,7 +395,7 @@ export default function AboutUs() {
             <div className="abt-mesh-right">
               <div className="abt-mesh-stat abt-mesh-stat-green">
                 <span className="abt-mesh-stat-ico">⏱️</span>
-                <div><strong>60 Mins</strong><span>Standard Express SLA</span></div>
+                <div><strong>Fast</strong><span>Standard Express Delivery</span></div>
               </div>
               <div className="abt-mesh-stat">
                 <span className="abt-mesh-stat-ico">✔</span>
@@ -428,7 +428,7 @@ export default function AboutUs() {
           <div className="abt-final-copy">
             <span className="abt-final-kicker">⚡ JOIN THE FASHION REVOLUTION</span>
             <h2>Experience Fashion in a Blink.</h2>
-            <p>Download the BlinkieFash Android app for real-time live rider tracking, doorstep trial scheduling, and instant 60-minute doorstep fashion dispatch.</p>
+            <p>Download the BlinkieFash Android app for real-time live rider tracking, doorstep trial scheduling, and fast doorstep fashion dispatch.</p>
           </div>
           <div className="abt-final-actions">
             <button className="lp-store-btn lp-sb-dark" onClick={() => window.open("https://play.google.com/store/apps/details?id=com.blinkiefash.app", "_blank", "noopener,noreferrer")}>

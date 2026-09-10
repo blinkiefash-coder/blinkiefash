@@ -1,7 +1,7 @@
 const DELIVERY_TIERS = [
   {
     max: 15,
-    label: '60 minutes',
+    label: 'Same day',
     tier: 'hyperlocal',
     etaHours: 1,
     note: 'Add buffer during peak traffic/rain',

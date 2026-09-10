@@ -1488,6 +1488,11 @@
   margin-bottom: 4px;
   border-bottom: 1px solid #fbe4ec;
 }
+.women-filters-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
 .women-filters-panel-header h3 {
   margin: 0;
@@ -1510,6 +1515,22 @@
 }
 .women-filters-clear:hover {
   text-decoration: underline;
+}
+.women-filters-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid;
+  border-radius: 50%;
+  background: #fff;
+  border-color: #fbcfe8;
+  color: var(--w-pink-dark);
+  cursor: pointer;
+}
+.women-filters-close:hover {
+  background: #fdf2f8;
 }
 
 .women-filter-col h4 {
@@ -1625,6 +1646,32 @@
   color: #fff;
 }
 
+.women-filters-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 12px;
+  margin-top: 4px;
+  border-top: 1px solid #fbe4ec;
+}
+
+.women-filters-apply {
+  border: 0;
+  background: var(--w-pink);
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.women-filters-apply:hover {
+  background: var(--w-pink-dark);
+}
+
 @media (max-width: 760px) {
   .women-filters-panel {
     grid-template-columns: 1fr;
@@ -1632,6 +1679,14 @@
   }
   .women-filter-list {
     grid-template-columns: 1fr;
+  }
+
+  .women-filters-apply {
+    width: 100%;
+  }
+
+  .women-filters-footer {
+    justify-content: stretch;
   }
 }
 

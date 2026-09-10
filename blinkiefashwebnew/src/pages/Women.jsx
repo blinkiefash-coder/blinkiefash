@@ -23,6 +23,7 @@ import {
   MdInventory2,
   MdTwoWheeler,
   MdFilterList,
+  MdClose,
 } from "react-icons/md";
 
 import Navbar from "../components/Navbar";
@@ -30,6 +31,7 @@ import Footer from "../components/Footer";
 import Loader from "../components/Loader";
 import PageSEO from "../components/PageSEO";
 import ProductCard, { ProductCardSkeleton } from "../components/ProductCard";
+import Filter from "../components/filter";
 import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
@@ -216,21 +218,8 @@ const WOMEN_CATEGORY_FALLBACK = [
   { label: "Accessories", icon: MdStyle },
 ];
 
-
-// const TOP_NAV = [
-//   { label: "Women", to: "/women" },
-//   { label: "Men", to: "/men" },
-//   { label: "Footwear", to: "/footwear" },
-//   { label: "Electronics", to: "/electronics" },
-//   { label: "Beauty", to: "/shop?search=Beauty" },
-//   { label: "Home Living", to: "/shop?search=Home%20Living" },
-//   { label: "Kids", to: "/kids" },
-//   { label: "Travel & Backpack", to: "/shop?search=Travel" },
-// ];
-
-
 const TOP_STRIP_ITEMS = [
-  { icon: MdTwoWheeler, label: "Delivered in 60 Minutes" },
+  { icon: MdTwoWheeler, label: "Fast Delivery" },
   { icon: MdShield, label: "100% Authentic Products" },
   { icon: MdAutorenew, label: "Easy Returns" },
   { icon: MdInventory2, label: "Cash on Delivery" },
@@ -290,7 +279,6 @@ function normalizeProduct(p) {
     discount,
   };
 }
-
 
 //
 
@@ -388,6 +376,18 @@ export default function Women() {
   const [maxPrice, setMaxPrice] = useState(10000);
   const [brandSearch, setBrandSearch] = useState("");
 
+  // appliedFilters is what actually filters the product rails. activeBrand /
+  // activeColor / etc. above are just the draft values the filter panel's
+  // checkboxes and sliders are bound to — they don't affect the grid until
+  // "Apply Filters" is pressed (mirrors the Shop page behavior).
+  const [appliedFilters, setAppliedFilters] = useState({
+    brand: [],
+    color: [],
+    minDiscount: 0,
+    inStockOnly: false,
+    maxPrice: 10000,
+  });
+
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
 
   const normalizeText = (value) => String(value || "").trim().toLowerCase();
@@ -404,12 +404,14 @@ export default function Women() {
     setMinDiscount((prev) => (prev === value ? 0 : value));
   };
 
+  // Reflects what's actually filtering the grid right now (appliedFilters),
+  // not whatever's mid-edit in the still-open panel.
   const activeFilterCount =
-    activeBrand.length +
-    activeColor.length +
-    (minDiscount > 0 ? 1 : 0) +
-    (inStockOnly ? 1 : 0) +
-    (maxPrice < 10000 ? 1 : 0);
+    appliedFilters.brand.length +
+    appliedFilters.color.length +
+    (appliedFilters.minDiscount > 0 ? 1 : 0) +
+    (appliedFilters.inStockOnly ? 1 : 0) +
+    (appliedFilters.maxPrice < 10000 ? 1 : 0);
 
   const clearAllFilters = () => {
     setActiveBrand([]);
@@ -418,6 +420,24 @@ export default function Women() {
     setInStockOnly(false);
     setMaxPrice(10000);
     setBrandSearch("");
+    setAppliedFilters({
+      brand: [],
+      color: [],
+      minDiscount: 0,
+      inStockOnly: false,
+      maxPrice: 10000,
+    });
+  };
+
+  const applyFilters = () => {
+    setAppliedFilters({
+      brand: activeBrand,
+      color: activeColor,
+      minDiscount,
+      inStockOnly,
+      maxPrice,
+    });
+    setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
@@ -425,21 +445,21 @@ export default function Women() {
   const applyProductFilters = useCallback(
     (list) =>
       (list || []).filter((p) => {
-        if (activeBrand.length > 0) {
+        if (appliedFilters.brand.length > 0) {
           const b = normalizeText(p.brand);
-          if (!activeBrand.map(normalizeText).includes(b)) return false;
+          if (!appliedFilters.brand.map(normalizeText).includes(b)) return false;
         }
-        if (activeColor.length > 0) {
+        if (appliedFilters.color.length > 0) {
           const c = normalizeText(p.color);
-          if (c && !activeColor.map(normalizeText).includes(c)) return false;
+          if (c && !appliedFilters.color.map(normalizeText).includes(c)) return false;
         }
-        if (minDiscount > 0 && (p.discount || 0) < minDiscount) return false;
-        if (inStockOnly && p.in_stock === false) return false;
+        if (appliedFilters.minDiscount > 0 && (p.discount || 0) < appliedFilters.minDiscount) return false;
+        if (appliedFilters.inStockOnly && p.in_stock === false) return false;
         const finalPrice = Number(p.discount_price) > 0 ? Number(p.discount_price) : Number(p.price || 0);
-        if (finalPrice > maxPrice) return false;
+        if (finalPrice > appliedFilters.maxPrice) return false;
         return true;
       }),
-    [activeBrand, activeColor, minDiscount, inStockOnly, maxPrice]
+    [appliedFilters]
   );
 
   const trendingRef = useRef(null);
@@ -929,11 +949,21 @@ export default function Women() {
     <section className="women-filters-panel" role="dialog" aria-label="Women filters">
       <div className="women-filters-panel-header">
         <h3>Filters</h3>
-        {activeFilterCount > 0 ? (
-          <button type="button" className="women-filters-clear" onClick={clearAllFilters}>
-            Clear All
+        <div className="women-filters-panel-actions">
+          {activeFilterCount > 0 ? (
+            <button type="button" className="women-filters-clear" onClick={clearAllFilters}>
+              Clear All
+            </button>
+          ) : null}
+          <button
+            type="button"
+            className="women-filters-close"
+            aria-label="Close filters"
+            onClick={() => setFilterOpen(false)}
+          >
+            <MdClose />
           </button>
-        ) : null}
+        </div>
       </div>
 
       <div className="women-filter-col">
@@ -1012,15 +1042,22 @@ export default function Women() {
           </label>
         </div>
       </div>
+
+      <div className="women-filters-footer">
+        <button type="button" className="women-filters-apply" onClick={applyFilters}>
+          Apply Filters
+        </button>
+      </div>
     </section>
   );
+  void filtersPanel;
 
   return (
     <div className={`catalog-page women-page${!womenResolved ? " women-loading" : ""}`}>
       {!womenResolved && <Loader overlay />}
       <PageSEO
         title="Women's Fashion — Kurtis, Dresses, Ethnic & More"
-        description="Shop women's clothing, footwear, bags and jewellery at Blinkiefash — delivered in 60 minutes across Odisha."
+        description="Shop women's clothing, footwear, bags and jewellery at Blinkiefash — delivered fast across Odisha."
         path="/women"
       />
 
@@ -1074,23 +1111,6 @@ export default function Women() {
           </div>
         </section>
 
-        {/* <section className="section hp-rewards-section" aria-label="Offers & rewards">
-          <div className="hp-rewards-grid">
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/spin-wheel")}>
-              <img src={spinAndWinImage} alt="Spin and win up to 500 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/play-and-win")}>
-              <img src={playAndWinImage} alt="Play and win up to 250 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/refer-earn")}>
-              <img src={referAndEarnImage} alt="Refer a friend and both get 100 rupees off" />
-            </button>
-            <button type="button" className="hp-reward-image-card" onClick={() => navigate("/shop")}>
-              <img src={freeDeliveryImage} alt="Free delivery on orders above 1499 rupees" />
-            </button>
-          </div>
-        </section> */}
-
         {/* ========== DEALS OF THE DAY (Home-style + timer) ========== */}
         {topDeals.length > 0 && (
           <section className="section women-picks-section">
@@ -1117,14 +1137,50 @@ export default function Women() {
                 <button
                   type="button"
                   className={`women-filter-btn${filterOpen || activeFilterCount ? " is-active" : ""}`}
-                  onClick={() => setFilterOpen((o) => !o)}
+                  onClick={() => {
+                    // Reopening should reflect what's actually applied, not
+                    // whatever was left half-edited the last time it was closed.
+                    if (!filterOpen) {
+                      setActiveBrand(appliedFilters.brand);
+                      setActiveColor(appliedFilters.color);
+                      setMinDiscount(appliedFilters.minDiscount);
+                      setInStockOnly(appliedFilters.inStockOnly);
+                      setMaxPrice(appliedFilters.maxPrice);
+                    }
+                    setFilterOpen((o) => !o);
+                  }}
                 >
                   <MdFilterList /> Filters{activeFilterCount ? ` (${activeFilterCount})` : ""}
                 </button>
               </div>
             </div>
 
-            {filterOpen ? filtersPanel : null}
+            {filterOpen ? (
+              <Filter
+                prefix="women"
+                ariaLabel="Women filters"
+                brands={brands}
+                visibleBrands={visibleBrands}
+                activeBrand={activeBrand}
+                setActiveBrand={setActiveBrand}
+                activeColor={activeColor}
+                setActiveColor={setActiveColor}
+                minDiscount={minDiscount}
+                setMinDiscount={setMinDiscount}
+                inStockOnly={inStockOnly}
+                setInStockOnly={setInStockOnly}
+                maxPrice={maxPrice}
+                setMaxPrice={setMaxPrice}
+                brandSearch={brandSearch}
+                setBrandSearch={setBrandSearch}
+                activeFilterCount={activeFilterCount}
+                clearAllFilters={clearAllFilters}
+                applyFilters={applyFilters}
+                onClose={() => setFilterOpen(false)}
+                colors={COLORS}
+                discountBuckets={DISCOUNT_BUCKETS}
+              />
+            ) : null}
 
             <ProductRail list={applyProductFilters(topDeals)} railRef={dealsRef} keyPrefix="women-deal" />
           </section>
@@ -1370,7 +1426,7 @@ export default function Women() {
           <div>
             <MdBolt />
             <div>
-              <strong>60 MINUTES</strong>
+              <strong>FAST</strong>
               <span>Delivery</span>
             </div>
           </div>
