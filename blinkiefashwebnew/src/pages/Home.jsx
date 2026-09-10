@@ -1333,7 +1333,6 @@ export default function Home() {
               />
             ) : null}
             <ProductRail items={filteredTopDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
-            <ProductRail items={topDeals} keyPrefix="deal" railRef={dealsRef} limit={40} />
           </section>
         )}
 
