@@ -44,6 +44,32 @@ function withDiscount(item) {
   return { ...item, _price: price, _mrp: mrp, _discount: discount };
 }
 
+function mixBrands(list) {
+  const brandQueues = new Map();
+  const brandOrder = [];
+
+  list.forEach((item) => {
+    const brand = String(item.brand || item.brand_name || 'Other').trim() || 'Other';
+    if (!brandQueues.has(brand)) {
+      brandQueues.set(brand, []);
+      brandOrder.push(brand);
+    }
+    brandQueues.get(brand).push(item);
+  });
+
+  const mixed = [];
+  let remaining = list.length;
+  while (remaining > 0) {
+    brandOrder.forEach((brand) => {
+      const queue = brandQueues.get(brand);
+      if (!queue.length) return;
+      mixed.push(queue.shift());
+      remaining -= 1;
+    });
+  }
+  return mixed;
+}
+
 /** Walk up parent_id links to find each product's top-level (root) category. */
 function buildRootCategoryMap(allCats) {
   const byId = new Map(allCats.map((c) => [String(c.id), c]));
@@ -249,7 +275,7 @@ export default function DealsOfTheDay() {
     else if (sortBy === 'price_desc') list.sort((a, b) => b._price - a._price);
     else list.sort((a, b) => b._discount - a._discount);
 
-    return list;
+    return mixBrands(list);
   }, [allDeals, activeCategoryId, sortBy, appliedBrand]);
 
   const visibleDeals = filteredDeals.slice(0, visibleCount);
