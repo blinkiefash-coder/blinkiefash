@@ -2138,10 +2138,6 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               _under1999.isNotEmpty ? _under1999Cards() : _stockOutBanner(),
-              if (_brands.isNotEmpty) ...[
-                _shopBrandsSectionHeader(),
-                _shopByBrands(),
-              ],
               _sectionHeader(
                 'MORE TO EXPLORE',
                 iconAsset: 'assets/images/explore.png',
