@@ -703,6 +703,13 @@ export default function Men() {
     [menSubcats]
   );
 
+  const menKurtaShopUrl = useCallback(() => {
+    const kurtaCategory = findMenSubcatByLabel("kurta");
+    return kurtaCategory
+      ? menScopedShopUrl({ categoryId: kurtaCategory.id })
+      : menScopedShopUrl({ search: "kurta" });
+  }, [findMenSubcatByLabel, menScopedShopUrl]);
+
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
       return menSubcats.map((cat) => {
@@ -1127,7 +1134,7 @@ export default function Men() {
             <button
               type="button"
               className="men-festive-banner"
-              onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}
+              onClick={() => navigate(menKurtaShopUrl())}
             >
               <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
             </button>
@@ -1137,7 +1144,7 @@ export default function Men() {
                 <h2>FESTIVE FITS</h2>
                 <p>Traditional styles for modern celebrations</p>
               </div>
-              <button type="button" onClick={() => navigate(menScopedShopUrl({ search: "festive" }))}>
+              <button type="button" onClick={() => navigate(menKurtaShopUrl())}>
                 View All <MdChevronRight />
               </button>
             </div>
@@ -1187,6 +1194,47 @@ export default function Men() {
               </button>
             ))}
           </div>
+        </section>
+
+        {/* Offers */}
+        <section className="men-promo-strip" aria-label="Offers">
+          <button type="button" className="men-promo-card men-promo-prepaid" onClick={() => navigate("/offers")}>
+            <div>
+              <p className="title">EXTRA 10% OFF</p>
+              <p className="sub">On Prepaid Orders · Code BLINK10</p>
+            </div>
+            <MdLocalOffer style={{ fontSize: 28 }} />
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-brands"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">UP TO 60% OFF</p>
+              <p className="sub">On Top Brands</p>
+              <div className="men-promo-brands-row">
+                <span className="men-promo-brand-chip">NIKE</span>
+                <span className="men-promo-brand-chip">PUMA</span>
+                <span className="men-promo-brand-chip">LEVI&apos;S</span>
+              </div>
+            </div>
+            <span className="cta">SHOP NOW →</span>
+          </button>
+
+          <button
+            type="button"
+            className="men-promo-card men-promo-delivery"
+            onClick={() => navigate(menScopedShopUrl())}
+          >
+            <div>
+              <p className="title">FREE DELIVERY</p>
+              <p className="sub">On Orders Above ₹1499</p>
+              <span className="cta">SHOP NOW →</span>
+            </div>
+            <MdTwoWheeler style={{ fontSize: 28 }} />
+          </button>
         </section>
 
         {/* New arrivals */}

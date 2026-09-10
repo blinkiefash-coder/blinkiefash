@@ -711,7 +711,9 @@
 
 .hp-deals-rail {
   display: grid;
+  grid-template-rows: minmax(0, 1fr);
   grid-auto-flow: column;
+  grid-auto-rows: minmax(0, 1fr);
   grid-auto-columns: 188px;
   gap: 12px;
   overflow-x: auto;
