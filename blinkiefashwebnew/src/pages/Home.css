@@ -4382,6 +4382,26 @@ html, body, #root {
   color: #fff;
 }
 
+/* Universe banners are landscape artwork; keep the card ratio aligned with
+   the source images so the banner never floats inside a tall blank card. */
+.hp-brand-grid .hp-brand-banner {
+  aspect-ratio: 16 / 9 !important;
+  min-height: 0 !important;
+}
+
+.hp-brand-grid .hp-brand-banner img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+}
+
+@media (max-width: 768px) {
+  .hp-brand-grid .hp-brand-banner {
+    aspect-ratio: 16 / 9 !important;
+  }
+}
+
 /* =========================================================
    FIX: Kids (and other) hero banner appearing twice on mobile
    ========================================================= */
