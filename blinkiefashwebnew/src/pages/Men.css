@@ -1614,3 +1614,9 @@
     width: auto;
   }
 }
+
+@media (max-width: 767px) {
+  .men-hero-img {
+    aspect-ratio: 1.5 / 1;
+  }
+}

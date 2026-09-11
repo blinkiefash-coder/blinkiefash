@@ -223,6 +223,15 @@ const CHIP_ICON_HINTS = [
   { re: /ethnic|kurti|kurta|saree|dress|top/i, icon: '👗' },
   { re: /watch|smartwatch/i, icon: '⌚' },
   { re: /baby|kids|children/i, icon: '👶' },
+  // Specific fashion-accessory categories are matched before the generic
+  // "accessor" pattern below, so e.g. "Hair Accessories" gets a relevant
+  // icon instead of falling through to the electronics plug icon.
+  { re: /hair\s*(accessor|clip|band|pin|bow|tie)/i, icon: '🎀' },
+  { re: /jewel|jewellery|jewelry|necklace|earring|bangle|ring/i, icon: '💍' },
+  { re: /belt/i, icon: '🧷' },
+  { re: /cap|hat/i, icon: '🧢' },
+  { re: /sunglasses|glasses|eyewear/i, icon: '🕶️' },
+  { re: /scarf|stole/i, icon: '🧣' },
   { re: /bag|handbag|wallet|school/i, icon: '👜' },
   { re: /toy/i, icon: '🧸' },
   { re: /headphone|earbud|audio/i, icon: '🎧' },
@@ -231,11 +240,16 @@ const CHIP_ICON_HINTS = [
   { re: /gaming|game/i, icon: '🎮' },
   { re: /laptop|computer/i, icon: '💻' },
   { re: /camera/i, icon: '📷' },
-  { re: /accessor/i, icon: '🔌' },
   { re: /heel/i, icon: '👠' },
   { re: /flat/i, icon: 'Flat' },
   { re: /sandal/i, icon: '👡' },
 ];
+
+// Generic "accessory" catch-all — kept separate from CHIP_ICON_HINTS above
+// and only applied for the Electronics section, since fashion categories
+// like "Hair Accessories" or "Bag Accessories" were previously matching
+// this same broad /accessor/ pattern and getting an unrelated plug icon.
+const ELECTRONICS_ACCESSORY_HINT = { re: /accessor/i, icon: '🔌' };
 
 const CHIP_ICON_BY_AUDIENCE = {
   men: '👕',
@@ -247,9 +261,15 @@ const CHIP_ICON_BY_AUDIENCE = {
 
 function chipFallbackIcon(label, audience) {
   const text = (label || '').toString();
+  const audienceKey = (audience || '').toString().toLowerCase();
   const hit = CHIP_ICON_HINTS.find((entry) => entry.re.test(text));
   if (hit) return hit.icon;
-  const audienceKey = (audience || '').toString().toLowerCase();
+  // The generic "accessory" plug icon only makes sense for Electronics —
+  // for every other audience, fall through to that audience's own default
+  // icon instead (e.g. 👗 for Women), never the plug.
+  if (audienceKey === 'electronics' && ELECTRONICS_ACCESSORY_HINT.re.test(text)) {
+    return ELECTRONICS_ACCESSORY_HINT.icon;
+  }
   return CHIP_ICON_BY_AUDIENCE[audienceKey] || '🛍️';
 }
 
@@ -813,16 +833,35 @@ export default function Home() {
         const palermoList = palermoRes?.products || (Array.isArray(palermoRes) ? palermoRes : []);
         const sourcePool = latestList.length > 0 ? latestList : Array.isArray(dealList) ? dealList : [];
 
+        // Word-boundary matching, not plain substring — "men" must not match
+        // inside "women". Plain .includes('men') was true for any product
+        // whose text mentioned "women", which mixed Women's products into
+        // the Men's fallback list (and similar false positives elsewhere).
         const pickByKeywords = (items, keywords) => {
-          const terms = keywords.map((k) => k.toLowerCase());
+          const escapeRegExp = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const patterns = keywords.map((k) => new RegExp(`\\b${escapeRegExp(k.toLowerCase())}\\b`, 'i'));
           return items.filter((p) => {
-            const hay = `${p?.name || ''} ${p?.brand || ''} ${p?.category_name || ''}`.toLowerCase();
-            return terms.some((t) => hay.includes(t));
+            const hay = `${p?.name || ''} ${p?.brand || ''} ${p?.category_name || ''}`;
+            return patterns.some((re) => re.test(hay));
           });
         };
 
-        const fallbackMen = pickByKeywords(sourcePool, ['men', 'mens', 'shirt', 'trouser', 'hoodie', 't-shirt']);
-        const fallbackWomen = pickByKeywords(sourcePool, ['women', 'womens', 'kurti', 'dress', 'saree', 'blouse']);
+        // Generic garment words (shirt, dress, hoodie...) aren't gender-
+        // exclusive on their own, so an explicit mention of the other
+        // audience's words (women/girls vs men/boys) rules a product out —
+        // otherwise "Women's Denim Shirt" would land in both lists.
+        const hasAnyWord = (item, keywords) =>
+          pickByKeywords([item], keywords).length > 0;
+        const fallbackMen = sourcePool.filter(
+          (p) =>
+            hasAnyWord(p, ['men', 'mens', 'shirt', 'trouser', 'hoodie', 't-shirt']) &&
+            !hasAnyWord(p, ['women', 'womens', 'girls', 'girl', 'kids', 'kid', 'boys', 'boy', 'children'])
+        );
+        const fallbackWomen = sourcePool.filter(
+          (p) =>
+            hasAnyWord(p, ['women', 'womens', 'kurti', 'dress', 'saree', 'blouse']) &&
+            !hasAnyWord(p, ['men', 'mens', 'boys', 'boy', 'kids', 'kid', 'girls', 'girl', 'children'])
+        );
         const fallbackKids = pickByKeywords(sourcePool, ['kids', 'boys', 'girls', 'children']);
         const fallbackElectronics = pickByKeywords(sourcePool, ['electronics', 'headphone', 'speaker', 'mobile', 'earbuds', 'watch']);
         const fallbackShoes = pickByKeywords(sourcePool, ['shoe', 'sneaker', 'footwear', 'sandal', 'slipper']);
@@ -910,22 +949,22 @@ export default function Home() {
             subcategories: womenFootwearChildren,
           };
           freshShoesCats = freshShoesCats.map((category) => {
-            if ((category.name || '').toString().toLowerCase() !== 'female') return category;
-            const subcategories = [...category.subcategories];
-            womenFootwearCategory.subcategories.forEach((sub) => {
-              const existing = subcategories.find(
-                (item) => item.name.toLowerCase() === sub.name.toLowerCase()
-              );
-              if (existing) {
-                existing.categoryIds = [...new Set([...existing.categoryIds, sub.id])];
-              } else {
-                subcategories.push(sub);
-              }
-            });
+            const chipName = (category.name || '').toString().toLowerCase().trim();
+            if (!['female', 'women', "women's"].includes(chipName)) return category;
+            // Add each Women > Footwear subcategory as its own chip, keyed by
+            // its real id — never fold it into a same-named generic
+            // subcategory. Matching by name alone previously fused two
+            // possibly unrelated categories together, so the chip showed
+            // only one category's image while quietly pulling in the other
+            // category's products too.
+            const existingIds = new Set(category.subcategories.map((item) => String(item.id)));
+            const newSubcategories = womenFootwearCategory.subcategories.filter(
+              (sub) => !existingIds.has(String(sub.id))
+            );
             return {
               ...category,
               categoryIds: [...category.categoryIds, womenFootwearRoot.id],
-              subcategories,
+              subcategories: [...category.subcategories, ...newSubcategories],
             };
           });
         }
@@ -1521,7 +1560,7 @@ export default function Home() {
 
         {(mensProducts.length > 0 || mensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={mensCollectionIcon} iconAlt="Men's collection" title="Men's" accentWord="Collection" onViewAll={() => navigate('/men')} />
+            <SectionHead icon={mensCollectionIcon} iconAlt="Shop for Men" title="Shop for" accentWord="Men" onViewAll={() => navigate('/men')} />
             <CategoryChipsRail
               chips={mensCats}
               audienceLabel="Men"
@@ -1542,7 +1581,7 @@ export default function Home() {
 
         {(womensProducts.length > 0 || womensCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={womensCollectionIcon} iconAlt="Women's collection" title="Women's" accentWord="Collection" onViewAll={() => navigate('/women')} />
+            <SectionHead icon={womensCollectionIcon} iconAlt="Shop for Women" title="Shop for" accentWord="Women" onViewAll={() => navigate('/women')} />
             <CategoryChipsRail
               chips={womensCats}
               audienceLabel="Women"
@@ -1563,7 +1602,7 @@ export default function Home() {
 
         {(kidsProducts.length > 0 || kidsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={kidsCollectionIcon} iconAlt="Kids collection" title="Kids" accentWord="Collection" onViewAll={() => navigate('/kids')} />
+            <SectionHead icon={kidsCollectionIcon} iconAlt="Shop for Kids" title="Shop for" accentWord="Kids" onViewAll={() => navigate('/kids')} />
             <CategoryChipsRail
               chips={kidsCats}
               audienceLabel="Kids"
@@ -1584,7 +1623,7 @@ export default function Home() {
 
         {(electronicsProducts.length > 0 || electronicsCats.length > 0) && (
           <section className="section hp-feed-rail-section">
-            <SectionHead icon={electronicsCollectionIcon} iconAlt="Electronics collection" title="Electronics" accentWord="Collection" onViewAll={() => navigate('/electronics')} />
+            <SectionHead icon={electronicsCollectionIcon} iconAlt="Shop for Electronics" title="Shop for" accentWord="Electronics" onViewAll={() => navigate('/electronics')} />
             <CategoryChipsRail
               chips={electronicsCats}
               audienceLabel="Electronics"
