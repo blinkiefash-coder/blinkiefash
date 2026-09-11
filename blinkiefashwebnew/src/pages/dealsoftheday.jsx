@@ -14,7 +14,7 @@ import './dealsoftheday.css';
 const PAGE_SIZE = 24;
 
 const SORT_OPTIONS = [
-  { id: 'discount', label: 'Highest Discount' },
+  { id: 'discount', label: 'Discount' },
   { id: 'price_asc', label: 'Price: Low to High' },
   { id: 'price_desc', label: 'Price: High to Low' },
 ];
@@ -202,12 +202,8 @@ export default function DealsOfTheDay() {
         const [catRes, sortedBatches] = await Promise.all([
           getCategories(),
           Promise.all(
-            ['newest', 'discount', 'price_asc'].map((sort) =>
-              Promise.all(
-                Array.from({ length: 8 }, (_, page) =>
-                  getProducts({ sort, limit: 100, offset: page * 100 })
-                )
-              )
+            ['discount', 'newest', 'price_asc'].map((sort) =>
+              getProducts({ sort, limit: 100, offset: 0, min_discount: 1 })
             )
           ),
         ]);
