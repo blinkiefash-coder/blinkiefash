@@ -220,19 +220,33 @@ export default function Shop() {
 
     const fetchAllProducts = async () => {
       const pageSize = 100;
-      let offset = 0;
       const all = [];
 
-      while (true) {
-        const response = await fetch(
-          `${API_BASE}/products?limit=${pageSize}&offset=${offset}`
-        );
-        const data = await response.json();
-        const pageItems = extractProducts(data);
-        all.push(...pageItems);
+      const fetchPage = async (offset) => {
+        const response = await fetch(`${API_BASE}/products?limit=${pageSize}&offset=${offset}`);
+        return extractProducts(await response.json());
+      };
 
-        if (pageItems.length < pageSize) break;
-        offset += pageSize;
+      let lastPage = await fetchPage(0);
+      all.push(...lastPage);
+
+      let offset = pageSize;
+      while (lastPage.length === pageSize) {
+        const offsets = [offset, offset + pageSize, offset + pageSize * 2, offset + pageSize * 3];
+        const pages = await Promise.all(offsets.map(fetchPage));
+        let reachedEnd = false;
+
+        for (const page of pages) {
+          all.push(...page);
+          if (page.length < pageSize) {
+            reachedEnd = true;
+            break;
+          }
+        }
+
+        if (reachedEnd) break;
+        offset += pageSize * pages.length;
+        lastPage = pages[pages.length - 1];
       }
 
       return all;

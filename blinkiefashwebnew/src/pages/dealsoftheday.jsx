@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { MdArrowBack, MdLocalFireDepartment, MdTune, MdClose } from 'react-icons/md';
+import { useLocation } from 'react-router-dom';
+import { MdLocalFireDepartment, MdTune, MdClose } from 'react-icons/md';
 
 import Loader from '../components/Loader';
 import Footer from '../components/Footer';
@@ -107,7 +107,6 @@ function formatCountdown(ms) {
 }
 
 export default function DealsOfTheDay() {
-  const navigate = useNavigate();
   const location = useLocation();
   const initialCategoryId = new URLSearchParams(location.search).get('category_id') || '';
   const [categories, setCategories] = useState(() => dealsPageCache?.categories ?? []);
@@ -130,6 +129,17 @@ export default function DealsOfTheDay() {
   const [draftBrand, setDraftBrand] = useState([]);
   const [appliedBrand, setAppliedBrand] = useState([]);
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    if (!showFilters) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showFilters]);
 
   useEffect(() => {
     if (dealsPageCache?.brands) return undefined;
@@ -189,7 +199,18 @@ export default function DealsOfTheDay() {
       setLoading(true);
       setError('');
       try {
-        const catRes = await getCategories();
+        const [catRes, sortedBatches] = await Promise.all([
+          getCategories(),
+          Promise.all(
+            ['newest', 'discount', 'price_asc'].map((sort) =>
+              Promise.all(
+                Array.from({ length: 8 }, (_, page) =>
+                  getProducts({ sort, limit: 100, offset: page * 100 })
+                )
+              )
+            )
+          ),
+        ]);
         const allCats = Array.isArray(catRes) ? catRes : [];
         const findRoot = buildRootCategoryMap(allCats);
 
@@ -199,24 +220,16 @@ export default function DealsOfTheDay() {
         const pool = [];
         const seen = new Set();
         
-        // Try multiple sort options to get diverse brands
-        const sortOptions = ['newest', 'discount', 'price_asc'];
-        for (const sortBy of sortOptions) {
-          let offset = 0;
-          for (let i = 0; i < 8; i += 1) {
-            const res = await getProducts({ sort: sortBy, limit: 100, offset });
-            const batch = res?.products || (Array.isArray(res) ? res : []);
-            if (!Array.isArray(batch) || batch.length === 0) break;
-            batch.forEach((item) => {
-              const key = String(item?.id ?? '');
-              if (!key || seen.has(key)) return;
-              seen.add(key);
-              pool.push(item);
-            });
-            if (batch.length < 100) break;
-            offset += 100;
-          }
-        }
+        sortedBatches.flat().forEach((res) => {
+          const batch = res?.products || (Array.isArray(res) ? res : []);
+          if (!Array.isArray(batch)) return;
+          batch.forEach((item) => {
+            const key = String(item?.id ?? '');
+            if (!key || seen.has(key)) return;
+            seen.add(key);
+            pool.push(item);
+          });
+        });
 
         const discountedOnly = pool
           .map(withDiscount)
@@ -293,10 +306,6 @@ export default function DealsOfTheDay() {
       {/* ---- Hero ---- */}
       <section className="dotd-hero">
         <div className="dotd-hero-inner">
-          <button type="button" className="dotd-back" onClick={() => navigate(-1)} aria-label="Go back">
-            <MdArrowBack />
-          </button>
-
           <div className="dotd-hero-copy">
             <span className="dotd-hero-eyebrow">
               <MdLocalFireDepartment /> Today only

@@ -422,7 +422,7 @@
   gap: 16px;
 }
 
-.pp-badge-row { display: flex; gap: 10px; margin-bottom: 14px; width: 100%; }
+.pp-badge-row { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 14px; width: 100%; }
 .pp-chip {
   display: inline-flex;
   align-items: center;

@@ -373,12 +373,12 @@ function SectionHead({
 
       {onViewAll || headerActions ? (
         <div className="hp-shead-actions">
-          {headerActions}
           {onViewAll ? (
             <button type="button" className="hp-shead-action" onClick={onViewAll}>
               {viewAllLabel} <MdChevronRight />
             </button>
           ) : null}
+          {headerActions}
         </div>
       ) : null}
     </div>

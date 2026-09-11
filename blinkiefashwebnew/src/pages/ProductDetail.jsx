@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { useSmartBack } from '../utils/navigation';
 import {
-  MdArrowBack,
   MdAutorenew,
   MdBolt,
   MdCheck,
@@ -87,7 +85,6 @@ export default function ProductDetail() {
   const location = useLocation();
   const fromPath = location.state?.fromPath || '/shop';
   const fromLabel = location.state?.fromLabel || null;
-  const goBack = useSmartBack(fromPath);
   const { addToCart } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const { user, isLoggedIn } = useAuth();
@@ -663,11 +660,8 @@ export default function ProductDetail() {
       <Navbar />
 
       <div className="pp-page">
-        {/* Breadcrumb + Back */}
+        {/* Breadcrumb */}
         <nav className="pp-breadcrumb" aria-label="Breadcrumb">
-          <button type="button" className="pd-back" onClick={goBack}>
-            <MdArrowBack size={13} /> Back
-          </button>
           {breadcrumb.map((crumb, i) => {
             const isLast = i === breadcrumb.length - 1;
             const onCrumbClick = () => {
@@ -762,9 +756,6 @@ export default function ProductDetail() {
           {/* Info */}
           <div className="pp-info-col">
             <div className="pp-badge-row" style={{ alignItems: 'center' }}>
-              <span className="pp-chip">
-                {/* <MdBolt size={13} /> EXPRESS DELIVERY */}
-              </span>
               {product.is_try_and_buy && (
                 <span className="pp-chip pp-chip-outline">
                   <MdVerified size={13} /> TRY & BUY
