@@ -109,7 +109,7 @@
   margin: 0 auto;
   display: flex;
   align-items: center;
-  gap: 24px;
+  gap: 14px 18px;
   padding: 14px 24px;
   background: transparent;
 }
@@ -614,19 +614,16 @@
 }
 
 .men-festive-banner {
-  position: relative;
-  display: flex;
-  align-items: stretch;
+  display: block;
   width: 100%;
-  min-height: 236px;
   padding: 0;
-  overflow: hidden;
   border: 0;
-  border-radius: 16px;
-  background: #f2dfc5;
-  color: #173c2a;
-  text-align: left;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 22px;
+  background: none;
   cursor: pointer;
+  line-height: 0;
 }
 
 .men-festive-copy {
@@ -680,11 +677,14 @@
 
 .men-festive-image {
   display: block;
-  position: relative;
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: cover;
-  object-position: center;
+  transition: transform 0.25s ease;
+}
+
+.men-festive-banner:hover .men-festive-image {
+  transform: scale(1.01);
 }
 
 .men-festive-heading {
@@ -1163,6 +1163,7 @@
   .men-page .hp-shead {
     gap: 10px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
   }
 
   .men-page .hp-shead-title {
@@ -1358,10 +1359,10 @@
   }
 
   .men-festive-section .hp-deal-card-wrapper {
-    min-width: 150px !important;
-    max-width: 170px !important;
-    width: auto !important;
-    flex: 0 0 auto !important;
+    min-width: calc((100% - 10px) / 2) !important;
+    max-width: calc((100% - 10px) / 2) !important;
+    width: calc((100% - 10px) / 2) !important;
+    flex: 0 0 calc((100% - 10px) / 2) !important;
     scroll-snap-align: start;
   }
 }
@@ -1376,8 +1377,10 @@
   }
 
   .men-festive-section .hp-deal-card-wrapper {
-    min-width: 136px !important;
-    max-width: 152px !important;
+    min-width: calc((100% - 8px) / 2) !important;
+    max-width: calc((100% - 8px) / 2) !important;
+    width: calc((100% - 8px) / 2) !important;
+    flex-basis: calc((100% - 8px) / 2) !important;
   }
 }
 
@@ -1463,7 +1466,7 @@
 }
 
 .men-filter-col h4 {
-  margin: 0 0 10px;
+  margin: 0 0 6px;
   font-size: 12.5px;
   font-weight: 800;
   text-transform: uppercase;
@@ -1538,7 +1541,7 @@
 }
 
 .men-filter-col p {
-  margin: 10px 0 0;
+  margin: 6px 0 0;
   font-size: 12.5px;
   font-weight: 700;
   color: var(--m-blue-dark);
@@ -1579,8 +1582,8 @@
   grid-column: 1 / -1;
   display: flex;
   justify-content: flex-end;
-  padding-top: 12px;
-  margin-top: 4px;
+  padding-top: 8px;
+  margin-top: 0;
   border-top: 1px solid #dce8fd;
 }
 
@@ -1648,22 +1651,45 @@
 @media (max-width: 640px) {
   .men-picks-section .hp-deals-prev,
   .men-picks-section .hp-deals-next {
-    display: flex;
+    display: none;
   }
 
   .men-picks-section .hp-deals-rail {
     display: flex;
-    gap: 14px;
+    flex-wrap: nowrap;
+    grid-template-columns: none;
+    gap: 10px;
     overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding: 4px 2px 10px;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    padding: 2px 2px 10px;
+  }
+
+  .men-picks-section .hp-deals-rail::-webkit-scrollbar {
+    display: none;
   }
 
   .men-picks-section .hp-deal-card-wrapper {
-    min-width: 180px;
-    max-width: 220px;
+    min-width: 150px;
+    max-width: 170px;
     flex: 0 0 auto;
     width: auto;
+    scroll-snap-align: start;
+  }
+}
+
+@media (max-width: 380px) {
+  .men-picks-section .hp-deals-rail {
+    gap: 8px;
+  }
+
+  .men-picks-section .hp-deal-card-wrapper {
+    min-width: 136px;
+    max-width: 152px;
   }
 }
 

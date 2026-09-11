@@ -818,6 +818,7 @@ router.get("/", async (req, res) => {
       lng,
       store_id,   // explicit store override from frontend
       store_ids,
+      catalog,
     } = req.query;
     const customerLat = Number.parseFloat(lat);
     const customerLng = Number.parseFloat(lng);
@@ -865,7 +866,7 @@ router.get("/", async (req, res) => {
       .filter(Boolean);
 
     let nearbyStores = [];
-    if (!store_id && !explicitStoreIds.length && hasCustomerLocation) {
+    if (catalog !== 'all' && !store_id && !explicitStoreIds.length && hasCustomerLocation) {
       const radiusKm = 400;
       
       const { rows } = await pool.query(
@@ -895,26 +896,15 @@ router.get("/", async (req, res) => {
 
     // Effective stores: explicit store(s) first, then nearby stores. If a location
     // was supplied and none are within 400 km, do not fall back beyond the radius.
-    const effectiveStoreIds = explicitStoreIds.length
+    const effectiveStoreIds = catalog === 'all'
+      ? (explicitStoreIds.length ? explicitStoreIds : store_id ? [String(store_id)] : [])
+      : explicitStoreIds.length
       ? explicitStoreIds
       : store_id
         ? [String(store_id)]
         : nearbyStores.length
           ? nearbyStores.map((s) => s.id)
               : (hasCustomerLocation ? [] : (nearestStoreId ? [nearestStoreId] : []));
-
-            if (hasCustomerLocation && !store_id && !explicitStoreIds.length && !effectiveStoreIds.length) {
-      return res.json({
-        products: [],
-        total: 0,
-        nearestStore: nearestStoreName
-          ? { id: nearestStoreId, name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
-          : null,
-        nearbyStores: [],
-        nearbyStoreIds: [],
-        locationProvided: true,
-      });
-    }
 
     // Build parameter list — store_id is ALWAYS $1 when present so LATERAL
     // can reference it by position before other dynamic conditions are added.
@@ -1238,6 +1228,7 @@ router.get("/", async (req, res) => {
         : null,
       nearbyStores,
       nearbyStoreIds: effectiveStoreIds,
+      catalogMode: catalog === 'all' ? 'all' : 'nearby',
       locationProvided: hasCustomerLocation,
     });
 

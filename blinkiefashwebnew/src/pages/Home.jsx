@@ -1187,7 +1187,7 @@ export default function Home() {
     });
   };
 
-  const applyDealFilters = () => {
+  const applyDealFilters = ({ close = true } = {}) => {
     setAppliedDealFilters({
       brand: dealActiveBrand,
       color: dealActiveColor,
@@ -1196,7 +1196,7 @@ export default function Home() {
       inStockOnly: dealInStockOnly,
       maxPrice: dealMaxPrice,
     });
-    setDealFilterOpen(false);
+    if (close) setDealFilterOpen(false);
   };
 
   const recommendedProducts = useMemo(() => {

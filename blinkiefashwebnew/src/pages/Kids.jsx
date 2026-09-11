@@ -235,7 +235,7 @@ export default function Kids() {
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = ({ close = true } = {}) => {
     setAppliedFilters({
       brand: activeBrand,
       color: activeColor,
@@ -243,7 +243,7 @@ export default function Kids() {
       inStockOnly,
       maxPrice,
     });
-    setFilterOpen(false);
+    if (close) setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));

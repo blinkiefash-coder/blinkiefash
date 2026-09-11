@@ -286,3 +286,6 @@ export const updateUserProfile = async ({ userId, name, email }) => {
     return { success: false, error: error.message || 'Failed to update profile' };
   }
 };
+
+export const getSupportTickets = (userId) =>
+  request(`/support/tickets?user_id=${encodeURIComponent(userId)}`);

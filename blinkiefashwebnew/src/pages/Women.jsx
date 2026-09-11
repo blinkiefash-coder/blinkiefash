@@ -387,6 +387,7 @@ export default function Women() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState([]);
   const [activeColor, setActiveColor] = useState([]);
+  const [activeGender, setActiveGender] = useState([]);
   const [minDiscount, setMinDiscount] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState(10000);
@@ -399,6 +400,7 @@ export default function Women() {
   const [appliedFilters, setAppliedFilters] = useState({
     brand: [],
     color: [],
+    gender: [],
     minDiscount: 0,
     inStockOnly: false,
     maxPrice: 10000,
@@ -425,6 +427,7 @@ export default function Women() {
   const activeFilterCount =
     appliedFilters.brand.length +
     appliedFilters.color.length +
+    appliedFilters.gender.length +
     (appliedFilters.minDiscount > 0 ? 1 : 0) +
     (appliedFilters.inStockOnly ? 1 : 0) +
     (appliedFilters.maxPrice < 10000 ? 1 : 0);
@@ -432,6 +435,7 @@ export default function Women() {
   const clearAllFilters = () => {
     setActiveBrand([]);
     setActiveColor([]);
+    setActiveGender([]);
     setMinDiscount(0);
     setInStockOnly(false);
     setMaxPrice(10000);
@@ -439,21 +443,23 @@ export default function Women() {
     setAppliedFilters({
       brand: [],
       color: [],
+      gender: [],
       minDiscount: 0,
       inStockOnly: false,
       maxPrice: 10000,
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = ({ close = true } = {}) => {
     setAppliedFilters({
       brand: activeBrand,
       color: activeColor,
+      gender: activeGender,
       minDiscount,
       inStockOnly,
       maxPrice,
     });
-    setFilterOpen(false);
+    if (close) setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
@@ -468,6 +474,10 @@ export default function Women() {
         if (appliedFilters.color.length > 0) {
           const c = normalizeText(p.color);
           if (c && !appliedFilters.color.map(normalizeText).includes(c)) return false;
+        }
+        if (appliedFilters.gender.length > 0) {
+          const gender = normalizeText(p.gender);
+          if (gender && !appliedFilters.gender.map(normalizeText).includes(gender)) return false;
         }
         if (appliedFilters.minDiscount > 0 && (p.discount || 0) < appliedFilters.minDiscount) return false;
         if (appliedFilters.inStockOnly && p.in_stock === false) return false;
@@ -1271,6 +1281,7 @@ export default function Women() {
                     if (!filterOpen) {
                       setActiveBrand(appliedFilters.brand);
                       setActiveColor(appliedFilters.color);
+                      setActiveGender(appliedFilters.gender);
                       setMinDiscount(appliedFilters.minDiscount);
                       setInStockOnly(appliedFilters.inStockOnly);
                       setMaxPrice(appliedFilters.maxPrice);
@@ -1293,6 +1304,9 @@ export default function Women() {
                 setActiveBrand={setActiveBrand}
                 activeColor={activeColor}
                 setActiveColor={setActiveColor}
+                availableGenders={["Men", "Women", "Kids", "Unisex"]}
+                activeGender={activeGender}
+                setActiveGender={setActiveGender}
                 minDiscount={minDiscount}
                 setMinDiscount={setMinDiscount}
                 inStockOnly={inStockOnly}

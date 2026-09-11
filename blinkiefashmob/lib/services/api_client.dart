@@ -298,6 +298,7 @@ class ApiClient {
     int limit = 100,
   }) async {
     final params = <String, String>{'limit': '$limit'};
+    params['catalog'] = 'all';
     if (lat != null && lng != null) {
       params['lat'] = '$lat';
       params['lng'] = '$lng';
@@ -307,6 +308,7 @@ class ApiClient {
     ).replace(queryParameters: params);
     final data = await _getJson(uri);
     if (data is Map<String, dynamic>) {
+      final isFullCatalog = data['catalogMode'] == 'all';
       // Persist the nearest store id so all subsequent product calls filter
       // to only show items available at this store.
       final storeId = (data['nearestStore'] as Map?)?['id']?.toString();
@@ -320,13 +322,13 @@ class ApiClient {
       final storeDistance = ((data['nearestStore'] as Map?)?['dist'] as num?)
           ?.toDouble();
       if (storeId != null && storeId.isNotEmpty) {
-        ApiClient.currentStoreId = storeId;
+        ApiClient.currentStoreId = isFullCatalog ? null : storeId;
         ApiClient.currentCustomerLat = lat;
         ApiClient.currentCustomerLng = lng;
         ApiClient.currentStoreIds =
-            (nearbyStoreIds != null && nearbyStoreIds.isNotEmpty)
+          !isFullCatalog && nearbyStoreIds != null && nearbyStoreIds.isNotEmpty
             ? nearbyStoreIds
-            : [storeId];
+          : const [];
         if (storeName != null && storeName.isNotEmpty) {
           ApiClient.currentStoreName = storeName;
         }

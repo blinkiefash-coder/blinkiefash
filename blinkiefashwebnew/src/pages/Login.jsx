@@ -60,6 +60,10 @@ export default function Login() {
   const handleStart = async (e) => {
     e.preventDefault();
     setError('');
+    if (!phone || !/^(?:\+?91)?[6-9]\d{9}$/.test(phone.replace(/\D/g, '').replace(/^91/, ''))) {
+      setError('Please enter a valid mobile number');
+      return;
+    }
     setLoading(true);
     try {
       const formattedPhone = formatPhone(phone);
@@ -69,7 +73,11 @@ export default function Login() {
         return;
       }
 
-      if (accountCheck.fallbackOtpMode && accountCheck.debugOtp) {
+      if (accountCheck.fallbackOtpMode) {
+        if (!accountCheck.debugOtp) {
+          setError('Could not create an OTP. Please try again.');
+          return;
+        }
         setServerOtpMode(true);
         setServerOtp(String(accountCheck.debugOtp));
         setConfirmationResult(null);

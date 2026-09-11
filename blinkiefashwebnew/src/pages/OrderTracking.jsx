@@ -3,6 +3,8 @@ import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { getOrderById, cancelOrder } from '../api';
+import { API_API_BASE_URL } from '../apiBase';
+import { MdReceiptLong } from 'react-icons/md';
 import Loader from '../components/Loader';
 import { estimateDeliveryFromDistance } from '../utils/deliveryEstimate';
 import { getDistanceKm } from '../utils/geoDistance';
@@ -111,6 +113,14 @@ export default function OrderTracking() {
     }
   };
 
+  const handleDownloadInvoice = () => {
+    const invoiceUrl = `${API_API_BASE_URL}/checkout/orders/${encodeURIComponent(orderId)}/invoice`;
+    const invoiceWindow = window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    if (!invoiceWindow) {
+      setError('Please allow pop-ups to open the invoice.');
+    }
+  };
+
   if (!isLoggedIn) {
     return (
       <div className="ot-page">
@@ -181,6 +191,29 @@ export default function OrderTracking() {
     order.deliveryPromise ||
     order.delivery_promise ||
     (delivery.tier !== 'unknown' ? delivery.label : 'Delivery estimate unavailable');
+
+  const deliveredAt = order.otp_verified_at || order.delivered_at || order.deliveredAt;
+  const deliveryEtaMinutes = Number(
+    order.deliveryEtaMinutes ??
+      order.delivery_eta_minutes ??
+      order.deliveryEtaMaxMinutes ??
+      order.delivery_eta_max_minutes
+  );
+  const deliveryDateTime = status === 'delivered'
+    ? (deliveredAt ? new Date(deliveredAt) : null)
+    : Number.isFinite(deliveryEtaMinutes) && deliveryEtaMinutes > 0
+      ? new Date(confirmationNow + deliveryEtaMinutes * 60 * 1000)
+      : null;
+  const deliveryDateTimeText = deliveryDateTime && !Number.isNaN(deliveryDateTime.getTime())
+    ? deliveryDateTime.toLocaleString('en-IN', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      })
+    : '';
   // --- END CHANGED ---
 
   const statusLabel = isCancelled
@@ -268,8 +301,13 @@ export default function OrderTracking() {
         {!isCancelled && (
           <div className="ot-grid">
             <section className="ot-card">
-              <h2>Estimated Delivery</h2>
+              <h2>{status === 'delivered' ? 'Delivered' : 'Estimated Delivery'}</h2>
               <p className="ot-eta-main">{deliveryPromise}</p>
+              {deliveryDateTimeText && (
+                <p className="ot-eta-datetime">
+                  {status === 'delivered' ? 'Delivered on' : 'Expected by'} {deliveryDateTimeText}
+                </p>
+              )}
               {distanceKm != null && (
                 <p className="ot-eta-sub">Distance: {Number(distanceKm).toFixed(1)} km</p>
               )}
@@ -338,6 +376,18 @@ export default function OrderTracking() {
 
         {/* Actions */}
         <div className="ot-actions">
+          <button
+            className="ot-btn complaint"
+            onClick={() => navigate(`/complain?orderId=${encodeURIComponent(orderId)}`)}
+          >
+            Customer Complaint
+          </button>
+          {['delivered', 'completed', 'trial_completed'].includes(status) && (
+            <button className="ot-btn invoice" onClick={handleDownloadInvoice}>
+              <MdReceiptLong />
+              Download Invoice / PDF
+            </button>
+          )}
           {!isCancelled && status !== 'delivered' && (
             <button
               className="ot-btn danger-outline"

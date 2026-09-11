@@ -151,6 +151,10 @@ export default function AuthModal() {
   const handleStart = async (e) => {
     e.preventDefault();
     setLoginError('');
+    if (!loginPhone || !isValidPhoneNumber(formatPhone(loginPhone))) {
+      setLoginError('Please enter a valid mobile number');
+      return;
+    }
     setLoginLoading(true);
     try {
       const formattedPhone = formatPhone(loginPhone);
@@ -160,7 +164,11 @@ export default function AuthModal() {
         return;
       }
 
-      if (accountCheck.fallbackOtpMode && accountCheck.debugOtp) {
+      if (accountCheck.fallbackOtpMode) {
+        if (!accountCheck.debugOtp) {
+          setLoginError('Could not create an OTP. Please try again.');
+          return;
+        }
         setServerOtpMode(true);
         setServerOtp(String(accountCheck.debugOtp));
         setConfirmationResult(null);

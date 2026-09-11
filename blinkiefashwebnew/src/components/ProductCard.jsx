@@ -67,7 +67,7 @@ async function resolveAvailableVariantId(product) {
 export default function ProductCard({ product, onWishlistAdded, onCartAdded, isNew = false }) {
   const navigate = useNavigate();
   const { openAuthModal } = useAuthModal();
-  const { addToCart, getCartQty, updateQty } = useCart();
+  const { addToCart, getCartQty, updateQty, incrementQty } = useCart();
   const { isWishlisted, toggleWishlist } = useWishlist();
 
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -107,7 +107,9 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     product.id;
   const cartQty = getCartQty(activeVariantId || product.variant_id || product.id);
 
-  const originalPrice = Number(product.price || product._mrp || 0);
+  const originalPrice = Number(
+    product.mrp ?? product._mrp ?? product.original_price ?? product.price ?? 0
+  );
   const salePrice =
     Number(product.discount_price ?? product._price ?? 0) > 0
       ? Number(product.discount_price ?? product._price)
@@ -275,6 +277,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
     if (typeof addToCart === "function") {
       try {
+        if (alreadyInCart && typeof incrementQty === "function") {
+          await incrementQty({
+            productId: product.id,
+            variantId: variantIdToAdd,
+          });
+          window.dispatchEvent(new Event("cart:updated"));
+          setAnnouncement(`${product.name} quantity updated`);
+          return;
+        }
         await addToCart({
           productId: product.id,
           variantId: variantIdToAdd,
@@ -285,6 +296,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
             : activeSalePrice,
           size: variantToAdd?.size,
           color: variantToAdd?.color || product.color,
+          availableStock: variantToAdd?.available_stock,
         });
         window.dispatchEvent(new Event("cart:updated"));
         setAnnouncement(`${product.name} added to cart`);

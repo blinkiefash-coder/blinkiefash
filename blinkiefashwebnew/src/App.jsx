@@ -46,6 +46,7 @@ import AboutUs from './pages/AboutUs';
 import Stores from './pages/Stores';
 import Careers from './pages/Careers';
 import ContactUs from './pages/ContactUs';
+import Complain from './pages/Complain';
 import { hasVendorPasswordAuth } from './utils/vendorSession';
 import { isAdmin } from './utils/adminSession';
 import OrderTracking from './pages/OrderTracking';
@@ -203,6 +204,7 @@ export default function App() {
         <Route path="/wishlist" element={<Wishlist />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
+        <Route path="/complain" element={<Complain />} />
         <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
         <Route path="/parcel" element={<Parcel />} />

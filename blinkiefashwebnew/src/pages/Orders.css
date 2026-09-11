@@ -19,6 +19,30 @@
   margin-bottom: 22px;
 }
 
+.orders-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.orders-back {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dfe7e1;
+  border-radius: 50%;
+  background: #fff;
+  color: #14181a;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.orders-back:hover {
+  background: #f0f6f1;
+  border-color: #b9cdbd;
+}
+
 .orders-title {
   font-size: 22px;
   font-weight: 800;
@@ -112,6 +136,22 @@
   display: flex;
 }
 
+.order-complain-btn {
+  flex: none;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  background: #fff;
+  color: #b91c1c;
+  padding: 7px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.order-complain-btn:hover {
+  background: #fef2f2;
+}
+
 .tone-success { background: #e6f6ec; color: #0d9f4f; }
 .tone-info    { background: #e3f2fd; color: #1976d2; }
 .tone-amber   { background: #fff8e1; color: #b7791f; }
@@ -183,7 +223,14 @@
   .order-card {
     padding: 14px;
     gap: 12px;
+    flex-wrap: wrap;
     border-radius: 14px;
+  }
+
+  .order-complain-btn {
+    width: 100%;
+    margin-left: 0;
+    padding: 9px;
   }
 
   .order-status-icon {

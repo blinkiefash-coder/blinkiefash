@@ -327,6 +327,7 @@ export default function Men() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeBrand, setActiveBrand] = useState([]);
   const [activeColor, setActiveColor] = useState([]);
+  const [activeGender, setActiveGender] = useState([]);
   const [minDiscount, setMinDiscount] = useState(0);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [maxPrice, setMaxPrice] = useState(10000);
@@ -339,6 +340,7 @@ export default function Men() {
   const [appliedFilters, setAppliedFilters] = useState({
     brand: [],
     color: [],
+    gender: [],
     minDiscount: 0,
     inStockOnly: false,
     maxPrice: 10000,
@@ -353,6 +355,7 @@ export default function Men() {
   const activeFilterCount =
     appliedFilters.brand.length +
     appliedFilters.color.length +
+    appliedFilters.gender.length +
     (appliedFilters.minDiscount > 0 ? 1 : 0) +
     (appliedFilters.inStockOnly ? 1 : 0) +
     (appliedFilters.maxPrice < 10000 ? 1 : 0);
@@ -360,6 +363,7 @@ export default function Men() {
   const clearAllFilters = () => {
     setActiveBrand([]);
     setActiveColor([]);
+    setActiveGender([]);
     setMinDiscount(0);
     setInStockOnly(false);
     setMaxPrice(10000);
@@ -367,21 +371,23 @@ export default function Men() {
     setAppliedFilters({
       brand: [],
       color: [],
+      gender: [],
       minDiscount: 0,
       inStockOnly: false,
       maxPrice: 10000,
     });
   };
 
-  const applyFilters = () => {
+  const applyFilters = ({ close = true } = {}) => {
     setAppliedFilters({
       brand: activeBrand,
       color: activeColor,
+      gender: activeGender,
       minDiscount,
       inStockOnly,
       maxPrice,
     });
-    setFilterOpen(false);
+    if (close) setFilterOpen(false);
   };
 
   const visibleBrands = brands.filter((b) => normalizeText(b.name).includes(normalizeText(brandSearch)));
@@ -396,6 +402,10 @@ export default function Men() {
         if (appliedFilters.color.length > 0) {
           const c = normalizeText(p.color);
           if (c && !appliedFilters.color.map(normalizeText).includes(c)) return false;
+        }
+        if (appliedFilters.gender.length > 0) {
+          const gender = normalizeText(p.gender);
+          if (gender && !appliedFilters.gender.map(normalizeText).includes(gender)) return false;
         }
         if (appliedFilters.minDiscount > 0 && (p.discount || 0) < appliedFilters.minDiscount) return false;
         if (appliedFilters.inStockOnly && p.in_stock === false) return false;
@@ -804,13 +814,6 @@ export default function Men() {
     [menSubcats]
   );
 
-  const menKurtaShopUrl = useCallback(() => {
-    const kurtaCategory = findMenSubcatByLabel("kurta");
-    return kurtaCategory
-      ? menScopedShopUrl({ categoryId: kurtaCategory.id })
-      : menScopedShopUrl({ search: "kurta" });
-  }, [findMenSubcatByLabel, menScopedShopUrl]);
-
   const categoryStripItems = useMemo(() => {
     if (menSubcats.length) {
       return menSubcats.map((cat) => {
@@ -999,6 +1002,7 @@ export default function Men() {
                     if (!filterOpen) {
                       setActiveBrand(appliedFilters.brand);
                       setActiveColor(appliedFilters.color);
+                      setActiveGender(appliedFilters.gender);
                       setMinDiscount(appliedFilters.minDiscount);
                       setInStockOnly(appliedFilters.inStockOnly);
                       setMaxPrice(appliedFilters.maxPrice);
@@ -1021,6 +1025,9 @@ export default function Men() {
                 setActiveBrand={setActiveBrand}
                 activeColor={activeColor}
                 setActiveColor={setActiveColor}
+                availableGenders={["Men", "Women", "Kids", "Unisex"]}
+                activeGender={activeGender}
+                setActiveGender={setActiveGender}
                 minDiscount={minDiscount}
                 setMinDiscount={setMinDiscount}
                 inStockOnly={inStockOnly}
@@ -1131,28 +1138,30 @@ export default function Men() {
           </section>
         )}
 
-        {festiveFits.length > 0 && (
-          <section className="section men-festive-section" aria-labelledby="men-festive-title">
-            <button
-              type="button"
-              className="men-festive-banner"
-              onClick={() => navigate(menKurtaShopUrl())}
-            >
-              <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
-            </button>
+        <section className="section men-festive-section" aria-labelledby="men-festive-title">
+          <button
+            type="button"
+            className="men-festive-banner"
+            onClick={() => navigate("/festive/men")}
+          >
+            <img src={traditionalBanner} alt="Men's festive fashion" className="men-festive-image" />
+          </button>
 
-            <div className="men-festive-heading">
-              <div>
-                <h2>FESTIVE FITS</h2>
-                <p>Traditional styles for modern celebrations</p>
+          {festiveFits.length > 0 && (
+            <>
+              <div className="men-festive-heading">
+                <div>
+                  <h2>FESTIVE FITS</h2>
+                  <p>Traditional styles for modern celebrations</p>
+                </div>
+                <button type="button" onClick={() => navigate("/festive/men")}>
+                  View All <MdChevronRight />
+                </button>
               </div>
-              <button type="button" onClick={() => navigate(menKurtaShopUrl())}>
-                View All <MdChevronRight />
-              </button>
-            </div>
-            <ProductRail list={applyProductFilters(festiveFits)} railRef={festiveRef} keyPrefix="men-festive" />
-          </section>
-        )}
+              <ProductRail list={applyProductFilters(festiveFits)} railRef={festiveRef} keyPrefix="men-festive" />
+            </>
+          )}
+        </section>
 
         {/* All Men's Picks */}
         <section className="section men-picks-section">
@@ -1202,7 +1211,15 @@ export default function Men() {
         <section className="section men-picks-section">
           <div className="hp-section-head">
             <h2>NEW ARRIVALS ✨</h2>
-            <button type="button" onClick={() => navigate(menScopedShopUrl())}>
+            <button
+              type="button"
+              onClick={() => {
+                const params = new URLSearchParams({ new_arrivals: "true", sort: "newest" });
+                if (menRootId) params.set("category_id", String(menRootId));
+                else params.set("search", "men");
+                navigate(`/shop?${params.toString()}`);
+              }}
+            >
               View All <MdChevronRight />
             </button>
           </div>
