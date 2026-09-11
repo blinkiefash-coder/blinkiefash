@@ -109,6 +109,14 @@ const NEW_ARRIVALS_DISPLAY_LIMIT = 20;
 
 const NIKE_LOGO_URL = "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg";
 
+// How far (in px) a touch must travel horizontally before we treat it as a
+// deliberate swipe rather than an accidental drag/tap.
+const HERO_SWIPE_THRESHOLD = 40;
+// How often the hero auto-advances, in ms. Also used to restart the timer
+// after a manual swipe/arrow/dot interaction so it doesn't jump again
+// a moment later.
+const HERO_AUTOPLAY_MS = 5000;
+
 function resolveImageUrl(raw) {
   const value = (raw ?? "").toString().trim();
   if (!value) return null;
@@ -476,6 +484,81 @@ export default function Women() {
   const shopBrandsRef = useRef(null);
   const festiveRef = useRef(null);
 
+  // ---- Hero carousel: swipe + restartable autoplay ----
+  const heroAutoplayRef = useRef(null);
+  const heroTouchStartX = useRef(null);
+  const heroTouchStartY = useRef(null);
+  const heroTouchDeltaX = useRef(0);
+  const heroSwiping = useRef(false);
+
+  const startHeroAutoplay = useCallback(() => {
+    if (heroAutoplayRef.current) {
+      clearInterval(heroAutoplayRef.current);
+    }
+    heroAutoplayRef.current = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
+    }, HERO_AUTOPLAY_MS);
+  }, []);
+
+  // Any manual navigation (arrow, dot, swipe) should push the next
+  // auto-advance HERO_AUTOPLAY_MS out from *now*, instead of firing again
+  // moments later on the old schedule.
+  const goToHeroSlide = useCallback(
+    (updater) => {
+      setHeroIndex(updater);
+      startHeroAutoplay();
+    },
+    [startHeroAutoplay]
+  );
+
+  useEffect(() => {
+    startHeroAutoplay();
+    return () => {
+      if (heroAutoplayRef.current) clearInterval(heroAutoplayRef.current);
+    };
+  }, [startHeroAutoplay]);
+
+  const handleHeroTouchStart = (e) => {
+    const touch = e.touches[0];
+    heroTouchStartX.current = touch.clientX;
+    heroTouchStartY.current = touch.clientY;
+    heroTouchDeltaX.current = 0;
+    heroSwiping.current = false;
+  };
+
+  const handleHeroTouchMove = (e) => {
+    if (heroTouchStartX.current === null) return;
+    const touch = e.touches[0];
+    const deltaX = touch.clientX - heroTouchStartX.current;
+    const deltaY = touch.clientY - heroTouchStartY.current;
+    heroTouchDeltaX.current = deltaX;
+
+    // Only claim the gesture as a horizontal swipe once movement is clearly
+    // more horizontal than vertical, so the page can still scroll normally.
+    if (!heroSwiping.current && Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
+      heroSwiping.current = true;
+    }
+    if (heroSwiping.current) {
+      e.preventDefault();
+    }
+  };
+
+  const handleHeroTouchEnd = () => {
+    const delta = heroTouchDeltaX.current;
+    if (heroSwiping.current) {
+      if (delta > HERO_SWIPE_THRESHOLD) {
+        goToHeroSlide((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length);
+      } else if (delta < -HERO_SWIPE_THRESHOLD) {
+        goToHeroSlide((i) => (i + 1) % HERO_SLIDES.length);
+      }
+    }
+    heroTouchStartX.current = null;
+    heroTouchStartY.current = null;
+    heroTouchDeltaX.current = 0;
+    heroSwiping.current = false;
+  };
+  // ---- end hero carousel helpers ----
+
   useEffect(() => {
     const interval = setInterval(() => {
       setDealsCountdown(formatCountdown(getMsUntilMidnight()));
@@ -684,13 +767,6 @@ export default function Women() {
       cancelled = true;
     };
   }, [womenResolved, womenRootId]);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      setHeroIndex((i) => (i + 1) % HERO_SLIDES.length);
-    }, 5000);
-    return () => clearInterval(id);
-  }, []);
 
   // More to Explore
   useEffect(() => {
@@ -1112,12 +1188,18 @@ export default function Women() {
       <Navbar activeTab="Women" />
 
       <main className="women-main">
-        <section className="women-hero-carousel" aria-label="Women's fashion highlights">
+        <section
+          className="women-hero-carousel"
+          aria-label="Women's fashion highlights"
+          onTouchStart={handleHeroTouchStart}
+          onTouchMove={handleHeroTouchMove}
+          onTouchEnd={handleHeroTouchEnd}
+        >
           <button
             type="button"
             className="women-hero-arrow prev"
             aria-label="Previous slide"
-            onClick={() => setHeroIndex((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
+            onClick={() => goToHeroSlide((i) => (i - 1 + HERO_SLIDES.length) % HERO_SLIDES.length)}
           >
             <MdChevronLeft />
           </button>
@@ -1127,7 +1209,7 @@ export default function Women() {
               {slide.mobileImage ? (
                 <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
               ) : null}
-              <img src={slide.image} alt={slide.tag} className="women-hero-img" />
+              <img src={slide.image} alt={slide.tag} className="women-hero-img" draggable={false} />
             </picture>
           </button>
 
@@ -1135,7 +1217,7 @@ export default function Women() {
             type="button"
             className="women-hero-arrow next"
             aria-label="Next slide"
-            onClick={() => setHeroIndex((i) => (i + 1) % HERO_SLIDES.length)}
+            onClick={() => goToHeroSlide((i) => (i + 1) % HERO_SLIDES.length)}
           >
             <MdChevronRight />
           </button>
@@ -1147,7 +1229,7 @@ export default function Women() {
                 type="button"
                 className={`women-hero-dot${idx === heroIndex ? " active" : ""}`}
                 aria-label={`Go to slide ${idx + 1}`}
-                onClick={() => setHeroIndex(idx)}
+                onClick={() => goToHeroSlide(idx)}
               />
             ))}
           </div>

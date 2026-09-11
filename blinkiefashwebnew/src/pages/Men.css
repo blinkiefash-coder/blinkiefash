@@ -1673,3 +1673,6 @@
   }
 }
 
+.men-hero-carousel {
+  touch-action: pan-y;
+}
