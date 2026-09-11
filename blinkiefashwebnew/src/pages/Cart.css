@@ -20,6 +20,32 @@
   margin-bottom: 12px;
 }
 
+.cart-empty-header,
+.cart-header-row > div:first-child {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cart-back {
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 50%;
+  background: #fff;
+  color: #111827;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.cart-back:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
 .cart-title {
   font-size: 17px;
   line-height: 1.2;

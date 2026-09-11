@@ -19,8 +19,9 @@
 }
 
 .ckt-back {
-  width: 36px;
+  min-width: 36px;
   height: 36px;
+  padding: 0 12px;
   border-radius: 50%;
   border: 1px solid #e2e8f0;
   background: #fff;
@@ -31,6 +32,13 @@
   color: #0f172a;
   cursor: pointer;
   transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.ckt-back span {
+  margin-left: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .ckt-back:hover {

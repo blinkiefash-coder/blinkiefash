@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useSmartBack } from "../utils/navigation";
 import {
+  MdArrowBack,
   MdClose,
   MdDeleteOutline,
   MdSaveAlt,
@@ -23,7 +25,8 @@ const FREE_DELIVERY_THRESHOLD = 999;
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { items, updateQty, removeFromCart, addToCart, subtotal, count } =
+  const goBack = useSmartBack("/shop");
+  const { items, updateQty, incrementQty, removeFromCart, addToCart, subtotal, count } =
     useCart();
   const { toggleWishlist } = useWishlist();
 
@@ -84,7 +87,12 @@ export default function Cart() {
           path="/cart"
           noIndex
         />
-        <h1 className="cart-title">Your cart</h1>
+        <div className="cart-empty-header">
+          <button type="button" className="cart-back" onClick={goBack} aria-label="Go back">
+            <MdArrowBack />
+          </button>
+          <h1 className="cart-title">Your cart</h1>
+        </div>
         <p className="state-msg">Your cart is empty.</p>
         <button
           type="button"
@@ -121,6 +129,9 @@ export default function Cart() {
 
       <div className="cart-header-row">
         <div>
+          <button type="button" className="cart-back" onClick={goBack} aria-label="Go back">
+            <MdArrowBack />
+          </button>
           <h1 className="cart-title">My Cart ({items.length})</h1>
           <p className="cart-subtitle">
             {items.length} {items.length === 1 ? "item" : "items"} • Total{" "}
@@ -174,7 +185,8 @@ export default function Cart() {
                       <span>{item.qty}</span>
                       <button
                         type="button"
-                        onClick={() => updateQty(key, item.qty + 1)}
+                        onClick={() => incrementQty(item)}
+                        disabled={item.availableStock != null && item.qty >= item.availableStock}
                         aria-label="Increase quantity"
                       >
                         +

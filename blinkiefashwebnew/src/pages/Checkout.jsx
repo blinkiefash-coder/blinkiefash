@@ -21,7 +21,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useCart } from '../context/CartContext';
-import { getAddresses, addAddress, getDeliveryFee, placeOrder } from '../api';
+import { getAddresses, addAddress, getDeliveryFee, getProductById, placeOrder } from '../api';
 import './Checkout.css';
 import PageSEO from '../components/PageSEO';
 
@@ -56,7 +56,6 @@ export default function Checkout() {
   const [placing, setPlacing] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [selectedOffer, setSelectedOffer] = useState('free-delivery');
-  const [donatePrompted, setDonatePrompted] = useState(false);
 
   const [couponCode, setCouponCode] = useState('');
   // manualCoupon: user-chosen coupon (null = none / use auto promo)
@@ -146,16 +145,8 @@ export default function Checkout() {
   const selectedAddress = addresses.find((a) => String(a.id) === String(selectedAddressId));
 
   const handleIncrement = (item) => {
-    if (typeof cartCtx.addToCart === 'function') {
-      cartCtx.addToCart({
-        productId: item.productId,
-        variantId: item.variantId,
-        name: item.name,
-        image: item.image,
-        price: item.price,
-        size: item.size,
-        color: item.color,
-      });
+    if (typeof cartCtx.incrementQty === 'function') {
+      cartCtx.incrementQty(item);
     }
   };
 
@@ -324,6 +315,31 @@ export default function Checkout() {
     setError('');
     setPlacing(true);
     try {
+      const productStockCache = new Map();
+      const stockErrors = [];
+      for (const item of items) {
+        if (!item.productId || !item.variantId) continue;
+        let product = productStockCache.get(String(item.productId));
+        if (!product) {
+          product = await getProductById(item.productId);
+          productStockCache.set(String(item.productId), product);
+        }
+        const variants = product?.variants || product?.product?.variants || [];
+        const variant = variants.find(
+          (candidate) => String(candidate.id || candidate.variant_id) === String(item.variantId)
+        );
+        const availableStock = Number(variant?.available_stock ?? 0);
+        if (!variant || Number(item.qty) > availableStock) {
+          stockErrors.push(
+            `${item.name || 'This item'} has only ${availableStock} available.`
+          );
+        }
+      }
+      if (stockErrors.length) {
+        setError(stockErrors.join(' '));
+        return;
+      }
+
       const res = await placeOrder({
         userId: user.id,
         addressId: selectedAddressId,
@@ -428,6 +444,7 @@ export default function Checkout() {
       <div className="ckt-topbar">
         <button type="button" className="ckt-back" onClick={goBack} aria-label="Go back">
           <MdArrowBack />
+          <span>Back to Cart</span>
         </button>
         <h1>Checkout</h1>
       </div>
@@ -574,8 +591,12 @@ export default function Checkout() {
           <section className="ckt-donate-banner">
             <p className="ckt-donate-title"><MdRecycling /> Are you willing to donate clothes?</p>
             <p className="ckt-donate-sub">Get up to 5% discount on this order after collection</p>
-            <button type="button" className="ckt-donate-btn" onClick={() => setDonatePrompted(true)}>
-              {donatePrompted ? "We'll reach out to schedule your pickup" : 'Schedule Pickup'}
+            <button
+              type="button"
+              className="ckt-donate-btn"
+              onClick={() => navigate('/old-clothes', { state: { from: 'checkout' } })}
+            >
+              Schedule Pickup
             </button>
           </section>
 
