@@ -903,19 +903,6 @@ router.get("/", async (req, res) => {
           ? nearbyStores.map((s) => s.id)
               : (hasCustomerLocation ? [] : (nearestStoreId ? [nearestStoreId] : []));
 
-            if (hasCustomerLocation && !store_id && !explicitStoreIds.length && !effectiveStoreIds.length) {
-      return res.json({
-        products: [],
-        total: 0,
-        nearestStore: nearestStoreName
-          ? { id: nearestStoreId, name: nearestStoreName, city: nearestStoreCity, dist: nearestStoreDist }
-          : null,
-        nearbyStores: [],
-        nearbyStoreIds: [],
-        locationProvided: true,
-      });
-    }
-
     // Build parameter list — store_id is ALWAYS $1 when present so LATERAL
     // can reference it by position before other dynamic conditions are added.
     const values = [];

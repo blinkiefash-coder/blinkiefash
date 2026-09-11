@@ -792,17 +792,12 @@ class _HomeScreenState extends State<HomeScreen>
 
       // Check radius configured for the nearest delivery partner.
       final nearestStore = storeResult['nearestStore'] as Map?;
-      final locationProvided =
-          storeResult['locationProvided'] == true ||
-          (lat != null && lng != null);
       final distKm = nearestStore?['dist'] as num?;
 
       // Determine delivery radius based on store location.
-      final radiusKm =
-          (nearestStore?['deliveryRadiusKm'] as num?) ?? _expressRadiusKm;
-      final outOfArea =
-          locationProvided &&
-          (nearestStore == null || (distKm != null && distKm > radiusKm));
+      // Normal Blinkiefash remains available beyond the Express radius.
+      // Express uses the nearest-store distance separately in its own tab.
+      const outOfArea = false;
 
       final productsInStore = (storeResult['products'] as List? ?? [])
           .whereType<Map<String, dynamic>>()
