@@ -1,5 +1,7 @@
 import { MdDirectionsRun, MdHiking } from "react-icons/md";
 import CategoryCatalogPage from "../components/CategoryCatalogPage";
+import footwearBanner from "../assets/footwearbanner.png";
+import "../pages/Categorycatalog.css";
 
 const FALLBACK_SUBCATEGORIES = ["Sneakers", "Boots", "Sandals", "Formal Shoes", "Sports Shoes"];
 
@@ -11,15 +13,23 @@ const SUBCATEGORY_ICONS = {
 
 export default function Footwear() {
   return (
-    <CategoryCatalogPage
-      sectionLabel="Footwear"
-      rootNames={["footwear", "shoes"]}
-      fallbackSubcategories={FALLBACK_SUBCATEGORIES}
-      subcategoryIcons={SUBCATEGORY_ICONS}
-      cacheKey="footwear:catalog:v2"
-      searchPlaceholder="Search sneakers, boots, sandals..."
-      pageTitle="Footwear | BlinkieFash"
-      pageDescription="Shop sneakers, boots, sandals and formal shoes — delivered fast."
-    />
+    <>
+      <img
+        src={footwearBanner}
+        alt="Footwear"
+        className="cc-banner"
+        loading="eager"
+      />
+      <CategoryCatalogPage
+        sectionLabel="Footwear"
+        rootNames={["footwear", "shoes"]}
+        fallbackSubcategories={FALLBACK_SUBCATEGORIES}
+        subcategoryIcons={SUBCATEGORY_ICONS}
+        cacheKey="footwear:catalog:v2"
+        searchPlaceholder="Search sneakers, boots, sandals..."
+        pageTitle="Footwear | BlinkieFash"
+        pageDescription="Shop sneakers, boots, sandals and formal shoes — delivered fast."
+      />
+    </>
   );
 }

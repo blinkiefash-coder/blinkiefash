@@ -4579,3 +4579,118 @@ html, body, #root {
     padding: 13px 15px;
   }
 }
+
+/* =========================================================
+   CATEGORY & SUBCATEGORY CHIPS — flat pill style, no icons
+   (matches reference design: solid pill on active, light
+   mint pill otherwise, bold text only, no icon/image)
+   ========================================================= */
+
+/* Hide the icon image/emoji entirely */
+.hp-collection-chip-icon,
+.hp-subcat-chip-icon {
+  display: none !important;
+}
+
+/* Main category row (All / Topwear / Bottomwear / ...) */
+.hp-collection-chips {
+  gap: 10px !important;
+}
+
+.hp-collection-chip {
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: center;
+  min-width: auto !important;
+  max-width: none !important;
+  width: auto !important;
+  padding: 12px 22px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  background: #dcfce7 !important;
+  box-shadow: none !important;
+  gap: 0 !important;
+  transition: background 0.15s ease;
+}
+
+.hp-collection-chip:hover {
+  transform: none !important;
+  background: #bbf7d0 !important;
+}
+
+.hp-collection-chip.active {
+  background: #15803d !important;
+  box-shadow: none !important;
+}
+
+.hp-collection-chip-label {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #14532d !important;
+  white-space: nowrap !important;
+}
+
+.hp-collection-chip.active .hp-collection-chip-label {
+  color: #fff !important;
+  font-weight: 800 !important;
+}
+
+/* Subcategory row underneath (same flat pill treatment, a touch smaller) */
+.hp-subcat-rail {
+  gap: 10px !important;
+}
+
+.hp-subcat-chip {
+  min-width: auto !important;
+  padding: 10px 18px !important;
+  border: none !important;
+  border-radius: 999px !important;
+  background: #dcfce7 !important;
+  box-shadow: none !important;
+  gap: 0 !important;
+}
+
+.hp-subcat-chip:hover {
+  transform: none !important;
+  background: #bbf7d0 !important;
+  box-shadow: none !important;
+}
+
+.hp-subcat-chip.active {
+  background: #15803d !important;
+}
+
+.hp-subcat-chip-label {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: #14532d !important;
+  flex: none !important;
+}
+
+.hp-subcat-chip.active .hp-subcat-chip-label {
+  color: #fff !important;
+}
+
+/* =========================================================
+   CATEGORY & SUBCATEGORY CHIPS — force single line, no wrap
+   ========================================================= */
+
+.hp-collection-chips,
+.hp-subcat-rail {
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+}
+
+.hp-collection-chip,
+.hp-subcat-chip {
+  flex: none !important;
+  white-space: nowrap !important;
+}
+
+.hp-collection-chip-label,
+.hp-subcat-chip-label {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+}
