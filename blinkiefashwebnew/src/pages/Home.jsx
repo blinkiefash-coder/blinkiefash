@@ -393,12 +393,12 @@ function SectionHead({
 
       {onViewAll || headerActions ? (
         <div className="hp-shead-actions">
-          {headerActions}
           {onViewAll ? (
             <button type="button" className="hp-shead-action" onClick={onViewAll}>
               {viewAllLabel} <MdChevronRight />
             </button>
           ) : null}
+          {headerActions}
         </div>
       ) : null}
     </div>
@@ -434,6 +434,9 @@ export default function Home() {
   const [under999Products, setUnder999Products] = useState(() => c?.under999Products ?? []);
   const [under1999Products, setUnder1999Products] = useState(() => c?.under1999Products ?? []);
   const [topBrands, setTopBrands] = useState(() => c?.topBrands ?? []);
+  const [homeRotationSeed] = useState(
+    () => Date.now() + Math.floor(Math.random() * 1000000),
+  );
   const [exploreCatChipIndex, setExploreCatChipIndex] = useState(0);
   const [exploreCatId, setExploreCatId] = useState('');
   const [exploreProducts, setExploreProducts] = useState([]);
@@ -1163,9 +1166,16 @@ export default function Home() {
 
   // NEW ON BLINKIEFASH — show ALL newest products (mixed brands), no discount/Palermo filter
   const newOnBlinkiefash = useMemo(() => {
-    const items = (Array.isArray(newProducts) ? newProducts : []).slice(0, 40);
-    return items;
-  }, [newProducts]);
+    const unique = [];
+    const seen = new Set();
+    (Array.isArray(newProducts) ? newProducts : []).forEach((product) => {
+      const key = String(product?.id || product?.variant_id || '');
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      unique.push(product);
+    });
+    return seededShuffle(unique, homeRotationSeed).slice(0, 40);
+  }, [homeRotationSeed, newProducts]);
 
   const dealVisibleBrands = useMemo(() => {
     const search = dealBrandSearch.trim().toLowerCase();
@@ -1266,8 +1276,8 @@ export default function Home() {
   return (
     <div className={`hp${loading ? ' hp-loading' : ''}`}>
       <PageSEO
-        title="Fashion Delivered Fast — Cuttack & Bhubaneswar"
-        description="Shop top brands like Puma, Nike, Adidas & more. Get ethnic wear, footwear, electronics & latest styles delivered to your door across Odisha."
+        title="India's Fashion Marketplace | 60-Minute Fashion Delivery"
+        description="Shop from brands, boutiques & local stores. Get eligible fashion delivered in as little as 60 minutes."
         path="/"
       />
       {loading ? <Loader overlay /> : null}

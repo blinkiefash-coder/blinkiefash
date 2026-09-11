@@ -17,8 +17,8 @@ const FREE_DELIVERY_DISTANCE_KM = 15;
 const EXTRA_DELIVERY_PER_KM = 0;
 
 // ── Odisha Statewide Delivery Configuration ────────────────────────────────
-const LOCAL_DELIVERY_RADIUS_KM = 20;
-const EXTENDED_DELIVERY_RADIUS_KM = 55;
+const LOCAL_DELIVERY_RADIUS_KM = 15;
+const EXTENDED_DELIVERY_RADIUS_KM = 400;
 
 // Major Odisha cities for Same Day / Next Day delivery
 const MAJOR_ODISHA_CITIES = new Set([
@@ -261,30 +261,33 @@ function calculateDeliveryInfo(distanceKm, city) {
     willNotifyRiders: false, // NEW: flag for rider notification
   };
 
-  // Up to 20 km, including the complete multi-store route, is local delivery.
+  // Up to 15 km, including the complete multi-store route, is express delivery.
   if (distanceKm != null && distanceKm <= LOCAL_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'local';
     result.willNotifyRiders = shouldNotifyRiders(distanceKm);
-    result.deliveryPromise = 'Delivery today';
+    result.deliveryPromise = 'Delivery within 60 minutes';
     result.etaMinutes = 60;
     result.etaMinMinutes = 60;
     result.etaMaxMinutes = 60;
     return result;
   }
 
-  // Over 20 km and up to 55 km is delivered the same day.
+  // Products fulfilled from 15–400 km away arrive the next day.
   if (distanceKm != null && distanceKm <= EXTENDED_DELIVERY_RADIUS_KM) {
     result.deliveryType = 'extended';
-    result.deliveryPromise = 'Delivery same day';
+    result.deliveryPromise = 'Delivery in 1 day';
+    result.etaMinutes = 24 * 60;
     result.etaMinMinutes = 24 * 60;
     result.etaMaxMinutes = 24 * 60;
     return result;
   }
 
-  // Missing coordinates cannot qualify for the faster distance tiers.
-  result.deliveryPromise = 'Delivery within 3 days';
+  // Missing coordinates or a remote fulfilment route receives a 2–3 day ETA.
+  result.deliveryPromise = 'Delivery within 2–3 days';
   result.deliveryType = '3days';
-  result.etaMinutes = null;
+  result.etaMinutes = 3 * 24 * 60;
+  result.etaMinMinutes = 2 * 24 * 60;
+  result.etaMaxMinutes = 3 * 24 * 60;
   result.willNotifyRiders = false;
   return result;
 }

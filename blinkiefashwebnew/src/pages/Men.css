@@ -729,6 +729,14 @@
   margin-left: auto;
 }
 
+.men-section-actions .hp-shead-action {
+  order: 1;
+}
+
+.men-section-actions .men-filter-btn {
+  order: 2;
+}
+
 /* =========================================================
    BLUE THEME
    ========================================================= */
@@ -1321,11 +1329,55 @@
   .men-picks-section .pc-card {
     height: auto;
   }
+
+  .men-festive-section .hp-deals-wrap {
+    position: relative;
+  }
+
+  .men-festive-section .hp-deals-prev,
+  .men-festive-section .hp-deals-next {
+    display: none;
+  }
+
+  .men-festive-section .hp-deals-rail {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    padding: 2px 2px 10px;
+  }
+
+  .men-festive-section .hp-deals-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .men-festive-section .hp-deal-card-wrapper {
+    min-width: 150px !important;
+    max-width: 170px !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    scroll-snap-align: start;
+  }
 }
 
 @media (max-width: 380px) {
   .men-picks-section .hp-deals-rail {
     gap: 8px;
+  }
+
+  .men-festive-section .hp-deals-rail {
+    gap: 8px;
+  }
+
+  .men-festive-section .hp-deal-card-wrapper {
+    min-width: 136px !important;
+    max-width: 152px !important;
   }
 }
 
@@ -1620,3 +1672,4 @@
     aspect-ratio: 1.5 / 1;
   }
 }
+

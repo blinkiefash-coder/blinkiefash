@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { MdVisibility, MdVisibilityOff } from "react-icons/md";
 import { API_API_BASE_URL } from "../apiBase";
 import { clearVendorPasswordAuth, markVendorPasswordAuth } from "../utils/vendorSession";
+import Navbar from "../components/Navbar";
 
 const ADMIN_EMAIL = "superadminsatyam@blinkiefash.in";
 
@@ -24,6 +25,7 @@ export default function VendorAuth() {
 
   return (
     <div className="vendor-page">
+      <Navbar />
       <section className="vendor-hero-panel">
         <div className="vendor-hero-copy">
           <p className="vendor-eyebrow">Blinkiefash vendor access</p>

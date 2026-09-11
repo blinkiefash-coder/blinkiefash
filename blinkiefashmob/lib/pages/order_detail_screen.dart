@@ -496,6 +496,13 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     ];
     final status = order['status']?.toString() ?? '';
     if (terminalStatuses.contains(status)) return;
+    if (!_hasSixtyMinuteDelivery(order)) {
+      setState(() {
+        _deliverySecondsLeft = 0;
+        _extraDilationSeconds = 0;
+      });
+      return;
+    }
     final scheduledAt = _scheduledFor(order);
     if (scheduledAt != null && scheduledAt.isAfter(DateTime.now())) {
       setState(() => _deliverySecondsLeft = 0);
@@ -538,6 +545,47 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     });
   }
 
+  bool _hasSixtyMinuteDelivery(Map<String, dynamic> order) {
+    final deliveryType =
+      (order['deliveryType'] ?? order['delivery_type'])?.toString().toLowerCase();
+    if (deliveryType == 'local') return true;
+
+    final rawEtaMinutes =
+      order['deliveryEtaMinutes'] ??
+      order['etaMinutes'] ??
+      order['eta_minutes'];
+    final etaMinutes = rawEtaMinutes is num
+      ? rawEtaMinutes.toInt()
+      : int.tryParse((rawEtaMinutes ?? '').toString());
+    if (etaMinutes != null) return etaMinutes <= 60;
+
+    final promise =
+      (order['deliveryPromise'] ?? order['delivery_promise'])
+        ?.toString()
+        .toLowerCase() ??
+      '';
+    return promise.contains('60 minute') || promise.contains('1 hour');
+  }
+
+  int? _deliveryEtaMinutes(Map<String, dynamic> order) {
+    final raw =
+        order['deliveryEtaMinutes'] ??
+        order['etaMinutes'] ??
+        order['eta_minutes'];
+    if (raw is num) return raw.toInt();
+    return int.tryParse((raw ?? '').toString());
+  }
+
+  String? _estimatedArrivalText(Map<String, dynamic> order) {
+    final etaMinutes = _deliveryEtaMinutes(order);
+    if (etaMinutes == null || etaMinutes <= 0) return null;
+    final rawStart =
+        order['confirmed_at']?.toString() ?? order['created_at']?.toString();
+    final start = DateTime.tryParse(rawStart ?? '')?.toLocal() ?? DateTime.now();
+    final arrival = start.add(Duration(minutes: etaMinutes));
+    return 'By ${_formatScheduledLabel(arrival)}';
+  }
+
   void _startDeliveryStatusPolling(String orderStatus) {
     _deliveryStatusTimer?.cancel();
     final terminal = ['delivered', 'cancelled', 'completed', 'trial_completed'];
@@ -564,7 +612,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
           // Start delivery countdown if not already running
           if (_deliverySecondsLeft == 0 &&
               _order != null &&
-              !terminal.contains(newStatus)) {
+              !terminal.contains(newStatus) &&
+              _hasSixtyMinuteDelivery(_order!)) {
             _startDeliveryCountdown(_order!);
           }
 
@@ -904,7 +953,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               _vendorConfirmationBanner(),
               const SizedBox(height: 12),
             ],
-            _statusTimeline(status),
+            _statusTimeline(status, order),
             const SizedBox(height: 12),
             if (!isCancelled) ...[
               _estimatedDelivery(status, order),
@@ -934,6 +983,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
             ],
             if (!isCancelled &&
                 !isDelivered &&
+                _hasSixtyMinuteDelivery(order) &&
                 (_storeLoc != null || _addrLoc != null)) ...[
               _mapCard(status),
               const SizedBox(height: 12),
@@ -949,7 +999,8 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   'completed',
                   'trial_completed',
                 ].contains(status) &&
-                !_isScheduled(order)) ...[
+                !_isScheduled(order) &&
+                _hasSixtyMinuteDelivery(order)) ...[
               _deliveryCountdownCard(),
               const SizedBox(height: 12),
             ],
@@ -1630,6 +1681,7 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     final isDelivered = status == 'delivered' || status == 'completed';
     final isScheduledOrder = _isScheduled(order);
     final deliveryPromise = order['deliveryPromise']?.toString().trim();
+    final arrivalText = _estimatedArrivalText(order);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1665,6 +1717,17 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
                   : const Color(0xFF0F172A),
             ),
           ),
+          if (!isDelivered && !isScheduledOrder && arrivalText != null) ...[
+            const SizedBox(height: 3),
+            Text(
+              arrivalText,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
           Container(
             margin: const EdgeInsets.only(top: 8),
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
@@ -1869,8 +1932,9 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
     );
   }
 
-  Widget _statusTimeline(String currentStatus) {
+  Widget _statusTimeline(String currentStatus, Map<String, dynamic> order) {
     final isCancelled = currentStatus == 'cancelled';
+    final isExpressOrder = _hasSixtyMinuteDelivery(order);
     final timelineStage = _timelineStageForStatus(currentStatus);
     final currentIndex = _statusSteps.indexOf(timelineStage);
     final statusColor = _statusColor(currentStatus);
@@ -1883,7 +1947,15 @@ class _OrderDetailScreenState extends State<OrderDetailScreen> {
               .map(
                 (s) => {
                   'icon': _statusIcons[s] ?? Icons.circle,
-                  'label': _statusLabels[s] ?? s,
+                  'label': isExpressOrder
+                      ? (_statusLabels[s] ?? s)
+                      : switch (s) {
+                          'placed' => 'Order Placed',
+                          'packed' => 'Store Preparing',
+                          'out_for_delivery' => 'Dispatch Scheduled',
+                          'delivered' => 'Delivered',
+                          _ => _statusLabels[s] ?? s,
+                        },
                 },
               )
               .toList();

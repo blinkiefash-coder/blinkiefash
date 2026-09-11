@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { updateUserProfile } from '../api';
-import logo from '../assets/logo1.png';
 import ConfirmDialog from '../components/ConfirmDialog';
 import { useLogoutConfirm } from '../hooks/useLogoutConfirm';
+import Navbar from '../components/Navbar';
 import './Account.css';
 
 /* ---------- icons ---------- */
@@ -29,27 +29,23 @@ const IconTag = () => (
 );
 const IconTeam = () => (
   <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
+    <circle cx="9" cy="8" r="3" />
+    <path d="M3 20v-1a6 6 0 0 1 12 0v1M16 5a3 3 0 0 1 0 6M18 13a5 5 0 0 1 3 4v3" />
   </svg>
 );
 const IconMap = () => (
   <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0 1 18 0z" />
-    <circle cx="12" cy="10" r="3" />
+    <path d="m9 18-6 3V6l6-3 6 3 6-3v15l-6 3-6-3zM9 3v15M15 6v15" />
   </svg>
 );
 const IconSupport = () => (
   <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M3 18v-6a9 9 0 0 1 18 0v6" />
-    <path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3zM3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" />
+    <path d="M4 13a8 8 0 0 1 16 0v5a2 2 0 0 1-2 2h-2v-6h4M4 14H2v3a2 2 0 0 0 2 2h2v-6H4z" />
   </svg>
 );
 const IconDoc = () => (
   <svg viewBox="0 0 24 24" width="21" height="21" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-    <path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" />
+    <path d="M6 2h9l3 3v17H6zM14 2v4h4M9 12h6M9 16h6" />
   </svg>
 );
 const IconShield = () => (
@@ -77,32 +73,6 @@ const IconEdit = () => (
     <path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z" />
   </svg>
 );
-const IconSearch = () => (
-  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2">
-    <circle cx="11" cy="11" r="7" />
-    <path d="m21 21-4.3-4.3" />
-  </svg>
-);
-const IconBell = () => (
-  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-  </svg>
-);
-const IconWishlistNav = () => (
-  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 0 0 0-7.8z" />
-  </svg>
-);
-const IconCart = () => (
-  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M6 6h15l-1.5 9h-12z" />
-    <path d="M6 6 5 3H2" />
-    <circle cx="9.5" cy="20" r="1.3" />
-    <circle cx="17.5" cy="20" r="1.3" />
-  </svg>
-);
-
 /* ---------- trust footer icons ---------- */
 const IconClock = () => (
   <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
@@ -233,6 +203,7 @@ export default function AccountPage() {
   if (!isLoggedIn) {
     return (
       <div className="acct-page">
+        <Navbar />
         <div className="acct-guest">
           <h1>My Account</h1>
           <p>Log in to manage your orders, wishlist and addresses.</p>
@@ -253,40 +224,7 @@ export default function AccountPage() {
 
   return (
     <div className="acct-page">
-      {/* top nav */}
-      <nav className="acct-topnav">
-        <div className="acct-topnav-inner">
-          <div className="acct-logo">
-            <img src={logo} alt="BlinkieFash" className="acct-logo-img" />
-            <div className="acct-logo-text-wrap">
-              <span className="acct-logo-sub">FAST FASHION DELIVERY</span>
-            </div>
-          </div>
-
-          <div className="acct-nav-row">
-            <div className="acct-nav-search">
-              <IconSearch />
-              <span>Search Home Decor…</span>
-            </div>
-
-            <div className="acct-nav-links">
-              <a href="/">Home</a>
-              <a href="/shop">Categories</a>
-              <a href="/orders">Orders</a>
-              <a href="/parcel">Parcel</a>
-              <a href="/account" className="active">
-                Profile
-              </a>
-            </div>
-
-            <div className="acct-nav-icons">
-              <IconBell />
-              <IconWishlistNav />
-              <IconCart />
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="acct-content">
         {/* Profile banner */}

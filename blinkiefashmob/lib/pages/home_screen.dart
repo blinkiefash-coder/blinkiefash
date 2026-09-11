@@ -798,7 +798,7 @@ class _HomeScreenState extends State<HomeScreen>
       final distKm = nearestStore?['dist'] as num?;
 
       // Determine delivery radius based on store location.
-        final radiusKm =
+      final radiusKm =
           (nearestStore?['deliveryRadiusKm'] as num?) ?? _expressRadiusKm;
       final outOfArea =
           locationProvided &&
@@ -1402,6 +1402,13 @@ class _HomeScreenState extends State<HomeScreen>
           initialName: item['name']?.toString(),
           initialColor: item['color']?.toString(),
           initialSize: item['size']?.toString(),
+          initialFulfillmentStoreName:
+              item['fulfillment_store_city']?.toString(),
+          initialFulfillmentDistanceKm:
+              (item['fulfillment_distance_km'] as num?)?.toDouble() ??
+              double.tryParse(
+                (item['fulfillment_distance_km'] ?? '').toString(),
+              ),
         ),
       ),
     );
@@ -2193,9 +2200,8 @@ class _HomeScreenState extends State<HomeScreen>
               fit: BoxFit.cover,
               alignment: Alignment.center,
               filterQuality: FilterQuality.low,
-              errorBuilder: (_, _, _) => Container(
-                color: const Color(0xFF16A34A),
-              ),
+              errorBuilder: (_, _, _) =>
+                  Container(color: const Color(0xFF16A34A)),
             ),
           ),
         ),
@@ -6171,8 +6177,10 @@ class _HomeScreenState extends State<HomeScreen>
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final bannerHeight =
-              (constraints.maxWidth * 393 / 2944 - 8).clamp(44.0, 68.0);
+          final bannerHeight = (constraints.maxWidth * 393 / 2944 - 8).clamp(
+            44.0,
+            68.0,
+          );
           return SizedBox(
             width: double.infinity,
             height: bannerHeight.toDouble(),

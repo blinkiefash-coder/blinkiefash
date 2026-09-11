@@ -86,7 +86,11 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     Array.isArray(product.variants) ? product.variants : []
   );
   const [selectedVariantId, setSelectedVariantId] = useState(
-    product.variant_id || product.variantId || product.variants?.[0]?.id || ""
+    product.variant_id ||
+      product.variantId ||
+      product.variants?.[0]?.id ||
+      product.variants?.[0]?.variant_id ||
+      ""
   );
   const [announcement, setAnnouncement] = useState("");
 
@@ -94,7 +98,13 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
   const selectedVariant = variants.find(
     (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
   );
-  const activeVariantId = selectedVariant?.id || selectedVariant?.variant_id;
+  const activeVariantId =
+    selectedVariant?.id ||
+    selectedVariant?.variant_id ||
+    selectedVariantId ||
+    product.variant_id ||
+    product.variantId ||
+    product.id;
   const cartQty = getCartQty(activeVariantId || product.variant_id || product.id);
 
   const originalPrice = Number(product.price || product._mrp || 0);
@@ -115,14 +125,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
   const showNewBadge = isNew || product.isNew === true || product.is_new === true;
 
-  // Priority: NEW > BESTSELLER > % OFF > DELIVERY
+  // Priority: NEW > BESTSELLER > % OFF
   const badgeType = showNewBadge
     ? "NEW"
     : isBestseller
     ? "BESTSELLER"
     : hasDiscount
     ? `${offPercent}% OFF`
-    : "DELIVERY";
+    : null;
 
   const badgeVariant = showNewBadge
     ? "new"
@@ -130,7 +140,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     ? "bestseller"
     : hasDiscount
     ? "discount"
-    : "fresh";
+    : null;
 
   const image = product.image || product.image_url || product.thumbnail || "";
   const rating = Number(product.rating || product.avg_rating || 0);
@@ -177,7 +187,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
         (variant) => Number(variant.available_stock ?? 1) > 0
       );
       if (firstAvailable) {
-        setSelectedVariantId(firstAvailable.id || firstAvailable.variant_id);
+        setSelectedVariantId(firstAvailable.id || firstAvailable.variant_id || "");
       }
     } catch (err) {
       console.error("[ProductCard] variant lookup failed", err);
@@ -247,14 +257,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     event.stopPropagation();
     event.preventDefault();
 
-    if (isAddingToCart || isUpdatingQty || outOfStock) return;
+    const selectedAvailableVariant = availableVariants.find(
+      (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
+    ) || availableVariants[0];
+    const variantToAdd = selectedAvailableVariant || selectedVariant;
+    const variantIdToAdd = variantToAdd?.id || variantToAdd?.variant_id || activeVariantId;
+
+    if (isAddingToCart || isUpdatingQty || (outOfStock && !selectedAvailableVariant)) return;
 
     const { userId, token } = getAuth();
-    if (!userId && !token) {
-      openAuthModal("login");
-      return;
-    }
-
     const alreadyInCart = cartQty > 0;
     if (alreadyInCart) {
       setIsUpdatingQty(true);
@@ -266,13 +277,19 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       try {
         await addToCart({
           productId: product.id,
-          variantId: activeVariantId || product.variant_id || product.variantId || product.id,
+          variantId: variantIdToAdd,
           name: product.name,
           image,
-          price: activeSalePrice,
+          price: variantToAdd
+            ? Number(variantToAdd.discount_price ?? variantToAdd.price ?? activeSalePrice)
+            : activeSalePrice,
+          size: variantToAdd?.size,
+          color: variantToAdd?.color || product.color,
         });
         window.dispatchEvent(new Event("cart:updated"));
         setAnnouncement(`${product.name} added to cart`);
+        setIsQuickOpen(false);
+        setIsQuickForceClosed(true);
         if (onCartAdded) onCartAdded();
         return;
       } catch (err) {
@@ -311,6 +328,8 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
       window.dispatchEvent(new Event("cart:updated"));
       setAnnouncement(`${product.name} added to cart`);
+      setIsQuickOpen(false);
+      setIsQuickForceClosed(true);
       if (onCartAdded) onCartAdded();
     } catch (err) {
       console.error("[ProductCard] cart failed", err);
@@ -327,7 +346,7 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
 
     if (isUpdatingQty || isAddingToCart) return;
 
-    const variantId = product.variant_id || product.variantId || product.id;
+    const variantId = activeVariantId;
     setIsUpdatingQty(true);
 
     try {
@@ -375,14 +394,16 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
           </div>
         )}
 
-        <div className="pc-badges-top">
-          <span className={`pc-badge pc-badge--${badgeVariant}`}>
-            {badgeVariant === "bestseller" && (
-              <MdLocalFireDepartment className="pc-badge-icon" />
-            )}
-            {badgeType}
-          </span>
-        </div>
+        {badgeType && (
+          <div className="pc-badges-top">
+            <span className={`pc-badge pc-badge--${badgeVariant}`}>
+              {badgeVariant === "bestseller" && (
+                <MdLocalFireDepartment className="pc-badge-icon" />
+              )}
+              {badgeType}
+            </span>
+          </div>
+        )}
 
         <button
           type="button"
@@ -487,9 +508,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
             type="button"
             className="pc-quick-add"
             onClick={handleAddToCart}
-            disabled={isAddingToCart || isUpdatingQty || !availableVariants.length}
+            disabled={
+              isAddingToCart ||
+              isUpdatingQty ||
+              !availableVariants.some(
+                (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
+              )
+            }
           >
-            {isAddingToCart ? "Adding..." : "Add selected size"}
+            {isAddingToCart ? "Adding..." : "Proceed & Add to Cart"}
           </button>
         </div>
       </div>

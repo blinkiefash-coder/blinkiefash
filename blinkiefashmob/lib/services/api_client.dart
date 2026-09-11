@@ -23,6 +23,11 @@ class ApiClient {
   /// Human-readable name of the selected delivery area (city or store name).
   /// Used to display delivery location on the product detail screen.
   static String? currentStoreName;
+
+  /// Distance from the selected customer location to the nearest fulfilment store.
+  static double? currentStoreDistanceKm;
+  static double? currentCustomerLat;
+  static double? currentCustomerLng;
   static const Duration _retryTimeout = Duration(seconds: 45);
 
   Future<Map<String, dynamic>> startLogin({
@@ -312,8 +317,12 @@ class ApiClient {
       final storeName =
           (data['nearestStore'] as Map?)?['city']?.toString() ??
           (data['nearestStore'] as Map?)?['name']?.toString();
+      final storeDistance = ((data['nearestStore'] as Map?)?['dist'] as num?)
+          ?.toDouble();
       if (storeId != null && storeId.isNotEmpty) {
         ApiClient.currentStoreId = storeId;
+        ApiClient.currentCustomerLat = lat;
+        ApiClient.currentCustomerLng = lng;
         ApiClient.currentStoreIds =
             (nearbyStoreIds != null && nearbyStoreIds.isNotEmpty)
             ? nearbyStoreIds
@@ -321,16 +330,23 @@ class ApiClient {
         if (storeName != null && storeName.isNotEmpty) {
           ApiClient.currentStoreName = storeName;
         }
+        ApiClient.currentStoreDistanceKm = storeDistance;
       } else if (lat != null && lng != null) {
         // Avoid stale filters from a previous city when a new location cannot
         // resolve a nearest store in the current response.
         ApiClient.currentStoreId = null;
         ApiClient.currentStoreIds = const [];
         ApiClient.currentStoreName = null;
+        ApiClient.currentStoreDistanceKm = null;
+        ApiClient.currentCustomerLat = null;
+        ApiClient.currentCustomerLng = null;
       } else if (lat == null && lng == null) {
         ApiClient.currentStoreId = null; // reset when no location
         ApiClient.currentStoreIds = const [];
         ApiClient.currentStoreName = null;
+        ApiClient.currentStoreDistanceKm = null;
+        ApiClient.currentCustomerLat = null;
+        ApiClient.currentCustomerLng = null;
       }
       return data;
     }
@@ -422,6 +438,11 @@ class ApiClient {
       } else {
         params['store_id'] = ApiClient.currentStoreId!;
       }
+    }
+    if (ApiClient.currentCustomerLat != null &&
+        ApiClient.currentCustomerLng != null) {
+      params['lat'] = '${ApiClient.currentCustomerLat}';
+      params['lng'] = '${ApiClient.currentCustomerLng}';
     }
     final uri = Uri.parse(
       '$apiApiBaseUrl/products',

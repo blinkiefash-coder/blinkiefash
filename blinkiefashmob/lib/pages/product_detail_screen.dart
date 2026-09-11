@@ -312,12 +312,16 @@ class ProductDetailScreen extends StatefulWidget {
     this.initialName,
     this.initialColor,
     this.initialSize,
+    this.initialFulfillmentStoreName,
+    this.initialFulfillmentDistanceKm,
   });
 
   final String productId;
   final String? initialName;
   final String? initialColor;
   final String? initialSize;
+  final String? initialFulfillmentStoreName;
+  final double? initialFulfillmentDistanceKm;
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -411,6 +415,50 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
     final parsed = double.tryParse(value.toString());
     if (parsed == null) return '0';
     return parsed.round().toString();
+  }
+
+  String get _deliveryEtaTitle {
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
+    if (distanceKm == null) return 'Delivery estimate at checkout';
+    if (distanceKm <= 15) return '60 min delivery';
+    if (distanceKm <= 400) return 'Delivery in 1 day';
+    return 'Delivery in 2–3 days';
+  }
+
+  String get _deliveryEtaDetail {
+    final distanceKm =
+      widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
+    final location =
+      widget.initialFulfillmentStoreName ?? ApiClient.currentStoreName;
+    if (distanceKm == null) {
+      return 'Set your location for an exact delivery estimate';
+    }
+    final distanceText = distanceKm < 0.1
+        ? ''
+        : ' • ${distanceKm.toStringAsFixed(1)} km away';
+    final locationText = location == null || location.isEmpty
+        ? 'Delivering to your location'
+        : 'From $location';
+    return '$locationText$distanceText';
+  }
+
+  String get _deliveryEtaTag {
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
+    if (distanceKm == null) return 'DELIVERY ETA';
+    if (distanceKm <= 15) return '60 MIN DELIVERY';
+    if (distanceKm <= 400) return '1 DAY DELIVERY';
+    return '2–3 DAYS DELIVERY';
+  }
+
+  String get _deliveryFeatureTitle {
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
+    if (distanceKm == null) return 'ETA';
+    if (distanceKm <= 15) return '60 MIN';
+    if (distanceKm <= 400) return '1 DAY';
+    return '2–3 DAYS';
   }
 
   String _formatWithCommas(String value) {
@@ -2456,8 +2504,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const _TopTag(
-                                text: '60 MIN DELIVERY',
+                              _TopTag(
+                                text: _deliveryEtaTag,
                                 dark: true,
                                 icon: Icons.bolt,
                               ),
@@ -2814,20 +2862,22 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: stock > 0
-                            ? const Column(
+                            ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    '60-Minute Express Delivery',
-                                    style: TextStyle(
+                                    _deliveryEtaTitle,
+                                    style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 13,
                                     ),
                                   ),
                                   Text(
-                                    'Delivering to your current location',
-                                    style: TextStyle(
+                                    _deliveryEtaDetail,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
                                       color: Color(0xFFBBF7D0),
                                       fontSize: 11,
                                     ),
@@ -3091,13 +3141,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                     ),
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Expanded(
                         child: _FeatureBlock(
                           icon: Icons.bolt,
-                          title: '60 MIN',
-                          subtitle: 'Express',
+                          title: _deliveryFeatureTitle,
+                          subtitle: 'Delivery',
                           dark: true,
                         ),
                       ),

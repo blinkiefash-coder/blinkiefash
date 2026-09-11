@@ -826,6 +826,14 @@
   margin-left: auto;
 }
 
+.women-section-actions > button:first-child {
+  order: 1;
+}
+
+.women-section-actions .women-filter-btn {
+  order: 2;
+}
+
 .women-viewall-btn {
   display: inline-flex;
   align-items: center;
