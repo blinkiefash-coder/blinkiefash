@@ -1,4 +1,5 @@
-import { MdClose } from "react-icons/md";
+import { useEffect, useRef } from "react";
+import { MdClose, MdTune } from "react-icons/md";
 import "./filter.css";
 
 const DEFAULT_COLORS = [
@@ -46,8 +47,34 @@ export default function Filter({
 }) {
 	const className = (name) => `${prefix}-${name}`;
 	const hasGender = availableGenders.length > 0 && activeGender && setActiveGender;
+	const autoApplyPending = useRef(false);
+
+	const requestAutoApply = () => {
+		autoApplyPending.current = true;
+	};
+
+	useEffect(() => {
+		if (!autoApplyPending.current) return;
+		autoApplyPending.current = false;
+		applyFilters({ close: false });
+	}, [activeBrand, activeColor, activeGender, minDiscount, inStockOnly, maxPrice, applyFilters]);
+
+	useEffect(() => {
+		const handleEscape = (event) => {
+			if (event.key === "Escape") onClose();
+		};
+
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
+		document.addEventListener("keydown", handleEscape);
+		return () => {
+			document.body.style.overflow = previousOverflow;
+			document.removeEventListener("keydown", handleEscape);
+		};
+	}, [onClose]);
 
 	const toggleValue = (value, values, setValues) => {
+		requestAutoApply();
 		setValues((previous) =>
 			previous.includes(value)
 				? previous.filter((item) => item !== value)
@@ -56,9 +83,22 @@ export default function Filter({
 	};
 
 	return (
-		<section className={className("filters-panel")} role="dialog" aria-label={ariaLabel}>
+		<div className="filter-modal-backdrop" role="presentation" onClick={onClose}>
+		<section
+			className={`${className("filters-panel")} filter-panel-shell${hasGender ? " has-gender" : ""}`}
+			role="dialog"
+			aria-modal="true"
+			aria-label={ariaLabel}
+			onClick={(event) => event.stopPropagation()}
+		>
 			<div className={className("filters-panel-header")}>
-				<h3>Filters</h3>
+				<div className="filter-panel-heading">
+					<span className="filter-panel-icon"><MdTune aria-hidden="true" /></span>
+					<div>
+						<h3>Filters</h3>
+						<p>Refine your style, your way</p>
+					</div>
+				</div>
 				<div className={className("filters-panel-header-actions")}>
 					{activeFilterCount > 0 ? (
 						<button type="button" className={className("filters-clear")} onClick={clearAllFilters}>
@@ -71,7 +111,7 @@ export default function Filter({
 				</div>
 			</div>
 
-			<div className={className("filter-col")}>
+			<div className={`${className("filter-col")} filter-section`}>
 				<h4>
 					Brand
 					{prefix === "catalog" && brands.length > 0 ? (
@@ -101,7 +141,7 @@ export default function Filter({
 				</div>
 			</div>
 
-			<div className={className("filter-col")}>
+			<div className={`${className("filter-col")} filter-section`}>
 				<h4>Color</h4>
 				<div className={`${className("filter-list")} ${className("filter-swatches")}`}>
 					{colors.map(([name, hex]) => {
@@ -121,7 +161,7 @@ export default function Filter({
 				</div>
 			</div>
 
-			<div className={className("filter-col")}>
+			<div className={`${className("filter-col")} filter-section`}>
 				<h4>Price</h4>
 				<input
 					type="range"
@@ -129,13 +169,16 @@ export default function Filter({
 					max={maxPriceLimit}
 					step="100"
 					value={maxPrice}
-					onChange={(event) => setMaxPrice(Number(event.target.value))}
+					onChange={(event) => {
+						requestAutoApply();
+						setMaxPrice(Number(event.target.value));
+					}}
 				/>
 				<p>Up to {prefix === "catalog" ? "Rs. " : "₹"}{maxPrice.toLocaleString("en-IN")}</p>
 			</div>
 
 			{hasGender ? (
-				<div className={className("filter-col")}>
+				<div className={`${className("filter-col")} filter-section`}>
 					<h4>Gender</h4>
 					<div className={className("filter-list")}>
 						{availableGenders.map((name) => (
@@ -152,7 +195,7 @@ export default function Filter({
 				</div>
 			) : null}
 
-			<div className={className("filter-col")}>
+			<div className={`${className("filter-col")} filter-section`}>
 				<h4>Discount Range</h4>
 				<div className={className(prefix === "catalog" || prefix === "men" ? "filter-chips" : "filter-discount-chips")}>
 					{discountBuckets.map((value) => (
@@ -160,7 +203,10 @@ export default function Filter({
 							key={value}
 							type="button"
 							  className={`${className(prefix === "catalog" ? "filter-chip" : "filter-chip-item")} ${minDiscount === value ? "active" : ""}`}
-							onClick={() => setMinDiscount((previous) => (previous === value ? 0 : value))}
+							onClick={() => {
+								requestAutoApply();
+								setMinDiscount((previous) => (previous === value ? 0 : value));
+							}}
 						>
 							{value}% and above
 						</button>
@@ -168,21 +214,30 @@ export default function Filter({
 				</div>
 			</div>
 
-			<div className={className("filter-col")}>
+			<div className={`${className("filter-col")} filter-section`}>
 				<h4>Availability</h4>
 				<div className={className("filter-list")}>
 					<label>
-						<input type="checkbox" checked={inStockOnly} onChange={(event) => setInStockOnly(event.target.checked)} />
+						<input
+							type="checkbox"
+							checked={inStockOnly}
+							onChange={(event) => {
+								requestAutoApply();
+								setInStockOnly(event.target.checked);
+							}}
+						/>
 						<span>In stock only</span>
 					</label>
 				</div>
 			</div>
 
-			<div className={className("filters-footer")}>
+			<div className={`${className("filters-footer")} filter-panel-footer`}>
+				<span className="filter-live-note">Filters update instantly</span>
 				<button type="button" className={className("filters-apply")} onClick={applyFilters}>
-					Apply Filters
+					Done
 				</button>
 			</div>
 		</section>
+		</div>
 	);
 }

@@ -483,6 +483,7 @@ export default function ProductDetail() {
         price: unitPrice,
         size: selectedVariant?.size,
         color: selectedVariant?.color,
+        availableStock: selectedVariant?.available_stock,
         qty: 1,
         fulfillment,
       });

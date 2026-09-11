@@ -1,0 +1,26 @@
+.complain-page {
+  min-height: 100vh;
+  padding: 24px 20px 60px;
+  background: #f7faf8;
+  color: #14231a;
+}
+
+.complain-page > * { max-width: 720px; margin-left: auto; margin-right: auto; }
+.complain-back { display: inline-flex; align-items: center; gap: 5px; border: 0; background: transparent; color: #166534; font-weight: 700; cursor: pointer; padding: 4px 0 18px; }
+.complain-header { margin-bottom: 18px; }
+.complain-header h1 { margin: 0; font-size: 28px; }
+.complain-header p { margin: 6px 0 0; color: #64748b; }
+.complain-card { background: #fff; border: 1px solid #e2ebe4; border-radius: 14px; padding: 20px; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(20, 55, 32, .05); }
+.complain-card h2 { margin: 0 0 14px; font-size: 18px; }
+.complain-form { display: grid; gap: 14px; }
+.complain-form label { display: grid; gap: 6px; color: #334155; font-size: 13px; font-weight: 700; }
+.complain-form input, .complain-form select, .complain-form textarea { width: 100%; box-sizing: border-box; border: 1px solid #d8e3da; border-radius: 8px; padding: 10px 11px; font: inherit; color: #17231b; background: #fff; }
+.complain-form textarea { resize: vertical; }
+.complain-submit { display: inline-flex; align-items: center; justify-content: center; gap: 7px; border: 0; border-radius: 8px; padding: 11px 15px; background: #15803d; color: #fff; font-weight: 800; cursor: pointer; }
+.complain-submit:disabled { opacity: .6; cursor: wait; }
+.complain-success, .complain-error { margin: 14px 0 0; font-size: 13px; font-weight: 700; }
+.complain-success { color: #15803d; }.complain-error { color: #b91c1c; }
+.complain-muted { color: #64748b; font-size: 13px; }
+.complain-list { display: grid; gap: 10px; }.complain-item { border-top: 1px solid #edf2ee; padding-top: 12px; }.complain-item > div { display: flex; justify-content: space-between; gap: 10px; }.complain-item span { color: #b45309; font-size: 12px; text-transform: capitalize; }.complain-item p { margin: 7px 0; color: #334155; font-size: 14px; white-space: pre-wrap; }.complain-item small { color: #94a3b8; font-size: 11px; }
+.complain-empty { max-width: 720px; }
+@media (max-width: 520px) { .complain-page { padding: 18px 14px 40px; }.complain-card { padding: 16px; }.complain-header h1 { font-size: 24px; } }

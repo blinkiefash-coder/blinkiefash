@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useSmartBack } from '../utils/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { getOldClothes, requestClothesPickup, getAddresses } from '../api';
@@ -7,6 +8,8 @@ import './OfferFeature.css';
 
 export default function OldClothes() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const goBack = useSmartBack(location.state?.from === 'checkout' ? '/checkout' : '/offers');
   const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
 
@@ -116,7 +119,7 @@ export default function OldClothes() {
   if (!isLoggedIn) {
     return (
       <main className="page offer-feature-page">
-        <button type="button" className="offer-back" onClick={() => navigate('/offers')}>
+        <button type="button" className="offer-back" onClick={goBack}>
           ← Back to Offers
         </button>
         <div className="offer-feature-card">
@@ -132,7 +135,7 @@ export default function OldClothes() {
 
   return (
     <main className="page offer-feature-page">
-      <button type="button" className="offer-back" onClick={() => navigate('/offers')}>
+      <button type="button" className="offer-back" onClick={goBack}>
         ← Back to Offers
       </button>
 

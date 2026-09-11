@@ -70,6 +70,7 @@ export default function Shop() {
   const routeParams = new URLSearchParams(location.search);
   const routeSearch = (routeParams.get("search") || "").trim();
   const routeCategoryId = routeParams.get("category_id") || "";
+  const routeSort = routeParams.get("sort") || "";
 
   const [products, setProducts] = useState(() => shopCatalogCache?.products ?? []);
   const [categories, setCategories] = useState(() => shopCatalogCache?.categories ?? []);
@@ -227,6 +228,7 @@ export default function Shop() {
         const params = new URLSearchParams({ limit: "100", offset: "0" });
         if (routeSearch) params.set("search", routeSearch);
         if (routeCategoryId) params.set("category_id", routeCategoryId);
+        if (routeSort) params.set("sort", routeSort);
         const response = await fetch(`${API_BASE}/products?${params.toString()}`);
         return extractProducts(await response.json());
       }
@@ -286,7 +288,7 @@ export default function Shop() {
     return () => {
       isCancelled = true;
     };
-  }, [routeCategoryId, routeSearch]);
+  }, [routeCategoryId, routeSearch, routeSort]);
 
   useEffect(() => {
     if (shopCatalogCache?.categories) return undefined;
@@ -618,7 +620,7 @@ export default function Shop() {
     (appliedFilters.inStockOnly ? 1 : 0) +
     (appliedFilters.maxPrice < 10000 ? 1 : 0);
 
-  const applyFilters = () => {
+  const applyFilters = ({ close = true } = {}) => {
     setAppliedFilters({
       brand: activeBrand,
       color: activeColor,
@@ -628,7 +630,7 @@ export default function Shop() {
       maxPrice,
     });
     setVisibleCount(24);
-    setShowFilters(false);
+    if (close) setShowFilters(false);
   };
 
   const clearAllFilters = () => {

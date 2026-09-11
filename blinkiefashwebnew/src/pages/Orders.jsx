@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSmartBack } from '../utils/navigation';
+import { MdArrowBack } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { getOrders } from '../api';
@@ -93,6 +95,7 @@ function formatAmount(value) {
 
 export default function Orders() {
   const navigate = useNavigate();
+  const goBack = useSmartBack('/');
   const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
   const [orders, setOrders] = useState([]);
@@ -117,6 +120,9 @@ export default function Orders() {
         <PageSEO title="Your Orders" description="View your order history on Blinkiefash." path="/orders" noIndex />
         <div className="orders-inner">
           <div className="orders-empty">
+            <button type="button" className="orders-back" onClick={goBack} aria-label="Go back">
+              <MdArrowBack />
+            </button>
             <div className="orders-empty-icon"><IconEmptyBag /></div>
             <h1 className="orders-title">Your orders</h1>
             <p className="orders-state-msg">Log in to view your orders.</p>
@@ -135,7 +141,12 @@ export default function Orders() {
 
       <div className="orders-inner">
         <div className="orders-header">
-          <h1 className="orders-title">My Orders</h1>
+          <div className="orders-title-row">
+            <button type="button" className="orders-back" onClick={goBack} aria-label="Go back">
+              <MdArrowBack />
+            </button>
+            <h1 className="orders-title">My Orders</h1>
+          </div>
           <p className="orders-subtitle">Track deliveries, view items, or start a return.</p>
         </div>
 
@@ -192,6 +203,16 @@ export default function Orders() {
                   </div>
 
                   <span className="order-chevron"><IconChevron /></span>
+                  <button
+                    type="button"
+                    className="order-complain-btn"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      navigate(`/complain?orderId=${encodeURIComponent(order.id)}`);
+                    }}
+                  >
+                    Complain
+                  </button>
                 </div>
               );
             })}

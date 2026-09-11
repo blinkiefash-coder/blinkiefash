@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { getProductById } from '../api';
 
 const CartContext = createContext(null);
 
@@ -23,6 +24,13 @@ function itemKey(item) {
   return v != null ? String(v) : null;
 }
 
+function availableStock(item) {
+  const value = item?.availableStock ?? item?.available_stock;
+  return value === undefined || value === null || value === ''
+    ? null
+    : Math.max(0, Math.floor(Number(value)));
+}
+
 export function CartProvider({ children }) {
   const [items, setItems] = useState(() => {
     try {
@@ -43,10 +51,14 @@ export function CartProvider({ children }) {
 
     setItems((prev) => {
       const existing = prev.find((i) => itemKey(i) === key);
+      const stock = availableStock(item) ?? availableStock(existing);
+      if (stock === 0) return prev;
+      const requestedQty = existing ? Number(existing.qty || 0) + addQty : addQty;
+      const nextQty = stock == null ? requestedQty : Math.min(requestedQty, stock);
       if (existing) {
         return prev.map((i) =>
           itemKey(i) === key
-            ? { ...i, qty: Number(i.qty || 0) + addQty }
+            ? { ...i, qty: nextQty, availableStock: stock }
             : i
         );
       }
@@ -56,8 +68,9 @@ export function CartProvider({ children }) {
           ...item,
           productId: item.productId != null ? String(item.productId) : item.productId,
           variantId: item.variantId != null ? String(item.variantId) : item.variantId,
-          qty: addQty,
+          qty: nextQty,
           price: Number(item.price) || 0,
+          ...(stock == null ? {} : { availableStock: stock }),
         },
       ];
     });
@@ -75,9 +88,45 @@ export function CartProvider({ children }) {
     const nextQty = Math.max(0, Number(qty) || 0);
     setItems((prev) =>
       prev
-        .map((i) => (itemKey(i) === k ? { ...i, qty: nextQty } : i))
+        .map((i) => {
+          if (itemKey(i) !== k) return i;
+          const stock = availableStock(i);
+          return { ...i, qty: stock == null ? nextQty : Math.min(nextQty, stock) };
+        })
         .filter((i) => Number(i.qty) > 0)
     );
+  }, []);
+
+  const incrementQty = useCallback(async (item) => {
+    const key = itemKey(item);
+    if (!key || !item?.productId || !item?.variantId) return false;
+
+    let product;
+    try {
+      product = await getProductById(item.productId);
+    } catch {
+      return false;
+    }
+
+    const variants = product?.variants || product?.product?.variants || [];
+    const variant = variants.find(
+      (candidate) => String(candidate.id || candidate.variant_id) === String(item.variantId)
+    );
+    const stock = variant?.available_stock;
+    if (!variant || stock === undefined || stock === null) return false;
+
+    let incremented = false;
+    setItems((prev) =>
+      prev.map((current) => {
+        if (itemKey(current) !== key) return current;
+        const nextQty = Number(current.qty || 0) + 1;
+        const availableStock = Math.max(0, Math.floor(Number(stock)));
+        if (nextQty > availableStock) return { ...current, availableStock };
+        incremented = true;
+        return { ...current, qty: nextQty, availableStock };
+      })
+    );
+    return incremented;
   }, []);
 
   const clearCart = useCallback(() => setItems([]), []);
@@ -116,12 +165,13 @@ export function CartProvider({ children }) {
       addToCart,
       removeFromCart,
       updateQty,
+      incrementQty,
       clearCart,
       isInCart,
       getCartQty,
       ...totals,
     }),
-    [items, totals, addToCart, removeFromCart, updateQty, clearCart, isInCart, getCartQty]
+    [items, totals, addToCart, removeFromCart, updateQty, incrementQty, clearCart, isInCart, getCartQty]
   );
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
