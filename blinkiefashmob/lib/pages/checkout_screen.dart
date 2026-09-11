@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/cart_manager.dart';
 import '../services/user_session.dart';
-import 'location_picker_screen.dart';
 import 'order_detail_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -10,6 +9,7 @@ class CheckoutScreen extends StatefulWidget {
     super.key,
     this.isTryOrder = false,
     this.overrideItems,
+    this.initialAddressId,
   });
 
   final bool isTryOrder;
@@ -17,6 +17,7 @@ class CheckoutScreen extends StatefulWidget {
   /// When provided, these items are used instead of the shared cart.
   /// The shared cart is not cleared after checkout.
   final List<CartItem>? overrideItems;
+  final String? initialAddressId;
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
@@ -107,14 +108,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           break;
         }
       }
-      defaultId ??= parsed.isNotEmpty ? parsed.first['id'].toString() : null;
+      final requestedId = widget.initialAddressId;
+      final selectedId = requestedId != null &&
+              parsed.any((address) => address['id']?.toString() == requestedId)
+          ? requestedId
+          : (defaultId ?? (parsed.isNotEmpty ? parsed.first['id'].toString() : null));
       setState(() {
         _addresses = parsed;
-        _selectedAddressId = defaultId;
+        _selectedAddressId = selectedId;
         _loadingAddresses = false;
       });
-      // Fetch delivery fee for the default address
-      if (defaultId != null) _fetchDeliveryFee(defaultId);
+      if (selectedId != null) _fetchDeliveryFee(selectedId);
     } catch (_) {
       if (!mounted) return;
       setState(() {
@@ -141,42 +145,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _deliveryAvailable = result['withinRange'] as bool? ?? true;
       _deliveryPromise = result['deliveryPromise']?.toString();
     });
-  }
-
-  Future<void> _showAddAddressSheet() async {
-    final result = await Navigator.of(context).push<PickedAddress>(
-      MaterialPageRoute(builder: (_) => const LocationPickerScreen()),
-    );
-    if (result == null) return;
-    final userId = UserSession.instance.userId;
-    if (userId == null) return;
-
-    setState(() {
-      _loadingAddresses = true;
-      _error = null;
-    });
-    final res = await _api.addAddress(
-      userId: userId,
-      addressLine: result.addressLine,
-      city: result.city,
-      pincode: result.pincode,
-      lat: result.lat,
-      lng: result.lng,
-    );
-    if (!mounted) return;
-    if (res['success'] == true) {
-      await _loadAddresses();
-      if (_addresses.isNotEmpty && _selectedAddressId == null) {
-        final newId = _addresses.first['id'].toString();
-        setState(() => _selectedAddressId = newId);
-        _fetchDeliveryFee(newId);
-      }
-    } else {
-      setState(() {
-        _loadingAddresses = false;
-        _error = res['message']?.toString() ?? 'Failed to save address';
-      });
-    }
   }
 
   Future<void> _placeOrder() async {
@@ -398,6 +366,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final discountedSubtotal = (subtotal - referralDiscount - clothingDiscount)
         .clamp(0.0, subtotal);
     final total = discountedSubtotal + _deliveryFee;
+    final selectedAddress = _addresses.where(
+      (address) => address['id']?.toString() == _selectedAddressId,
+    );
+    final selectedAddressData =
+      selectedAddress.isEmpty ? null : selectedAddress.first;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -481,32 +454,27 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           style: TextStyle(color: Color(0xFF6B7280)),
                         ),
                       )
-                    else
-                      ..._addresses.map(
-                        (addr) => _AddressTile(
-                          address: addr,
-                          selected: _selectedAddressId == addr['id'].toString(),
-                          onSelect: () {
-                            final id = addr['id'].toString();
-                            setState(() => _selectedAddressId = id);
-                            _fetchDeliveryFee(id);
-                          },
-                        ),
+                    else if (selectedAddressData != null) ...[
+                      _AddressTile(
+                        address: selectedAddressData,
+                        selected: true,
+                        onSelect: () {},
                       ),
-                    const SizedBox(height: 10),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: const Color(0xFF166534),
-                        side: const BorderSide(color: Color(0xFF166634)),
-                        minimumSize: const Size.fromHeight(46),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                      const SizedBox(height: 10),
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF166534),
+                          side: const BorderSide(color: Color(0xFF166634)),
+                          minimumSize: const Size.fromHeight(46),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.edit_location_alt_outlined),
+                        label: const Text('Change Address'),
                       ),
-                      onPressed: _showAddAddressSheet,
-                      icon: const Icon(Icons.add_location_alt_outlined),
-                      label: const Text('Add New Address'),
-                    ),
+                    ],
                   ],
                 ),
           const SizedBox(height: 16),

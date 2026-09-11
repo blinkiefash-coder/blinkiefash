@@ -17,12 +17,14 @@ class CheckoutAddressScreen extends StatefulWidget {
     super.key,
     this.isTryOrder = false,
     this.overrideItems,
+    this.initialAddressId,
   });
 
   final bool isTryOrder;
 
   /// When provided, these items are used instead of the shared cart.
   final List<CartItem>? overrideItems;
+  final String? initialAddressId;
 
   @override
   State<CheckoutAddressScreen> createState() => _CheckoutAddressScreenState();
@@ -92,6 +94,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
           redirectBuilder: (_) => CheckoutAddressScreen(
             isTryOrder: widget.isTryOrder,
             overrideItems: _clonedOverrideItems(),
+            initialAddressId: widget.initialAddressId,
           ),
         ),
       ),
@@ -115,13 +118,17 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
           break;
         }
       }
-      defaultId ??= parsed.isNotEmpty ? parsed.first['id'].toString() : null;
+      final requestedId = widget.initialAddressId;
+      final selectedId = requestedId != null &&
+              parsed.any((address) => address['id']?.toString() == requestedId)
+          ? requestedId
+          : (defaultId ?? (parsed.isNotEmpty ? parsed.first['id'].toString() : null));
       setState(() {
         _addresses = parsed;
-        _selectedAddressId = defaultId;
+        _selectedAddressId = selectedId;
         _loading = false;
       });
-      if (defaultId != null) _fetchEstimate(defaultId);
+      if (selectedId != null) _fetchEstimate(selectedId);
     } catch (_) {
       if (!mounted) return;
       setState(() => _loading = false);
@@ -207,6 +214,7 @@ class _CheckoutAddressScreenState extends State<CheckoutAddressScreen> {
         builder: (_) => CheckoutScreen(
           isTryOrder: widget.isTryOrder,
           overrideItems: widget.overrideItems,
+          initialAddressId: _selectedAddressId,
         ),
       ),
     );
