@@ -67,6 +67,9 @@ export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
   const newArrivalsMode = new URLSearchParams(location.search).get("new_arrivals") === "true";
+  const routeParams = new URLSearchParams(location.search);
+  const routeSearch = (routeParams.get("search") || "").trim();
+  const routeCategoryId = routeParams.get("category_id") || "";
 
   const [products, setProducts] = useState(() => shopCatalogCache?.products ?? []);
   const [categories, setCategories] = useState(() => shopCatalogCache?.categories ?? []);
@@ -102,7 +105,7 @@ export default function Shop() {
   const [sortBy, setSortBy] = useState("newest");
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !shopCatalogCache?.products);
 
   // Explicit user expand/collapse action on the category tree (replaces the
   // old side drawer). `null` means "no manual override yet" — in that case
@@ -215,10 +218,19 @@ export default function Shop() {
   }, [location.search]);
 
   useEffect(() => {
-    if (shopCatalogCache?.products) return undefined;
+    const isServerFiltered = Boolean(routeSearch || routeCategoryId);
+    if (shopCatalogCache?.products && !isServerFiltered) return undefined;
     let isCancelled = false;
 
     const fetchAllProducts = async () => {
+      if (isServerFiltered) {
+        const params = new URLSearchParams({ limit: "100", offset: "0" });
+        if (routeSearch) params.set("search", routeSearch);
+        if (routeCategoryId) params.set("category_id", routeCategoryId);
+        const response = await fetch(`${API_BASE}/products?${params.toString()}`);
+        return extractProducts(await response.json());
+      }
+
       const pageSize = 100;
       const all = [];
 
@@ -252,15 +264,17 @@ export default function Shop() {
       return all;
     };
 
-    const startId = setTimeout(() => setLoading(true), 0);
+    setLoading(true);
+    setProductMetaById({});
     fetchAllProducts()
       .then((data) => {
         if (!isCancelled) {
           const nextProducts = Array.isArray(data) ? data : [];
           setProducts(nextProducts);
-          shopCatalogCache = { ...(shopCatalogCache || {}), products: nextProducts };
+          if (!isServerFiltered) {
+            shopCatalogCache = { ...(shopCatalogCache || {}), products: nextProducts };
+          }
         }
-        if (!isCancelled) setProducts(extractProducts(data));
       })
       .catch((err) => {
         console.error("[Shop] Error fetching products:", err);
@@ -271,9 +285,8 @@ export default function Shop() {
 
     return () => {
       isCancelled = true;
-      clearTimeout(startId);
     };
-  }, []);
+  }, [routeCategoryId, routeSearch]);
 
   useEffect(() => {
     if (shopCatalogCache?.categories) return undefined;
@@ -302,6 +315,15 @@ export default function Shop() {
   }, []);
 
   useEffect(() => {
+    const needsProductDetails =
+      !routeSearch &&
+      (appliedFilters.inStockOnly || appliedFilters.gender.length > 0);
+
+    if (!needsProductDetails) {
+      setProductMetaById({});
+      return undefined;
+    }
+
     if (products.length === 0) {
       const id = setTimeout(() => setProductMetaById({}), 0);
       return () => clearTimeout(id);
@@ -356,7 +378,7 @@ export default function Shop() {
     return () => {
       isCancelled = true;
     };
-  }, [products]);
+  }, [products, routeSearch, appliedFilters.inStockOnly, appliedFilters.gender]);
 
   // Where the currently active category sits in the tree — derived purely
   // from render-time data (no effect/setState needed). This is the
@@ -460,7 +482,7 @@ export default function Shop() {
       }
     }
 
-    if (searchTerm.trim()) {
+    if (searchTerm.trim() && !routeSearch) {
       const haystackRaw = [
         product.name,
         product.brand,

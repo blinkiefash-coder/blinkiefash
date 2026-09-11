@@ -257,7 +257,13 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
     event.stopPropagation();
     event.preventDefault();
 
-    if (isAddingToCart || isUpdatingQty || outOfStock) return;
+    const selectedAvailableVariant = availableVariants.find(
+      (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
+    ) || availableVariants[0];
+    const variantToAdd = selectedAvailableVariant || selectedVariant;
+    const variantIdToAdd = variantToAdd?.id || variantToAdd?.variant_id || activeVariantId;
+
+    if (isAddingToCart || isUpdatingQty || (outOfStock && !selectedAvailableVariant)) return;
 
     const { userId, token } = getAuth();
     const alreadyInCart = cartQty > 0;
@@ -271,12 +277,14 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
       try {
         await addToCart({
           productId: product.id,
-          variantId: activeVariantId,
+          variantId: variantIdToAdd,
           name: product.name,
           image,
-          price: activeSalePrice,
-          size: selectedVariant?.size,
-          color: selectedVariant?.color || product.color,
+          price: variantToAdd
+            ? Number(variantToAdd.discount_price ?? variantToAdd.price ?? activeSalePrice)
+            : activeSalePrice,
+          size: variantToAdd?.size,
+          color: variantToAdd?.color || product.color,
         });
         window.dispatchEvent(new Event("cart:updated"));
         setAnnouncement(`${product.name} added to cart`);
@@ -500,9 +508,15 @@ export default function ProductCard({ product, onWishlistAdded, onCartAdded, isN
             type="button"
             className="pc-quick-add"
             onClick={handleAddToCart}
-            disabled={isAddingToCart || isUpdatingQty || !availableVariants.length}
+            disabled={
+              isAddingToCart ||
+              isUpdatingQty ||
+              !availableVariants.some(
+                (variant) => String(variant.id || variant.variant_id) === String(selectedVariantId)
+              )
+            }
           >
-            {isAddingToCart ? "Adding..." : "Add selected size"}
+            {isAddingToCart ? "Adding..." : "Proceed & Add to Cart"}
           </button>
         </div>
       </div>
