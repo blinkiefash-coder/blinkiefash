@@ -43,6 +43,9 @@ import { API_BASE_URL } from "../apiBase";
 import menBanner1 from "../assets/men-banner-1.png";
 import menBanner2 from "../assets/men-banner-2.png";
 import menBanner3 from "../assets/men-banner-3.png";
+import menMobileBanner1 from "../assets/menmobilebanner1.png";
+import menMobileBanner2 from "../assets/menmobilebanner2.png";
+import menMobileBanner3 from "../assets/menmobilebanner3.png";
 import traditionalBanner from "../assets/traditional.jpeg";
 // import playAndWinImage from "../assets/play&win.png";
 // import spinAndWinImage from "../assets/spin&win.png";
@@ -210,9 +213,9 @@ const TOP_BRANDS_FALLBACK = [
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
 const HERO_SLIDES = [
-  { image: menBanner1, tag: "New season styles for him" },
-  { image: menBanner2, tag: "Trending this week" },
-  { image: menBanner3, tag: "Fresh arrivals" },
+  { image: menBanner1, mobileImage: menMobileBanner1, tag: "New season styles for him" },
+  { image: menBanner2, mobileImage: menMobileBanner2, tag: "Trending this week" },
+  { image: menBanner3, mobileImage: menMobileBanner3, tag: "Fresh arrivals" },
 ];
 
 function normalizeProduct(p) {
@@ -852,7 +855,12 @@ export default function Men() {
           </button>
 
           <button type="button" className="men-hero-media-btn" onClick={() => navigate(menScopedShopUrl())}>
-            <img src={slide.image} alt={slide.tag} className="men-hero-img" />
+            <picture>
+              {slide.mobileImage ? (
+                <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+              ) : null}
+              <img src={slide.image} alt={slide.tag} className="men-hero-img" />
+            </picture>
           </button>
 
           <button

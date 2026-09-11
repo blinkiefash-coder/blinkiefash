@@ -1596,7 +1596,7 @@
   font-family: inherit;
   transition: background 0.15s ease;
 }
-
+/* update */
 .men-filters-apply:hover {
   background: var(--m-blue-dark);
 }
@@ -1642,5 +1642,34 @@
 .men-filters-close:hover {
   background: #c9dcfb;
   color: #0f172a;
+}
+
+/* Keep Men and Women product rails consistent on small screens. */
+@media (max-width: 640px) {
+  .men-picks-section .hp-deals-prev,
+  .men-picks-section .hp-deals-next {
+    display: flex;
+  }
+
+  .men-picks-section .hp-deals-rail {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    padding: 4px 2px 10px;
+  }
+
+  .men-picks-section .hp-deal-card-wrapper {
+    min-width: 180px;
+    max-width: 220px;
+    flex: 0 0 auto;
+    width: auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .men-hero-img {
+    aspect-ratio: 1.5 / 1;
+  }
 }
 

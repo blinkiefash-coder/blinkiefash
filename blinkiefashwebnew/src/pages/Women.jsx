@@ -35,9 +35,15 @@ import Filter from "../components/filter";
 import { getProducts, getCategories, getBrands, getBestsellers } from "../api";
 import { getCategoryImage } from "../utils/categoryImages";
 import { API_BASE_URL } from "../apiBase";
+
 import womenBanner1 from "../assets/women-banner-1.png";
 import womenBanner2 from "../assets/women-banner-2.png";
 import womenBanner3 from "../assets/women-banner-3.png";
+
+import womenMobileBanner1 from "../assets/womenmobilebanner1.png";
+import womenMobileBanner2 from "../assets/womenmobilebanner2.png";
+import womenMobileBanner3 from "../assets/womenmobilebanner3.png";
+
 import womenEthnicBanner from "../assets/womenethnicbanner.jpg";
 // import playAndWinImage from "../assets/play&win.png";
 // import spinAndWinImage from "../assets/spin&win.png";
@@ -241,9 +247,9 @@ const TOP_BRANDS_FALLBACK = [
 ].map((name) => ({ id: null, name, logo_url: "" }));
 
 const HERO_SLIDES = [
-  { image: womenBanner1, tag: "Kurta sets for every mood" },
-  { image: womenBanner2, tag: "Trending styles" },
-  { image: womenBanner3, tag: "New arrivals" },
+  { image: womenBanner1, mobileImage: womenMobileBanner1, tag: "Kurta sets for every mood" },
+  { image: womenBanner2, mobileImage: womenMobileBanner2, tag: "Trending styles" },
+  { image: womenBanner3, mobileImage: womenMobileBanner3, tag: "New arrivals" },
 ];
 
 let womenPageCache = null;
@@ -1117,7 +1123,12 @@ export default function Women() {
           </button>
 
           <button type="button" className="women-hero-media-btn" onClick={() => navigate(heroDestination)}>
-            <img src={slide.image} alt={slide.tag} className="women-hero-img" />
+            <picture>
+              {slide.mobileImage ? (
+                <source media="(max-width: 767px)" srcSet={slide.mobileImage} />
+              ) : null}
+              <img src={slide.image} alt={slide.tag} className="women-hero-img" />
+            </picture>
           </button>
 
           <button
