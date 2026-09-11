@@ -312,12 +312,16 @@ class ProductDetailScreen extends StatefulWidget {
     this.initialName,
     this.initialColor,
     this.initialSize,
+    this.initialFulfillmentStoreName,
+    this.initialFulfillmentDistanceKm,
   });
 
   final String productId;
   final String? initialName;
   final String? initialColor;
   final String? initialSize;
+  final String? initialFulfillmentStoreName;
+  final double? initialFulfillmentDistanceKm;
 
   @override
   State<ProductDetailScreen> createState() => _ProductDetailScreenState();
@@ -414,7 +418,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String get _deliveryEtaTitle {
-    final distanceKm = ApiClient.currentStoreDistanceKm;
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
     if (distanceKm == null) return 'Delivery estimate at checkout';
     if (distanceKm <= 15) return '60 min delivery';
     if (distanceKm <= 400) return 'Delivery in 1 day';
@@ -422,9 +427,13 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String get _deliveryEtaDetail {
-    final distanceKm = ApiClient.currentStoreDistanceKm;
-    final location = ApiClient.currentStoreName;
-    if (distanceKm == null) return 'Set your location for an exact delivery estimate';
+    final distanceKm =
+      widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
+    final location =
+      widget.initialFulfillmentStoreName ?? ApiClient.currentStoreName;
+    if (distanceKm == null) {
+      return 'Set your location for an exact delivery estimate';
+    }
     final distanceText = distanceKm < 0.1
         ? ''
         : ' • ${distanceKm.toStringAsFixed(1)} km away';
@@ -435,7 +444,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String get _deliveryEtaTag {
-    final distanceKm = ApiClient.currentStoreDistanceKm;
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
     if (distanceKm == null) return 'DELIVERY ETA';
     if (distanceKm <= 15) return '60 MIN DELIVERY';
     if (distanceKm <= 400) return '1 DAY DELIVERY';
@@ -443,7 +453,8 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
   }
 
   String get _deliveryFeatureTitle {
-    final distanceKm = ApiClient.currentStoreDistanceKm;
+    final distanceKm =
+        widget.initialFulfillmentDistanceKm ?? ApiClient.currentStoreDistanceKm;
     if (distanceKm == null) return 'ETA';
     if (distanceKm <= 15) return '60 MIN';
     if (distanceKm <= 400) return '1 DAY';

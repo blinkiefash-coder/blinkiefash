@@ -26,6 +26,8 @@ class ApiClient {
 
   /// Distance from the selected customer location to the nearest fulfilment store.
   static double? currentStoreDistanceKm;
+  static double? currentCustomerLat;
+  static double? currentCustomerLng;
   static const Duration _retryTimeout = Duration(seconds: 45);
 
   Future<Map<String, dynamic>> startLogin({
@@ -315,10 +317,12 @@ class ApiClient {
       final storeName =
           (data['nearestStore'] as Map?)?['city']?.toString() ??
           (data['nearestStore'] as Map?)?['name']?.toString();
-        final storeDistance =
-          ((data['nearestStore'] as Map?)?['dist'] as num?)?.toDouble();
+      final storeDistance = ((data['nearestStore'] as Map?)?['dist'] as num?)
+          ?.toDouble();
       if (storeId != null && storeId.isNotEmpty) {
         ApiClient.currentStoreId = storeId;
+        ApiClient.currentCustomerLat = lat;
+        ApiClient.currentCustomerLng = lng;
         ApiClient.currentStoreIds =
             (nearbyStoreIds != null && nearbyStoreIds.isNotEmpty)
             ? nearbyStoreIds
@@ -334,11 +338,15 @@ class ApiClient {
         ApiClient.currentStoreIds = const [];
         ApiClient.currentStoreName = null;
         ApiClient.currentStoreDistanceKm = null;
+        ApiClient.currentCustomerLat = null;
+        ApiClient.currentCustomerLng = null;
       } else if (lat == null && lng == null) {
         ApiClient.currentStoreId = null; // reset when no location
         ApiClient.currentStoreIds = const [];
         ApiClient.currentStoreName = null;
         ApiClient.currentStoreDistanceKm = null;
+        ApiClient.currentCustomerLat = null;
+        ApiClient.currentCustomerLng = null;
       }
       return data;
     }
@@ -430,6 +438,11 @@ class ApiClient {
       } else {
         params['store_id'] = ApiClient.currentStoreId!;
       }
+    }
+    if (ApiClient.currentCustomerLat != null &&
+        ApiClient.currentCustomerLng != null) {
+      params['lat'] = '${ApiClient.currentCustomerLat}';
+      params['lng'] = '${ApiClient.currentCustomerLng}';
     }
     final uri = Uri.parse(
       '$apiApiBaseUrl/products',

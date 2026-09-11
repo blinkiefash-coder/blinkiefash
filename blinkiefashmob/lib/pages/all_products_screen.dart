@@ -1614,6 +1614,13 @@ class _AllProductsScreenState extends State<AllProductsScreen> {
                     initialName: name,
                     initialColor: color.isNotEmpty ? color : null,
                     initialSize: item['size']?.toString(),
+                    initialFulfillmentStoreName:
+                        item['fulfillment_store_city']?.toString(),
+                    initialFulfillmentDistanceKm:
+                        (item['fulfillment_distance_km'] as num?)?.toDouble() ??
+                        double.tryParse(
+                          (item['fulfillment_distance_km'] ?? '').toString(),
+                        ),
                   ),
                 ),
               );
