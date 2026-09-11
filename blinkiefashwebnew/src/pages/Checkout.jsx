@@ -21,7 +21,10 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { useCart } from '../context/CartContext';
-import { getAddresses, addAddress, getDeliveryFee, getProductById, placeOrder } from '../api';
+import { getAddresses, addAddress, getDeliveryFee, placeOrder, getOrders } from '../api';
+
+import { getProductById } from '../api';
+
 import './Checkout.css';
 import PageSEO from '../components/PageSEO';
 
@@ -29,7 +32,21 @@ const FREE_DELIVERY_THRESHOLD = 999;
 const PLATFORM_FEE = 0;
 const HANDLING_FEE = 9;
 
-const AVAILABLE_COUPONS = {};
+const AVAILABLE_COUPONS = {
+  BLINK300: {
+    type: 'flat',
+    amount: 300,
+    label: 'FLAT ₹300 OFF',
+    firstOrderOnly: true,
+    minOrderValue: 0, // raise this if you want a minimum cart value, e.g. 999
+  },
+};
+
+function computeCouponDiscount(coupon, amount) {
+  if (!coupon) return 0;
+  if (coupon.type === 'flat') return Math.min(coupon.amount, amount);
+  return Math.round(amount * (coupon.actualPercent / 100));
+}
 
 export default function Checkout() {
   const navigate = useNavigate();
@@ -70,6 +87,36 @@ export default function Checkout() {
 
   const [deliveryQuote, setDeliveryQuote] = useState(null);
 
+  // Account-wide first-order check: ask the backend whether this user has
+  // any past orders (via getOrders), so BLINK300 eligibility follows the
+  // logged-in account/phone number rather than the browser — it works the
+  // same whether they log in from a new device or a new browser.
+  // orderHistory.userId lets us derive "has this check resolved for the
+  // CURRENT user" at render time, so the effect itself never calls
+  // setState synchronously — only from inside the async .then/.catch,
+  // which is the pattern React's effect rules expect.
+  const [orderHistory, setOrderHistory] = useState({ userId: null, hasOrders: false });
+
+  useEffect(() => {
+    if (!isLoggedIn || !user?.id) return;
+    let cancelled = false;
+    getOrders(user.id)
+      .then((res) => {
+        if (cancelled) return;
+        const list = res?.orders || (Array.isArray(res) ? res : []);
+        setOrderHistory({ userId: user.id, hasOrders: list.length > 0 });
+      })
+      .catch(() => {
+        // If the check fails, don't offer a first-order coupon we can't verify.
+        if (cancelled) return;
+        setOrderHistory({ userId: user.id, hasOrders: true });
+      });
+    return () => { cancelled = true; };
+  }, [isLoggedIn, user]);
+
+  const isFirstOrderChecked = !isLoggedIn || !user?.id || orderHistory.userId === user.id;
+  const isFirstOrder = !isLoggedIn || !user?.id ? true : !orderHistory.hasOrders;
+
   useEffect(() => {
     if (!isLoggedIn) return;
     getAddresses(user.id)
@@ -102,26 +149,25 @@ export default function Checkout() {
     if (manualCoupon) {
       const coupon = AVAILABLE_COUPONS[manualCoupon.code];
       if (!coupon) return manualCoupon;
+      if (coupon.firstOrderOnly && !isFirstOrder) return null;
       return {
         ...manualCoupon,
-        displayPercent: coupon.displayPercent,
-        discountPercent: coupon.actualPercent,
-        discountAmount: Math.round(subtotal * (coupon.actualPercent / 100)),
+        label: coupon.label,
+        discountAmount: computeCouponDiscount(coupon, subtotal),
       };
     }
-    if (!couponDismissed && items.length > 0) {
-      const coupon = AVAILABLE_COUPONS['INDEPENDENCE5'];
+    if (!couponDismissed && items.length > 0 && isFirstOrderChecked && isFirstOrder) {
+      const coupon = AVAILABLE_COUPONS.BLINK300;
       if (coupon) {
         return {
-          code: 'INDEPENDENCE5',
-          displayPercent: coupon.displayPercent,
-          discountPercent: coupon.actualPercent,
-          discountAmount: Math.round(subtotal * (coupon.actualPercent / 100)),
+          code: 'BLINK300',
+          label: coupon.label,
+          discountAmount: computeCouponDiscount(coupon, subtotal),
         };
       }
     }
     return null;
-  }, [manualCoupon, couponDismissed, items.length, subtotal]);
+  }, [manualCoupon, couponDismissed, items.length, subtotal, isFirstOrder, isFirstOrderChecked]);
 
   if (items.length === 0) {
     return (
@@ -176,12 +222,18 @@ export default function Checkout() {
       setCouponError('Invalid coupon code');
       return;
     }
-    // Calculate discount using actualPercent, but display shows displayPercent
-    const discountAmount = Math.round(itemTotal * (coupon.actualPercent / 100));
+    if (coupon.firstOrderOnly && (!isFirstOrderChecked || !isFirstOrder)) {
+      setCouponError('This coupon is valid only on your first order');
+      return;
+    }
+    if (subtotal < (coupon.minOrderValue || 0)) {
+      setCouponError(`Add ₹${coupon.minOrderValue - subtotal} more to use this coupon`);
+      return;
+    }
+    const discountAmount = computeCouponDiscount(coupon, subtotal);
     setManualCoupon({
       code: normalized,
-      displayPercent: coupon.displayPercent,
-      discountPercent: coupon.actualPercent,
+      label: coupon.label,
       discountAmount,
     });
     setCouponDismissed(false);
@@ -366,6 +418,9 @@ export default function Checkout() {
           currency: 'INR',
         });
       }
+      // No manual flag to set here — the next visit's getOrders(user.id)
+      // call will naturally include this order, so BLINK300 stops applying
+      // on its own for this account going forward.
       clearCart();
       navigate(`/orders/${res.orderId}`, {
         replace: true,
@@ -527,7 +582,7 @@ export default function Checkout() {
             {appliedCoupon ? (
               <div className="ckt-applied-coupon">
                 <span>
-                  <strong>{appliedCoupon.code}</strong> – {appliedCoupon.discountPercent}% OFF (−₹
+                  <strong>{appliedCoupon.code}</strong> – {appliedCoupon.label} (−₹
                   {appliedCoupon.discountAmount.toLocaleString('en-IN')})
                 </span>
                 <button type="button" className="ckt-change-btn" onClick={removeCoupon}>Remove</button>
@@ -782,6 +837,20 @@ export default function Checkout() {
               Available Coupons
             </h3>
             <div style={{ display: 'grid', gap: 8 }}>
+              {!isFirstOrderChecked ? (
+                <p className="hp-location-sheet-muted">Checking available coupons…</p>
+              ) : isFirstOrder ? (
+                <button
+                  type="button"
+                  className="ckt-use-address-btn"
+                  style={{ textAlign: 'left' }}
+                  onClick={() => applyCoupon('BLINK300')}
+                >
+                  <strong>BLINK300</strong> — Flat ₹300 off on your first order
+                </button>
+              ) : (
+                <p className="hp-location-sheet-muted">No coupons available for this order.</p>
+              )}
               <input
                 placeholder="Or enter coupon code"
                 value={couponCode}

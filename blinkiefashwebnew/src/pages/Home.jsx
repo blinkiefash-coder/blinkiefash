@@ -59,8 +59,6 @@ import referEarnPopup from '../assets/referearnpopup.png';
 import './Shop.css';
 import './Home.css';
 
-const PLAY_STORE_URL = 'https://play.google.com/store/apps/details?id=com.blinkiefash.app';
-
 // Maps each reward card to its login-prompt image, destination route
 // (once logged in), and CTA copy shown below the image.
 const REWARD_LOGIN_PROMPTS = {
@@ -212,66 +210,6 @@ const UNIVERSE_BRANDS = [
 ];
 
 const normalizeBrandName = (value) => (value || '').toString().toLowerCase().replace(/\./g, '').trim();
-
-const CHIP_ICON_HINTS = [
-  { re: /t-?shirt|tee/i, icon: '👕' },
-  { re: /jeans|denim|trouser|pant/i, icon: '👖' },
-  { re: /shirt/i, icon: '👔' },
-  { re: /jacket|coat|hoodie/i, icon: '🧥' },
-  { re: /shorts/i, icon: '🩳' },
-  { re: /sneaker|shoe|sports|footwear/i, icon: '👟' },
-  { re: /ethnic|kurti|kurta|saree|dress|top/i, icon: '👗' },
-  { re: /watch|smartwatch/i, icon: '⌚' },
-  { re: /baby|kids|children/i, icon: '👶' },
-  // Specific fashion-accessory categories are matched before the generic
-  // "accessor" pattern below, so e.g. "Hair Accessories" gets a relevant
-  // icon instead of falling through to the electronics plug icon.
-  { re: /hair\s*(accessor|clip|band|pin|bow|tie)/i, icon: '🎀' },
-  { re: /jewel|jewellery|jewelry|necklace|earring|bangle|ring/i, icon: '💍' },
-  { re: /belt/i, icon: '🧷' },
-  { re: /cap|hat/i, icon: '🧢' },
-  { re: /sunglasses|glasses|eyewear/i, icon: '🕶️' },
-  { re: /scarf|stole/i, icon: '🧣' },
-  { re: /bag|handbag|wallet|school/i, icon: '👜' },
-  { re: /toy/i, icon: '🧸' },
-  { re: /headphone|earbud|audio/i, icon: '🎧' },
-  { re: /mobile|phone/i, icon: '📱' },
-  { re: /speaker/i, icon: '🔊' },
-  { re: /gaming|game/i, icon: '🎮' },
-  { re: /laptop|computer/i, icon: '💻' },
-  { re: /camera/i, icon: '📷' },
-  { re: /heel/i, icon: '👠' },
-  { re: /flat/i, icon: 'Flat' },
-  { re: /sandal/i, icon: '👡' },
-];
-
-// Generic "accessory" catch-all — kept separate from CHIP_ICON_HINTS above
-// and only applied for the Electronics section, since fashion categories
-// like "Hair Accessories" or "Bag Accessories" were previously matching
-// this same broad /accessor/ pattern and getting an unrelated plug icon.
-const ELECTRONICS_ACCESSORY_HINT = { re: /accessor/i, icon: '🔌' };
-
-const CHIP_ICON_BY_AUDIENCE = {
-  men: '👕',
-  women: '👗',
-  kids: '👶',
-  electronics: '📱',
-  'trendy shoes': '👟',
-};
-
-function chipFallbackIcon(label, audience) {
-  const text = (label || '').toString();
-  const audienceKey = (audience || '').toString().toLowerCase();
-  const hit = CHIP_ICON_HINTS.find((entry) => entry.re.test(text));
-  if (hit) return hit.icon;
-  // The generic "accessory" plug icon only makes sense for Electronics —
-  // for every other audience, fall through to that audience's own default
-  // icon instead (e.g. 👗 for Women), never the plug.
-  if (audienceKey === 'electronics' && ELECTRONICS_ACCESSORY_HINT.re.test(text)) {
-    return ELECTRONICS_ACCESSORY_HINT.icon;
-  }
-  return CHIP_ICON_BY_AUDIENCE[audienceKey] || '🛍️';
-}
 
 const RECENTLY_VIEWED_KEY = 'bfw_recently_viewed_products';
 
@@ -536,6 +474,26 @@ export default function Home() {
   // "Jeans" within Men's) should drop any subcategory filter that was
   // active for that audience, since its subcategory list is about to change.
   const handleMainCategorySelect = async (audienceKey, id, relatedCategoryIds = []) => {
+    // "All" — clear filters and show the full default list for this section
+    if (id == null || id === '') {
+      setActiveCollectionCats((prev) => {
+        const next = { ...prev };
+        delete next[audienceKey];
+        return next;
+      });
+      setSectionSubFilters((prev) => {
+        const next = { ...prev };
+        delete next[audienceKey];
+        return next;
+      });
+      setSectionCategoryFilters((prev) => {
+        const next = { ...prev };
+        delete next[audienceKey];
+        return next;
+      });
+      return;
+    }
+
     const categoryIds = [id, ...relatedCategoryIds].filter(Boolean).map(String);
     const categoryId = categoryIds.join(',');
     setActiveCollectionCats((prev) => ({ ...prev, [audienceKey]: id }));
@@ -1122,8 +1080,10 @@ export default function Home() {
     setHeroAspectRatio(activeSlide ? heroRatiosRef.current.get(activeSlide.id) || null : null);
   }, [heroPosition, heroSlides]);
 
+  // First coupon banner now takes the user straight to Checkout instead of
+  // the Play Store, so the BLINK300 offer flows directly into an order.
   const handleCouponClick = () => {
-    window.open(PLAY_STORE_URL, '_blank', 'noopener,noreferrer');
+    navigate('/checkout');
   };
 
   const topDeals = useMemo(() => {
@@ -1284,7 +1244,7 @@ export default function Home() {
       <Navbar />
       <main className="hp-main">
         <section className="hp-coupon-section">
-          <button type="button" className="hp-coupon-banner" onClick={handleCouponClick} aria-label="Open Blinkiefash app on Play Store for exclusive coupon">
+          <button type="button" className="hp-coupon-banner" onClick={handleCouponClick} aria-label="Apply your BLINK300 coupon at checkout">
             <img src={couponImage} alt="Exclusive app coupon" className="hp-coupon-img" loading="lazy" />
           </button>
         </section>
@@ -1574,7 +1534,7 @@ export default function Home() {
             <CategoryChipsRail
               chips={mensCats}
               audienceLabel="Men"
-              activeId={activeCollectionCats.Men ?? mensCats[0]?.id}
+              activeId={activeCollectionCats.Men ?? ''}
               onChipSelect={(id) => handleMainCategorySelect('Men', id)}
               activeSubId={sectionSubFilters.Men?.subId}
               onSubSelect={(id) => handleSubcategorySelect('Men', id)}
@@ -1595,7 +1555,7 @@ export default function Home() {
             <CategoryChipsRail
               chips={womensCats}
               audienceLabel="Women"
-              activeId={activeCollectionCats.Women ?? womensCats[0]?.id}
+              activeId={activeCollectionCats.Women ?? ''}
               onChipSelect={(id) => handleMainCategorySelect('Women', id)}
               activeSubId={sectionSubFilters.Women?.subId}
               onSubSelect={(id) => handleSubcategorySelect('Women', id)}
@@ -1616,7 +1576,7 @@ export default function Home() {
             <CategoryChipsRail
               chips={kidsCats}
               audienceLabel="Kids"
-              activeId={activeCollectionCats.Kids ?? kidsCats[0]?.id}
+              activeId={activeCollectionCats.Kids ?? ''}
               onChipSelect={(id) => handleMainCategorySelect('Kids', id)}
               activeSubId={sectionSubFilters.Kids?.subId}
               onSubSelect={(id) => handleSubcategorySelect('Kids', id)}
@@ -1637,7 +1597,7 @@ export default function Home() {
             <CategoryChipsRail
               chips={electronicsCats}
               audienceLabel="Electronics"
-              activeId={activeCollectionCats.Electronics ?? electronicsCats[0]?.id}
+              activeId={activeCollectionCats.Electronics ?? ''}
               onChipSelect={(id) => handleMainCategorySelect('Electronics', id)}
               activeSubId={sectionSubFilters.Electronics?.subId}
               onSubSelect={(id) => handleSubcategorySelect('Electronics', id)}
@@ -1658,7 +1618,7 @@ export default function Home() {
             <CategoryChipsRail
               chips={trendyShoesCats}
               audienceLabel="Trendy Shoes"
-              activeId={activeCollectionCats['Trendy Shoes'] ?? trendyShoesCats[0]?.id}
+              activeId={activeCollectionCats['Trendy Shoes'] ?? ''}
               onChipSelect={(id) => handleMainCategorySelect('Trendy Shoes', id)}
               activeSubId={sectionSubFilters['Trendy Shoes']?.subId}
               onSubSelect={(id) => handleSubcategorySelect('Trendy Shoes', id)}
@@ -1777,20 +1737,43 @@ export default function Home() {
 function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, activeSubId, onSubSelect }) {
   const chipsRef = useRef(null);
   if (!Array.isArray(chips) || chips.length === 0) return null;
-  const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || chips[0];
+
+  const activeCat = chips.find((cat) => String(cat.id) === String(activeId)) || null;
+  const subcats = Array.isArray(activeCat?.subcategories) ? activeCat.subcategories : [];
   const scrollBy = (dir) => scrollRailByCards(chipsRef.current, dir, 6);
+
+  // "All" is selected when nothing is filtered
+  const isAllActive = !activeId && !activeSubId;
 
   return (
     <div className="hp-collection-chip-group">
       <div className="hp-deals-wrap">
-        <button type="button" className="hp-deals-prev" aria-label={`Scroll ${audienceLabel} categories left`} onClick={() => scrollBy(-1)}>
+        <button
+          type="button"
+          className="hp-deals-prev"
+          aria-label={`Scroll ${audienceLabel} categories left`}
+          onClick={() => scrollBy(-1)}
+        >
           <MdChevronLeft />
         </button>
+
         <div className="hp-collection-chips" role="list" ref={chipsRef}>
+          {/* All — shows the full section product list */}
+          <button
+            type="button"
+            className={`hp-collection-chip${isAllActive ? ' active' : ''}`}
+            role="listitem"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onChipSelect(null);
+            }}
+          >
+            <span className="hp-collection-chip-label">All</span>
+          </button>
+
           {chips.map((cat, idx) => {
-            const icon = resolveImageUrl(cat.image);
-            const fallback = chipFallbackIcon(cat.name, audienceLabel);
-            const isActive = String(cat.id) === String(activeId);
+            const isActive = String(cat.id) === String(activeId) && !activeSubId;
             return (
               <button
                 key={`${cat.id || cat.name || 'chip'}-${idx}`}
@@ -1803,29 +1786,18 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, activ
                   onChipSelect(cat.id, cat.categoryIds);
                 }}
               >
-                <span className="hp-collection-chip-icon" aria-hidden="true">
-                  {icon ? <img src={icon} alt="" loading="lazy" /> : <span>{fallback}</span>}
-                </span>
                 <span className="hp-collection-chip-label">{cat.name}</span>
               </button>
             );
           })}
-        </div>
-        <button type="button" className="hp-deals-next" aria-label={`Scroll ${audienceLabel} categories right`} onClick={() => scrollBy(1)}>
-          <MdChevronRight />
-        </button>
-      </div>
-      {Array.isArray(activeCat?.subcategories) && activeCat.subcategories.length > 0 ? (
-        <div className="hp-subcat-rail" role="list" aria-label={`${activeCat.name} sub categories`}>
-          {activeCat.subcategories.map((sub, subIdx) => {
-            const subImg = resolveImageUrl(sub.image);
-            const subFallback = chipFallbackIcon(sub.name, audienceLabel);
+
+          {subcats.map((sub, subIdx) => {
             const isSubActive = String(sub.id) === String(activeSubId);
             return (
               <button
                 key={`${sub.id || sub.name || 'sub'}-${subIdx}`}
                 type="button"
-                className={`hp-subcat-chip${isSubActive ? ' active' : ''}`}
+                className={`hp-collection-chip${isSubActive ? ' active' : ''}`}
                 role="listitem"
                 onClick={(event) => {
                   event.preventDefault();
@@ -1833,15 +1805,21 @@ function CategoryChipsRail({ chips, audienceLabel, activeId, onChipSelect, activ
                   onSubSelect(sub.id, sub.categoryIds);
                 }}
               >
-                <span className="hp-subcat-chip-icon" aria-hidden="true">
-                  {subImg ? <img src={subImg} alt="" loading="lazy" /> : <span>{subFallback}</span>}
-                </span>
-                <span className="hp-subcat-chip-label">{sub.name}</span>
+                <span className="hp-collection-chip-label">{sub.name}</span>
               </button>
             );
           })}
         </div>
-      ) : null}
+
+        <button
+          type="button"
+          className="hp-deals-next"
+          aria-label={`Scroll ${audienceLabel} categories right`}
+          onClick={() => scrollBy(1)}
+        >
+          <MdChevronRight />
+        </button>
+      </div>
     </div>
   );
 }
