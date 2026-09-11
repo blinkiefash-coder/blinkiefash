@@ -1596,7 +1596,7 @@
   font-family: inherit;
   transition: background 0.15s ease;
 }
-
+/* update */
 .men-filters-apply:hover {
   background: var(--m-blue-dark);
 }
