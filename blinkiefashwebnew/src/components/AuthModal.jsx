@@ -567,8 +567,6 @@ export default function AuthModal() {
           By continuing you agree to BlinkieFash&apos;s Terms of Service &amp; Privacy Policy.
         </p>
 
-        /* hii */
-
         <p className="am-switch">
           {authModalView === 'login' ? (
             <>New here? <button type="button" onClick={() => switchView('signup')}>Create an account</button></>

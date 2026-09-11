@@ -5,6 +5,8 @@ import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
 import { getCategories } from "../api";
 import { useAuthModal } from "../context/AuthModalContext";
+import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 import logo from "../assets/logo1.png";
 
 /* ---------- inline icons ---------- */
@@ -65,12 +67,6 @@ function readAuthFromStorage() {
   };
 }
 
-function readCartCount() {
-  const raw = localStorage.getItem("cartCount");
-  const n = Number(raw);
-  return Number.isFinite(n) ? n : 0;
-}
-
 export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
@@ -78,7 +74,8 @@ export default function Navbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(() => readAuthFromStorage().isLoggedIn);
   const [userName, setUserName] = useState(() => readAuthFromStorage().userName);
-  const [cartCount, setCartCount] = useState(() => readCartCount());
+  const { count: cartCount } = useCart();
+  const { count: wishlistCount } = useWishlist();
 
   /* Category hover mega-menu (Women / Men / Footwear / Kids / Electronics) */
   const [hoveredCat, setHoveredCat] = useState(null);
@@ -104,7 +101,6 @@ export default function Navbar() {
       const next = readAuthFromStorage();
       setIsLoggedIn(next.isLoggedIn);
       setUserName(next.userName);
-      setCartCount(readCartCount());
     };
     window.addEventListener("storage", syncAuth);
     return () => window.removeEventListener("storage", syncAuth);
@@ -230,6 +226,14 @@ export default function Navbar() {
     e.preventDefault();
     const q = searchQuery.trim();
     navigate(q ? `/shop?search=${encodeURIComponent(q)}` : "/shop");
+  };
+
+  const handleProfileClick = () => {
+    if (window.matchMedia("(max-width: 900px)").matches) {
+      navigate("/account");
+      return;
+    }
+    setProfileOpen((v) => !v);
   };
 
   /* Mobile search-only back button: use browser history when there is
@@ -415,6 +419,7 @@ export default function Navbar() {
           <button type="button" className="nav-action-btn" onClick={() => navigate("/wishlist")}>
             <span className="nav-action-icon wishlist-icon">
               <IconHeart />
+              {wishlistCount > 0 && <span className="nav-count-badge">{wishlistCount}</span>}
             </span>
             <span className="nav-action-copy">
               <strong>Wishlist</strong>
@@ -422,7 +427,19 @@ export default function Navbar() {
           </button>
 
           {isLoggedIn ? (
-            <div className="profile-box" ref={profileRef} onClick={() => setProfileOpen((v) => !v)}>
+            <div
+              className="profile-box"
+              ref={profileRef}
+              onClick={handleProfileClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  handleProfileClick();
+                }
+              }}
+            >
               <span className="nav-action-icon">
                 <IconUser />
               </span>

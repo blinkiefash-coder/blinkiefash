@@ -942,6 +942,14 @@
   gap: 10px;
 }
 
+.kids-section-actions > button:first-child {
+  order: 1;
+}
+
+.kids-section-actions .kids-filter-btn {
+  order: 2;
+}
+
 .kids-filter-btn {
   display: inline-flex;
   align-items: center;

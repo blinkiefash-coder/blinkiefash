@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { getGamificationState, spinWheel } from '../api';
@@ -21,7 +20,6 @@ const PRIZES = [
 ];
 
 export default function SpinWheel() {
-  const navigate = useNavigate();
   const { openAuthModal } = useAuthModal();
   const { user, isLoggedIn } = useAuth();
 
@@ -34,17 +32,6 @@ export default function SpinWheel() {
   const [rotation, setRotation] = useState(0);
 
   const wheelRef = useRef(null);
-
-  // Navigate back to whichever page the user came from.
-  // Falls back to /offers if there's no history to go back to
-  // (e.g. user landed here directly via a shared link).
-  const goBack = () => {
-    if (window.history.length > 1) {
-      navigate(-1);
-    } else {
-      navigate('/offers');
-    }
-  };
 
   useEffect(() => {
     let cancelled = false;
@@ -134,14 +121,6 @@ export default function SpinWheel() {
         <Navbar />
 
         <main className="page offer-feature-page spin-page">
-          <button
-            type="button"
-            className="offer-back"
-            onClick={goBack}
-          >
-            ← Back
-          </button>
-
           <div className="offer-feature-card">
             <h1>Spin &amp; Win</h1>
 
@@ -167,15 +146,6 @@ export default function SpinWheel() {
       <Navbar />
 
       <main className="page offer-feature-page spin-page">
-
-        <button
-          type="button"
-          className="offer-back"
-          onClick={goBack}
-        >
-          ← Back
-        </button>
-
         <div className="spin-breadcrumb">
           Home <span>›</span> Spin &amp; Win
         </div>
