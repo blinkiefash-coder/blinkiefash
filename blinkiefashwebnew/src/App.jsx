@@ -153,6 +153,7 @@ export default function App() {
     pathname.startsWith('/product/') ||
     pathname.startsWith('/brands/');
   const isCheckoutPage = pathname === '/checkout';
+  const isOrdersPage = pathname === '/orders';
   const isOrderTrackingPage = pathname.startsWith('/orders/');
   const isAccountPage = pathname === '/account' || pathname.startsWith('/account/');
   const isParcelPage = pathname === '/parcel' || pathname.startsWith('/parcel/');
@@ -180,7 +181,7 @@ export default function App() {
 
   return (
     <div
-      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}${isDeals ? ' is-deals' : ''}${isFestive ? ' is-festive' : ''}`}
+      className={`app-shell${isHome ? ' is-home' : ''}${isVendorArea ? ' is-vendor' : ''}${isInfoPage ? ' is-info' : ''}${isCatalogPage ? ' is-catalog' : ''}${isCheckoutPage ? ' is-checkout' : ''}${isOrdersPage ? ' is-orders' : ''}${isOrderTrackingPage ? ' is-order-tracking' : ''}${isAccountPage ? ' is-account' : ''}${isParcelPage ? ' is-parcel' : ''}${isOffersPage ? ' is-offers' : ''}${isHelpSupportPage ? ' is-help-support' : ''}${isDeals ? ' is-deals' : ''}${isFestive ? ' is-festive' : ''}`}
     >
       {routeLoading ? (
         <Loader overlay label="Loading page..." subtitle="Please wait" showLogo />
@@ -333,6 +334,7 @@ export default function App() {
         !isInfoPage &&
         !isCatalogPage &&
         !isCheckoutPage &&
+        !isOrdersPage &&
         !isOrderTrackingPage &&
         !isAccountPage &&
         !isOffersPage &&

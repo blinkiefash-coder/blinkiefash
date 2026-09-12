@@ -3,8 +3,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 28px;
-  padding: 12px 28px 16px;
+  gap: clamp(8px, 1.4vw, 24px);
+  padding: clamp(8px, 1.2vw, 12px) clamp(10px, 1.8vw, 24px) clamp(10px, 1.4vw, 16px);
   background: #ffffff;
   border-bottom: 1px solid #f1f5f9;
   position: fixed;
@@ -19,7 +19,7 @@
 
 /* Reserves space for the fixed navbar so page content isn't hidden under it */
 .navbar-spacer {
-  height: 88px;
+  height: clamp(64px, 8vw, 88px);
   width: 100%;
   flex-shrink: 0;
 }
@@ -45,8 +45,10 @@
 }
 
 .logo-img {
-  height: 58px;
-  width: 230px;
+  /* FLUID: scales smoothly with viewport width instead of jumping at
+     fixed breakpoints (52px/185px at 900px, 40px/145px at 480px, etc). */
+  height: clamp(36px, 3.6vw, 52px);
+  width: clamp(120px, 14vw, 210px);
   max-width: 240px;
   object-fit: contain;
   display: block;
@@ -67,7 +69,7 @@
 
 .brand {
   display: inline-flex;
-  font-size: 18px;
+  font-size: clamp(14px, 1.3vw, 18px);
   font-weight: 900;
   letter-spacing: -0.5px;
   line-height: 1;
@@ -115,7 +117,7 @@
 }
 
 .address-text {
-  max-width: 120px;
+  max-width: clamp(70px, 8vw, 120px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -156,11 +158,16 @@
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 24px;
+  flex-wrap: wrap; /* safety net: wraps to a 2nd line instead of overlapping
+                       if space ever runs out completely */
+  row-gap: 6px;
+  /* FLUID: gap and font-size shrink smoothly as the window narrows,
+     instead of snapping between three fixed values at 1200/1024px. */
+  gap: clamp(8px, 1.4vw, 22px);
   flex: 1;
   min-width: 0;
   margin-left: 8px;
-  font-size: 14px;
+  font-size: clamp(11.5px, 0.9vw, 13.5px);
   font-weight: 600;
 }
 
@@ -233,7 +240,7 @@
   right: 28px;
   background: #ffffff;
   border-radius: 0 0 10px 10px;
-  padding: 32px 40px 30px;
+  padding: clamp(18px, 2.4vw, 32px) clamp(20px, 3vw, 40px) clamp(16px, 2vw, 30px);
   box-shadow: 0 26px 50px rgba(15, 23, 42, 0.14), 0 2px 0 rgba(15, 23, 42, 0.04);
   border-top: 1px solid #f1f5f9;
   z-index: 250;
@@ -315,7 +322,7 @@
 .nav-right {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: clamp(6px, 1vw, 18px);
   flex-shrink: 0;
   position: relative;
   min-width: 0;
@@ -346,7 +353,10 @@ form.search-box.search-box {
   align-items: center !important;
   gap: 8px !important;
 
-  width: min(460px, 35vw) !important;
+  /* FLUID: shrinks more aggressively than before (down to 130px, and a
+     lower vw multiplier) — freed-up room is what keeps .nav-links on a
+     single row now that .nav-back-btn permanently takes space too. */
+  width: clamp(130px, 16vw, 420px) !important;
   min-width: 0 !important;
   height: 42px !important;
   min-height: 42px !important;
@@ -370,7 +380,7 @@ form.search-box.search-box {
 }
 
 .nav-right form.search-box:focus-within {
-  width: min(490px, 38vw) !important;
+  width: clamp(150px, 18vw, 440px) !important;
   background: #ffffff !important;
   border-color: #0e7d47 !important;
   box-shadow: 0 0 0 4px rgba(14, 125, 71, 0.12), 0 4px 14px rgba(15, 23, 42, 0.08) !important;
@@ -408,7 +418,7 @@ form.search-box.search-box {
   border: 0 !important;
   outline: none !important;
   background: transparent !important;
-  font-size: 13.5px !important;
+  font-size: clamp(12.5px, 1vw, 13.5px) !important;
   font-weight: 500 !important;
   color: #111827 !important;
   line-height: 1.2 !important;
@@ -469,7 +479,7 @@ form.search-box.search-box {
   gap: 3px;
   cursor: pointer;
   padding: 2px 6px;
-  min-width: 48px;
+  min-width: 44px;
 }
 
 .nav-action-icon {
@@ -490,7 +500,7 @@ form.search-box.search-box {
 }
 
 .nav-action-copy strong {
-  font-size: 11px;
+  font-size: clamp(10px, 0.8vw, 11px);
   font-weight: 700;
   color: #161616;
 }
@@ -526,7 +536,7 @@ form.search-box.search-box {
   gap: 3px;
   cursor: pointer;
   position: relative;
-  min-width: 48px;
+  min-width: 44px;
   padding: 2px 4px;
 }
 
@@ -585,18 +595,19 @@ form.search-box.search-box {
   display: inline-flex;
   border: 1px solid #e5e7eb;
   background: #ffffff;
-  padding: 8px;
+  padding: clamp(6px, 0.6vw, 8px) clamp(8px, 1vw, 12px);
   margin-right: 2px;
   border-radius: 999px;
   cursor: pointer;
   color: #111827;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
-  gap: 5px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: clamp(11px, 0.9vw, 13px);
   font-weight: 800;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .nav-back-btn:hover {
@@ -604,55 +615,24 @@ form.search-box.search-box {
   border-color: #b8e6c8;
 }
 
-/* ================= RESPONSIVE ================= */
-@media (max-width: 1200px) {
-  .search-box {
-    width: 340px;
-  }
+/* =================================================================
+   RESPONSIVE
 
-  .nav-links {
-    gap: 16px;
-    font-size: 13px;
-  }
-
-  .address-text {
-    max-width: 90px;
-  }
-
-  .nav-mega-menu {
-    padding: 26px 28px 22px;
-  }
-}
-
-@media (max-width: 1024px) {
-  .nav-links {
-    gap: 14px;
-    font-size: 12.5px;
-  }
-
-  .search-box {
-    width: min(260px, 30vw);
-    max-width: 30vw;
-    padding-left: 16px;
-  }
-
-  .nav-right {
-    gap: 12px;
-  }
-
-  .nav-mega-menu {
-    padding: 22px 24px 18px;
-  }
-}
-
+   Sizing above is now fluid (clamp-based), so it scales continuously
+   from mobile widths up through very wide desktop screens without any
+   breakpoint math for font-size/gap/logo/search-width. The one
+   breakpoint kept below is a genuine LAYOUT MODE change — full nav
+   links vs. hamburger + drawer — which is a structural swap that can't
+   be done with clamp(), so a hard cutoff is the right tool for it.
+   ================================================================= */
 @media (max-width: 900px) {
-  .navbar {
-    padding: 8px 12px;
-    gap: 8px;
+  .nav-left .brand-tagline,
+  .nav-left .address-box {
+    display: none;
   }
 
-  .navbar-spacer {
-    height: 64px;
+  .nav-links {
+    display: none;
   }
 
   .nav-hamburger {
@@ -661,27 +641,7 @@ form.search-box.search-box {
     justify-content: center;
   }
 
-  .nav-left .brand-tagline,
-  .nav-left .address-box {
-    display: none;
-  }
-
-  .nav-left .logo-img {
-    height: 52px;
-    width: 185px;
-    max-width: 185px;
-  }
-
-  .nav-left .brand {
-    font-size: 15px;
-  }
-
-  .nav-links {
-    display: none;
-  }
-
   .nav-right {
-    gap: 4px;
     margin-left: auto;
   }
 
@@ -698,14 +658,10 @@ form.search-box.search-box {
     display: none;
   }
 
-  .nav-action-btn,
-  .profile-box {
-    min-width: 36px;
-  }
-
   .profile-dropdown {
     display: none !important;
   }
+
   .navbar-search-only .nav-hamburger,
   .navbar-search-only .nav-mobile-search-btn,
   .navbar-search-only .nav-action-btn,
@@ -713,31 +669,6 @@ form.search-box.search-box {
     display: none !important;
   }
 
-
-@media (max-width: 480px) {
-  .navbar {
-    padding-left: 8px;
-    padding-right: 8px;
-    gap: 4px;
-  }
-
-  .nav-left .logo-img {
-    width: 145px;
-    max-width: 145px;
-  }
-
-  .nav-right {
-    gap: 0;
-  }
-
-  .nav-action-btn,
-  .profile-box {
-    min-width: 32px;
-    width: 32px;
-    padding-left: 4px;
-    padding-right: 4px;
-  }
-}
   /* Two-row layout: back button + centered logo on top, full-width
      search bar below. Equal-width outer grid columns (1fr / 1fr) around
      the auto-sized logo column keep the logo mathematically centered
@@ -822,12 +753,19 @@ form.search-box.search-box {
   }
 
   /* The header is now two rows tall in this mode, so the fixed-header
-     spacer directly after it needs a matching taller value — the
-     default 56px from the rule above only accounts for one row. */
+     spacer directly after it needs a matching taller value. */
   .navbar-search-only + .navbar-spacer {
     height: 102px !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
+  }
+
+  .nav-action-btn,
+  .profile-box {
+    min-width: 32px;
+    width: 32px;
+    padding-left: 4px;
+    padding-right: 4px;
   }
 }
 
