@@ -4695,6 +4695,48 @@ html, body, #root {
   text-overflow: unset !important;
 }
 
+/* Home Deals of the Day: keep two complete cards in the mobile viewport. */
+@media (max-width: 768px) {
+  .hp-deals-rail.is-deals {
+    grid-auto-columns: calc((100% - 12px) / 2) !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .section:has(.hp-shead-mark-deals) .hp-shead {
+    flex-wrap: wrap;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-shead-title-group {
+    flex: 1 1 100%;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-shead-actions {
+    margin-left: auto;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-shead-title-wrap {
+    gap: 8px;
+  }
+
+  /* Keep the Home deals title and timer as siblings, like Men. */
+  .section:has(.hp-shead-mark-deals) .hp-shead-text-block {
+    display: contents;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-deals-timer {
+    padding-inline: 8px;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-deals-timer-label {
+    font-size: 9px;
+  }
+
+  .section:has(.hp-shead-mark-deals) .hp-deals-timer-value {
+    font-size: 11px;
+  }
+}
 /* =========================================================
    DEALS OF THE DAY HEADING — fully fluid, wraps safely
    Replaces fixed breakpoint jumps with clamp()-based sizing

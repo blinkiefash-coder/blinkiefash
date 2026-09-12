@@ -19,13 +19,8 @@ export function useSmartBack(fallback = "/") {
         navigate(-1);
         return;
       }
-      // Fallback: if referrer is same origin, try back; else go to fallback
-      const ref = document.referrer || "";
-      const sameOrigin = ref.startsWith(window.location.origin);
-      if (sameOrigin && window.history.length > 1) {
-        navigate(-1);
-        return;
-      }
+      // Do not infer SPA history from referrer/history.length. Those values
+      // can point at entries outside this router and cause back-button loops.
     } catch {
       /* ignore */
     }

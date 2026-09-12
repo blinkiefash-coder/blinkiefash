@@ -687,38 +687,8 @@
   transform: scale(1.01);
 }
 
-.men-festive-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px;
+.men-festive-section .hp-section-head {
   margin: 12px 2px 8px;
-}
-
-.men-festive-heading h2 {
-  margin: 0;
-  color: var(--m-ink);
-  font-size: 18px;
-  font-weight: 900;
-}
-
-.men-festive-heading p {
-  margin: 3px 0 0;
-  color: #7a8493;
-  font-size: 12px;
-}
-
-.men-festive-heading button {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  border: 0;
-  background: transparent;
-  color: var(--m-blue-dark);
-  font-size: 13px;
-  font-weight: 800;
-  cursor: pointer;
-  white-space: nowrap;
 }
 
 .men-section-actions {
@@ -1690,6 +1660,23 @@
   .men-picks-section .hp-deal-card-wrapper {
     min-width: 136px;
     max-width: 152px;
+  }
+}
+
+/* Men Deals of the Day: show two complete cards on mobile. */
+@media (max-width: 640px) {
+  .men-picks-section .hp-deals-rail.is-deals {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: calc((100% - 10px) / 2) !important;
+    gap: 10px;
+  }
+
+  .men-picks-section .hp-deals-rail.is-deals .hp-deal-card-wrapper {
+    min-width: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    flex: none !important;
   }
 }
 

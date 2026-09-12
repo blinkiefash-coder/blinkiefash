@@ -411,6 +411,20 @@ function SectionHead({
   );
 }
 
+// Default (empty) filter state for the Deals of the Day panel — matches
+// ProductFilter's own internal shape so the two stay in sync.
+const DEFAULT_DEAL_FILTERS = {
+  subcategory: null,
+  brand: [],
+  color: [],
+  gender: [],
+  minDiscount: 0,
+  minRating: 0,
+  inStockOnly: false,
+  maxPrice: 10000,
+  sort: 'popularity',
+};
+
 export default function Home() {
   const navigate = useNavigate();
   const { isLoggedIn, userGender } = useAuth();
@@ -457,22 +471,13 @@ export default function Home() {
   const [recentlyViewedProductsData, setRecentlyViewedProductsData] = useState([]);
   const [dealsCountdown, setDealsCountdown] = useState(() => formatCountdown(getMsUntilMidnight()));
   const [brandsPaused, setBrandsPaused] = useState(false);
+  // Deals of the Day filter panel: open/closed state + the single
+  // controlled `filters` object ProductFilter expects. Using the same
+  // `hideBar` + `open` + `onOpenChange` pattern as the Men page means the
+  // page's own "Filter" button toggles the panel directly, instead of
+  // ProductFilter rendering its own extra chips/sort bar first.
   const [dealFilterOpen, setDealFilterOpen] = useState(false);
-  const [dealActiveBrand, setDealActiveBrand] = useState([]);
-  const [dealActiveColor, setDealActiveColor] = useState([]);
-  const [dealActiveGender, setDealActiveGender] = useState([]);
-  const [dealMinDiscount, setDealMinDiscount] = useState(0);
-  const [dealInStockOnly, setDealInStockOnly] = useState(false);
-  const [dealMaxPrice, setDealMaxPrice] = useState(10000);
-  const [dealBrandSearch, setDealBrandSearch] = useState('');
-  const [appliedDealFilters, setAppliedDealFilters] = useState({
-    brand: [],
-    color: [],
-    gender: [],
-    minDiscount: 0,
-    inStockOnly: false,
-    maxPrice: 10000,
-  });
+  const [dealFilters, setDealFilters] = useState(DEFAULT_DEAL_FILTERS);
   // Which reward-card login prompt is open: 'spin' | 'play' | 'refer' | null
   const [rewardLoginPrompt, setRewardLoginPrompt] = useState(null);
 
@@ -1226,13 +1231,10 @@ export default function Home() {
     return seededShuffle(unique, homeRotationSeed).slice(0, 40);
   }, [homeRotationSeed, newProducts]);
 
-  const dealVisibleBrands = useMemo(() => {
-    const search = dealBrandSearch.trim().toLowerCase();
-    return (topBrands || []).filter((brand) => (brand?.name || '').toLowerCase().includes(search));
-  }, [topBrands, dealBrandSearch]);
-
+  // Products actually shown on the Deals of the Day rail after applying the
+  // panel's filters — brand/color/gender/discount/stock/price, all read
+  // straight off the single controlled `dealFilters` object.
   const filteredTopDeals = useMemo(() => {
-    const filters = appliedDealFilters;
     return topDeals.filter((product) => {
       const brand = String(product?.brand || '').trim().toLowerCase();
       const color = String(product?.color || '').trim().toLowerCase();
@@ -1240,53 +1242,25 @@ export default function Home() {
       const price = Number(product?.discount_price ?? product?.price ?? 0);
       const discount = Number(product?._discount || product?.discount || 0);
 
-      if (filters.brand.length && !filters.brand.some((value) => String(value).toLowerCase() === brand)) return false;
-      if (filters.color.length && color && !filters.color.some((value) => String(value).toLowerCase() === color)) return false;
-      if (filters.gender.length && gender && !filters.gender.some((value) => String(value).toLowerCase() === gender)) return false;
-      if (filters.minDiscount > 0 && discount < filters.minDiscount) return false;
-      if (filters.inStockOnly && product?.in_stock === false) return false;
-      if (price > filters.maxPrice) return false;
+      if (dealFilters.brand.length && !dealFilters.brand.some((value) => String(value).toLowerCase() === brand)) return false;
+      if (dealFilters.color.length && color && !dealFilters.color.some((value) => String(value).toLowerCase() === color)) return false;
+      if (dealFilters.gender.length && gender && !dealFilters.gender.some((value) => String(value).toLowerCase() === gender)) return false;
+      if (dealFilters.minDiscount > 0 && discount < dealFilters.minDiscount) return false;
+      if (dealFilters.inStockOnly && product?.in_stock === false) return false;
+      if (price > dealFilters.maxPrice) return false;
       return true;
     });
-  }, [topDeals, appliedDealFilters]);
+  }, [topDeals, dealFilters]);
 
   const dealActiveFilterCount =
-    appliedDealFilters.brand.length +
-    appliedDealFilters.color.length +
-    appliedDealFilters.gender.length +
-    (appliedDealFilters.minDiscount > 0 ? 1 : 0) +
-    (appliedDealFilters.inStockOnly ? 1 : 0) +
-    (appliedDealFilters.maxPrice < 10000 ? 1 : 0);
+    dealFilters.brand.length +
+    dealFilters.color.length +
+    dealFilters.gender.length +
+    (dealFilters.minDiscount > 0 ? 1 : 0) +
+    (dealFilters.inStockOnly ? 1 : 0) +
+    (dealFilters.maxPrice < 10000 ? 1 : 0);
 
-  const clearDealFilters = () => {
-    setDealActiveBrand([]);
-    setDealActiveColor([]);
-    setDealActiveGender([]);
-    setDealMinDiscount(0);
-    setDealInStockOnly(false);
-    setDealMaxPrice(10000);
-    setDealBrandSearch('');
-    setAppliedDealFilters({
-      brand: [],
-      color: [],
-      gender: [],
-      minDiscount: 0,
-      inStockOnly: false,
-      maxPrice: 10000,
-    });
-  };
-
-  const applyDealFilters = ({ close = true } = {}) => {
-    setAppliedDealFilters({
-      brand: dealActiveBrand,
-      color: dealActiveColor,
-      gender: dealActiveGender,
-      minDiscount: dealMinDiscount,
-      inStockOnly: dealInStockOnly,
-      maxPrice: dealMaxPrice,
-    });
-    if (close) setDealFilterOpen(false);
-  };
+  const clearDealFilters = () => setDealFilters(DEFAULT_DEAL_FILTERS);
 
   const recommendedProducts = useMemo(() => {
     if (!isLoggedIn || !userGender) return [];
@@ -1423,17 +1397,7 @@ export default function Home() {
                 <button
                   type="button"
                   className={`catalog-filter-toggle ${dealFilterOpen || dealActiveFilterCount ? 'active' : ''}`}
-                  onClick={() => {
-                    if (!dealFilterOpen) {
-                      setDealActiveBrand(appliedDealFilters.brand);
-                      setDealActiveColor(appliedDealFilters.color);
-                      setDealActiveGender(appliedDealFilters.gender);
-                      setDealMinDiscount(appliedDealFilters.minDiscount);
-                      setDealInStockOnly(appliedDealFilters.inStockOnly);
-                      setDealMaxPrice(appliedDealFilters.maxPrice);
-                    }
-                    setDealFilterOpen((open) => !open);
-                  }}
+                  onClick={() => setDealFilterOpen((open) => !open)}
                 >
                   <MdTune /> Filter
                   {dealActiveFilterCount > 0 ? (
@@ -1444,29 +1408,16 @@ export default function Home() {
             />
             {dealFilterOpen ? (
               <Filter
-                prefix="catalog"
+                hideBar
+                open={dealFilterOpen}
+                onOpenChange={setDealFilterOpen}
                 ariaLabel="Deals of the Day filters"
                 brands={topBrands}
-                visibleBrands={dealVisibleBrands}
                 availableGenders={['Men', 'Women', 'Kids', 'Unisex']}
-                activeBrand={dealActiveBrand}
-                setActiveBrand={setDealActiveBrand}
-                activeColor={dealActiveColor}
-                setActiveColor={setDealActiveColor}
-                activeGender={dealActiveGender}
-                setActiveGender={setDealActiveGender}
-                minDiscount={dealMinDiscount}
-                setMinDiscount={setDealMinDiscount}
-                inStockOnly={dealInStockOnly}
-                setInStockOnly={setDealInStockOnly}
-                maxPrice={dealMaxPrice}
-                setMaxPrice={setDealMaxPrice}
-                brandSearch={dealBrandSearch}
-                setBrandSearch={setDealBrandSearch}
-                activeFilterCount={dealActiveFilterCount}
-                clearAllFilters={clearDealFilters}
-                applyFilters={applyDealFilters}
-                onClose={() => setDealFilterOpen(false)}
+                filters={dealFilters}
+                onChange={(patch) => setDealFilters((f) => ({ ...f, ...patch }))}
+                onClearAll={clearDealFilters}
+                priceBounds={{ min: 0, max: 10000 }}
               />
             ) : null}
             <ProductRail items={filteredTopDeals} keyPrefix="deal" railRef={dealsRef} limit={30} />
@@ -1924,7 +1875,7 @@ function ProductRail({ items, keyPrefix, railRef: externalRef, limit = 10 }) {
       <button type="button" className="hp-deals-prev" aria-label="Previous" onClick={() => scrollRailByCards(railRef.current, -1, 6)}>
         <MdChevronLeft />
       </button>
-      <div className={`hp-deals-rail${keyPrefix === 'recent' ? ' is-recently-viewed' : ''}`} role="list" ref={railRef}>
+      <div className={`hp-deals-rail${keyPrefix === 'deal' ? ' is-deals' : ''}${keyPrefix === 'recent' ? ' is-recently-viewed' : ''}`} role="list" ref={railRef}>
         {list.map((p, idx) => (
           <ProductCard key={`${keyPrefix}-${p.id}-${idx}`} product={p} isNew={keyPrefix === 'new'} />
         ))}

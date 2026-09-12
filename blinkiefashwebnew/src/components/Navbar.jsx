@@ -240,10 +240,11 @@ export default function Navbar() {
      somewhere to go back to, otherwise fall back to Home so it never
      dead-ends someone who landed on /shop directly (e.g. from a link). */
   const handleBack = () => {
-    if (window.history.length > 1) {
+    const idx = window.history.state?.idx;
+    if (typeof idx === "number" && idx > 0) {
       navigate(-1);
     } else {
-      navigate("/");
+      navigate("/", { replace: true });
     }
   };
 
