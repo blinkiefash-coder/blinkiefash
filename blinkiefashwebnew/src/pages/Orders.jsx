@@ -203,16 +203,6 @@ export default function Orders() {
                   </div>
 
                   <span className="order-chevron"><IconChevron /></span>
-                  <button
-                    type="button"
-                    className="order-complain-btn"
-                    onClick={(event) => {
-                      event.stopPropagation();
-                      navigate(`/complain?orderId=${encodeURIComponent(order.id)}`);
-                    }}
-                  >
-                    Complain
-                  </button>
                 </div>
               );
             })}

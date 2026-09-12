@@ -37,6 +37,7 @@ import AddProduct from './pages/AddProduct';
 import EditProduct from './pages/EditProduct';
 import ProductAnalytics from './pages/ProductAnalytics';
 import VendorProfile from './pages/VendorProfile';
+import VendorCatalogue from './pages/VendorCatalogue';
 import CustomerService from './pages/CustomerService';
 import Company from './pages/Company';
 import Faqs from './pages/Faqs';
@@ -282,6 +283,14 @@ export default function App() {
           element={
             <RequireVendorOrAdmin>
               <VendorProfile />
+            </RequireVendorOrAdmin>
+          }
+        />
+        <Route
+          path="/vendor/catalogue"
+          element={
+            <RequireVendorOrAdmin>
+              <VendorCatalogue />
             </RequireVendorOrAdmin>
           }
         />
