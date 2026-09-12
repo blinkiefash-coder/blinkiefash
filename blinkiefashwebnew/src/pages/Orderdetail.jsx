@@ -5,6 +5,7 @@ import { MdArrowBack } from 'react-icons/md';
 import { useAuth } from '../context/AuthContext';
 import { useAuthModal } from '../context/AuthModalContext';
 import { getOrderById } from '../api';                 // ← changed
+import { API_API_BASE_URL } from '../apiBase';
 import Navbar from '../components/Navbar';
 import Loader from '../components/Loader';
 import PageSEO from '../components/PageSEO';
@@ -292,6 +293,14 @@ export default function OrderDetails() {
   const goToNeedHelp = () => navigate(`/complain?orderId=${encodeURIComponent(order.id)}`);
   const goToTrack = () => navigate(`/orders/${order.id}/track`);
 
+  const handleDownloadInvoice = () => {
+    const invoiceUrl = `${API_API_BASE_URL}/checkout/orders/${encodeURIComponent(order.id)}/invoice`;
+    const invoiceWindow = window.open(invoiceUrl, '_blank', 'noopener,noreferrer');
+    if (!invoiceWindow) {
+      setError('Please allow pop-ups to open the invoice.');
+    }
+  };
+
   const canReturnExchange =
     meta?.category === 'delivered' && !order?.try_and_buy && !order?.return_disabled;
 
@@ -527,7 +536,7 @@ export default function OrderDetails() {
                       <button
                         type="button"
                         className="od-link-row"
-                        onClick={() => window.open(order.invoice_url || '#', '_blank')}
+                        onClick={handleDownloadInvoice}
                       >
                         <span>
                           <IconFile /> Download Invoice
