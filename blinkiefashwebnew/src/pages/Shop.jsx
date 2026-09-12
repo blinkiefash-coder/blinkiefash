@@ -66,8 +66,8 @@ let shopCatalogCache = null;
 export default function Shop() {
   const navigate = useNavigate();
   const location = useLocation();
-  const newArrivalsMode = new URLSearchParams(location.search).get("new_arrivals") === "true";
   const routeParams = new URLSearchParams(location.search);
+  const newArrivalsMode = routeParams.get("new_arrivals") === "true";
   const routeSearch = (routeParams.get("search") || "").trim();
   const routeCategoryId = routeParams.get("category_id") || "";
   const routeSort = routeParams.get("sort") || "";
@@ -80,12 +80,6 @@ export default function Shop() {
   const [activeCategoryId, setActiveCategoryId] = useState(null);
 
   // ---- Filter panel state ----
-  // activeBrand/activeColor/etc. are the *draft* values the checkboxes and
-  // sliders in the panel are bound to as the person clicks around. They
-  // don't affect the product grid on their own — appliedFilters is what the
-  // grid actually filters by, and it's only updated when "Apply Filters" is
-  // pressed. This matches the "add an apply button" request for every
-  // filter surface: nothing filters the list until Apply is clicked.
   const [activeBrand, setActiveBrand] = useState([]);
   const [activeColor, setActiveColor] = useState([]);
   const [activeGender, setActiveGender] = useState([]);
@@ -103,14 +97,16 @@ export default function Shop() {
 
   const [brandSearch, setBrandSearch] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortBy, setSortBy] = useState("newest");
+  // Initialise sort from URL so deep-links like ?sort=newest work
+  const [sortBy, setSortBy] = useState(() => {
+    const s = new URLSearchParams(window.location.search).get("sort");
+    return s || "newest";
+  });
   const [visibleCount, setVisibleCount] = useState(24);
   const [showFilters, setShowFilters] = useState(false);
   const [loading, setLoading] = useState(() => !shopCatalogCache?.products);
 
-  // Explicit user expand/collapse action on the category tree (replaces the
-  // old side drawer). `null` means "no manual override yet" — in that case
-  // the tree falls back to whatever activeCategoryId implies (see below).
+  // Explicit user expand/collapse action on the category tree
   const [manualExpand, setManualExpand] = useState(null);
 
   const getChildren = useCallback(
@@ -201,17 +197,18 @@ export default function Shop() {
     return [];
   };
 
+  // Keep search / category / sort in sync with the URL
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const nextSearch = (params.get("search") || "").trim();
     const nextCategoryId = params.get("category_id");
+    const nextSort = params.get("sort") || "newest";
 
     const id = setTimeout(() => {
       setSearchTerm(nextSearch);
       setActiveCategoryId(nextCategoryId ? String(nextCategoryId) : null);
+      setSortBy(nextSort); // ← critical: respect ?sort=newest from Men/Women banners
       setVisibleCount(24);
-      // A fresh navigation should clear any manual expand/collapse override
-      // so the tree re-derives itself from the new activeCategoryId.
       setManualExpand(null);
     }, 0);
 
@@ -266,9 +263,12 @@ export default function Shop() {
       return all;
     };
 
-    setLoading(true);
-    setProductMetaById({});
-    fetchAllProducts()
+    Promise.resolve()
+      .then(() => {
+        setLoading(true);
+        setProductMetaById({});
+        return fetchAllProducts();
+      })
       .then((data) => {
         if (!isCancelled) {
           const nextProducts = Array.isArray(data) ? data : [];
@@ -322,7 +322,7 @@ export default function Shop() {
       (appliedFilters.inStockOnly || appliedFilters.gender.length > 0);
 
     if (!needsProductDetails) {
-      setProductMetaById({});
+      Promise.resolve().then(() => setProductMetaById({}));
       return undefined;
     }
 
@@ -382,9 +382,6 @@ export default function Shop() {
     };
   }, [products, routeSearch, appliedFilters.inStockOnly, appliedFilters.gender]);
 
-  // Where the currently active category sits in the tree — derived purely
-  // from render-time data (no effect/setState needed). This is the
-  // "default" expand state whenever the user hasn't manually toggled a row.
   const derivedExpand = useMemo(() => {
     if (!activeCategoryId || categories.length === 0) {
       return { rootId: null, subId: null };
@@ -393,18 +390,15 @@ export default function Shop() {
     if (!current) return { rootId: null, subId: null };
 
     if (!current.parent_id) {
-      // Selected category is itself a root (Men/Women/Kids/etc).
       return { rootId: current.id, subId: null };
     }
 
     const parent = categoryById[String(current.parent_id)];
     if (parent && !parent.parent_id) {
-      // Selected category is a sub-category directly under a root.
       return { rootId: parent.id, subId: current.id };
     }
 
     if (parent && parent.parent_id) {
-      // Selected category is a sub-sub-category.
       const grandparent = categoryById[String(parent.parent_id)];
       return { rootId: grandparent ? grandparent.id : null, subId: parent.id };
     }
@@ -571,9 +565,6 @@ export default function Shop() {
     return Array.from(seen.values()).sort();
   }, [products, resolveProductGender]);
 
-  // Root category chips ordered per CATEGORY_ORDER
-  // (Men, Women, Kids, Footwear, Electronics, Travel and Backpack),
-  // with "All" pinned first and any unmatched categories at the end.
   const topCategoryStrip = useMemo(() => {
     const roots = [...getChildren("ROOT")].sort((a, b) => {
       const rankA = getCategoryRank(a.name);
@@ -584,13 +575,11 @@ export default function Shop() {
     return [{ id: null, name: "All" }, ...roots];
   }, [getChildren]);
 
-  // Sub-categories of whichever root category is currently expanded.
   const rootSubcategories = useMemo(
     () => (expandedRootId ? getChildren(expandedRootId) : []),
     [expandedRootId, getChildren]
   );
 
-  // Sub-sub-categories of whichever sub-category is currently expanded.
   const subSubcategories = useMemo(
     () => (expandedSubId ? getChildren(expandedSubId) : []),
     [expandedSubId, getChildren]
@@ -610,8 +599,6 @@ export default function Shop() {
     navigate(params.toString() ? `/shop?${params.toString()}` : "/shop");
   };
 
-  // Reflects what's actually filtering the grid right now (appliedFilters),
-  // not whatever's mid-edit in the still-open panel.
   const activeFilterCount =
     appliedFilters.brand.length +
     appliedFilters.color.length +
@@ -651,11 +638,8 @@ export default function Shop() {
     });
   };
 
-  // --- Inline category tree handlers (replaces the old side drawer) ---
-
   const handleRootCategoryClick = (category) => {
     if (!category.id) {
-      // "All" chip clears everything.
       setManualExpand({ rootId: null, subId: null });
       setActiveCategoryId(null);
       navigateWithFilters({ nextCategoryId: null });
@@ -665,7 +649,6 @@ export default function Shop() {
     setActiveCategoryId(String(category.id));
     navigateWithFilters({ nextCategoryId: category.id });
 
-    // Toggle the sub-category row open/closed when tapping the same root again.
     const isSameExpanded = toCategoryKey(expandedRootId) === toCategoryKey(category.id);
     setManualExpand({ rootId: isSameExpanded ? null : category.id, subId: null });
   };
@@ -699,7 +682,7 @@ export default function Shop() {
       <main className="catalog-main">
         <div className="catalog-headline-row">
           <div>
-            <h2>All Products</h2>
+            <h2>{newArrivalsMode ? "New Arrivals" : "All Products"}</h2>
             <p>
               Showing 1 - {Math.min(visibleCount, sortedProducts.length)} of{" "}
               {sortedProducts.length} products
@@ -722,8 +705,6 @@ export default function Shop() {
               type="button"
               className={`catalog-filter-toggle ${showFilters ? "active" : ""}`}
               onClick={() => {
-                // Reopening should reflect what's actually applied, not
-                // whatever was left half-edited the last time it was closed.
                 if (!showFilters) {
                   setActiveBrand(appliedFilters.brand);
                   setActiveColor(appliedFilters.color);

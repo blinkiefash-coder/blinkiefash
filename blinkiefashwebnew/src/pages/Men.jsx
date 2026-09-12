@@ -737,6 +737,11 @@ export default function Men() {
     }
   };
 
+  // Builds a /shop URL scoped to Men — either by category_id (once
+  // menRootId/subcategory has resolved) or by a "men"-qualified search
+  // fallback. Also supports optional sort + new_arrivals params so hero
+  // banners and "View All" links can point at a newest-first Men feed
+  // without ever leaving the Men scope, mirroring Women's scoped helper.
   const menScopedShopUrl = useCallback(
     (opts = {}) => {
       const params = new URLSearchParams();
@@ -755,6 +760,8 @@ export default function Men() {
         }
       }
       if (search) params.set("search", search);
+      if (opts.sort) params.set("sort", String(opts.sort));
+      if (opts.newArrivals) params.set("new_arrivals", "true");
       const qs = params.toString();
       return qs ? `/shop?${qs}` : "/shop?search=men";
     },
@@ -911,22 +918,21 @@ export default function Men() {
             type="button"
             className="men-hero-media-btn"
             onClick={() => {
-  if (heroIndex === 1) {
-    const params = new URLSearchParams({ new_arrivals: "true", sort: "newest" });
-    if (menRootId) params.set("category_id", String(menRootId));
-    else params.set("search", "men");
-    navigate(`/shop?${params.toString()}`);
-  } else if (heroIndex === 2) {
-    const poloCat = findMenSubcatByLabel("Polo T-Shirts");
-    navigate(
-      poloCat
-        ? menScopedShopUrl({ categoryId: poloCat.id })
-        : menScopedShopUrl({ search: "polo t-shirt" })
-    );
-  } else {
-    navigate(menScopedShopUrl());
-  }
-}}
+              if (heroIndex === 1) {
+                // 2nd banner: newest-added Men's products only (same
+                // pattern as Women's 3rd banner), always scoped to Men.
+                navigate(menScopedShopUrl({ sort: "newest", newArrivals: true }));
+              } else if (heroIndex === 2) {
+                const poloCat = findMenSubcatByLabel("Polo T-Shirts");
+                navigate(
+                  poloCat
+                    ? menScopedShopUrl({ categoryId: poloCat.id })
+                    : menScopedShopUrl({ search: "polo t-shirt" })
+                );
+              } else {
+                navigate(menScopedShopUrl());
+              }
+            }}
           >
             <picture>
               {slide.mobileImage ? (
@@ -1173,12 +1179,7 @@ export default function Men() {
             <h2>NEW ARRIVALS ✨</h2>
             <button
               type="button"
-              onClick={() => {
-                const params = new URLSearchParams({ new_arrivals: "true", sort: "newest" });
-                if (menRootId) params.set("category_id", String(menRootId));
-                else params.set("search", "men");
-                navigate(`/shop?${params.toString()}`);
-              }}
+              onClick={() => navigate(menScopedShopUrl({ sort: "newest", newArrivals: true }))}
             >
               View All <MdChevronRight />
             </button>
