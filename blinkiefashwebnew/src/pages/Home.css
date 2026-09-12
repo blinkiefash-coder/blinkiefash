@@ -1912,7 +1912,7 @@
   overflow: hidden;
   padding: 0;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 3 / 2;          /* was 4 / 5 — the banner photos are landscape, not portrait */
   min-height: 0;
   display: flex;
   align-items: center;
@@ -1928,7 +1928,7 @@
 .hp-brand-banner img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;            /* was contain — fills the card edge-to-edge instead of letterboxing */
   background: #f8fafc;
   display: block;
 }
@@ -4382,26 +4382,6 @@ html, body, #root {
   color: #fff;
 }
 
-/* Universe banners are landscape artwork; keep the card ratio aligned with
-   the source images so the banner never floats inside a tall blank card. */
-.hp-brand-grid .hp-brand-banner {
-  aspect-ratio: 16 / 9 !important;
-  min-height: 0 !important;
-}
-
-.hp-brand-grid .hp-brand-banner img {
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
-}
-
-@media (max-width: 768px) {
-  .hp-brand-grid .hp-brand-banner {
-    aspect-ratio: 16 / 9 !important;
-  }
-}
-
 /* =========================================================
    FIX: Kids (and other) hero banner appearing twice on mobile
    ========================================================= */
@@ -4713,4 +4693,314 @@ html, body, #root {
   word-break: normal !important;
   overflow: visible !important;
   text-overflow: unset !important;
+}
+
+/* =========================================================
+   DEALS OF THE DAY HEADING — fully fluid, wraps safely
+   Replaces fixed breakpoint jumps with clamp()-based sizing
+   so the title + timer pill never overflow at odd widths
+   (e.g. 375px, 390px, 412px, foldables, small tablets).
+   ========================================================= */
+
+.hp-shead {
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+.hp-shead-title-wrap {
+  flex-wrap: wrap;
+  row-gap: 8px;
+}
+
+.hp-shead-title {
+  font-size: clamp(1.05rem, 1rem + 1.6vw, 1.85rem) !important;
+  white-space: normal !important;
+  overflow-wrap: break-word;
+}
+
+.hp-deals-timer {
+  flex-wrap: nowrap;
+  flex-shrink: 0;
+}
+
+.hp-deals-timer-label {
+  font-size: clamp(8.5px, 0.55rem + 0.2vw, 10.5px) !important;
+}
+
+.hp-deals-timer-value {
+  font-size: clamp(10.5px, 0.65rem + 0.3vw, 13px) !important;
+}
+
+/* Deals of the Day header row (title + timer + filter button)
+   stacks cleanly instead of clipping on very narrow screens */
+@media (max-width: 400px) {
+  .hp-shead {
+    align-items: flex-start;
+  }
+
+  .hp-shead-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+/* =========================================================
+   SITE-WIDE FLUID RESPONSIVENESS
+   Smooths out the jumps between the existing fixed breakpoints
+   with clamp()-based spacing/typography so the layout scales
+   continuously for any viewport width, not just the handful
+   of widths already targeted (420 / 640 / 768 / 900 / 1024).
+   Placed at the very end so it wins the cascade.
+   ========================================================= */
+
+.hp-main {
+  padding-left: clamp(10px, 3vw, 24px) !important;
+  padding-right: clamp(10px, 3vw, 24px) !important;
+  padding-top: clamp(12px, 2vw, 20px) !important;
+  padding-bottom: clamp(24px, 5vw, 40px) !important;
+}
+
+.hp-main-header {
+  padding-left: clamp(8px, 2.5vw, 24px) !important;
+  padding-right: clamp(8px, 2.5vw, 24px) !important;
+  padding-top: clamp(8px, 1.5vw, 14px) !important;
+  padding-bottom: clamp(8px, 1.5vw, 14px) !important;
+}
+
+.hp-category-nav {
+  padding-left: clamp(8px, 2.5vw, 24px) !important;
+  padding-right: clamp(8px, 2.5vw, 24px) !important;
+}
+
+.hp-brand-name {
+  font-size: clamp(15px, 0.8rem + 1vw, 20px) !important;
+}
+
+.hp-section-head h2,
+.hp-shead-title {
+  font-size: clamp(1rem, 0.85rem + 1.4vw, 1.85rem) !important;
+}
+
+.hp-universe-title {
+  font-size: clamp(1.8rem, 1.2rem + 5vw, 2.7rem) !important;
+}
+
+.hp-universe-subtitle {
+  font-size: clamp(10px, 0.6rem + 0.5vw, 13px) !important;
+  letter-spacing: clamp(2px, 0.5vw, 5px) !important;
+}
+
+.hp-universe-tagline {
+  font-size: clamp(10.5px, 0.6rem + 0.3vw, 12px) !important;
+}
+
+/* Fluid gaps for every scrollable rail/grid so spacing eases
+   between breakpoints instead of snapping */
+.hp-deals-rail,
+.hp-collection-chips,
+.hp-subcat-rail,
+.hp-shop-brands-grid,
+.hp-explore-grid,
+.hp-brand-grid,
+.hp-rewards-grid {
+  gap: clamp(8px, 1.5vw, 20px) !important;
+}
+
+/* Deal / product card width eases continuously with viewport
+   instead of jumping between the fixed 148px/160px/188px steps */
+.hp-deals-rail {
+  grid-auto-columns: clamp(132px, 32vw, 200px) !important;
+}
+
+@media (min-width: 640px) {
+  .hp-deals-rail {
+    grid-auto-columns: clamp(160px, 18vw, 200px) !important;
+  }
+}
+
+@media (min-width: 1024px) {
+  .hp-deals-rail {
+    grid-auto-columns: clamp(170px, 13vw, 210px) !important;
+  }
+}
+
+/* Explore grid: fluid column count instead of a hard 6 → 2 jump */
+.hp-explore-grid {
+  grid-template-columns: repeat(auto-fill, minmax(clamp(120px, 22vw, 190px), 1fr)) !important;
+}
+
+/* Category / subcategory chip padding eases with viewport */
+.hp-collection-chip {
+  padding: clamp(9px, 1vw, 12px) clamp(14px, 2.2vw, 22px) !important;
+}
+
+.hp-subcat-chip {
+  padding: clamp(8px, 0.9vw, 10px) clamp(12px, 1.8vw, 18px) !important;
+}
+
+.hp-collection-chip-label {
+  font-size: clamp(12px, 0.7rem + 0.25vw, 14px) !important;
+}
+
+.hp-subcat-chip-label {
+  font-size: clamp(11px, 0.65rem + 0.2vw, 13px) !important;
+}
+
+/* Reward image cards keep a sane aspect ratio at every width,
+   not just the two hard-coded breakpoints */
+.hp-reward-image-card {
+  aspect-ratio: clamp(1.6, 2.2 - 0.15vw, 2.3) / 1 !important;
+}
+
+/* Extra-small phones (<360px) — belt and braces so nothing
+   overflows on the smallest common devices */
+@media (max-width: 360px) {
+  .hp-main {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .hp-brand-name {
+    font-size: 14px !important;
+  }
+
+  .hp-shead-title {
+    font-size: 0.95rem !important;
+  }
+
+  .hp-deal-media,
+  .hp-explore-media {
+    height: auto !important;
+  }
+}
+
+/* Large screens (>1600px) — keep content from feeling sparse
+   without needing a new fixed breakpoint per size */
+@media (min-width: 1600px) {
+  .hp-main {
+    padding-left: clamp(24px, 4vw, 48px) !important;
+    padding-right: clamp(24px, 4vw, 48px) !important;
+  }
+}
+
+/* Universal safety net: nothing should ever force horizontal
+   scroll regardless of content or viewport */
+.hp * {
+  min-width: 0;
+}
+
+.hp img,
+.hp svg {
+  max-width: 100%;
+}
+
+/* =========================================================
+   DEALS OF THE DAY — mobile: hide filter, keep heading +
+   View All on one line, let the timer wrap onto its own line
+   ========================================================= */
+
+/* Filter toggle only exists on the Deals of the Day header —
+   hide it on mobile, View All stays as the only action */
+@media (max-width: 640px) {
+  .catalog-filter-toggle {
+    display: none !important;
+  }
+}
+
+/* Keep the heading row and "View All" on the same line at
+   every mobile width; only the timer pill wraps below */
+@media (max-width: 640px) {
+  .hp-shead {
+    flex-wrap: nowrap !important;
+    align-items: flex-start !important;
+  }
+
+  .hp-shead-title-group {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .hp-shead-title-wrap {
+    flex-wrap: wrap !important;
+    row-gap: 4px;
+  }
+
+  .hp-shead-actions {
+    flex: none !important;
+    width: auto !important;
+    justify-content: flex-end !important;
+    margin-top: 2px;
+  }
+
+  .hp-shead-title {
+    white-space: nowrap !important;
+  }
+
+  /* Timer now sits on its own line under the title since the
+     filter button is gone and View All is the only sibling */
+  .hp-deals-timer {
+    margin-top: 2px;
+    width: fit-content;
+  }
+}
+
+/* Override the earlier <400px rule that forced actions to
+   full width (which pushed View All below the heading) */
+@media (max-width: 400px) {
+  .hp-shead-actions {
+    width: auto !important;
+    justify-content: flex-end !important;
+  }
+
+  .hp-shead-title {
+    font-size: 0.9rem !important;
+    white-space: nowrap !important;
+  }
+
+  .hp-deals-timer-label {
+    display: none;
+  }
+
+  .hp-deals-timer-value {
+    font-size: 11px !important;
+  }
+
+  .hp-deals-timer {
+    padding: 3px 9px !important;
+  }
+}
+
+/* =========================================================
+   DEALS OF THE DAY — timer wraps under the TITLE, not the
+   icon. Uses a 2-column grid: icon spans both rows on the
+   left, title + timer stack in the right column.
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .hp-shead-title-wrap {
+    display: grid !important;
+    grid-template-columns: auto 1fr !important;
+    grid-template-rows: auto auto !important;
+    column-gap: 10px !important;
+    row-gap: 4px !important;
+    align-items: start !important;
+    flex-wrap: unset !important;
+  }
+
+  .hp-shead-mark {
+    grid-column: 1 !important;
+    grid-row: 1 / span 2 !important;
+    align-self: start !important;
+  }
+
+  .hp-shead-text-block {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+  }
+
+  .hp-deals-timer {
+    grid-column: 2 !important;
+    grid-row: 2 !important;
+    margin-top: 0 !important;
+  }
 }

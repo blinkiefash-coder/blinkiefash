@@ -1,0 +1,1197 @@
+/* ---------- Footwear landing page ---------- */
+
+.footwear-page {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  --fw-brown: #9a3412;
+  --fw-brown-dark: #7c2d12;
+  --fw-brown-bg: #fff7ed;
+  --fw-brown-page: #fdf2e9;
+  --fw-brown-page-soft: #fef9f4;
+  --fw-green: #16a34a;
+  --fw-green-dark: #15803d;
+  --fw-ink: #111827;
+  --fw-sub: #6b7280;
+  background: linear-gradient(180deg, var(--fw-brown-page) 0%, var(--fw-brown-page-soft) 420px, #ffffff 900px);
+}
+
+.catalog-page.footwear-page {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Loading state: render the real page underneath and blur it while
+   <Loader overlay /> sits on top — mirrors .hp.hp-loading in Home.css. */
+.footwear-page.footwear-loading .footwear-top-strip,
+.footwear-page.footwear-loading .hp-sticky-head,
+.footwear-page.footwear-loading .footwear-main {
+  filter: blur(10px);
+  pointer-events: none;
+  user-select: none;
+  opacity: 0.95;
+}
+
+.footwear-page .catalog-main,
+.footwear-main {
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 18px 24px 48px;
+  box-sizing: border-box;
+  overflow-x: hidden;
+  background: transparent;
+}
+
+/* =========================================================
+   TOP UTILITY STRIP
+   ========================================================= */
+
+.footwear-top-strip {
+  width: 100%;
+  background: linear-gradient(90deg, #fdf2e9, #fbe4d0);
+  border-bottom: 1px solid #f3d5b5;
+}
+
+.footwear-top-strip-inner {
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  padding: 9px 24px;
+  flex-wrap: wrap;
+}
+
+.footwear-top-strip-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #3a2a1e;
+  white-space: nowrap;
+}
+
+.footwear-top-strip-item svg {
+  font-size: 15px;
+  color: var(--fw-brown-dark);
+}
+
+/* The shared navbar is fixed; the utility strip already occupies the page flow. */
+.footwear-page .navbar-spacer {
+  height: 48px;
+}
+
+/* =========================================================
+   HERO CAROUSEL
+   ========================================================= */
+
+.footwear-hero-carousel {
+  margin-top: 0;
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  background: var(--fw-brown-bg);
+  touch-action: pan-y;
+}
+
+.footwear-hero-media-btn {
+  display: block;
+  width: 100%;
+  border: none;
+  padding: 0;
+  margin: 0;
+  background: none;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.footwear-hero-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.footwear-hero-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.14);
+  z-index: 4;
+  color: var(--fw-ink);
+}
+
+.footwear-hero-arrow.prev {
+  left: 16px;
+}
+
+.footwear-hero-arrow.next {
+  right: 16px;
+}
+
+.footwear-hero-dots {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+  z-index: 4;
+}
+
+.footwear-hero-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(124, 45, 18, 0.28);
+  cursor: pointer;
+  padding: 0;
+}
+
+.footwear-hero-dot.active {
+  background: var(--fw-brown-dark);
+  width: 18px;
+  border-radius: 4px;
+}
+
+/* =========================================================
+   CATEGORY STRIP — larger image circles
+   ========================================================= */
+
+.footwear-cat-strip {
+  margin: 8px 0 22px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.footwear-cat-list {
+  display: flex;
+  gap: 18px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 6px 2px 12px;
+  width: 100%;
+  max-width: 100%;
+}
+
+.footwear-cat-list::-webkit-scrollbar {
+  display: none;
+}
+
+.footwear-cat-item {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  min-width: 96px;
+  max-width: 110px;
+  padding: 4px;
+  transition: transform 0.15s ease;
+}
+
+.footwear-cat-item:hover {
+  transform: translateY(-3px);
+}
+
+.footwear-cat-icon-wrap {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: #fff7ed;
+  border: 2.5px solid #fbcfa1;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(124, 45, 18, 0.08);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.footwear-cat-item:hover .footwear-cat-icon-wrap {
+  border-color: #9a3412;
+  box-shadow: 0 8px 18px rgba(154, 52, 18, 0.16);
+}
+
+.footwear-cat-icon-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.footwear-cat-fallback-icon {
+  font-size: 28px;
+  color: #7c2d12;
+  display: inline-flex;
+}
+
+.footwear-cat-item span:last-child,
+.footwear-cat-item .footwear-cat-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #374151;
+  text-align: center;
+  max-width: 100px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* =========================================================
+   TRUST STRIP
+   ========================================================= */
+
+.footwear-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 14px;
+  background: var(--fw-brown-bg);
+  border-radius: 16px;
+  padding: 20px 18px;
+  margin-bottom: 10px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.footwear-trust-strip > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  min-width: 0;
+}
+
+.footwear-trust-strip svg {
+  font-size: 22px;
+  color: var(--fw-brown-dark);
+  flex: none;
+}
+
+.footwear-trust-strip strong {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #111827;
+}
+
+.footwear-trust-strip span {
+  color: #6b7280;
+  font-size: 11.5px;
+}
+
+/* Rails / section headings */
+.footwear-picks-section {
+  margin-bottom: 8px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.footwear-picks-section .hp-section-head h2 {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--fw-ink);
+  margin: 0;
+}
+
+.footwear-picks-section .hp-section-head button {
+  color: var(--fw-brown-dark);
+  font-weight: 800;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+}
+
+.footwear-picks-section .hp-deals-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+.footwear-empty-state {
+  color: #6b7280;
+  font-size: 13.5px;
+  padding: 24px 0;
+}
+
+.footwear-brands-section {
+  margin: 20px 0 28px;
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.footwear-brands-section .hp-top-brands-rail {
+  touch-action: pan-x pan-y;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* =========================================================
+   SECTION HEADER BAR — shared by "Deals of the Day" and
+   "Shop by Brands": accented title on the left, View All +
+   Filters grouped and right-aligned.
+   ========================================================= */
+
+.footwear-section-title {
+  position: relative;
+  margin: 0;
+  padding-left: 14px;
+  font-size: 19px;
+  font-weight: 900;
+  letter-spacing: 0.2px;
+  color: var(--fw-ink);
+}
+
+.footwear-section-title::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--fw-brown), var(--fw-brown-dark));
+}
+
+.footwear-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: none;
+  margin-left: auto;
+}
+
+.footwear-section-actions > button:first-child {
+  order: 1;
+}
+
+.footwear-section-actions .footwear-filter-btn {
+  order: 2;
+}
+
+.footwear-viewall-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  color: var(--fw-brown-dark);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 4px;
+  font-family: inherit;
+}
+
+.footwear-viewall-btn:hover {
+  text-decoration: underline;
+}
+
+/* =========================================================
+   BROWN THEME (feeds the shared hp- component classes reused
+   from Home.css / Shop.css, e.g. brand accent, rail arrows)
+   ========================================================= */
+.footwear-page {
+  --theme-primary: var(--fw-brown);
+  --theme-light: #fde3cc;
+  --theme-dark: var(--fw-brown-dark);
+  --theme-accent: #c2703d;
+  --brand-green: var(--fw-brown);
+  --brand-green-dark: var(--fw-brown-dark);
+}
+
+.footwear-page .hp-search-btn {
+  background: var(--fw-brown);
+}
+
+.footwear-page .hp-nav-link:hover,
+.footwear-page .hp-nav-link.active {
+  color: var(--fw-brown-dark);
+}
+.footwear-page .hp-nav-link:hover::after,
+.footwear-page .hp-nav-link.active::after {
+  background: var(--fw-brown);
+}
+
+.footwear-page .hp-deals-prev svg,
+.footwear-page .hp-deals-next svg {
+  color: var(--fw-brown-dark);
+}
+
+.footwear-page .hp-section-head button {
+  color: var(--fw-brown-dark);
+}
+
+.footwear-page .hp-top-brand-card-more .hp-top-brand-logo {
+  background: #fde3cc;
+  border-color: #fbcfa1;
+}
+.footwear-page .hp-top-brand-card-more .hp-top-brand-logo span,
+.footwear-page .hp-top-brand-card-more .hp-top-brand-name {
+  color: var(--fw-brown-dark);
+}
+
+.footwear-page .hp-explore-chip.active {
+  background: var(--fw-brown);
+  border-color: var(--fw-brown);
+  color: #fff;
+}
+.footwear-page .hp-explore-chip:hover {
+  border-color: var(--fw-brown);
+  color: var(--fw-brown-dark);
+}
+
+.footwear-page .hp-explore-more {
+  border-color: var(--fw-brown);
+  color: var(--fw-brown-dark);
+}
+.footwear-page .hp-explore-more:hover {
+  background: var(--fw-brown);
+  color: #fff;
+}
+
+.footwear-explore-section {
+  margin-top: 30px;
+}
+
+/* "More to Explore" grid: wider column count on real desktop, locked
+   to exactly 2 columns on mobile/tablet — overriding whatever column
+   count Home.css's shared .hp-explore-grid would otherwise apply. */
+.footwear-page .hp-explore-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 14px;
+}
+
+@media (max-width: 900px) {
+  .footwear-page .hp-explore-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px;
+  }
+}
+
+/* Product rails (Deals of the Day, All Footwear Picks, New Arrivals) —
+   on desktop, size cards so exactly 6 sit in view at once. The rail
+   itself stays horizontally scrollable (see .hp-deals-rail in
+   Home.css), so anything past the first 6 is reached by sliding. */
+@media (min-width: 901px) {
+  .footwear-page .hp-deals-rail {
+    gap: 14px;
+  }
+
+  .footwear-page .hp-deal-card-wrapper {
+    flex: 0 0 calc((100% - (5 * 14px)) / 6) !important;
+    min-width: 0 !important;
+    max-width: none !important;
+  }
+}
+
+/* =========================================================
+   PLAIN SECTION HEADINGS (All Footwear Picks, New Arrivals,
+   More to Explore) — accent-bar treatment so the whole page
+   reads as one consistent design.
+   ========================================================= */
+
+.footwear-page .hp-section-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.footwear-page .hp-section-head h2 {
+  position: relative;
+  margin: 0;
+  padding-left: 14px;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.3px;
+  color: var(--fw-ink);
+  display: flex;
+  align-items: center;
+}
+
+.footwear-page .hp-section-head h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 3px;
+  bottom: 3px;
+  width: 4px;
+  border-radius: 4px;
+  background: linear-gradient(180deg, var(--fw-brown), var(--fw-brown-dark));
+}
+
+.footwear-page .hp-section-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  color: var(--fw-brown-dark);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 8px 4px;
+  font-family: inherit;
+}
+
+.footwear-page .hp-section-head button:hover {
+  text-decoration: underline;
+}
+
+/* Brands You Will Love — reuse Home shop-by-brands grid */
+.footwear-page .hp-shop-brands-section {
+  margin: 18px 0 0;
+  padding: 10px 0 10px;
+  background: transparent;
+  width: 100%;
+  max-width: 100%;
+}
+
+.footwear-page .hp-shop-brands-grid {
+  display: grid;
+  grid-template-rows: 1fr; /* single row only */
+  grid-auto-flow: column;
+  grid-auto-columns: 160px;
+  gap: 14px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-x pan-y;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+  padding: 6px 2px 14px;
+}
+
+.footwear-page .hp-shop-brands-grid::-webkit-scrollbar {
+  display: none;
+}
+
+.footwear-page .hp-shop-brand-card {
+  width: 160px;
+  min-width: 160px;
+  min-height: 140px;
+  border: 1px solid #f3d5b5;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 4px 14px rgba(124, 45, 18, 0.06);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0;
+  scroll-snap-align: start;
+  cursor: pointer;
+  transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+}
+
+.footwear-page .hp-shop-brand-card:hover {
+  transform: translateY(-5px);
+  border-color: #f0b985;
+  box-shadow: 0 14px 28px rgba(124, 45, 18, 0.12);
+}
+
+.footwear-page .hp-shop-brand-card.featured {
+  border-color: #fbcfa1;
+  background: linear-gradient(180deg, #fff 0%, #fff7ed 100%);
+}
+
+.footwear-page .hp-shop-brand-visual {
+  position: relative;
+  flex: 1;
+  min-height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(180deg, #ffffff 0%, #fff7ed 100%);
+  padding: 16px 12px;
+}
+
+.footwear-page .hp-shop-brand-logo {
+  max-width: 88%;
+  max-height: 80px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  display: block;
+  transition: transform 0.22s ease;
+}
+
+.footwear-page .hp-shop-brand-card:hover .hp-shop-brand-logo {
+  transform: scale(1.04);
+}
+
+.footwear-page .hp-shop-brand-fallback {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(1.6rem, 2.2vw, 2.4rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  color: #0f172a;
+  opacity: 0.85;
+}
+
+/* ===== Responsive ===== */
+
+@media (max-width: 1100px) {
+  .footwear-trust-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .footwear-page .hp-sticky-head {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #fff;
+  }
+
+  .footwear-page .hp-nav-links {
+    overflow-x: auto;
+    touch-action: pan-x pan-y;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .footwear-page .hp-nav-links::-webkit-scrollbar {
+    display: none;
+  }
+
+  .footwear-top-strip-item span {
+    display: none;
+  }
+
+  .footwear-page .hp-header-actions span:not(.hp-icon-badge) {
+    display: none;
+  }
+
+  .footwear-page .hp-shop-brands-grid {
+    grid-template-rows: 1fr !important;
+    grid-auto-columns: 132px !important;
+    gap: 10px !important;
+    padding: 4px 2px 10px !important;
+  }
+
+  .footwear-page .hp-shop-brand-card {
+    width: 132px;
+    min-width: 132px;
+    min-height: 120px !important;
+  }
+
+  .footwear-page .hp-shop-brand-visual {
+    min-height: 100px !important;
+  }
+
+  .footwear-page .hp-shop-brand-logo {
+    max-height: 64px !important;
+  }
+
+  .footwear-page .hp-shead {
+    gap: 8px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+  }
+
+  .footwear-page .hp-shead-title {
+    font-size: 1.05rem;
+  }
+
+  .footwear-page .hp-shead-title-wrap {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .footwear-page .hp-shead-mark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .footwear-page .hp-deals-timer {
+    padding: 3px 8px 3px 6px;
+  }
+
+  .footwear-page .hp-deals-timer-label {
+    font-size: 9px;
+  }
+
+  .footwear-page .hp-deals-timer-value {
+    font-size: 11px;
+  }
+
+  .footwear-page .hp-shead-action {
+    font-size: 0.76rem;
+  }
+
+  .footwear-page .footwear-section-actions {
+    margin-left: auto;
+  }
+
+  .footwear-page .hp-section-head h2 {
+    font-size: 15.5px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footwear-main {
+    padding: 0 12px calc(32px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .footwear-hero-arrow {
+    width: 32px;
+    height: 32px;
+  }
+
+  .footwear-trust-strip {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 16px 14px;
+  }
+
+  .footwear-trust-strip > div {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .footwear-cat-list {
+    gap: 14px;
+  }
+
+  .footwear-cat-item {
+    min-width: 80px;
+    max-width: 92px;
+  }
+
+  .footwear-cat-icon-wrap {
+    width: 76px;
+    height: 76px;
+  }
+
+  .footwear-cat-item span:last-child,
+  .footwear-cat-item .footwear-cat-label {
+    font-size: 11.5px;
+    max-width: 84px;
+  }
+
+  .footwear-picks-section .hp-deals-prev,
+  .footwear-picks-section .hp-deals-next {
+    width: 32px;
+    height: 32px;
+  }
+
+  .footwear-section-title {
+    font-size: 16.5px;
+  }
+
+  .footwear-section-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+@media (max-width: 420px) {
+  .footwear-page .hp-shop-brands-grid {
+    grid-template-rows: 1fr !important;
+    grid-auto-columns: 118px !important;
+  }
+
+  .footwear-page .hp-shop-brand-card {
+    min-height: 110px !important;
+  }
+
+  .footwear-page .hp-shop-brand-visual {
+    min-height: 90px !important;
+  }
+
+  .footwear-page .hp-shop-brand-logo {
+    max-height: 56px !important;
+  }
+}
+
+@media (max-width: 400px) {
+  .footwear-main {
+    padding: 0 10px calc(28px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .footwear-trust-strip {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .footwear-cat-item {
+    min-width: 72px;
+    max-width: 84px;
+  }
+
+  .footwear-cat-icon-wrap {
+    width: 68px;
+    height: 68px;
+  }
+}
+
+.hp-deals-rail .hp-deal-card-wrapper {
+  min-width: 180px;
+  max-width: 220px;
+  flex: 0 0 auto;
+}
+
+.hp-deals-rail .pc-card {
+  height: 100%;
+}
+
+/* Mobile: rails stay horizontally scrollable (swipe), same pattern as
+   the brands rail — arrows hidden, native touch scroll enabled. */
+@media (max-width: 640px) {
+  .footwear-picks-section .hp-deals-wrap {
+    position: relative;
+  }
+
+  .footwear-picks-section .hp-deals-prev,
+  .footwear-picks-section .hp-deals-next {
+    display: none;
+  }
+
+  .footwear-picks-section .hp-deals-rail {
+    display: flex;
+    flex-wrap: nowrap;
+    grid-template-columns: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    gap: 10px;
+    padding: 2px 2px 10px;
+  }
+
+  .footwear-picks-section .hp-deals-rail::-webkit-scrollbar {
+    display: none;
+  }
+
+  .footwear-picks-section .hp-deal-card-wrapper {
+    min-width: 150px;
+    max-width: 170px;
+    flex: 0 0 auto;
+    width: auto;
+    scroll-snap-align: start;
+  }
+
+  .footwear-picks-section .pc-card {
+    height: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .footwear-picks-section .hp-deals-rail {
+    gap: 8px;
+  }
+
+  .footwear-picks-section .hp-deal-card-wrapper {
+    min-width: 136px;
+    max-width: 152px;
+  }
+}
+
+/* =========================================================
+   FILTER PANEL — SHOP-STYLE BROWN PANEL
+   ========================================================= */
+
+.footwear-filter-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid #fbcfa1;
+  background: #fff;
+  color: var(--fw-brown-dark);
+  font-weight: 800;
+  font-size: 13px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.footwear-filter-btn.is-active {
+  background: var(--fw-brown);
+  border-color: var(--fw-brown);
+  color: #fff;
+}
+
+.footwear-filters-panel {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 24px;
+  border: 1px solid #f3d5b5;
+  background: #fff;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(124, 45, 18, 0.08);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.footwear-filters-panel-header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 6px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid #fde3cc;
+}
+.footwear-filters-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.footwear-filters-panel-header h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--fw-ink);
+}
+
+.footwear-filters-clear {
+  border: 0;
+  background: transparent;
+  color: var(--fw-brown-dark);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 4px 6px;
+  font-family: inherit;
+}
+.footwear-filters-clear:hover {
+  text-decoration: underline;
+}
+.footwear-filters-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid;
+  border-radius: 50%;
+  background: #fff;
+  border-color: #fbcfa1;
+  color: var(--fw-brown-dark);
+  cursor: pointer;
+}
+.footwear-filters-close:hover {
+  background: #fff7ed;
+}
+
+.footwear-filter-col h4 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #3a2a1e;
+}
+
+.footwear-filter-search {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #f3d5b5;
+  border-radius: 8px;
+  padding: 0 12px;
+  margin-bottom: 10px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+.footwear-filter-search:focus {
+  border-color: var(--fw-brown);
+  box-shadow: 0 0 0 3px rgba(154, 52, 18, 0.12);
+}
+
+.footwear-filter-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.footwear-filter-list label {
+  font-size: 12.5px;
+  color: #3c4453;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+
+.footwear-filter-list input[type="checkbox"] {
+  accent-color: var(--fw-brown);
+  width: 14px;
+  height: 14px;
+}
+
+.footwear-filter-swatches {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.footwear-swatch-label {
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+.footwear-swatch-label.checked {
+  background: #fff7ed;
+}
+
+.footwear-swatch-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  flex: none;
+}
+
+.footwear-filter-col > input[type="range"] {
+  width: 100%;
+  accent-color: var(--fw-brown);
+}
+
+.footwear-filter-col p {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--fw-brown-dark);
+}
+
+.footwear-filter-discount-chips {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.footwear-filter-chip-item {
+  border: 1px solid #f3d5b5;
+  background: #fff;
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #3c4453;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  font-family: inherit;
+}
+.footwear-filter-chip-item:hover {
+  border-color: var(--fw-brown);
+  color: var(--fw-brown-dark);
+}
+.footwear-filter-chip-item.active {
+  background: var(--fw-brown);
+  border-color: var(--fw-brown);
+  color: #fff;
+}
+
+.footwear-filters-footer {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+  margin-top: 0;
+  border-top: 1px solid #fde3cc;
+}
+
+.footwear-filters-apply {
+  border: 0;
+  background: var(--fw-brown);
+  color: #fff;
+  border-radius: 999px;
+  padding: 11px 28px;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s ease;
+}
+
+.footwear-filters-apply:hover {
+  background: var(--fw-brown-dark);
+}
+
+@media (max-width: 760px) {
+  .footwear-filters-panel {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+  .footwear-filter-list {
+    grid-template-columns: 1fr;
+  }
+
+  .footwear-filters-apply {
+    width: 100%;
+  }
+
+  .footwear-filters-footer {
+    justify-content: stretch;
+  }
+}
+
+/* Hide arrows on brand rail on mobile (swipe only) */
+@media (max-width: 768px) {
+  .footwear-page .hp-shop-brands-wrap .hp-deals-prev,
+  .footwear-page .hp-shop-brands-wrap .hp-deals-next {
+    display: none !important;
+  }
+}

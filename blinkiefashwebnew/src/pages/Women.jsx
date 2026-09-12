@@ -55,7 +55,7 @@ import "./Shop.css";
 import "./Home.css";
 import "./Women.css";
 
-const EXPLORE_PAGE_SIZE = 6;
+const EXPLORE_PAGE_SIZE = 8;
 const COLORS = [
   ["Pink", "#ec4899"],
   ["Blue", "#2563eb"],
@@ -1551,7 +1551,7 @@ export default function Women() {
             <p className="women-empty-state">No products in this category yet.</p>
           ) : (
             <div className="hp-explore-grid" role="list">
-              {Array.from({ length: 6 }).map((_, idx) => (
+              {Array.from({ length: 8 }).map((_, idx) => (
                 <ProductCardSkeleton key={`explore-init-${idx}`} />
               ))}
             </div>
