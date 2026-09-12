@@ -855,3 +855,12 @@ html {
   width: 100%;
   background: transparent;
 }
+
+.app-shell.is-orders {
+  max-width: none;
+  margin: 0;
+  box-shadow: none;
+  padding-bottom: 0;
+  width: 100%;
+  background: transparent;
+}

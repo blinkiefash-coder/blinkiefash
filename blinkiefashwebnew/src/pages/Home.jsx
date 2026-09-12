@@ -279,6 +279,74 @@ async function getProductsForCategoryIds(categoryIds) {
     });
 }
 
+// Checks, for each given root category, whether at least one product
+// currently exists under it. Used to hide empty categories from any
+// category listing on the home page (e.g. "More to Explore" chips) so we
+// never show a category with nothing behind it.
+async function filterCategoriesWithProducts(categoryList) {
+  const flags = await Promise.all(
+    categoryList.map((cat) =>
+      getProducts({ category_id: cat.id, limit: 1 })
+        .then((res) => {
+          const list = res?.products || (Array.isArray(res) ? res : []);
+          return Array.isArray(list) && list.length > 0;
+        })
+        .catch(() => false)
+    )
+  );
+  return categoryList.filter((_, idx) => flags[idx]);
+}
+
+// Given a list of id-groups (each group is the set of category ids that
+// together back one chip — usually just [own id], sometimes merged with a
+// related id like the Women > Footwear merge below), returns a boolean per
+// group: whether ANY id in that group currently has at least one product.
+// Each unique id is checked only once even if it appears in multiple groups.
+async function checkAnyHasProducts(idGroups) {
+  const uniqueIds = [...new Set(idGroups.flat().filter(Boolean).map(String))];
+  const flags = await Promise.all(
+    uniqueIds.map((id) =>
+      getProducts({ category_id: id, limit: 1 })
+        .then((res) => {
+          const list = res?.products || (Array.isArray(res) ? res : []);
+          return Array.isArray(list) && list.length > 0;
+        })
+        .catch(() => false)
+    )
+  );
+  const hasProductsById = new Map(uniqueIds.map((id, idx) => [id, flags[idx]]));
+  return idGroups.map((ids) => (ids || []).some((id) => hasProductsById.get(String(id))));
+}
+
+// Drops empty category chips and empty subcategory pills from an audience's
+// (Men/Women/Kids/Electronics/Trendy Shoes) chip list. A top-level chip is
+// kept if it has direct products, or if at least one of its subcategories
+// does (so the chip stays useful to drill into); a subcategory pill is kept
+// only if it has direct products.
+async function pruneEmptyCats(catsList) {
+  if (!Array.isArray(catsList) || catsList.length === 0) return [];
+  const parentIdGroups = catsList.map((cat) => cat.categoryIds || [cat.id]);
+  const subIdGroupsPerCat = catsList.map((cat) =>
+    (Array.isArray(cat.subcategories) ? cat.subcategories : []).map((sub) => sub.categoryIds || [sub.id])
+  );
+  const flatSubGroups = subIdGroupsPerCat.flat();
+  const [parentFlags, subFlags] = await Promise.all([
+    checkAnyHasProducts(parentIdGroups),
+    checkAnyHasProducts(flatSubGroups),
+  ]);
+  let subCursor = 0;
+  const result = [];
+  catsList.forEach((cat, idx) => {
+    const subGroups = subIdGroupsPerCat[idx];
+    const filteredSubs = (cat.subcategories || []).filter((_, subIdx) => subFlags[subCursor + subIdx]);
+    subCursor += subGroups.length;
+    if (parentFlags[idx] || filteredSubs.length > 0) {
+      result.push({ ...cat, subcategories: filteredSubs });
+    }
+  });
+  return result;
+}
+
 const NON_FASHION_KEYWORDS = [
   'electronics', 'headphone', 'headphones', 'earbud', 'earbuds', 'speaker',
   'mobile', 'phone', 'laptop', 'camera', 'gaming', 'game console',
@@ -876,7 +944,12 @@ export default function Home() {
 
         if (cancelled) return;
 
-        const freshCategories = sortCategories((Array.isArray(catRes) ? catRes : []).filter((c) => !c.parent_id));
+        const rootCategories = sortCategories((Array.isArray(catRes) ? catRes : []).filter((c) => !c.parent_id));
+        // Hide categories that don't currently have any products available —
+        // only show a category chip if there's actually something to see.
+        const freshCategories = await filterCategoriesWithProducts(rootCategories);
+        if (cancelled) return;
+
         const freshDeals = Array.isArray(dealList) ? dealList : [];
         const freshNewProducts = Array.isArray(latestList) ? latestList : [];
         const freshPinned = Array.isArray(palermoList) && palermoList.length > 0 ? palermoList[0] : null;
@@ -935,13 +1008,29 @@ export default function Home() {
           });
         }
 
+        // Hide category chips and subcategory pills that don't currently
+        // have any products — an audience section (Men/Women/Kids/
+        // Electronics/Trendy Shoes) should only show chips that actually
+        // lead somewhere.
+        const [
+          prunedMensCats, prunedWomensCats, prunedKidsCats,
+          prunedElectronicsCats, prunedShoesCats,
+        ] = await Promise.all([
+          pruneEmptyCats(freshMensCats),
+          pruneEmptyCats(freshWomensCats),
+          pruneEmptyCats(freshKidsCats),
+          pruneEmptyCats(freshElectronicsCats),
+          pruneEmptyCats(freshShoesCats),
+        ]);
+        if (cancelled) return;
+
         _homeCache = {
           categories: freshCategories, deals: freshDeals, newProducts: freshNewProducts,
           pinnedNewProduct: freshPinned, mensProducts: freshMens, womensProducts: freshWomens,
           kidsProducts: freshKids, electronicsProducts: freshElectronics, trendyShoesProducts: freshShoes,
           under999Products: freshUnder999, under1999Products: freshUnder1999, topBrands: brandsList,
-          mensCats: freshMensCats, womensCats: freshWomensCats, kidsCats: freshKidsCats,
-          electronicsCats: freshElectronicsCats, trendyShoesCats: freshShoesCats,
+          mensCats: prunedMensCats, womensCats: prunedWomensCats, kidsCats: prunedKidsCats,
+          electronicsCats: prunedElectronicsCats, trendyShoesCats: prunedShoesCats,
         };
 
         setCategories(freshCategories);
@@ -956,11 +1045,11 @@ export default function Home() {
         setUnder999Products(freshUnder999);
         setUnder1999Products(freshUnder1999);
         setTopBrands(brandsList);
-        setMensCats(freshMensCats);
-        setWomensCats(freshWomensCats);
-        setKidsCats(freshKidsCats);
-        setElectronicsCats(freshElectronicsCats);
-        setTrendyShoesCats(freshShoesCats);
+        setMensCats(prunedMensCats);
+        setWomensCats(prunedWomensCats);
+        setKidsCats(prunedKidsCats);
+        setElectronicsCats(prunedElectronicsCats);
+        setTrendyShoesCats(prunedShoesCats);
       } catch (err) {
         if (!cancelled) setError(err.message || 'Could not load the home feed');
       } finally {

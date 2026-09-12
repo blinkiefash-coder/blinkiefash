@@ -57,7 +57,7 @@ import "./Shop.css";
 import "./Home.css";
 import "./Men.css";
 
-const EXPLORE_PAGE_SIZE = 6;
+const EXPLORE_PAGE_SIZE = 8;
 
 const COLORS = [
   ["Blue", "#2563eb"],
@@ -1230,7 +1230,7 @@ export default function Men() {
             <p className="men-empty-state">No products in this category yet.</p>
           ) : (
             <div className="hp-explore-grid" role="list">
-              {Array.from({ length: 6 }).map((_, idx) => (
+              {Array.from({ length: 8 }).map((_, idx) => (
                 <ProductCardSkeleton key={`explore-init-${idx}`} />
               ))}
             </div>
