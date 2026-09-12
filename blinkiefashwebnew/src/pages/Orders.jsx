@@ -300,7 +300,7 @@ export default function Orders() {
                   <MdFilterList />
                   Filter
                 </button>
-                {filterOpen && (
+                                {filterOpen && (
                   <div className="orders-filter-menu" onMouseLeave={() => setFilterOpen(false)}>
                     {FILTERS.map((f) => (
                       <button

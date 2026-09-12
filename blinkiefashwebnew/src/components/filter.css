@@ -1,325 +1,690 @@
-.filter-modal-backdrop {
-	position: fixed;
-	inset: 0;
-	z-index: 1200;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	padding: 20px;
-	background: rgba(12, 25, 18, 0.34);
-	backdrop-filter: blur(4px);
-	animation: filter-backdrop-in 0.18s ease-out;
+/* ProductFilter — one filter for every catalog page.
+   Reads the page's own accent via --theme-primary/--theme-dark
+   (set per-page, e.g. Men = blue, Women = pink) and falls back to
+   the shared --brand-green so it needs no per-page overrides. */
+
+.pf {
+  --pf-accent: var(--theme-primary, var(--brand-green, #16a34a));
+  --pf-accent-dark: var(--theme-dark, var(--brand-green-dark, #15803d));
+  --pf-ink: var(--brand-dark, #0f172a);
+  --pf-muted: var(--muted, #64748b);
+  --pf-border: var(--border, #e5e7eb);
+  --pf-surface: var(--surface, #fff);
+  --pf-radius: var(--radius-md, 16px);
+  --pf-radius-sm: var(--radius-sm, 10px);
+  --pf-shadow: var(--shadow-soft, 0 2px 10px rgba(15, 23, 42, 0.06));
+  margin: 0 0 16px;
 }
 
-.filter-panel-shell {
-	--filter-ink: #14251d;
-	--filter-muted: #708078;
-	--filter-line: #e7eee9;
-	--filter-accent: #159447;
-	--filter-soft: #f1faf4;
-	position: relative;
-	overflow: hidden;
-	display: grid;
-	grid-template-columns: minmax(290px, 1.8fr) repeat(4, minmax(150px, 1fr)) minmax(165px, 1fr) !important;
-	grid-auto-rows: max-content;
-	align-items: start;
-	column-gap: 0;
-	row-gap: 0;
-	padding: 0 18px 10px;
-	width: min(1600px, calc(100vw - 20px));
-	max-height: min(960px, calc(100vh - 20px));
-	min-height: min(760px, calc(100vh - 20px));
-	margin: 0;
-	border-radius: 18px;
-	box-sizing: border-box;
-	overflow-y: auto;
-	overscroll-behavior: contain;
-	animation: filter-panel-in 0.22s ease-out;
-	background:
-		linear-gradient(135deg, rgba(241, 250, 244, 0.78), transparent 34%),
-		#fff;
-	border: 1px solid #dfe9e2;
-	box-shadow: 0 14px 34px rgba(20, 54, 35, 0.08);
+.pf-embedded {
+  margin: 0;
 }
 
-@keyframes filter-backdrop-in {
-	from { opacity: 0; }
-	to { opacity: 1; }
+/* ============ Always-visible bar ============ */
+
+.pf-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--pf-surface);
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius);
+  box-shadow: var(--pf-shadow);
 }
 
-@keyframes filter-panel-in {
-	from { opacity: 0; transform: translateY(10px) scale(0.98); }
-	to { opacity: 1; transform: translateY(0) scale(1); }
+.pf-chips-rail-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.filter-panel-shell:not(.has-gender) {
-	grid-template-columns: minmax(290px, 1.8fr) repeat(3, minmax(150px, 1fr)) minmax(165px, 1fr) !important;
+.pf-chip-scroll {
+  flex: none;
+  display: none; /* shown from tablet width up; touch users can swipe */
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  color: var(--pf-ink);
+  border-radius: 50%;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
 }
 
-.filter-panel-shell::before {
-	content: "";
-	position: absolute;
-	inset: 0 auto 0 0;
-	width: 4px;
-	background: var(--filter-accent);
+.pf-chip-scroll:hover {
+  border-color: var(--pf-accent);
+  color: var(--pf-accent);
 }
 
-.filter-panel-shell .filter-panel-heading {
-	display: flex;
-	align-items: center;
-	gap: 10px;
+@media (min-width: 640px) {
+  .pf-chip-scroll {
+    display: inline-flex;
+  }
 }
 
-.filter-panel-shell .catalog-filters-panel-header,
-.filter-panel-shell .men-filters-panel-header,
-.filter-panel-shell .women-filters-panel-header,
-.filter-panel-shell .kids-filters-panel-header,
-.filter-panel-shell .filters-panel-header {
-	grid-column: 1 / -1;
-	margin: 0 -18px 12px;
-	padding: 12px 18px 10px;
-	background: rgba(255, 255, 255, 0.72);
-	border-bottom: 1px solid var(--filter-line);
+.pf-chips-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
-.filter-panel-shell .filter-panel-icon {
-	display: inline-flex;
-	align-items: center;
-	justify-content: center;
-	width: 32px;
-	height: 32px;
-	color: var(--filter-accent);
-	background: var(--filter-soft);
-	border: 1px solid #d8f0df;
-	border-radius: 10px;
-	font-size: 18px;
+.pf-chips-rail::-webkit-scrollbar {
+  display: none;
 }
 
-.filter-panel-shell .filter-panel-heading p {
-	margin: 3px 0 0;
-	color: var(--filter-muted);
-	font-size: 11px;
-	font-weight: 500;
-	letter-spacing: 0;
-	text-transform: none;
+.pf-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pf-border);
+  background: var(--brand-bg, #f8fafc);
+  color: var(--pf-ink);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
-.filter-panel-shell .filter-section {
-	min-width: 0;
-	padding: 2px 14px 8px 0;
-	border-right: 1px solid var(--filter-line);
-	align-self: start;
+.pf-chip:hover {
+  border-color: var(--pf-accent);
 }
 
-.filter-panel-shell .filter-section:nth-last-of-type(2) {
-	border-right: 0;
+.pf-chip.active {
+  background: var(--pf-accent);
+  border-color: var(--pf-accent);
+  color: #fff;
 }
 
-.filter-panel-shell .filter-section h4 {
-	color: #13241b;
-	font-size: 11px;
-	letter-spacing: 0.08em;
-	margin-bottom: 8px;
+.pf-chip-count {
+  font-size: 11px;
+  opacity: 0.75;
 }
 
-.filter-panel-shell .filter-section h4::after {
-	content: "";
-	display: block;
-	width: 22px;
-	height: 2px;
-	margin-top: 5px;
-	border-radius: 2px;
-	background: var(--filter-accent);
+.pf-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
 }
 
-.filter-panel-shell .filter-list {
-	gap: 6px 10px;
-	max-height: 340px;
-	min-width: 0;
-	scrollbar-color: #b9c9be transparent;
+.pf-sort {
+  display: none;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--pf-muted);
+  font-weight: 600;
 }
 
-.filter-panel-shell .filter-list-brands,
-.filter-panel-shell .catalog-filter-list-brands,
-.filter-panel-shell .men-filter-list-brands,
-.filter-panel-shell .women-filter-list-brands,
-.filter-panel-shell .kids-filter-list-brands {
-	max-height: none;
-	overflow: visible;
+.pf-sort select {
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius-sm);
+  padding: 7px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  background: var(--pf-surface);
+  max-width: 150px;
 }
 
-.filter-panel-shell .filter-chips,
-.filter-panel-shell .filter-discount-chips,
-.filter-panel-shell .catalog-filter-chips,
-.filter-panel-shell .men-filter-chips,
-.filter-panel-shell .catalog-filter-discount-chips,
-.filter-panel-shell .men-filter-discount-chips,
-.filter-panel-shell .kids-filter-discount-chips,
-.filter-panel-shell .women-filter-discount-chips {
-	max-height: none;
-	height: auto;
-	overflow: visible;
+.pf-open-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  color: var(--pf-ink);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
 }
 
-.filter-panel-shell .filter-list label {
-	min-height: 26px;
-	padding: 3px 5px 3px 2px;
-	border-radius: 7px;
-	min-width: 0;
-	line-height: 1.25;
-	transition: background 0.15s ease, color 0.15s ease;
+.pf-open-btn:hover {
+  border-color: var(--pf-accent);
+  color: var(--pf-accent);
 }
 
-.filter-panel-shell .filter-list label:hover {
-	color: var(--filter-accent);
-	background: var(--filter-soft);
+.pf-open-btn svg {
+  font-size: 16px;
 }
 
-.filter-panel-shell .filter-list input[type="checkbox"] {
-	accent-color: var(--filter-accent);
-	flex: none;
+.pf-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--pf-accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1;
 }
 
-.filter-panel-shell .filter-list label > span:last-child {
-	min-width: 0;
-	white-space: normal;
-	overflow-wrap: anywhere;
+.pf-clear-inline {
+  display: none;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: #dc2626;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 8px 4px;
+  white-space: nowrap;
 }
 
-.filter-panel-shell .filter-search {
-	border-color: #dce8df;
-	background: rgba(255, 255, 255, 0.85);
+/* Show sort + inline clear once there's room */
+@media (min-width: 560px) {
+  .pf-sort {
+    display: flex;
+  }
+  .pf-clear-inline {
+    display: inline-flex;
+  }
 }
 
-.filter-panel-shell .filter-search:focus {
-	border-color: var(--filter-accent);
-	box-shadow: 0 0 0 3px rgba(21, 148, 71, 0.12);
+/* ============ Panel shell ============ */
+
+.pf-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(12, 18, 30, 0.4);
+  backdrop-filter: blur(3px);
+  animation: pf-fade-in 0.18s ease-out;
+  /* The body is pinned with position:fixed while the panel is open (see
+     filter.jsx), so nothing behind this backdrop can scroll anyway — this
+     is just an extra safety net against any touch drag on the backdrop
+     itself trying to scroll/bounce the page underneath. */
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
-.filter-panel-shell .filter-swatches .swatch-label,
-.filter-panel-shell .catalog-swatch-label,
-.filter-panel-shell .men-swatch-label,
-.filter-panel-shell .kids-swatch-label,
-.filter-panel-shell .women-swatch-label {
-	border: 1px solid transparent;
+.pf-panel {
+  position: relative;
+  width: 100%;
+  max-height: 88dvh;
+  background: var(--pf-surface);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -8px 30px rgba(15, 23, 42, 0.18);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  animation: pf-sheet-up 0.22s ease-out;
+  /* Let the panel itself receive normal touch gestures (its inner
+     scrollable regions declare their own touch-action below); this just
+     stops a drag that starts on the panel's own padding/borders from
+     being treated as a page-scroll gesture. */
+  touch-action: pan-y;
 }
 
-.filter-panel-shell .filter-swatches .swatch-label.checked,
-.filter-panel-shell .catalog-swatch-label.checked,
-.filter-panel-shell .men-swatch-label.checked,
-.filter-panel-shell .kids-swatch-label.checked,
-.filter-panel-shell .women-swatch-label.checked {
-	border-color: #b9e4c5;
-	background: var(--filter-soft);
+.pf-panel-handle {
+  width: 40px;
+  height: 4px;
+  border-radius: 4px;
+  background: var(--pf-border);
+  margin: 10px auto 0;
+  flex: none;
 }
 
-.filter-panel-shell .filter-chip,
-.filter-panel-shell .filter-chip-item,
-.filter-panel-shell .catalog-filter-chip,
-.filter-panel-shell .men-filter-chip-item,
-.filter-panel-shell .kids-filter-chip-item {
-	border-color: #dce8df;
-	background: #fff;
+.pf-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--pf-border);
+  flex: none;
 }
 
-.filter-panel-shell .filter-chip:hover,
-.filter-panel-shell .filter-chip-item:hover,
-.filter-panel-shell .catalog-filter-chip:hover,
-.filter-panel-shell .men-filter-chip-item:hover,
-.filter-panel-shell .kids-filter-chip-item:hover {
-	border-color: var(--filter-accent);
-	color: var(--filter-accent);
-	background: var(--filter-soft);
+.pf-panel-heading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.filter-panel-shell .filter-chip.active,
-.filter-panel-shell .filter-chip-item.active,
-.filter-panel-shell .catalog-filter-chip.active,
-.filter-panel-shell .men-filter-chip-item.active,
-.filter-panel-shell .kids-filter-chip-item.active {
-	background: var(--filter-accent);
-	border-color: var(--filter-accent);
-	color: #fff;
+.pf-panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  color: var(--pf-accent);
+  background: color-mix(in srgb, var(--pf-accent) 12%, white);
+  border: 1px solid color-mix(in srgb, var(--pf-accent) 30%, white);
+  border-radius: 10px;
+  font-size: 18px;
 }
 
-.filter-panel-shell .filter-panel-footer {
-	grid-column: 1 / -1;
-	align-items: center;
-	justify-content: space-between;
-	gap: 12px;
-	margin: 4px -18px 0;
-	padding: 10px 18px 0;
-	border-top: 1px solid var(--filter-line);
+.pf-panel-heading h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--pf-ink);
 }
 
-.filter-panel-shell .filter-live-note {
-	color: var(--filter-muted);
-	font-size: 11px;
-	font-weight: 600;
+.pf-panel-heading p {
+  margin: 2px 0 0;
+  font-size: 11.5px;
+  color: var(--pf-muted);
+  font-weight: 500;
 }
 
-.filter-panel-shell .filters-apply {
-	min-width: 88px;
-	padding: 9px 20px;
-	background: var(--filter-accent);
-	color: #fff;
-	box-shadow: 0 5px 12px rgba(21, 148, 71, 0.18);
+.pf-panel-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
 }
 
-.filter-panel-shell .filters-apply:hover {
-	background: #087d39;
-	transform: translateY(-1px);
+.pf-text-btn {
+  border: none;
+  background: transparent;
+  color: var(--pf-accent-dark);
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 6px 4px;
 }
 
-@media (max-width: 800px) {
-	.filter-modal-backdrop {
-		align-items: flex-end;
-		padding: 0;
-	}
-
-	.filter-panel-shell {
-		grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-		gap: 0 14px;
-		width: 100%;
-		max-height: min(94vh, 900px);
-		min-height: 0;
-		border-radius: 18px 18px 0 0;
-		padding-bottom: 16px;
-	}
-
-	.filter-panel-shell .filter-section {
-		border-right: 0;
-		border-bottom: 1px solid var(--filter-line);
-		padding: 16px 0 14px;
-	}
-
-	.filter-panel-shell .filter-section:last-of-type {
-		border-bottom: 0;
-	}
-
-	.filter-panel-shell .filter-section:nth-last-of-type(2) {
-		border-right: 0;
-	}
+.pf-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  color: var(--pf-ink);
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 16px;
 }
 
-@media (max-width: 480px) {
-	.filter-panel-shell {
-		grid-template-columns: 1fr;
-		padding-inline: 14px;
-	}
-
-	.filter-panel-shell .catalog-filters-panel-header,
-	.filter-panel-shell .men-filters-panel-header,
-	.filter-panel-shell .women-filters-panel-header,
-	.filter-panel-shell .kids-filters-panel-header,
-	.filter-panel-shell .filters-panel-header {
-		margin-inline: -14px;
-		padding-inline: 14px;
-	}
-
-	.filter-panel-shell .filter-panel-footer {
-		margin-inline: -14px;
-		padding-inline: 14px;
-	}
+.pf-panel-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 4px 18px 8px;
+  /* This is the actual fix for "scrolling in the filter scrolls the whole
+     page": once this list hits its top/bottom edge, overscroll-behavior
+     stops the browser from handing the rest of the scroll gesture off to
+     the page behind it (the default "contain" chaining is what caused
+     the bug). touch-action: pan-y keeps vertical touch scrolling working
+     normally inside the panel itself. */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
 }
 
+.pf-section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pf-border);
+}
+
+.pf-section:last-child {
+  border-bottom: none;
+}
+
+.pf-section h4 {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--pf-ink);
+}
+
+.pf-search {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--pf-border);
+  border-radius: var(--pf-radius-sm);
+  padding: 8px 10px;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.pf-search:focus {
+  outline: none;
+  border-color: var(--pf-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--pf-accent) 16%, transparent);
+}
+
+.pf-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pf-list-scroll {
+  max-height: 160px;
+  overflow-y: auto;
+  /* Same scroll-chaining fix as .pf-panel-body, but for this nested
+     scroll area specifically (a long brand list inside the panel) so
+     reaching its end doesn't bubble the scroll up to the panel body and
+     then out to the page. */
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+}
+
+.pf-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 4px;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--pf-ink);
+  cursor: pointer;
+}
+
+.pf-check:hover {
+  background: var(--brand-bg, #f8fafc);
+}
+
+.pf-check input {
+  accent-color: var(--pf-accent);
+}
+
+.pf-empty {
+  font-size: 12px;
+  color: var(--pf-muted);
+  padding: 6px 4px;
+  margin: 0;
+}
+
+.pf-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pf-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--pf-border);
+  border-radius: 999px;
+  padding: 5px 10px 5px 6px;
+  font-size: 12.5px;
+  color: var(--pf-ink);
+  cursor: pointer;
+}
+
+.pf-swatch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.pf-swatch.checked {
+  border-color: var(--pf-accent);
+  background: color-mix(in srgb, var(--pf-accent) 10%, white);
+}
+
+.pf-swatch-dot {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  flex: none;
+}
+
+.pf-range {
+  width: 100%;
+  accent-color: var(--pf-accent);
+}
+
+.pf-range-value {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--pf-muted);
+}
+
+.pf-chip-group,
+.pf-rating-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pf-mini-chip {
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  color: var(--pf-ink);
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.pf-mini-chip:hover {
+  border-color: var(--pf-accent);
+  color: var(--pf-accent);
+}
+
+.pf-mini-chip.active {
+  background: var(--pf-accent);
+  border-color: var(--pf-accent);
+  color: #fff;
+}
+
+.pf-rating-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid var(--pf-border);
+  background: var(--pf-surface);
+  border-radius: var(--pf-radius-sm);
+  padding: 6px 10px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--pf-ink);
+  cursor: pointer;
+}
+
+.pf-rating-btn svg {
+  color: #f59e0b;
+  font-size: 13px;
+}
+
+.pf-rating-btn.active {
+  background: #fffbeb;
+  border-color: #f59e0b;
+}
+
+.pf-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--pf-ink);
+  cursor: pointer;
+}
+
+.pf-toggle {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 24px;
+  flex: none;
+}
+
+.pf-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.pf-toggle-track {
+  position: absolute;
+  inset: 0;
+  background: #d1d5db;
+  border-radius: 999px;
+  transition: background 0.15s ease;
+}
+
+.pf-toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease;
+}
+
+.pf-toggle input:checked + .pf-toggle-track {
+  background: var(--pf-accent);
+}
+
+.pf-toggle input:checked + .pf-toggle-track .pf-toggle-thumb {
+  transform: translateX(16px);
+}
+
+.pf-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-top: 1px solid var(--pf-border);
+  flex: none;
+  background: var(--pf-surface);
+}
+
+.pf-live-note {
+  font-size: 11.5px;
+  color: var(--pf-muted);
+  font-weight: 600;
+}
+
+.pf-apply-btn {
+  min-width: 140px;
+  padding: 11px 20px;
+  background: var(--pf-accent);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 5px 12px color-mix(in srgb, var(--pf-accent) 30%, transparent);
+}
+
+.pf-apply-btn:hover {
+  background: var(--pf-accent-dark);
+}
+
+@keyframes pf-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes pf-sheet-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* ============ Desktop: centered dialog + multi-column body ============ */
+
+@media (min-width: 768px) {
+  .pf-backdrop {
+    align-items: center;
+    padding: 20px;
+  }
+
+  .pf-panel {
+    width: min(920px, 100%);
+    max-height: min(680px, 90vh);
+    border-radius: 20px;
+  }
+
+  .pf-panel-handle {
+    display: none;
+  }
+
+  .pf-panel-body {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    column-gap: 24px;
+    padding: 14px 24px 12px;
+  }
+
+  .pf-section {
+    border-bottom: none;
+    border-right: 1px solid var(--pf-border);
+    padding: 10px 0 10px;
+  }
+
+  .pf-section:nth-child(3n) {
+    border-right: none;
+  }
+
+  .pf-panel-header,
+  .pf-panel-footer {
+    padding-inline: 24px;
+  }
+
+  @keyframes pf-sheet-up {
+    from {
+      transform: translateY(10px) scale(0.98);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pf-backdrop,
+  .pf-panel {
+    animation: none;
+  }
+}

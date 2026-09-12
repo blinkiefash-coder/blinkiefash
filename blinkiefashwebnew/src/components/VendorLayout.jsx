@@ -8,6 +8,7 @@ import { isAdmin } from '../utils/adminSession';
 const DEFAULT_MENU = [
   { key: 'orders', label: 'Orders', icon: '◍' },
   { key: 'products', label: 'Add Product', icon: '□' },
+  { key: 'catalogue', label: 'Vendor Catalogue', icon: '▤' },
   { key: 'edit', label: 'Edit Products', icon: '✏' },
   { key: 'stock', label: 'Stock Monitoring', icon: '📦' },
   { key: 'analytics', label: 'Product Analytics', icon: '📊' },
@@ -86,6 +87,8 @@ export default function VendorLayout({
               ? 'Product Analytics'
               : activeKey === 'profile'
                 ? 'Store / Profile'
+                : activeKey === 'catalogue'
+                  ? 'Vendor Catalogue'
                 : activeKey === 'create-vendor'
                   ? 'Create Vendor'
                   : activeKey === 'manage-categories'
@@ -93,9 +96,12 @@ export default function VendorLayout({
                     : 'Vendor Portal';
 
   // Build menu with admin items if user is admin
+  const menuWithCatalogue = menuItems.some((item) => item.key === 'catalogue')
+    ? menuItems
+    : [...menuItems, { key: 'catalogue', label: 'Vendor Catalogue', icon: '▤' }];
   const finalMenuItems = menuItems === DEFAULT_MENU && isAdmin()
-    ? [...DEFAULT_MENU, ...ADMIN_MENU]
-    : menuItems;
+    ? [...menuWithCatalogue, ...ADMIN_MENU]
+    : menuWithCatalogue;
 
   return (
     <div className={`vendor-product-shell ${isSidebarCollapsed ? 'sidebar-collapsed' : 'sidebar-expanded'}`}>
@@ -153,7 +159,13 @@ export default function VendorLayout({
                   type="button"
                   className={`${item.key === activeKey ? 'active' : ''} ${isAdminItem ? 'admin-item' : ''}`}
                   title={item.label}
-                  onClick={() => onMenuClick?.(item)}
+                  onClick={() => {
+                    if (item.key === 'catalogue') {
+                      navigate('/vendor/catalogue');
+                    } else {
+                      onMenuClick?.(item);
+                    }
+                  }}
                 >
                   <span className="vendor-nav-icon">{item.icon}</span>
                   {!isSidebarCollapsed ? <span className="vendor-nav-text">{item.label}</span> : null}

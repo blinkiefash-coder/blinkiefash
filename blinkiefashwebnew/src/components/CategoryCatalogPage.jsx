@@ -7,7 +7,7 @@ import Loader from "./Loader";
 import Navbar from "./Navbar";
 import PageSEO from "./PageSEO";
 import ProductCard, { ProductCardSkeleton } from "./ProductCard";
-import FilterBar from "./FilterBar";
+import Filter from "./filter";
 import { getProducts, getCategories } from "../api";
 import { API_BASE_URL } from "../apiBase";
 import { getCached, setCached } from "../hooks/useProductCache";
@@ -346,8 +346,8 @@ export default function CategoryCatalogPage({
           </aside>
 
           <div className="ccp-content">
-            <FilterBar
-              subcategories={activeSubcategories}
+            <Filter
+              ariaLabel={`${sectionLabel} filters`}
               filters={{ subcategory, maxPrice: Math.min(maxPrice, priceBounds.max), minRating, sort }}
               priceBounds={priceBounds}
               onChange={applyFilterPatch}
