@@ -59,6 +59,7 @@ import HeroCardsManager from './pages/HeroCardsManager';
 import { useAuth } from './context/AuthContext';
 import DealsOfTheDay from './pages/dealsoftheday';
 import FestivePage from './pages/FestivePage';
+import OrderDetails from './pages/Orderdetail';
 
 import { applyThemeVariables, removeThemeVariables } from './utils/themeUtils';
 
@@ -206,7 +207,6 @@ export default function App() {
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/orders" element={<Orders />} />
         <Route path="/complain" element={<Complain />} />
-        <Route path="/orders/:orderId" element={<OrderTracking />} />
         <Route path="/account" element={<Account />} />
         <Route path="/parcel" element={<Parcel />} />
         <Route path="/offers" element={<Offers />} />
@@ -217,6 +217,8 @@ export default function App() {
         <Route path="/login" element={<AuthModalRoute view="login" />} />
         <Route path="/signup" element={<AuthModalRoute view="signup" />} />
         <Route path="/set-password" element={<SetPassword />} />
+        <Route path="/orders/:orderId" element={<OrderDetails />} />
+        <Route path="/orders/:orderId/track" element={<OrderTracking />} />
         <Route
           path="/notifications"
           element={
@@ -325,7 +327,7 @@ export default function App() {
         <Route path="/account/addresses" element={<SavedAddresses />} />
         <Route path="/deals-of-the-day" element={<DealsOfTheDay />} />
         <Route path="/festive/:gender" element={<FestivePage />} />
-        {/* NEW: Blinkiefash India / Local mode pages */}
+  {/* NEW: Blinkiefash India / Local mode pages */}
         {/* <Route path="/blinkiefash-india" element={<BlinkiefashIndia />} /> */}
         {/* <Route path="/blinkiefash-local" element={<BlinkiefashLocal />} /> */}
       </Routes>

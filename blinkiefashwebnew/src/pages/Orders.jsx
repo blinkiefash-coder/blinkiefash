@@ -16,7 +16,7 @@ const STATUS_META = {
   pending:            { label: 'Order Placed',     tone: 'amber',  category: 'active' },
   confirmed:          { label: 'Confirmed',        tone: 'amber',  category: 'active' },
   processing:         { label: 'Processing',       tone: 'amber',  category: 'active' },
-  packed:             { label: 'Packed',           tone: 'amber',  category: 'active' },
+  packed:             { label: 'Confirmed',        tone: 'amber',  category: 'active' },
   shipped:            { label: 'Shipped',          tone: 'info',   category: 'active' },
   out_for_delivery:   { label: 'Out for delivery', tone: 'info',   category: 'active' },
   delivered:          { label: 'Delivered',        tone: 'success', category: 'delivered' },
@@ -31,23 +31,15 @@ function statusMeta(raw) {
   return STATUS_META[key] || { label: raw || 'Order placed', tone: 'muted', category: 'active' };
 }
 
-// Steps shown in the active-order tracker
-const STEPS = [
-  { key: 'ordered', label: 'Ordered' },
-  { key: 'packed', label: 'Packed' },
-  { key: 'shipped', label: 'Shipped' },
-  { key: 'out_for_delivery', label: 'Out for delivery' },
-  { key: 'delivered', label: 'Delivered' },
-];
-
-// Map a live order status to how far along the tracker it is (index into STEPS, 0-3;
-// 'delivered' orders are rendered by the separate delivered-card branch instead).
+// Kept in sync with OrderTracking.jsx's STEPS/currentStepIndex so both pages
+// agree on where an order sits in its lifecycle.
 function currentStepIndex(status) {
   const key = String(status || '').toLowerCase().replace(/\s+/g, '_');
-  if (['pending', 'confirmed'].includes(key)) return 0;
-  if (['processing', 'packed'].includes(key)) return 1;
+  if (key === 'pending') return 0;
+  if (['confirmed', 'processing', 'packed'].includes(key)) return 1;
   if (key === 'shipped') return 2;
   if (key === 'out_for_delivery') return 3;
+  if (key === 'delivered') return 4;
   return 0;
 }
 
@@ -146,14 +138,6 @@ function formatDate(value) {
   return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-function formatDateTime(value) {
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '';
-  const datePart = d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
-  const timePart = d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-  return `${datePart} · ${timePart}`;
-}
-
 function formatAmount(value) {
   const n = Number(value || 0);
   return `₹${n.toLocaleString('en-IN')}`;
@@ -166,6 +150,16 @@ function itemMetaLine(order) {
   const parts = [first.color, first.size].filter(Boolean);
   parts.push(`${count} item${count === 1 ? '' : 's'}`);
   return parts.join(' · ');
+}
+
+// Short, human "where things stand" line for active orders on the LIST page.
+// The full 5-step tracker with timestamps lives on the Order Details page —
+// the list just needs to say what stage the order is at.
+function activeSubstatus(order) {
+  const idx = currentStepIndex(order.status);
+  const stageLabel = ['Order placed', 'Confirmed', 'Shipped', 'Out for delivery'][idx] || 'Order placed';
+  if (order.eta_text) return order.eta_text;
+  return stageLabel;
 }
 
 /* ---------- filters ---------- */
@@ -195,10 +189,25 @@ export default function Orders() {
       setLoading(false);
       return;
     }
+    let cancelled = false;
+    setLoading(true);
+    setError('');
+
     getOrders(user.id)
-      .then((res) => setOrders(res.orders || []))
-      .catch((err) => setError(err.message || 'Could not load orders'))
-      .finally(() => setLoading(false));
+      .then((res) => {
+        if (cancelled) return;
+        setOrders(res.orders || []);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || 'Could not load orders');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, [isLoggedIn, user]);
 
   const visibleOrders = useMemo(() => {
@@ -213,9 +222,12 @@ export default function Orders() {
     });
   }, [orders, search, filter]);
 
-  /* ---------- actions ---------- */
+  /* ---------- navigation ----------
+     Every path below — tapping the card, "Track Order", "View Details",
+     "Track Return" — all go to the same Order Details page. That page
+     contains the full status banner + 5-step tracker + item + sidebar. */
   const goToDetails = (order) => navigate(`/orders/${order.id}`);
-  const goToTrack = (order) => navigate(`/orders/${order.id}`);
+
   const goToReview = (order, e) => {
     e.stopPropagation();
     navigate(`/orders/${order.id}/review`);
@@ -230,13 +242,9 @@ export default function Orders() {
     e.stopPropagation();
     navigate(`/complain?orderId=${encodeURIComponent(order.id)}`);
   };
-  const goToTrackReturn = (order, e) => {
-    e.stopPropagation();
-    navigate(`/orders/${order.id}`);
-  };
   const goToDetailsBtn = (order, e) => {
     e.stopPropagation();
-    navigate(`/orders/${order.id}`);
+    goToDetails(order);
   };
 
   if (!isLoggedIn) {
@@ -355,7 +363,6 @@ export default function Orders() {
                 const { label, tone, category } = statusMeta(order.status);
                 const firstItem = order.items?.[0];
                 const firstImage = firstItem?.image || firstItem?.image_url;
-                const stepIdx = category === 'active' ? currentStepIndex(order.status) : null;
 
                 return (
                   <div
@@ -396,8 +403,8 @@ export default function Orders() {
                         {category === 'return' && (
                           <p className="order-substatus warning">{order.return_note || 'Return pickup scheduled'}</p>
                         )}
-                        {category === 'active' && order.eta_text && (
-                          <p className="order-substatus success">{order.eta_text}</p>
+                        {category === 'active' && (
+                          <p className="order-substatus success">{activeSubstatus(order)}</p>
                         )}
                       </div>
 
@@ -407,31 +414,13 @@ export default function Orders() {
                       </div>
                     </div>
 
-                    {category === 'active' && (
-                      <div className="order-tracker">
-                        {STEPS.map((step, i) => {
-                          const done = i <= stepIdx;
-                          const isCurrent = i === stepIdx;
-                          const dateKey = order.timeline?.[step.key];
-                          return (
-                            <div className="order-tracker-step" key={step.key}>
-                              <div className="order-tracker-line-wrap">
-                                {i > 0 && <span className={`order-tracker-line${i <= stepIdx ? ' done' : ''}`} />}
-                                <span className={`order-tracker-dot${done ? ' done' : ''}${isCurrent ? ' current' : ''}`}>
-                                  {done && <IconCheck />}
-                                </span>
-                              </div>
-                              <span className={`order-tracker-label${isCurrent ? ' current' : ''}`}>{step.label}</span>
-                              {dateKey && <span className="order-tracker-date">{formatDateTime(dateKey)}</span>}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                    {/* No inline tracker here on purpose — tapping the card (or any
+                        action button below) opens the Order Details page, which is
+                        where the full 5-step tracker with timestamps lives. */}
 
                     <div className="order-card-actions">
                       {category === 'active' && (
-                        <button type="button" className="order-btn filled" onClick={(e) => { e.stopPropagation(); goToTrack(order); }}>
+                        <button type="button" className="order-btn filled" onClick={(e) => { e.stopPropagation(); goToDetails(order); }}>
                           <IconTruck /> Track Order
                         </button>
                       )}
@@ -457,7 +446,7 @@ export default function Orders() {
                       )}
                       {category === 'return' && (
                         <>
-                          <button type="button" className="order-btn outline" onClick={(e) => goToTrackReturn(order, e)}>
+                          <button type="button" className="order-btn outline" onClick={(e) => goToDetailsBtn(order, e)}>
                             <IconReturnBox /> Track Return
                           </button>
                           <button type="button" className="order-btn outline" onClick={(e) => goToDetailsBtn(order, e)}>
