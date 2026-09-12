@@ -911,19 +911,22 @@ export default function Men() {
             type="button"
             className="men-hero-media-btn"
             onClick={() => {
-              if (heroIndex === 1) {
-                navigate("/shop?new_arrivals=true&sort=newest");
-              } else if (heroIndex === 2) {
-                const poloCat = findMenSubcatByLabel("Polo T-Shirts");
-                navigate(
-                  poloCat
-                    ? menScopedShopUrl({ categoryId: poloCat.id })
-                    : menScopedShopUrl({ search: "polo t-shirt" })
-                );
-              } else {
-                navigate(menScopedShopUrl());
-              }
-            }}
+  if (heroIndex === 1) {
+    const params = new URLSearchParams({ new_arrivals: "true", sort: "newest" });
+    if (menRootId) params.set("category_id", String(menRootId));
+    else params.set("search", "men");
+    navigate(`/shop?${params.toString()}`);
+  } else if (heroIndex === 2) {
+    const poloCat = findMenSubcatByLabel("Polo T-Shirts");
+    navigate(
+      poloCat
+        ? menScopedShopUrl({ categoryId: poloCat.id })
+        : menScopedShopUrl({ search: "polo t-shirt" })
+    );
+  } else {
+    navigate(menScopedShopUrl());
+  }
+}}
           >
             <picture>
               {slide.mobileImage ? (
