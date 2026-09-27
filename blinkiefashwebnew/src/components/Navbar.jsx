@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import ConfirmDialog from "./ConfirmDialog";
 import { useLogoutConfirm } from "../hooks/useLogoutConfirm";
+import { useAuth } from "../context/AuthContext";
 import { getCategories } from "../api";
 import { useAuthModal } from "../context/AuthModalContext";
 import { useCart } from "../context/CartContext";
@@ -60,20 +61,13 @@ const MORE_LINKS = [
   { label: "Backpack", path: "/backpack" },
 ];
 
-function readAuthFromStorage() {
-  return {
-    isLoggedIn: Boolean(localStorage.getItem("token")),
-    userName: localStorage.getItem("userName") || "",
-  };
-}
-
 export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(() => readAuthFromStorage().isLoggedIn);
-  const [userName, setUserName] = useState(() => readAuthFromStorage().userName);
+  const { isLoggedIn, user, logout } = useAuth();
+  const userName = user?.name || user?.full_name || user?.phone || "";
   const { count: cartCount } = useCart();
   const { count: wishlistCount } = useWishlist();
 
@@ -95,16 +89,6 @@ export default function Navbar() {
   const isSearchOnlyMobile = location.pathname.startsWith("/shop");
   const showBackButton = location.pathname !== "/";
   const shouldShowNavbarSpacer = true;
-
-  useEffect(() => {
-    const syncAuth = () => {
-      const next = readAuthFromStorage();
-      setIsLoggedIn(next.isLoggedIn);
-      setUserName(next.userName);
-    };
-    window.addEventListener("storage", syncAuth);
-    return () => window.removeEventListener("storage", syncAuth);
-  }, []);
 
   /* Close dropdowns on outside click */
   useEffect(() => {
@@ -206,10 +190,8 @@ export default function Navbar() {
     navigate(path);
   };
 
-  const performLogout = () => {
-    localStorage.clear();
-    setIsLoggedIn(false);
-    setUserName("");
+  const performLogout = async () => {
+    await logout();
     setProfileOpen(false);
     closeDrawer();
   };
