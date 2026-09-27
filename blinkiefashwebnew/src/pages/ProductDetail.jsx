@@ -388,6 +388,10 @@ export default function ProductDetail() {
   const stockLeft = Number(selectedVariant?.available_stock ?? 1);
   const outOfStock = hasVariants && Boolean(selectedVariant) && stockLeft <= 0;
   const canPurchase = hasVariants ? Boolean(selectedVariant) && !outOfStock : true;
+  const tryAndBuyEnabled = product.is_try_and_buy === true || product.is_try_enabled === true;
+  const distanceKm = Number(deliveryQuote?.distance);
+  const tryAndBuyDistanceEligible = Number.isFinite(distanceKm) && distanceKm <= 15;
+  const canTryAndBuy = canPurchase && tryAndBuyEnabled && tryAndBuyDistanceEligible;
 
   const rating = Number(product.rating || 4.8);
   const roundedAvg = Math.min(Math.max(Math.round(rating), 0), 5);
@@ -525,6 +529,7 @@ export default function ProductDetail() {
   };
 
   const handleTryAndBuyClick = () => {
+    if (!canTryAndBuy) return;
     logEvent('try_and_buy_clicked', { product_id: product.id });
     if (handleAddToCart('try_and_buy')) navigate('/checkout');
   };
@@ -1000,7 +1005,7 @@ export default function ProductDetail() {
               <button
                 type="button"
                 className="pp-try-buy"
-                disabled={canPurchase === false}
+                disabled={!canTryAndBuy}
                 aria-label={`Try & Buy ${product.name}`}
                 data-testid="try-and-buy-button"
                 onClick={handleTryAndBuyClick}
@@ -1318,7 +1323,7 @@ export default function ProductDetail() {
           <button
             type="button"
             className="pd-mobile-try"
-            disabled={canPurchase === false}
+            disabled={!canTryAndBuy}
             onClick={handleTryAndBuyClick}
           >
             <MdVerified />
