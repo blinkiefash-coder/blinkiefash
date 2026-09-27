@@ -29,6 +29,7 @@ import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useWishlist } from '../context/WishlistContext';
 import { detectCurrentCity } from '../utils/location';
+import { fetchVendorProfile } from '../utils/vendorSession';
 import './ProductDetail.css';
 import './Home.css';
 
@@ -143,6 +144,21 @@ export default function ProductDetail() {
       .then((res) => {
         if (cancelled) return;
         setData(res);
+        if (res.product?.vendor_id && !res.product?.vendor_store_name) {
+          fetchVendorProfile(res.product.vendor_id).then((vendor) => {
+            if (cancelled || !vendor) return;
+            setData((current) => ({
+              ...current,
+              product: {
+                ...current.product,
+                vendor_store_name: vendor.store_name,
+                vendor_owner_name: vendor.owner_name,
+                vendor_business_name: vendor.business_name,
+                vendor_is_verified: vendor.is_verified,
+              },
+            }));
+          });
+        }
         const firstAvailable =
           (res.variants || []).find((v) => Number(v.available_stock || 0) > 0) ||
           res.variants?.[0] ||
@@ -817,8 +833,13 @@ export default function ProductDetail() {
               <span>Sold by</span>
               <strong>
                 {product.vendor_store_name ||
+                  product.vendor_name ||
+                  product.seller_name ||
+                  product.store_name ||
                   product.vendor_business_name ||
+                  product.business_name ||
                   product.vendor_owner_name ||
+                  product.owner_name ||
                   'Blinkiefash Seller'}
               </strong>
               {product.vendor_is_verified && (
