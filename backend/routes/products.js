@@ -729,10 +729,17 @@ router.get("/:id", async (req, res) => {
 
     // ✅ PRODUCT
     const productRes = await pool.query(
-      `SELECT p.*, b.name AS brand, c.name AS category_name
+      `SELECT p.*,
+          b.name AS brand,
+          c.name AS category_name,
+          v.store_name AS vendor_store_name,
+          v.owner_name AS vendor_owner_name,
+          v.business_name AS vendor_business_name,
+          COALESCE(v.is_verified, false) AS vendor_is_verified
        FROM products p
        LEFT JOIN brands b ON b.id = p.brand_id
        LEFT JOIN categories c ON c.id = p.category_id
+       LEFT JOIN vendors v ON v.id = p.vendor_id
        WHERE p.id = $1`,
       [id]
     );

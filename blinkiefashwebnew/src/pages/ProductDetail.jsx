@@ -813,6 +813,19 @@ export default function ProductDetail() {
             <p className="pp-brand">{product.brand || 'BLINKIEFASH'}</p>
             <h1 className="pp-title">{product.name}</h1>
 
+            <div className="pd-seller-row" aria-label="Seller information">
+              <span>Sold by</span>
+              <strong>
+                {product.vendor_store_name ||
+                  product.vendor_business_name ||
+                  product.vendor_owner_name ||
+                  'Blinkiefash Seller'}
+              </strong>
+              {product.vendor_is_verified && (
+                <MdVerified className="pd-seller-verified" aria-label="Verified seller" title="Verified seller" />
+              )}
+            </div>
+
             <div className="pp-rating-line">
               <span className="pp-stars" aria-hidden="true">
                 {'★'.repeat(roundedAvg)}

@@ -165,6 +165,18 @@
 
 .pd-off { color: #16a34a; font-size: 13px; font-weight: 700; }
 
+.pd-seller-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 5px 0 12px;
+  color: #64748b;
+  font-size: 12px;
+}
+.pd-seller-row strong { color: #1e293b; font-size: 13px; }
+.pd-seller-verified { color: #168544; font-size: 16px; }
+
 .pd-secure {
   margin-top: 4px;
   font-size: 12px;
