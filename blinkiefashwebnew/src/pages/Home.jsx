@@ -1277,13 +1277,12 @@ export default function Home() {
   const trendyShoesDisplayLoading = trendyShoesDisplay.loading;
 
   return (
-    <div className={`hp${loading ? ' hp-loading' : ''}`}>
+    <div className="hp">
       <PageSEO
         title="India's Fashion Marketplace | 60-Minute Fashion Delivery"
         description="Shop from brands, boutiques & local stores. Get eligible fashion delivered in as little as 60 minutes."
         path="/"
       />
-      {loading ? <Loader overlay /> : null}
       <Navbar />
       <main className="hp-main">
         <section className="hp-coupon-section">
