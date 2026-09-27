@@ -725,23 +725,8 @@ export default function Home() {
     (async () => {
       try {
         const fetchNewestPool = async () => {
-          const pool = [];
-          const seen = new Set();
-          let offset = 0;
-          for (let i = 0; i < 4; i += 1) {
-            const res = await getProducts({ sort: 'newest', limit: 100, offset });
-            const batch = res?.products || (Array.isArray(res) ? res : []);
-            if (!Array.isArray(batch) || batch.length === 0) break;
-            batch.forEach((item) => {
-              const key = String(item?.id ?? '');
-              if (!key || seen.has(key)) return;
-              seen.add(key);
-              pool.push(item);
-            });
-            if (batch.length < 100) break;
-            offset += 100;
-          }
-          return pool;
+          const res = await getProducts({ sort: 'newest', limit: 24, offset: 0 });
+          return res?.products || (Array.isArray(res) ? res : []);
         };
 
         const [catRes, dealsRes, palermoRes, newestPool, brandsRes] = await Promise.all([
@@ -1012,16 +997,11 @@ export default function Home() {
         // have any products — an audience section (Men/Women/Kids/
         // Electronics/Trendy Shoes) should only show chips that actually
         // lead somewhere.
-        const [
-          prunedMensCats, prunedWomensCats, prunedKidsCats,
-          prunedElectronicsCats, prunedShoesCats,
-        ] = await Promise.all([
-          pruneEmptyCats(freshMensCats),
-          pruneEmptyCats(freshWomensCats),
-          pruneEmptyCats(freshKidsCats),
-          pruneEmptyCats(freshElectronicsCats),
-          pruneEmptyCats(freshShoesCats),
-        ]);
+        const prunedMensCats = freshMensCats;
+        const prunedWomensCats = freshWomensCats;
+        const prunedKidsCats = freshKidsCats;
+        const prunedElectronicsCats = freshElectronicsCats;
+        const prunedShoesCats = freshShoesCats;
         if (cancelled) return;
 
         _homeCache = {
